@@ -1,4 +1,3 @@
-
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/splash.view.dart';
@@ -10,8 +9,7 @@ void main() async {
     options: const FirebaseOptions(
       apiKey: "AIzaSyBp6_fzqtLoGmIeSyg3vtrHyJJfxVg902c",
       authDomain: "ppc-toda.firebaseapp.com",
-      databaseURL:
-          "https://ppc-toda-default-rtdb.asia-southeast1.firebasedatabase.app",
+      databaseURL: "https://ppc-toda-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "ppc-toda",
       storageBucket: "ppc-toda.firebasestorage.app",
       messagingSenderId: "462080229186",

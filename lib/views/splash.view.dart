@@ -11,11 +11,11 @@ class SplashView extends StatefulWidget {
 }
 
 class _SplashViewState extends State<SplashView> {
-  HomeViewModel splashViewModel = HomeViewModel();
+  SplashViewModel splashViewModel = SplashViewModel();
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<HomeViewModel>.reactive(
+    return ViewModelBuilder<SplashViewModel>.reactive(
       viewModelBuilder: () => splashViewModel,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {

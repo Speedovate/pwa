@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
-import 'package:pwa/views/home.view.dart';
 import 'package:stacked/stacked.dart';
+import 'package:pwa/views/home.view.dart';
 
-class HomeViewModel extends BaseViewModel {
+class SplashViewModel extends BaseViewModel {
   Future<void> initialise() async {
     await goToNextPage();
   }

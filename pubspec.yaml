@@ -10,8 +10,11 @@ dependencies:
     sdk: flutter
   get: ^4.6.6
   stacked: ^3.4.4
+  google_maps: ^8.1.1
+  dash_chat_2: ^0.0.21
   firebase_core: ^3.10.0
   cupertino_icons: ^1.0.8
+  cloud_firestore: ^5.6.1
   rx_shared_preferences: ^4.0.0
 
 dev_dependencies:
@@ -23,6 +26,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/splash.png
     - assets/images/
     - assets/json/
     - assets/
