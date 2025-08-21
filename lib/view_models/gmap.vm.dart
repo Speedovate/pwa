@@ -11,20 +11,24 @@ class GMapViewModel extends BaseViewModel {
     _map?.onCenterChanged.listen((event) {
       final center = _map?.center;
       final zoom = _map?.zoom;
-      print("Camera moved → Center: ${center?.lat}, ${center?.lng}, Zoom: $zoom");
+      print(
+        "Camera move → Center: ${center?.lat}, ${center?.lng}, Zoom: $zoom",
+      );
     });
     _map?.onIdle.listen((event) {
       final center = _map?.center;
       final zoom = _map?.zoom;
-      print("Camera idle → Center: ${center?.lat}, ${center?.lng}, Zoom: $zoom");
+      print(
+        "Camera idle → Center: ${center?.lat}, ${center?.lng}, Zoom: $zoom",
+      );
     });
   }
 
   gmaps.Map? get map => _map;
 
   Future<void> zoomToCurrentLocation({
-    double zoom = 14,
-    int durationMs = 500,
+    double zoom = 16,
+    int durationMs = 100,
   }) async {
     if (_map == null) return;
     final target = await getMyLatLng();
@@ -51,5 +55,21 @@ class GMapViewModel extends BaseViewModel {
     _map!.center = target;
     _map!.zoom = zoom;
     notifyListeners();
+  }
+
+  Future<void> zoomIn() async {
+    if (_map != null) {
+      final currentZoom = _map!.zoom.toDouble();
+      _map!.zoom = (currentZoom + 1).clamp(0, 21);
+      notifyListeners();
+    }
+  }
+
+  Future<void> zoomOut() async {
+    if (_map != null) {
+      final currentZoom = _map!.zoom.toDouble();
+      _map!.zoom = (currentZoom - 1).clamp(0, 21);
+      notifyListeners();
+    }
   }
 }

@@ -74,11 +74,13 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         }
       ];
       final mapOptions = gmaps.MapOptions()
-        ..zoom = 14
+        ..zoom = 16
         ..center = widget.center
-        ..mapTypeId = gmaps.MapTypeId.ROADMAP
+        ..clickableIcons = false
         ..disableDefaultUI = true
-        ..gestureHandling = 'greedy';
+        ..gestureHandling = 'greedy'
+        ..disableDoubleClickZoom = true
+        ..mapTypeId = gmaps.MapTypeId.ROADMAP;
       final map = gmaps.Map(mapDiv as dynamic, mapOptions);
       js_util.setProperty(map, 'styles', styles);
       widget.viewModel.setMap(map);

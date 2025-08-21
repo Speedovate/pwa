@@ -16,6 +16,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   cloud_firestore: ^5.6.1
   rx_shared_preferences: ^4.0.0
+  ming_cute_icons: ^0.0.7
 
 dev_dependencies:
   flutter_test:
