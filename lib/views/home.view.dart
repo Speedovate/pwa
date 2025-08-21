@@ -53,8 +53,7 @@ class _HomeViewState extends State<HomeView> {
                       right: 20,
                       child: FloatingActionButton(
                         onPressed: () {
-                          vm.map?.zoom= 21;
-                          vm.notifyListeners();
+                          vm.zoomToCurrentLocation();
                         },
                         backgroundColor: const Color(
                           0xFFFFFFFF,
