@@ -8,6 +8,16 @@ class GMapViewModel extends BaseViewModel {
 
   void setMap(gmaps.Map map) {
     _map = map;
+    _map?.onCenterChanged.listen((event) {
+      final center = _map?.center;
+      final zoom = _map?.zoom;
+      print("Camera moved → Center: ${center?.lat}, ${center?.lng}, Zoom: $zoom");
+    });
+    _map?.onIdle.listen((event) {
+      final center = _map?.center;
+      final zoom = _map?.zoom;
+      print("Camera idle → Center: ${center?.lat}, ${center?.lng}, Zoom: $zoom");
+    });
   }
 
   gmaps.Map? get map => _map;
