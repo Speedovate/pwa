@@ -2,8 +2,7 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
-
-// import 'package:pwa/views/send.view.dart';
+import 'package:pwa/views/send.view.dart';
 import 'package:pwa/widgets/text_field.dart';
 
 // import 'package:pwa/views/register.view.dart';
@@ -174,11 +173,11 @@ class _LoginViewState extends State<LoginView> {
                             children: [
                               GestureDetector(
                                 onTap: () {
-                                  // Get.to(
-                                  //   () => const SendView(
-                                  //     purpose: "forgot_password",
-                                  //   ),
-                                  // );
+                                  Get.to(
+                                    () => const SendView(
+                                      purpose: "forgot_password",
+                                    ),
+                                  );
                                 },
                                 child: const Text(
                                   "Forgot password?",
