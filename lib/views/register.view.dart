@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:pwa/constants/api.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -465,11 +466,11 @@ class _RegisterViewState extends State<RegisterView> {
                               const SizedBox(width: 4),
                               GestureDetector(
                                 onTap: () {
-                                  // FocusManager.instance.primaryFocus?.unfocus();
-                                  // openWebview(
-                                  //   "Terms of Service",
-                                  //   Api.terms,
-                                  // );
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  openWebview(
+                                    "Terms of Service",
+                                    Api.terms,
+                                  );
                                 },
                                 child: const Text(
                                   "Terms of Service",

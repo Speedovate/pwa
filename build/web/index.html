@@ -5,7 +5,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="PPC TODA PWA">
+  <meta name="description" content="PPC TODA">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,8 +21,31 @@
 
   <!-- Google Map -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAZ_QLjsiFZnrZr33sCqW-SlTtkIV7PTeM"></script>
+
+  <!-- ✅ App version & build number (auto-injected before build) -->
+  <meta name="applicationVersion" content="1.0.10">
+  <meta name="buildNumber" content="30">
+
+  <!-- ✅ Global CSS to hide scrollbars -->
+  <style>
+    /* Hide scrollbar for Chrome, Safari, Edge */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    /* Hide scrollbar for IE, Edge, and Firefox */
+    html, body {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;     /* Firefox */
+    }
+    iframe {
+      scrollbar-width: none !important;
+    }
+    iframe::-webkit-scrollbar {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -2,6 +2,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/lotties.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class UpgradeWidget extends StatelessWidget {
   const UpgradeWidget({super.key});
@@ -107,7 +108,10 @@ class UpgradeWidget extends StatelessWidget {
                           ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
-                              // launchUrlString("sms://+639122078420");
+                              launchUrlString(
+                                "sms://+639122078420",
+                                mode: LaunchMode.externalNonBrowserApplication,
+                              );
                             },
                         ),
                         TextSpan(
@@ -129,12 +133,10 @@ class UpgradeWidget extends StatelessWidget {
                           ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
-                              // launchUrlString(
-                              //   "https://www.facebook.com/ppctodaofficial",
-                              //   mode: AuthService.device() == "android"
-                              //       ? LaunchMode.externalNonBrowserApplication
-                              //       : LaunchMode.externalApplication,
-                              // );
+                              launchUrlString(
+                                "https://www.facebook.com/ppctodaofficial",
+                                mode: LaunchMode.externalNonBrowserApplication,
+                              );
                             },
                         ),
                         TextSpan(
@@ -165,14 +167,10 @@ class UpgradeWidget extends StatelessWidget {
                     child: Ink(
                       child: InkWell(
                         onTap: () {
-                          // launchUrlString(
-                          //   AuthService.device() == "android"
-                          //       ? "https://ppctoda.framer.website"
-                          //       : "https://apps.apple.com/us/app/ppc-toda/id6743928831",
-                          //   mode: AuthService.device() == "android"
-                          //       ? LaunchMode.externalNonBrowserApplication
-                          //       : LaunchMode.externalApplication,
-                          // );
+                          launchUrlString(
+                            "https://ppctoda.framer.website",
+                            mode: LaunchMode.externalNonBrowserApplication,
+                          );
                         },
                         borderRadius: const BorderRadius.all(
                           Radius.circular(8),

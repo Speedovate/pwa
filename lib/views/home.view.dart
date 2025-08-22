@@ -1,14 +1,17 @@
 import 'package:get/get.dart';
-import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/utils/data.dart';
-import 'package:pwa/views/login.view.dart';
-import 'package:pwa/widgets/cached_network_image.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
+import 'package:pwa/views/login.view.dart';
+import 'package:pwa/views/profile.view.dart';
+import 'package:pwa/views/settings.view.dart';
 import 'package:pwa/widgets/gmap.widget.dart';
 import 'package:pwa/view_models/home.vm.dart';
+import 'package:pwa/services/auth.service.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
+import 'package:pwa/widgets/cached_network_image.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
 class HomeView extends StatefulWidget {
@@ -52,11 +55,10 @@ class _HomeViewState extends State<HomeView> {
                             setState(() {
                               agreed = false;
                               selfieFile = null;
-                              // iosSelfieFile = null;
                             });
-                            // Get.to(
-                            //   () => const ProfileView(),
-                            // );
+                            Get.to(
+                              () => const ProfileView(),
+                            );
                           }
                         },
                         focusColor: const Color(0xFF030744).withOpacity(
@@ -197,9 +199,9 @@ class _HomeViewState extends State<HomeView> {
                               () => const LoginView(),
                             );
                           } else {
-                            // Get.to(
-                            //   () => const SettingsView(),
-                            // );
+                            Get.to(
+                              () => const SettingsView(),
+                            );
                           }
                         },
                       ),
@@ -215,7 +217,10 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   onTap: () {
-                    // launchUrlString("sms://+639122078420");
+                    launchUrlString(
+                      "sms://+639122078420",
+                      mode: LaunchMode.externalNonBrowserApplication,
+                    );
                   },
                 ),
                 ListTile(
@@ -231,21 +236,17 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   onTap: () {
                     if (!AuthService.inReviewMode()) {
-                      // launchUrlString(
-                      //   AuthService.device() == "android"
-                      //       ? "https://ppctoda.framer.website"
-                      //       : "https://apps.apple.com/us/app/ppc-toda/id6743928831",
-                      //   mode: AuthService.device() == "android"
-                      //       ? LaunchMode.externalNonBrowserApplication
-                      //       : LaunchMode.externalApplication,
-                      // );
+                      launchUrlString(
+                        "https://ppctoda.framer.website",
+                        mode: LaunchMode.externalNonBrowserApplication,
+                      );
                     }
                   },
                 ),
               ],
             ),
           ),
-          backgroundColor: const Color(0xFFFFFFFF),
+          backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: getMyLatLng(),
             builder: (context, snapshot) {
@@ -750,7 +751,7 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         Container(
-                          color: const Color(0xFFFFFFFF),
+                          color: Colors.white,
                           child: const Column(
                             children: [
                               Text("data"),

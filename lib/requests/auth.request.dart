@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/constants/api.dart';
@@ -286,10 +287,10 @@ class AuthRequest extends HttpService {
   }
 
   Future<ApiResponse> updateProfile({
-    required File? photo,
     required String? name,
     required String? email,
     required String? phone,
+    required Uint8List? photo,
     required String? countryCode,
   }) async {
     try {
@@ -303,8 +304,9 @@ class AuthRequest extends HttpService {
           "country_code": countryCode,
           "photo": photo == null
               ? null
-              : await MultipartFile.fromFile(
-                  photo.path,
+              : MultipartFile.fromBytes(
+                  selfieFile!,
+                  filename: "photo.jpg",
                 ),
         },
       ).timeout(

@@ -1,13 +1,14 @@
 // ignore_for_file: must_be_immutable, undefined_prefixed_name, avoid_web_libraries_in_flutter
 
 import 'dart:async';
-import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'dart:html' as html;
+import 'dart:ui_web' as ui;
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/login.view.dart';
+import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/views/register.view.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
@@ -667,9 +668,9 @@ class CameraImageWidget extends StatelessWidget {
         Get.to(() => const LoginView());
         Get.to(() => const RegisterView());
       } else {
-        // Get.to(
-        //   () => const ProfileView(),
-        // );
+        Get.to(
+          () => const ProfileView(),
+        );
       }
     }
   }

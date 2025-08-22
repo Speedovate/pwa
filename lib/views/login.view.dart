@@ -271,7 +271,6 @@ class _LoginViewState extends State<LoginView> {
                                   setState(() {
                                     agreed = false;
                                     selfieFile = null;
-                                    // iosSelfieFile = null;
                                   });
                                   Get.to(
                                     () => const RegisterView(),

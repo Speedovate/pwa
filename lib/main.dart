@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/splash.view.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:pwa/services/storage.service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,7 +10,8 @@ void main() async {
     options: const FirebaseOptions(
       apiKey: "AIzaSyBp6_fzqtLoGmIeSyg3vtrHyJJfxVg902c",
       authDomain: "ppc-toda.firebaseapp.com",
-      databaseURL: "https://ppc-toda-default-rtdb.asia-southeast1.firebasedatabase.app",
+      databaseURL:
+          "https://ppc-toda-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "ppc-toda",
       storageBucket: "ppc-toda.firebasestorage.app",
       messagingSenderId: "462080229186",
@@ -17,6 +19,7 @@ void main() async {
       measurementId: "G-30S1M2THQW",
     ),
   );
+  await StorageService.getPrefs();
   runApp(
     const MyApp(),
   );

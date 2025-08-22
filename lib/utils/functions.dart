@@ -1,10 +1,11 @@
 import 'package:get/get.dart';
-import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
 import 'package:pwa/widgets/camera.dart';
+import 'package:pwa/widgets/web_view.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:pwa/services/alert.service.dart';
+import 'package:google_maps/google_maps.dart' as gmaps;
 
 String capitalizeWords(
   dynamic input, {
@@ -341,6 +342,20 @@ Future<gmaps.LatLng?> getMyLatLng() async {
   );
 }
 
+openWebview(
+  String title,
+  String url,
+) {
+  Get.to(
+    () => WebViewWidget(
+      title: title,
+      selectedUrl: Uri.parse(
+        url,
+      ),
+    ),
+  );
+}
+
 Future<void> showCameraSource({
   bool isEdit = false,
   String cameraType = "profile",
@@ -358,4 +373,54 @@ Future<void> showCameraSource({
       content: e.toString(),
     );
   }
+}
+
+Future<dynamic> showImageSource({
+  bool isEdit = false,
+  bool hideGallery = false,
+  String cameraType = "profile",
+}) async {
+  return showModalBottomSheet(
+    context: Get.overlayContext!,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.zero,
+    ),
+    builder: (context) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          onTap: () async {
+            Get.back();
+            showCameraSource(
+              isEdit: isEdit,
+              cameraType: cameraType,
+            );
+          },
+          leading: const Icon(Icons.camera_alt),
+          title: const Text("Camera"),
+        ),
+        hideGallery
+            ? const SizedBox()
+            : ListTile(
+                onTap: () async {
+                  Get.back();
+                  try {
+                    final ImagePicker picker = ImagePicker();
+                    final XFile? image =
+                        await picker.pickImage(source: ImageSource.gallery);
+
+                    if (image != null) {
+                      selfieFile = await image.readAsBytes();
+                      Get.forceAppUpdate();
+                    }
+                  } catch (e) {
+                    debugPrint("Error picking image: $e");
+                  }
+                },
+                leading: const Icon(Icons.image),
+                title: const Text("Gallery"),
+              ),
+      ],
+    ),
+  );
 }

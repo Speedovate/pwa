@@ -124,22 +124,25 @@ class _ChangeViewState extends State<ChangeView> {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
                               ),
-                              child: TextFieldWidget(
-                                controller: vm.passwordTEC,
-                                hintText: "Must be at least 6 characters",
-                                labelText: "Password",
-                                textCapitalization: TextCapitalization.none,
-                                keyboardType: TextInputType.text,
-                                textInputAction: TextInputAction.next,
-                                obscureText: true,
-                                showPrefix: false,
-                                showSuffix: true,
-                                prefixText: null,
-                                suffixIcon: null,
-                                onSuffixTap: null,
-                                autoFocus: false,
-                                maxLines: 1,
-                                minLines: null,
+                              child: SizedBox(
+                                width: double.infinity.clamp(0, 800),
+                                child: TextFieldWidget(
+                                  controller: vm.passwordTEC,
+                                  hintText: "Must be at least 6 characters",
+                                  labelText: "Password",
+                                  textCapitalization: TextCapitalization.none,
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.next,
+                                  obscureText: true,
+                                  showPrefix: false,
+                                  showSuffix: true,
+                                  prefixText: null,
+                                  suffixIcon: null,
+                                  onSuffixTap: null,
+                                  autoFocus: false,
+                                  maxLines: 1,
+                                  minLines: null,
+                                ),
                               ),
                             ),
                       widget.isReset
@@ -229,7 +232,8 @@ class _ChangeViewState extends State<ChangeView> {
                                 hoverColor: const Color(0xFF030744).withOpacity(
                                   0.2,
                                 ),
-                                splashColor: const Color(0xFF030744).withOpacity(
+                                splashColor:
+                                    const Color(0xFF030744).withOpacity(
                                   0.2,
                                 ),
                                 highlightColor:

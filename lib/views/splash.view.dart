@@ -20,7 +20,7 @@ class _SplashViewState extends State<SplashView> {
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFFFFFFFF),
+          backgroundColor: Colors.white,
           body: Center(
             child: Image.asset(
               AppImages.splash,

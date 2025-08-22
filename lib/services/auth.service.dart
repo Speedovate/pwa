@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
@@ -109,7 +108,9 @@ class AuthService {
     // unsubscribeFromTopic(
     //   "branch_${currentUser?.branchID}_${currentUser?.role}",
     // );
-    await HttpService().getCacheManager().clearAll();
+    if (!kIsWeb) {
+      await HttpService().getCacheManager().clearAll();
+    }
     await StorageService.rxPrefs?.clear();
     await StorageService.prefs?.clear();
     dropoffAddress = null;
@@ -123,13 +124,7 @@ class AuthService {
   }
 
   static String device() {
-    if (kIsWeb) {
-      return "web";
-    } else if (Platform.isIOS) {
-      return "ios";
-    } else {
-      return "android";
-    }
+    return "web";
   }
 
   static bool inReviewMode() {
@@ -151,23 +146,11 @@ class AuthService {
 
   static bool shouldUpgrade() {
     try {
-      final androidNewVersion = int.parse(
-        "${AppStrings.appSettingsObject?["strings"]?["upgrade"]?["customer"]?["android"] ?? 0}",
-      );
-      final iosNewVersion = int.parse(
-        "${AppStrings.appSettingsObject?["strings"]?["upgrade"]?["customer"]?["ios"] ?? 0}",
-      );
       final webNewVersion = int.parse(
         "${AppStrings.appSettingsObject?["strings"]?["upgrade"]?["customer"]?["web"] ?? 0}",
       );
       final currentVersion = int.parse("${versionCode ?? 0}");
-      if (kIsWeb) {
-        return currentVersion < webNewVersion;
-      } else if (Platform.isIOS) {
-        return currentVersion < iosNewVersion;
-      } else {
-        return currentVersion < androidNewVersion;
-      }
+      return currentVersion < webNewVersion;
     } catch (e) {
       return false;
     }

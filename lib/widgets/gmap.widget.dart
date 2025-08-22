@@ -27,13 +27,32 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   @override
   void initState() {
     super.initState();
-    viewId = 'map-div-${widget.hashCode}';
+
+    // Unique per instance to avoid "already registered" errors
+    viewId = 'map-div-${DateTime.now().microsecondsSinceEpoch}';
+
+    // Inject CSS once to hide default Google Maps UI bits (no MutationObserver needed)
+    _ensureHideGmapUiStyle();
+
     ui.platformViewRegistry.registerViewFactory(viewId, (int _) {
       final mapDiv = html.DivElement()
         ..id = viewId
         ..style.width = '100%'
         ..style.height = '100%';
 
+      // Map options
+      final mapOptions = gmaps.MapOptions()
+        ..zoom = 16
+        ..center = widget.center
+        ..clickableIcons = false
+        ..disableDefaultUI = true
+        ..gestureHandling = 'greedy'
+        ..disableDoubleClickZoom = true
+        ..mapTypeId = gmaps.MapTypeId.ROADMAP;
+
+      final map = gmaps.Map(mapDiv as dynamic, mapOptions);
+
+      // Optional custom styles
       final styles = [
         {
           "featureType": "poi",
@@ -73,30 +92,37 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           ]
         }
       ];
-      final mapOptions = gmaps.MapOptions()
-        ..zoom = 16
-        ..center = widget.center
-        ..clickableIcons = false
-        ..disableDefaultUI = true
-        ..gestureHandling = 'greedy'
-        ..disableDoubleClickZoom = true
-        ..mapTypeId = gmaps.MapTypeId.ROADMAP;
-      final map = gmaps.Map(mapDiv as dynamic, mapOptions);
       js_util.setProperty(map, 'styles', styles);
+
+      // Hand off to your ViewModel
       widget.viewModel.setMap(map);
-      final script = html.ScriptElement()
-        ..type = 'text/javascript'
-        ..innerHtml = '''
-          const observer = new MutationObserver(() => {
-            document.querySelectorAll(
-              '.gm-style-cc, .gmnoprint, .gm-style a, .gm-style-mtc, .gm-fullscreen-control, .gm-svpc'
-            ).forEach(el => el.style.display = 'none');
-          });
-          observer.observe(document.body, { childList: true, subtree: true });
-        ''';
-      html.document.body?.append(script);
+
       return mapDiv;
     });
+  }
+
+  // Inject a single <style> tag that hides unwanted GM controls globally.
+  void _ensureHideGmapUiStyle() {
+    const styleId = 'gmap-hide-ui';
+    if (html.document.getElementById(styleId) != null) return;
+
+    final styleEl = html.StyleElement()
+      ..id = styleId
+      ..appendText('''
+        /* Hide various Google Maps controls & attributions */
+        .gm-style-cc,
+        .gmnoprint,
+        .gm-style a,
+        .gm-style-mtc,
+        .gm-fullscreen-control,
+        .gm-svpc {
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+      ''');
+
+    html.document.head?.append(styleEl);
   }
 
   @override
