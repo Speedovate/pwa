@@ -57,7 +57,6 @@ class SendViewModel extends BaseViewModel {
           throw apiResponse.message;
         }
       } catch (e) {
-        AlertService().stopLoading();
         ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
         ScaffoldMessenger.of(
           Get.overlayContext!,
@@ -133,6 +132,15 @@ class SendViewModel extends BaseViewModel {
               color: Colors.white,
             ),
           ),
+        ),
+      );
+      Get.to(
+        () => VerifyView(
+          name: null,
+          email: null,
+          phone: phoneTEC.text,
+          purpose: purpose,
+          password: null,
         ),
       );
     }

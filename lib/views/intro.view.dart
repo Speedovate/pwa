@@ -48,6 +48,11 @@ class _IntroViewState extends State<IntroView> {
                                     right: 50,
                                   ),
                                   child: Column(
+                                    mainAxisAlignment:
+                                        MediaQuery.of(context).size.height >
+                                                1024
+                                            ? MainAxisAlignment.center
+                                            : MainAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 24),
                                       SizedBox(
@@ -57,26 +62,30 @@ class _IntroViewState extends State<IntroView> {
                                                         .size
                                                         .height
                                                 ? (MediaQuery.of(context)
-                                                        .size
-                                                        .height /
-                                                    3).clamp(0, 250)
+                                                            .size
+                                                            .height /
+                                                        3)
+                                                    .clamp(0, 250)
                                                 : (MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    2.2).clamp(0, 250),
+                                                            .size
+                                                            .width /
+                                                        2.2)
+                                                    .clamp(0, 250),
                                         height:
                                             MediaQuery.of(context).size.width >
                                                     MediaQuery.of(context)
                                                         .size
                                                         .height
                                                 ? (MediaQuery.of(context)
-                                                        .size
-                                                        .height /
-                                                    3).clamp(0, 250)
+                                                            .size
+                                                            .height /
+                                                        3)
+                                                    .clamp(0, 250)
                                                 : (MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    2.2).clamp(0, 250),
+                                                            .size
+                                                            .width /
+                                                        2.2)
+                                                    .clamp(0, 250),
                                         child: Center(
                                           child: Image.asset(
                                             () {

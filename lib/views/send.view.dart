@@ -62,134 +62,145 @@ class _SendViewState extends State<SendView> {
               backgroundColor: Colors.white,
               body: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const SizedBox(width: 4),
-                        IconButton(
-                          onPressed: () {
-                            if (sendViewModel.phoneTEC.text == "" ||
-                                sendViewModel.phoneTEC.text == "null") {
-                              Get.back();
-                            } else {
-                              AlertService().showAppAlert(
-                                title: "Are you sure?",
-                                content: "You're about to leave this page",
-                                hideCancel: false,
-                                confirmText: "Go back",
-                                confirmAction: () {
-                                  Get.back();
-                                  Get.back();
-                                },
-                              );
-                            }
-                          },
-                          icon: const Padding(
-                            padding: EdgeInsets.only(
-                              top: 2,
-                              right: 4,
-                              bottom: 2,
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: () {
+                              if (sendViewModel.phoneTEC.text == "" ||
+                                  sendViewModel.phoneTEC.text == "null") {
+                                Get.back();
+                              } else {
+                                AlertService().showAppAlert(
+                                  title: "Are you sure?",
+                                  content: "You're about to leave this page",
+                                  hideCancel: false,
+                                  confirmText: "Go back",
+                                  confirmAction: () {
+                                    Get.back();
+                                    Get.back();
+                                  },
+                                );
+                              }
+                            },
+                            icon: const Padding(
+                              padding: EdgeInsets.only(
+                                top: 2,
+                                right: 4,
+                                bottom: 2,
+                              ),
+                              child: Icon(
+                                MingCuteIcons.mgc_left_line,
+                                color: Color(0xFF030744),
+                                size: 38,
+                              ),
                             ),
-                            child: Icon(
-                              MingCuteIcons.mgc_left_line,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            () {
+                              if (widget.purpose == "forgot_password") {
+                                return "Forgot Password";
+                              } else {
+                                return "Get a Code";
+                              }
+                            }(),
+                            style: const TextStyle(
+                              height: 1,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w500,
                               color: Color(0xFF030744),
-                              size: 38,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          () {
-                            if (widget.purpose == "forgot_password") {
-                              return "Forgot Password";
-                            } else {
-                              return "Get a Code";
-                            }
-                          }(),
-                          style: const TextStyle(
-                            height: 1,
-                            fontSize: 25,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF030744),
+                        ],
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Center(
+                          child: Image.asset(
+                            AppImages.auth,
+                            fit: BoxFit.fitWidth,
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Image.asset(
-                        AppImages.auth,
-                        fit: BoxFit.fitWidth,
-                        width: MediaQuery.of(context).size.width - 100,
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                      ),
-                      child: TextFieldWidget(
-                        controller: vm.phoneTEC,
-                        hintText: "XXXXXXXXX",
-                        labelText: "Phone Number",
-                        textCapitalization: TextCapitalization.none,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
-                        obscureText: false,
-                        showPrefix: true,
-                        showSuffix: false,
-                        prefixText: "+63",
-                        suffixIcon: null,
-                        onSuffixTap: null,
-                        autoFocus: false,
-                        maxLines: 1,
-                        minLines: null,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                      ),
-                      child: SizedBox(
-                        height: 50,
-                        child: Material(
-                          color: const Color(0xFF007BFF),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity.clamp(0, 800),
+                          child: TextFieldWidget(
+                            controller: vm.phoneTEC,
+                            hintText: "XXXXXXXXX",
+                            labelText: "Phone Number",
+                            textCapitalization: TextCapitalization.none,
+                            keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.done,
+                            obscureText: false,
+                            showPrefix: true,
+                            showSuffix: false,
+                            prefixText: "+63",
+                            suffixIcon: null,
+                            onSuffixTap: null,
+                            autoFocus: false,
+                            maxLines: 1,
+                            minLines: null,
                           ),
-                          child: Ink(
-                            child: InkWell(
-                              onTap: () {
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                vm.sendCode(widget.purpose);
-                              },
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(8),
-                              ),
-                              focusColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              hoverColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              splashColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              highlightColor:
-                                  const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  "Send Code",
-                                  style: TextStyle(
-                                    height: 1,
-                                    fontSize: 18,
-                                    fontFamily: "Inter",
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                        ),
+                        child: SizedBox(
+                          height: 50,
+                          width: double.infinity.clamp(0, 800),
+                          child: Material(
+                            color: const Color(0xFF007BFF),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(8),
+                            ),
+                            child: Ink(
+                              child: InkWell(
+                                onTap: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  vm.sendCode(widget.purpose);
+                                },
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(8),
+                                ),
+                                focusColor: const Color(0xFF030744).withOpacity(
+                                  0.2,
+                                ),
+                                hoverColor: const Color(0xFF030744).withOpacity(
+                                  0.2,
+                                ),
+                                splashColor:
+                                    const Color(0xFF030744).withOpacity(
+                                  0.2,
+                                ),
+                                highlightColor:
+                                    const Color(0xFF030744).withOpacity(
+                                  0.2,
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    "Send Code",
+                                    style: TextStyle(
+                                      height: 1,
+                                      fontSize: 18,
+                                      fontFamily: "Inter",
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -197,9 +208,12 @@ class _SendViewState extends State<SendView> {
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                      const Expanded(
+                        flex: 1,
+                        child: SizedBox(height: 24),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
