@@ -1,3 +1,8 @@
+import 'package:get/get.dart';
+import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/utils/data.dart';
+import 'package:pwa/views/login.view.dart';
+import 'package:pwa/widgets/cached_network_image.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
@@ -23,8 +28,225 @@ class _HomeViewState extends State<HomeView> {
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
         return Scaffold(
+          drawer: Drawer(
+            backgroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(),
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).padding.top,
+                ),
+                Container(
+                  color: Colors.white,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Ink(
+                      child: InkWell(
+                        onTap: () {
+                          if (!AuthService.isLoggedIn()) {
+                            Get.to(
+                              () => const LoginView(),
+                            );
+                          } else {
+                            setState(() {
+                              agreed = false;
+                              selfieFile = null;
+                              // iosSelfieFile = null;
+                            });
+                            // Get.to(
+                            //   () => const ProfileView(),
+                            // );
+                          }
+                        },
+                        focusColor: const Color(0xFF030744).withOpacity(
+                          0.1,
+                        ),
+                        hoverColor: const Color(0xFF030744).withOpacity(
+                          0.1,
+                        ),
+                        splashColor: const Color(0xFF030744).withOpacity(
+                          0.1,
+                        ),
+                        highlightColor: const Color(0xFF030744).withOpacity(
+                          0.1,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: 18,
+                            left: 18,
+                            right: 12,
+                            bottom: 18,
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  ClipOval(
+                                    child: SizedBox(
+                                      width: 50,
+                                      height: 50,
+                                      child: CachedNetworkImageWidget(
+                                        fit: BoxFit.cover,
+                                        memCacheWidth: 600,
+                                        imageUrl:
+                                            AuthService.currentUser?.cPhoto ??
+                                                "",
+                                        progressIndicatorBuilder: (
+                                          context,
+                                          imageUrl,
+                                          progress,
+                                        ) {
+                                          return const CircularProgressIndicator(
+                                            color: Color(0xFF007BFF),
+                                            strokeWidth: 2,
+                                          );
+                                        },
+                                        errorWidget: (
+                                          context,
+                                          imageUrl,
+                                          progress,
+                                        ) {
+                                          return Container(
+                                            color: const Color(0xFF030744),
+                                            child: const Icon(
+                                              MingCuteIcons.mgc_user_3_line,
+                                              color: Colors.white,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 12,
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      !AuthService.isLoggedIn()
+                                          ? "Login Account"
+                                          : capitalizeWords(
+                                              "${AuthService.currentUser!.name}",
+                                            ),
+                                      style: const TextStyle(
+                                        height: 1.05,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF030744),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 12,
+                                  ),
+                                  const Icon(
+                                    MingCuteIcons.mgc_right_line,
+                                    color: Color(0xFF030744),
+                                    size: 25,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Divider(
+                  height: 1.05,
+                  thickness: 1,
+                  color: const Color(0xFF030744).withOpacity(0.1),
+                ),
+                !AuthService.isLoggedIn()
+                    ? const SizedBox()
+                    : ListTile(
+                        leading: const Icon(
+                          MingCuteIcons.mgc_history_line,
+                          color: Color(0xFF030744),
+                        ),
+                        title: const Text(
+                          "History",
+                          style: TextStyle(
+                            color: Color(0xFF030744),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: () {
+                          // Get.to(
+                          //   () => const HistoryView(),
+                          // );
+                        },
+                      ),
+                !AuthService.isLoggedIn()
+                    ? const SizedBox()
+                    : ListTile(
+                        leading: const Icon(
+                          MingCuteIcons.mgc_settings_3_line,
+                          color: Color(0xFF030744),
+                        ),
+                        title: const Text(
+                          "Settings",
+                          style: TextStyle(
+                            color: Color(0xFF030744),
+                          ),
+                        ),
+                        onTap: () {
+                          if (!AuthService.isLoggedIn()) {
+                            Get.to(
+                              () => const LoginView(),
+                            );
+                          } else {
+                            // Get.to(
+                            //   () => const SettingsView(),
+                            // );
+                          }
+                        },
+                      ),
+                ListTile(
+                  leading: const Icon(
+                    MingCuteIcons.mgc_headphone_line,
+                    color: Color(0xFF030744),
+                  ),
+                  title: const Text(
+                    "Assistance",
+                    style: TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  onTap: () {
+                    // launchUrlString("sms://+639122078420");
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    MingCuteIcons.mgc_code_line,
+                    color: Color(0xFF030744),
+                  ),
+                  title: Text(
+                    "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
+                    style: const TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  onTap: () {
+                    if (!AuthService.inReviewMode()) {
+                      // launchUrlString(
+                      //   AuthService.device() == "android"
+                      //       ? "https://ppctoda.framer.website"
+                      //       : "https://apps.apple.com/us/app/ppc-toda/id6743928831",
+                      //   mode: AuthService.device() == "android"
+                      //       ? LaunchMode.externalNonBrowserApplication
+                      //       : LaunchMode.externalApplication,
+                      // );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
           backgroundColor: const Color(0xFFFFFFFF),
-          body: FutureBuilder<gmaps.LatLng>(
+          body: FutureBuilder<gmaps.LatLng?>(
             future: getMyLatLng(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
@@ -85,7 +307,9 @@ class _HomeViewState extends State<HomeView> {
                                             hoverDuration: const Duration(
                                               milliseconds: 500,
                                             ),
-                                            onTap: () async {},
+                                            onTap: () async {
+                                              Scaffold.of(context).openDrawer();
+                                            },
                                             borderRadius:
                                                 const BorderRadius.all(
                                               Radius.circular(

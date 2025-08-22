@@ -9,14 +9,22 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
+  dio: ^5.9.0
+  lottie: ^3.2.0
   stacked: ^3.4.4
+  georange: ^1.0.0
   google_maps: ^8.1.1
   dash_chat_2: ^0.0.21
+  firebase_auth: ^5.7.0
   firebase_core: ^3.10.0
   cupertino_icons: ^1.0.8
   cloud_firestore: ^5.6.1
-  rx_shared_preferences: ^4.0.0
   ming_cute_icons: ^0.0.7
+  carousel_slider: ^5.1.1
+  dio_http_cache_lts: ^0.4.2
+  rx_shared_preferences: ^4.0.0
+
+
 
 dev_dependencies:
   flutter_test:

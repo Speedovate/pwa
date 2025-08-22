@@ -35,8 +35,8 @@ class GMapViewModel extends BaseViewModel {
     final startLat = _map!.center.lat;
     final startLng = _map!.center.lng;
     final startZoom = _map!.zoom;
-    final endLat = target.lat;
-    final endLng = target.lng;
+    final endLat = target?.lat ?? 9.7638;
+    final endLng = target?.lng ?? 118.7473;
     final endZoom = zoom;
     final distance =
         ((endLat - startLat).abs() + (endLng - startLng).abs()) / 2;
@@ -52,7 +52,7 @@ class GMapViewModel extends BaseViewModel {
       if (i % 2 == 0) notifyListeners();
       await Future.delayed(Duration(milliseconds: stepDuration));
     }
-    _map!.center = target;
+    _map!.center = target ?? gmaps.LatLng(9.7638, 118.7473);
     _map!.zoom = zoom;
     notifyListeners();
   }

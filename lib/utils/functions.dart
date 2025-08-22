@@ -320,7 +320,7 @@ List<T>? parseList<T>(
   }
 }
 
-Future<gmaps.LatLng> getMyLatLng() async {
+Future<gmaps.LatLng?> getMyLatLng() async {
   try {
     final position = await geolocation.getCurrentPosition();
     final lat = position.coords?.latitude;

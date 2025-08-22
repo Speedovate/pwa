@@ -24,8 +24,14 @@ class _SplashViewState extends State<SplashView> {
           body: Center(
             child: Image.asset(
               AppImages.splash,
-              width: MediaQuery.of(context).size.width / 1.3,
-              height: MediaQuery.of(context).size.width / 1.3,
+              width: MediaQuery.of(context).size.width >
+                      MediaQuery.of(context).size.height
+                  ? (MediaQuery.of(context).size.height / 2.1).clamp(0, 350)
+                  : (MediaQuery.of(context).size.width / 1.3).clamp(0, 350),
+              height: MediaQuery.of(context).size.width >
+                      MediaQuery.of(context).size.height
+                  ? (MediaQuery.of(context).size.height / 2.1).clamp(0, 350)
+                  : (MediaQuery.of(context).size.width / 1.3).clamp(0, 350),
             ),
           ),
         );

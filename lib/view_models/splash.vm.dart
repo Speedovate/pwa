@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
-import 'package:pwa/views/home.view.dart';
+import 'package:pwa/views/intro.view.dart';
 
 class SplashViewModel extends BaseViewModel {
   Future<void> initialise() async {
@@ -13,6 +13,6 @@ class SplashViewModel extends BaseViewModel {
         seconds: 5,
       ),
     );
-    Get.offAll(() => const HomeView());
+    Get.offAll(() => const IntroView());
   }
 }
