@@ -1,7 +1,10 @@
+import 'package:get/get.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/widgets/camera.dart';
 
 String capitalizeWords(
   dynamic input, {
@@ -336,4 +339,23 @@ Future<gmaps.LatLng?> getMyLatLng() async {
     9.7392,
     118.7353,
   );
+}
+
+Future<void> showCameraSource({
+  bool isEdit = false,
+  String cameraType = "profile",
+}) async {
+  try {
+    Get.to(
+      () => CameraWidget(
+        isEdit: isEdit,
+        cameraType: cameraType,
+      ),
+    );
+  } catch (e) {
+    AlertService().showAppAlert(
+      title: "Error",
+      content: e.toString(),
+    );
+  }
 }

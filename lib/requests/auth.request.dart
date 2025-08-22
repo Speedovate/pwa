@@ -151,20 +151,21 @@ class AuthRequest extends HttpService {
       List<File> files = [];
       FormData formData = FormData.fromMap(body);
       if (selfieFile != null) {
-        selfieFile?.existsSync();
         formData.files.add(
           MapEntry(
             "profile",
-            await MultipartFile.fromFile(
-              selfieFile!.path,
+            MultipartFile.fromBytes(
+              selfieFile!,
+              filename: "profile.jpg",
             ),
           ),
         );
         formData.files.add(
           MapEntry(
             "customizable_photo",
-            await MultipartFile.fromFile(
-              selfieFile!.path,
+            MultipartFile.fromBytes(
+              selfieFile!,
+              filename: "customizable_photo.jpg",
             ),
           ),
         );

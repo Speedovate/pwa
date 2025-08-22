@@ -1,9 +1,9 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
-import 'dart:io';
 import 'dart:async';
 import 'dart:html' as html;
 import 'package:pwa/models/banner.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/models/wallet.model.dart';
 import 'package:pwa/models/address.model.dart';
@@ -11,16 +11,16 @@ import 'package:pwa/models/chat_media.model.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
 import 'package:pwa/models/available_driver.model.dart';
 
-File? chatFile;
 Wallet? gWallet;
 dynamic cameras;
 String? version;
-File? selfieFile;
 Timer? globalTimer;
+Uint8List? chatFile;
 bool agreed = false;
 int orderDriver = 0;
 String? versionCode;
 int branchNumber = 0;
+Uint8List? selfieFile;
 bool isAdSeen = false;
 bool isSharing = false;
 Address? pickupAddress;
