@@ -1,18 +1,19 @@
-// ignore_for_file: must_be_immutable, undefined_prefixed_name
+// ignore_for_file: must_be_immutable, undefined_prefixed_name, avoid_web_libraries_in_flutter
 
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'dart:html' as html;
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
 import 'package:pwa/utils/data.dart';
+import 'package:flutter/material.dart';
 import 'package:pwa/views/login.view.dart';
 import 'package:pwa/views/register.view.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
 
-Uint8List? webProfileBytes;
 Uint8List? webChatBytes;
+Uint8List? webProfileBytes;
 Uint8List? pickedImageBytes;
 
 class CameraWidget extends StatefulWidget {
@@ -50,6 +51,9 @@ class _CameraWidgetState extends State<CameraWidget> {
         ..style.objectFit = 'cover';
       _videoElement!.setAttribute('playsinline', 'true');
 
+      ui.platformViewRegistry
+          .registerViewFactory(_viewType, (int viewId) => _videoElement!);
+
       final constraints = {
         'video': {
           'facingMode':
@@ -65,21 +69,15 @@ class _CameraWidgetState extends State<CameraWidget> {
       if (_mediaStream == null) throw Exception('Media stream unavailable');
 
       _videoElement!.srcObject = _mediaStream;
-      unawaited(
-        _videoElement!.play(),
-      );
+      unawaited(_videoElement!.play());
 
       _videoElement!.onLoadedMetadata.listen((_) {
         if (mounted && !_isReady) setState(() => _isReady = true);
       });
 
-      ui.platformViewRegistry
-          .registerViewFactory(_viewType, (int viewId) => _videoElement!);
       setState(() {});
     } catch (e) {
-      _showError(
-        e.toString(),
-      );
+      _showError(e.toString());
     }
   }
 
@@ -116,15 +114,14 @@ class _CameraWidgetState extends State<CameraWidget> {
       setState(() => _isCapturing = false);
       Get.to(
         () => CameraImageWidget(
-            imageBytes: pickedImageBytes!,
-            isEdit: widget.isEdit,
-            cameraType: widget.cameraType),
+          imageBytes: pickedImageBytes!,
+          isEdit: widget.isEdit,
+          cameraType: widget.cameraType,
+        ),
       );
     } catch (e) {
       if (mounted) setState(() => _isCapturing = false);
-      _showError(
-        e.toString(),
-      );
+      _showError(e.toString());
     }
   }
 
@@ -132,7 +129,10 @@ class _CameraWidgetState extends State<CameraWidget> {
     final ctx = Get.overlayContext;
     if (ctx != null) {
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -140,9 +140,7 @@ class _CameraWidgetState extends State<CameraWidget> {
   @override
   void dispose() {
     try {
-      _mediaStream?.getTracks().forEach(
-            (t) => t.stop(),
-          );
+      _mediaStream?.getTracks().forEach((t) => t.stop());
     } catch (_) {}
     _videoElement?.pause();
     _videoElement?.srcObject = null;
@@ -151,71 +149,244 @@ class _CameraWidgetState extends State<CameraWidget> {
 
   @override
   Widget build(BuildContext context) {
-    const themeBlue = Color(0xFF007BFF);
-    const themeText = Color(0xFF030744);
     final isProfile = widget.cameraType == "profile";
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 85, left: 35, right: 35),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(isProfile ? 1000 : 10),
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width - 70,
-                  height: MediaQuery.of(context).size.width - 75,
-                  child: _videoElement == null
-                      ? const Center(child: CircularProgressIndicator())
-                      : HtmlElementView(viewType: _viewType),
-                ),
+      body: SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              MediaQuery.of(context).padding.bottom,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      width: MediaQuery.of(context).size.width,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white,
+                            spreadRadius: 0.5,
+                            blurRadius: 5,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: () {
+                                  if (widget.cameraType == "chat") {
+                                    Get.back();
+                                  } else {
+                                    AlertService().showAppAlert(
+                                      title: "Are you sure?",
+                                      content:
+                                          "You're about to leave this page",
+                                      hideCancel: false,
+                                      confirmText: "Go back",
+                                      confirmAction: () {
+                                        Navigator.pop(context, true);
+                                        Navigator.pop(context, true);
+                                      },
+                                    );
+                                  }
+                                },
+                                icon: const Padding(
+                                  padding: EdgeInsets.only(
+                                    top: 2,
+                                    right: 4,
+                                    bottom: 2,
+                                  ),
+                                  child: Icon(
+                                    MingCuteIcons.mgc_left_line,
+                                    color: Color(0xFF030744),
+                                    size: 38,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                () {
+                                  if (widget.cameraType == "chat") {
+                                    return "Capture Photo";
+                                  } else if (widget.cameraType == "vehicle") {
+                                    return "Vehicle Photo";
+                                  } else if (widget.cameraType == "vPapers") {
+                                    return "Vehicle Papers";
+                                  } else if (widget.cameraType == "license") {
+                                    return "driver's License";
+                                  } else {
+                                    return "Profile Photo";
+                                  }
+                                }(),
+                                style: const TextStyle(
+                                  height: 1,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF030744),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: 8,
+                      bottom: 32,
+                    ),
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(isProfile ? 1000 : 10),
+                        child: SizedBox(
+                          width: (MediaQuery.of(context).size.width - 70).clamp(
+                            0,
+                            450,
+                          ),
+                          height:
+                              (MediaQuery.of(context).size.width - 75).clamp(
+                            0,
+                            450,
+                          ),
+                          child: _videoElement == null
+                              ? const Center(child: CircularProgressIndicator())
+                              : Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.identity()
+                                    ..scale(
+                                      -1.0,
+                                      1.0,
+                                      1.0,
+                                    ),
+                                  child: SizedBox(
+                                    width: double.infinity.clamp(
+                                      0,
+                                      450,
+                                    ),
+                                    height: double.infinity.clamp(
+                                      0,
+                                      450,
+                                    ),
+                                    child: HtmlElementView(
+                                      viewType: _viewType,
+                                      key: ValueKey(
+                                        _viewType,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      width: MediaQuery.of(context).size.width,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                      ),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: 40,
+                          ),
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: const BoxDecoration(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(10),
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Ink(
+                                decoration: const BoxDecoration(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                ),
+                                child: InkWell(
+                                  onTap: _isReady && !_isCapturing
+                                      ? _captureImage
+                                      : null,
+                                  borderRadius: BorderRadius.circular(10),
+                                  focusColor: Colors.black.withOpacity(
+                                    0.1,
+                                  ),
+                                  hoverColor: Colors.black.withOpacity(
+                                    0.1,
+                                  ),
+                                  splashColor: Colors.black.withOpacity(
+                                    0.1,
+                                  ),
+                                  highlightColor: Colors.black.withOpacity(
+                                    0.1,
+                                  ),
+                                  child: Center(
+                                    child: Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF007BFF),
+                                        borderRadius: const BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF030744)
+                                                .withOpacity(
+                                              0.1,
+                                            ),
+                                            spreadRadius: 0,
+                                            blurRadius: 4,
+                                            offset: const Offset(
+                                              0,
+                                              2,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        MingCuteIcons.mgc_camera_2_fill,
+                                        color: Colors.white,
+                                        size: 35,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
+            ],
           ),
-          _buildTopBar(themeText),
-          _buildBottomBar(themeBlue, themeText),
-        ],
+        ),
       ),
     );
   }
-
-  Widget _buildTopBar(Color themeText) => Positioned(
-        top: 20,
-        left: 10,
-        child: Row(children: [
-          IconButton(
-              icon:
-                  Icon(MingCuteIcons.mgc_left_line, color: themeText, size: 38),
-              onPressed: () => Get.back())
-        ]),
-      );
-
-  Widget _buildBottomBar(Color themeBlue, Color themeText) => Positioned(
-        bottom: 40,
-        left: 0,
-        right: 0,
-        child: Center(
-          child: InkWell(
-            onTap: _isReady && !_isCapturing ? _captureImage : null,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                  color: themeBlue,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(color: themeText.withOpacity(0.1), blurRadius: 4)
-                  ]),
-              child: _isCapturing
-                  ? const Center(child: CircularProgressIndicator())
-                  : const Icon(MingCuteIcons.mgc_camera_2_fill,
-                      color: Colors.white, size: 35),
-            ),
-          ),
-        ),
-      );
 }
 
 class CameraImageWidget extends StatelessWidget {
@@ -232,84 +403,253 @@ class CameraImageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isProfile = cameraType == "profile";
-    const themeBlue = Color(0xFF007BFF);
-    const themeText = Color(0xFF030744);
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const SizedBox(height: 12),
-          Text(
-            cameraType == "chat" ? "Chat Photo" : "Profile Photo",
-            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w500),
-          ),
-          const Expanded(
-            child: SizedBox(),
-          ),
-          Container(
-            width: MediaQuery.of(context).size.width - 70,
-            height: MediaQuery.of(context).size.width - 75,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                fit: BoxFit.cover,
-                image: MemoryImage(imageBytes),
-              ),
-              borderRadius: BorderRadius.circular(isProfile ? 1000 : 10),
-            ),
-          ),
-          const Expanded(
-            child: SizedBox(),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              MediaQuery.of(context).padding.bottom,
+          child: Column(
             children: [
-              _roundedIconButton(
-                MingCuteIcons.mgc_back_2_fill,
-                themeText,
-                () {
-                  Get.back();
-                  Get.to(
-                    () => CameraWidget(cameraType: cameraType, isEdit: isEdit),
-                  );
-                },
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: () {
+                      AlertService().showAppAlert(
+                        title: "Are you sure?",
+                        content: "You're about to leave this page",
+                        hideCancel: false,
+                        confirmText: "Go back",
+                        confirmAction: () {
+                          Navigator.pop(context, true);
+                          Navigator.pop(context, true);
+                          Navigator.pop(context, true);
+                        },
+                      );
+                    },
+                    icon: const Padding(
+                      padding: EdgeInsets.only(
+                        top: 2,
+                        right: 4,
+                        bottom: 2,
+                      ),
+                      child: Icon(
+                        MingCuteIcons.mgc_left_line,
+                        color: Color(0xFF030744),
+                        size: 38,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    () {
+                      if (cameraType == "vehicle") {
+                        return "Vehicle Photo";
+                      } else if (cameraType == "vPapers") {
+                        return "Vehicle Papers";
+                      } else if (cameraType == "license") {
+                        return "driver's License";
+                      } else {
+                        return "Profile Photo";
+                      }
+                    }(),
+                    style: const TextStyle(
+                      height: 1,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              _roundedIconButton(
-                  MingCuteIcons.mgc_check_fill, themeBlue, _onConfirm),
+              const SizedBox(height: 12),
+              const Expanded(
+                child: SizedBox(),
+              ),
+              Container(
+                width: (MediaQuery.of(context).size.width - 70).clamp(
+                  0,
+                  450,
+                ),
+                height: (MediaQuery.of(context).size.width - 75).clamp(
+                  0,
+                  450,
+                ),
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: MemoryImage(imageBytes),
+                  ),
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(
+                      cameraType != "profile" ? 10 : 1000,
+                    ),
+                  ),
+                ),
+              ),
+              const Expanded(
+                child: SizedBox(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Ink(
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(10),
+                            ),
+                          ),
+                          child: InkWell(
+                            onTap: () async {
+                              Get.back();
+                              Get.to(
+                                () => CameraWidget(
+                                  isEdit: isEdit,
+                                  cameraType: cameraType,
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            focusColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            hoverColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            splashColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            highlightColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF030744),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          const Color(0xFF030744).withOpacity(
+                                        0.1,
+                                      ),
+                                      spreadRadius: 0,
+                                      blurRadius: 4,
+                                      offset: const Offset(
+                                        0,
+                                        2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  MingCuteIcons.mgc_back_2_fill,
+                                  color: Colors.white,
+                                  size: 35,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Ink(
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(10),
+                            ),
+                          ),
+                          child: InkWell(
+                            onTap: () {
+                              _onConfirm();
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            focusColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            hoverColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            splashColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            highlightColor: Colors.black.withOpacity(
+                              0.1,
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF007BFF),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          const Color(0xFF030744).withOpacity(
+                                        0.1,
+                                      ),
+                                      spreadRadius: 0,
+                                      blurRadius: 4,
+                                      offset: const Offset(
+                                        0,
+                                        2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  MingCuteIcons.mgc_check_fill,
+                                  color: Colors.white,
+                                  size: 35,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Expanded(
+                child: SizedBox(),
+              ),
             ],
-          ),
-          const SizedBox(height: 30),
-        ],
-      ),
-    );
-  }
-
-  Widget _roundedIconButton(IconData icon, Color bg, VoidCallback onTap) {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(
-          Radius.circular(10),
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Center(
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: Colors.white, size: 35),
-            ),
           ),
         ),
       ),
@@ -324,12 +664,12 @@ class CameraImageWidget extends StatelessWidget {
       selfieFile = imageBytes;
       Get.until((route) => route.isFirst);
       if (!isEdit) {
-        Get.to(
-          () => const LoginView(),
-        );
-        Get.to(
-          () => const RegisterView(),
-        );
+        Get.to(() => const LoginView());
+        Get.to(() => const RegisterView());
+      } else {
+        // Get.to(
+        //   () => const ProfileView(),
+        // );
       }
     }
   }

@@ -229,7 +229,7 @@ class _RegisterViewState extends State<RegisterView> {
                                               ),
                                               SizedBox(height: 8),
                                               Text(
-                                                "Add Profile Photo",
+                                                "Profile Photo",
                                                 style: TextStyle(
                                                   height: 1.05,
                                                   fontSize: 14,
