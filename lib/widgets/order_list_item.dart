@@ -40,23 +40,23 @@ class _OrderListItemState extends State<OrderListItem> {
         borderRadius: const BorderRadius.all(
           Radius.circular(12),
         ),
-        child: Ink(
-          child: InkWell(
-            borderRadius: const BorderRadius.all(
-              Radius.circular(12),
-            ),
-            focusColor: const Color(0xFF030744).withOpacity(
-              AuthService.inReviewMode() ? 0.0 : 0.1,
-            ),
-            hoverColor: const Color(0xFF030744).withOpacity(
-              AuthService.inReviewMode() ? 0.0 : 0.1,
-            ),
-            splashColor: const Color(0xFF030744).withOpacity(
-              AuthService.inReviewMode() ? 0.0 : 0.1,
-            ),
-            highlightColor: const Color(0xFF030744).withOpacity(
-              AuthService.inReviewMode() ? 0.0 : 0.1,
-            ),
+        child: SizedBox(
+          child: GestureDetector(
+            // borderRadius: const BorderRadius.all(
+            //   Radius.circular(12),
+            // ),
+            // focusColor: const Color(0xFF030744).withOpacity(
+            //   AuthService.inReviewMode() ? 0.0 : 0.1,
+            // ),
+            // hoverColor: const Color(0xFF030744).withOpacity(
+            //   AuthService.inReviewMode() ? 0.0 : 0.1,
+            // ),
+            // splashColor: const Color(0xFF030744).withOpacity(
+            //   AuthService.inReviewMode() ? 0.0 : 0.1,
+            // ),
+            // highlightColor: const Color(0xFF030744).withOpacity(
+            //   AuthService.inReviewMode() ? 0.0 : 0.1,
+            // ),
             onTap: widget.onTap,
             child: Column(
               children: [

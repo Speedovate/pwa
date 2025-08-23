@@ -169,28 +169,28 @@ class _RegisterViewState extends State<RegisterView> {
                                           ),
                                         ),
                                       )
-                                    : InkWell(
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        focusColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.1,
-                                        ),
-                                        hoverColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.1,
-                                        ),
-                                        splashColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.1,
-                                        ),
-                                        highlightColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.1,
-                                        ),
+                                    : GestureDetector(
+                                        // borderRadius: const BorderRadius.all(
+                                        //   Radius.circular(
+                                        //     1000,
+                                        //   ),
+                                        // ),
+                                        // focusColor:
+                                        //     const Color(0xFF030744).withOpacity(
+                                        //   0.1,
+                                        // ),
+                                        // hoverColor:
+                                        //     const Color(0xFF030744).withOpacity(
+                                        //   0.1,
+                                        // ),
+                                        // splashColor:
+                                        //     const Color(0xFF030744).withOpacity(
+                                        //   0.1,
+                                        // ),
+                                        // highlightColor:
+                                        //     const Color(0xFF030744).withOpacity(
+                                        //   0.1,
+                                        // ),
                                         onTap: () async {
                                           FocusManager.instance.primaryFocus
                                               ?.unfocus();
@@ -500,29 +500,29 @@ class _RegisterViewState extends State<RegisterView> {
                             borderRadius: const BorderRadius.all(
                               Radius.circular(8),
                             ),
-                            child: Ink(
-                              child: InkWell(
+                            child: SizedBox(
+                              child: GestureDetector(
                                 onTap: () {
                                   FocusManager.instance.primaryFocus?.unfocus();
                                   vm.processRegister();
                                 },
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(8),
-                                ),
-                                focusColor: const Color(0xFF030744).withOpacity(
-                                  0.2,
-                                ),
-                                hoverColor: const Color(0xFF030744).withOpacity(
-                                  0.2,
-                                ),
-                                splashColor:
-                                    const Color(0xFF030744).withOpacity(
-                                  0.2,
-                                ),
-                                highlightColor:
-                                    const Color(0xFF030744).withOpacity(
-                                  0.2,
-                                ),
+                                // borderRadius: const BorderRadius.all(
+                                //   Radius.circular(8),
+                                // ),
+                                // focusColor: const Color(0xFF030744).withOpacity(
+                                //   0.2,
+                                // ),
+                                // hoverColor: const Color(0xFF030744).withOpacity(
+                                //   0.2,
+                                // ),
+                                // splashColor:
+                                //     const Color(0xFF030744).withOpacity(
+                                //   0.2,
+                                // ),
+                                // highlightColor:
+                                //     const Color(0xFF030744).withOpacity(
+                                //   0.2,
+                                // ),
                                 child: const Center(
                                   child: Text(
                                     "Create account",
@@ -560,18 +560,18 @@ class _RegisterViewState extends State<RegisterView> {
                             borderRadius: const BorderRadius.all(
                               Radius.circular(8),
                             ),
-                            child: Ink(
-                              child: InkWell(
+                            child: SizedBox(
+                              child: GestureDetector(
                                 onTap: () {
                                   Get.back();
                                 },
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(8),
-                                ),
-                                focusColor: Colors.black,
-                                hoverColor: Colors.black,
-                                splashColor: Colors.black,
-                                highlightColor: Colors.black,
+                                // borderRadius: const BorderRadius.all(
+                                //   Radius.circular(8),
+                                // ),
+                                // focusColor: Colors.black,
+                                // hoverColor: Colors.black,
+                                // splashColor: Colors.black,
+                                // highlightColor: Colors.black,
                                 child: const Center(
                                   child: Text(
                                     "Login to account",

@@ -172,46 +172,46 @@ class AlertService {
                                                                     8,
                                                                   ),
                                                                 ),
-                                                                child: Ink(
+                                                                child: SizedBox(
                                                                   child:
-                                                                      InkWell(
+                                                                      GestureDetector(
                                                                     onTap:
                                                                         cancelAction ??
                                                                             () {
                                                                               Get.back();
                                                                             },
-                                                                    borderRadius:
-                                                                        const BorderRadius
-                                                                            .all(
-                                                                      Radius
-                                                                          .circular(
-                                                                        8,
-                                                                      ),
-                                                                    ),
-                                                                    focusColor:
-                                                                        const Color(
-                                                                      0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                    hoverColor:
-                                                                        const Color(
-                                                                      0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                    splashColor:
-                                                                        const Color(
-                                                                      0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                    highlightColor:
-                                                                        const Color(
-                                                                      0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.1,
-                                                                    ),
+                                                                    // borderRadius:
+                                                                    //     const BorderRadius
+                                                                    //         .all(
+                                                                    //   Radius
+                                                                    //       .circular(
+                                                                    //     8,
+                                                                    //   ),
+                                                                    // ),
+                                                                    // focusColor:
+                                                                    //     const Color(
+                                                                    //   0xFF030744,
+                                                                    // ).withOpacity(
+                                                                    //   0.1,
+                                                                    // ),
+                                                                    // hoverColor:
+                                                                    //     const Color(
+                                                                    //   0xFF030744,
+                                                                    // ).withOpacity(
+                                                                    //   0.1,
+                                                                    // ),
+                                                                    // splashColor:
+                                                                    //     const Color(
+                                                                    //   0xFF030744,
+                                                                    // ).withOpacity(
+                                                                    //   0.1,
+                                                                    // ),
+                                                                    // highlightColor:
+                                                                    //     const Color(
+                                                                    //   0xFF030744,
+                                                                    // ).withOpacity(
+                                                                    //   0.1,
+                                                                    // ),
                                                                     child:
                                                                         Center(
                                                                       child:
@@ -255,41 +255,41 @@ class AlertService {
                                                                   .all(
                                                             Radius.circular(8),
                                                           ),
-                                                          child: Ink(
-                                                            child: InkWell(
+                                                          child: SizedBox(
+                                                            child: GestureDetector(
                                                               onTap:
                                                                   confirmAction ??
                                                                       () {
                                                                         Get.back();
                                                                       },
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
-                                                                ),
-                                                              ),
-                                                              focusColor:
-                                                                  const Color(
-                                                                0xFF030744,
-                                                              ).withOpacity(
-                                                                0.2,
-                                                              ),
-                                                              hoverColor: Colors
-                                                                  .black
-                                                                  .withOpacity(
-                                                                0.2,
-                                                              ),
-                                                              splashColor: Colors
-                                                                  .black
-                                                                  .withOpacity(
-                                                                0.2,
-                                                              ),
-                                                              highlightColor:
-                                                                  Colors.black
-                                                                      .withOpacity(
-                                                                0.2,
-                                                              ),
+                                                              // borderRadius:
+                                                              //     const BorderRadius
+                                                              //         .all(
+                                                              //   Radius.circular(
+                                                              //     8,
+                                                              //   ),
+                                                              // ),
+                                                              // focusColor:
+                                                              //     const Color(
+                                                              //   0xFF030744,
+                                                              // ).withOpacity(
+                                                              //   0.2,
+                                                              // ),
+                                                              // hoverColor: Colors
+                                                              //     .black
+                                                              //     .withOpacity(
+                                                              //   0.2,
+                                                              // ),
+                                                              // splashColor: Colors
+                                                              //     .black
+                                                              //     .withOpacity(
+                                                              //   0.2,
+                                                              // ),
+                                                              // highlightColor:
+                                                              //     Colors.black
+                                                              //         .withOpacity(
+                                                              //   0.2,
+                                                              // ),
                                                               child: Center(
                                                                 child: Text(
                                                                   confirmText ??
@@ -347,45 +347,45 @@ class AlertService {
                                                                     8,
                                                                   ),
                                                                 ),
-                                                                child: Ink(
+                                                                child: SizedBox(
                                                                   child:
-                                                                      InkWell(
+                                                                      GestureDetector(
                                                                     onTap:
                                                                         thirdAction ??
                                                                             () {
                                                                               Get.back();
                                                                             },
-                                                                    borderRadius:
-                                                                        const BorderRadius
-                                                                            .all(
-                                                                      Radius
-                                                                          .circular(
-                                                                        8,
-                                                                      ),
-                                                                    ),
-                                                                    focusColor:
-                                                                        const Color(
-                                                                      0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.2,
-                                                                    ),
-                                                                    hoverColor: Colors
-                                                                        .black
-                                                                        .withOpacity(
-                                                                      0.2,
-                                                                    ),
-                                                                    splashColor:
-                                                                        Colors
-                                                                            .black
-                                                                            .withOpacity(
-                                                                      0.2,
-                                                                    ),
-                                                                    highlightColor:
-                                                                        Colors
-                                                                            .black
-                                                                            .withOpacity(
-                                                                      0.2,
-                                                                    ),
+                                                                    // borderRadius:
+                                                                    //     const BorderRadius
+                                                                    //         .all(
+                                                                    //   Radius
+                                                                    //       .circular(
+                                                                    //     8,
+                                                                    //   ),
+                                                                    // ),
+                                                                    // focusColor:
+                                                                    //     const Color(
+                                                                    //   0xFF030744,
+                                                                    // ).withOpacity(
+                                                                    //   0.2,
+                                                                    // ),
+                                                                    // hoverColor: Colors
+                                                                    //     .black
+                                                                    //     .withOpacity(
+                                                                    //   0.2,
+                                                                    // ),
+                                                                    // splashColor:
+                                                                    //     Colors
+                                                                    //         .black
+                                                                    //         .withOpacity(
+                                                                    //   0.2,
+                                                                    // ),
+                                                                    // highlightColor:
+                                                                    //     Colors
+                                                                    //         .black
+                                                                    //         .withOpacity(
+                                                                    //   0.2,
+                                                                    // ),
                                                                     child:
                                                                         Center(
                                                                       child:

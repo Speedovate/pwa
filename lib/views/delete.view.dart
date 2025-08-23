@@ -136,28 +136,28 @@ class _DeleteViewState extends State<DeleteView> {
                           borderRadius: const BorderRadius.all(
                             Radius.circular(8),
                           ),
-                          child: Ink(
-                            child: InkWell(
+                          child: SizedBox(
+                            child: GestureDetector(
                               onTap: () {
                                 FocusManager.instance.primaryFocus?.unfocus();
                                 vm.processAccountDeletion();
                               },
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(8),
-                              ),
-                              focusColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              hoverColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              splashColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              highlightColor:
-                                  const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
+                              // borderRadius: const BorderRadius.all(
+                              //   Radius.circular(8),
+                              // ),
+                              // focusColor: const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
+                              // hoverColor: const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
+                              // splashColor: const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
+                              // highlightColor:
+                              //     const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
                               child: const Center(
                                 child: Text(
                                   "Delete",

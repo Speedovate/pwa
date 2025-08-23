@@ -261,8 +261,8 @@ class _DetailsViewState extends State<DetailsView> {
                                             8,
                                           ),
                                         ),
-                                        child: Ink(
-                                          child: InkWell(
+                                        child: SizedBox(
+                                          child: GestureDetector(
                                             onTap: () {
                                               ScaffoldMessenger.of(
                                                       Get.overlayContext!)
@@ -282,28 +282,28 @@ class _DetailsViewState extends State<DetailsView> {
                                                 ),
                                               );
                                             },
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                              Radius.circular(
-                                                8,
-                                              ),
-                                            ),
-                                            focusColor: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.2,
-                                            ),
-                                            hoverColor:
-                                                Colors.black.withOpacity(
-                                              0.2,
-                                            ),
-                                            splashColor:
-                                                Colors.black.withOpacity(
-                                              0.2,
-                                            ),
-                                            highlightColor:
-                                                Colors.black.withOpacity(
-                                              0.2,
-                                            ),
+                                            // borderRadius:
+                                            //     const BorderRadius.all(
+                                            //   Radius.circular(
+                                            //     8,
+                                            //   ),
+                                            // ),
+                                            // focusColor: const Color(0xFF030744)
+                                            //     .withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // hoverColor:
+                                            //     Colors.black.withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // splashColor:
+                                            //     Colors.black.withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // highlightColor:
+                                            //     Colors.black.withOpacity(
+                                            //   0.2,
+                                            // ),
                                             child: Center(
                                               child: Icon(
                                                 MingCuteIcons.mgc_phone_fill,
@@ -327,8 +327,8 @@ class _DetailsViewState extends State<DetailsView> {
                                             8,
                                           ),
                                         ),
-                                        child: Ink(
-                                          child: InkWell(
+                                        child: SizedBox(
+                                          child: GestureDetector(
                                             onTap: () {
                                               ScaffoldMessenger.of(
                                                       Get.overlayContext!)
@@ -348,28 +348,28 @@ class _DetailsViewState extends State<DetailsView> {
                                                 ),
                                               );
                                             },
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                              Radius.circular(
-                                                8,
-                                              ),
-                                            ),
-                                            focusColor: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.2,
-                                            ),
-                                            hoverColor:
-                                                Colors.black.withOpacity(
-                                              0.2,
-                                            ),
-                                            splashColor:
-                                                Colors.black.withOpacity(
-                                              0.2,
-                                            ),
-                                            highlightColor:
-                                                Colors.black.withOpacity(
-                                              0.2,
-                                            ),
+                                            // borderRadius:
+                                            //     const BorderRadius.all(
+                                            //   Radius.circular(
+                                            //     8,
+                                            //   ),
+                                            // ),
+                                            // focusColor: const Color(0xFF030744)
+                                            //     .withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // hoverColor:
+                                            //     Colors.black.withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // splashColor:
+                                            //     Colors.black.withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // highlightColor:
+                                            //     Colors.black.withOpacity(
+                                            //   0.2,
+                                            // ),
                                             child: Center(
                                               child: Icon(
                                                 MingCuteIcons.mgc_chat_2_fill,
@@ -757,33 +757,30 @@ class _DetailsViewState extends State<DetailsView> {
                           borderRadius: const BorderRadius.all(
                             Radius.circular(8),
                           ),
-                          child: Ink(
-                            child: InkWell(
+                          child: SizedBox(
+                            child: GestureDetector(
                               onTap: () {
-                                launchUrlString("sms://+639122078420");
-                                // launchUrlString(
-                                //   "https://www.facebook.com/ppctodaofficial",
-                                //   mode: AuthService.device() == "android"
-                                //       ? LaunchMode.externalNonBrowserApplication
-                                //       : LaunchMode.externalApplication,
-                                // );
+                                launchUrlString(
+                                  "sms://+639122078420",
+                                  mode: LaunchMode.externalNonBrowserApplication,
+                                );
                               },
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(8),
-                              ),
-                              focusColor: const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
-                              hoverColor: const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
-                              splashColor: const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
-                              highlightColor:
-                                  const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
+                              // borderRadius: const BorderRadius.all(
+                              //   Radius.circular(8),
+                              // ),
+                              // focusColor: const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
+                              // hoverColor: const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
+                              // splashColor: const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
+                              // highlightColor:
+                              //     const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
                               child: const Center(
                                 child: Text(
                                   "Report an issue",

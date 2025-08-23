@@ -74,8 +74,8 @@ class _SettingsViewState extends State<SettingsView> {
                   const SizedBox(height: 12),
                   Material(
                     color: Colors.transparent,
-                    child: Ink(
-                      child: InkWell(
+                    child: SizedBox(
+                      child: GestureDetector(
                         onTap: () {
                           Get.to(
                             () => ChangeView(
@@ -84,18 +84,18 @@ class _SettingsViewState extends State<SettingsView> {
                             ),
                           );
                         },
-                        focusColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
-                        hoverColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
-                        splashColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
-                        highlightColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
+                        // focusColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
+                        // hoverColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
+                        // splashColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
+                        // highlightColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
                         child: const Padding(
                           padding: EdgeInsets.only(
                             top: 12,
@@ -135,26 +135,26 @@ class _SettingsViewState extends State<SettingsView> {
                       ? const SizedBox()
                       : Material(
                           color: Colors.transparent,
-                          child: Ink(
-                            child: InkWell(
+                          child: SizedBox(
+                            child: GestureDetector(
                               onTap: () {
                                 Get.to(
                                   () => const DeleteView(),
                                 );
                               },
-                              focusColor: const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
-                              hoverColor: const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
-                              splashColor: const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
-                              highlightColor:
-                                  const Color(0xFF030744).withOpacity(
-                                0.1,
-                              ),
+                              // focusColor: const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
+                              // hoverColor: const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
+                              // splashColor: const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
+                              // highlightColor:
+                              //     const Color(0xFF030744).withOpacity(
+                              //   0.1,
+                              // ),
                               child: const Padding(
                                 padding: EdgeInsets.only(
                                   top: 12,
@@ -186,23 +186,23 @@ class _SettingsViewState extends State<SettingsView> {
                         ),
                   Material(
                     color: Colors.transparent,
-                    child: Ink(
-                      child: InkWell(
+                    child: SizedBox(
+                      child: GestureDetector(
                         onTap: () {
                           vm.logoutPressed();
                         },
-                        focusColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
-                        hoverColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
-                        splashColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
-                        highlightColor: const Color(0xFF030744).withOpacity(
-                          0.1,
-                        ),
+                        // focusColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
+                        // hoverColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
+                        // splashColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
+                        // highlightColor: const Color(0xFF030744).withOpacity(
+                        //   0.1,
+                        // ),
                         child: const Padding(
                           padding: EdgeInsets.only(
                             top: 12,

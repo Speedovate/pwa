@@ -318,29 +318,29 @@ class _CameraWidgetState extends State<CameraWidget> {
                             ),
                             child: Material(
                               color: Colors.transparent,
-                              child: Ink(
-                                decoration: const BoxDecoration(
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(10),
-                                  ),
-                                ),
-                                child: InkWell(
+                              child: SizedBox(
+                                // decoration: const BoxDecoration(
+                                //   borderRadius: BorderRadius.all(
+                                //     Radius.circular(10),
+                                //   ),
+                                // ),
+                                child: GestureDetector(
                                   onTap: _isReady && !_isCapturing
                                       ? _captureImage
                                       : null,
-                                  borderRadius: BorderRadius.circular(10),
-                                  focusColor: Colors.black.withOpacity(
-                                    0.1,
-                                  ),
-                                  hoverColor: Colors.black.withOpacity(
-                                    0.1,
-                                  ),
-                                  splashColor: Colors.black.withOpacity(
-                                    0.1,
-                                  ),
-                                  highlightColor: Colors.black.withOpacity(
-                                    0.1,
-                                  ),
+                                  // borderRadius: BorderRadius.circular(10),
+                                  // focusColor: Colors.black.withOpacity(
+                                  //   0.1,
+                                  // ),
+                                  // hoverColor: Colors.black.withOpacity(
+                                  //   0.1,
+                                  // ),
+                                  // splashColor: Colors.black.withOpacity(
+                                  //   0.1,
+                                  // ),
+                                  // highlightColor: Colors.black.withOpacity(
+                                  //   0.1,
+                                  // ),
                                   child: Center(
                                     child: Container(
                                       width: 60,
@@ -511,13 +511,13 @@ class CameraImageWidget extends StatelessWidget {
                       ),
                       child: Material(
                         color: Colors.transparent,
-                        child: Ink(
-                          decoration: const BoxDecoration(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(10),
-                            ),
-                          ),
-                          child: InkWell(
+                        child: SizedBox(
+                          // decoration: const BoxDecoration(
+                          //   borderRadius: BorderRadius.all(
+                          //     Radius.circular(10),
+                          //   ),
+                          // ),
+                          child: GestureDetector(
                             onTap: () async {
                               Get.back();
                               Get.to(
@@ -527,19 +527,19 @@ class CameraImageWidget extends StatelessWidget {
                                 ),
                               );
                             },
-                            borderRadius: BorderRadius.circular(10),
-                            focusColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
-                            hoverColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
-                            splashColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
-                            highlightColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
+                            // borderRadius: BorderRadius.circular(10),
+                            // focusColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
+                            // hoverColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
+                            // splashColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
+                            // highlightColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
                             child: Center(
                               child: Container(
                                 width: 60,
@@ -586,29 +586,29 @@ class CameraImageWidget extends StatelessWidget {
                       ),
                       child: Material(
                         color: Colors.transparent,
-                        child: Ink(
-                          decoration: const BoxDecoration(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(10),
-                            ),
-                          ),
-                          child: InkWell(
+                        child: SizedBox(
+                          // decoration: const BoxDecoration(
+                          //   borderRadius: BorderRadius.all(
+                          //     Radius.circular(10),
+                          //   ),
+                          // ),
+                          child: GestureDetector(
                             onTap: () {
                               _onConfirm();
                             },
-                            borderRadius: BorderRadius.circular(10),
-                            focusColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
-                            hoverColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
-                            splashColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
-                            highlightColor: Colors.black.withOpacity(
-                              0.1,
-                            ),
+                            // borderRadius: BorderRadius.circular(10),
+                            // focusColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
+                            // hoverColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
+                            // splashColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
+                            // highlightColor: Colors.black.withOpacity(
+                            //   0.1,
+                            // ),
                             child: Center(
                               child: Container(
                                 width: 60,

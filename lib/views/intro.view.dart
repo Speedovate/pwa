@@ -199,29 +199,29 @@ class _IntroViewState extends State<IntroView> {
                           borderRadius: const BorderRadius.all(
                             Radius.circular(8),
                           ),
-                          child: Ink(
-                            child: InkWell(
+                          child: SizedBox(
+                            child: GestureDetector(
                               onTap: () {
                                 Get.to(
                                   () => const LoginView(),
                                 );
                               },
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(8),
-                              ),
-                              focusColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              hoverColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              splashColor: const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
-                              highlightColor:
-                                  const Color(0xFF030744).withOpacity(
-                                0.2,
-                              ),
+                              // borderRadius: const BorderRadius.all(
+                              //   Radius.circular(8),
+                              // ),
+                              // focusColor: const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
+                              // hoverColor: const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
+                              // splashColor: const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
+                              // highlightColor:
+                              //     const Color(0xFF030744).withOpacity(
+                              //   0.2,
+                              // ),
                               child: const Center(
                                 child: Text(
                                   "Login with phone",
@@ -250,18 +250,18 @@ class _IntroViewState extends State<IntroView> {
                           borderRadius: const BorderRadius.all(
                             Radius.circular(8),
                           ),
-                          child: Ink(
-                            child: InkWell(
+                          child: SizedBox(
+                            child: GestureDetector(
                               onTap: () {
                                 Get.offAll(() => const HomeView());
                               },
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(8),
-                              ),
-                              focusColor: Colors.black,
-                              hoverColor: Colors.black,
-                              splashColor: Colors.black,
-                              highlightColor: Colors.black,
+                              // borderRadius: const BorderRadius.all(
+                              //   Radius.circular(8),
+                              // ),
+                              // focusColor: Colors.black,
+                              // hoverColor: Colors.black,
+                              // splashColor: Colors.black,
+                              // highlightColor: Colors.black,
                               child: const Center(
                                 child: Text(
                                   "Continue as guest",
