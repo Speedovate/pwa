@@ -38,7 +38,7 @@ class SplashViewModel extends BaseViewModel {
     try {
       // final packageInfo = await PackageInfo.fromPlatform();
       versionCode = "1.0.10"; // packageInfo.buildNumber;
-      version = "30"; // packageInfo.version;
+      version = "31"; // packageInfo.version;
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
