@@ -27,20 +27,13 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   @override
   void initState() {
     super.initState();
-
-    // Unique per instance to avoid "already registered" errors
     viewId = 'map-div-${DateTime.now().microsecondsSinceEpoch}';
-
-    // Inject CSS once to hide default Google Maps UI bits (no MutationObserver needed)
     _ensureHideGmapUiStyle();
-
     ui.platformViewRegistry.registerViewFactory(viewId, (int _) {
       final mapDiv = html.DivElement()
         ..id = viewId
         ..style.width = '100%'
         ..style.height = '100%';
-
-      // Map options
       final mapOptions = gmaps.MapOptions()
         ..zoom = 16
         ..center = widget.center
@@ -49,10 +42,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         ..gestureHandling = 'greedy'
         ..disableDoubleClickZoom = true
         ..mapTypeId = gmaps.MapTypeId.ROADMAP;
-
       final map = gmaps.Map(mapDiv as dynamic, mapOptions);
-
-      // Optional custom styles
       final styles = [
         {
           "featureType": "poi",
@@ -93,19 +83,14 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         }
       ];
       js_util.setProperty(map, 'styles', styles);
-
-      // Hand off to your ViewModel
       widget.viewModel.setMap(map);
-
       return mapDiv;
     });
   }
 
-  // Inject a single <style> tag that hides unwanted GM controls globally.
   void _ensureHideGmapUiStyle() {
     const styleId = 'gmap-hide-ui';
     if (html.document.getElementById(styleId) != null) return;
-
     final styleEl = html.StyleElement()
       ..id = styleId
       ..appendText('''

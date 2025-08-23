@@ -60,7 +60,7 @@ class GMapViewModel extends BaseViewModel {
   Future<void> zoomIn() async {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
-      _map!.zoom = (currentZoom + 1).clamp(0, 21);
+      _map!.zoom = (currentZoom + 1).clamp(2, 21);
       notifyListeners();
     }
   }
@@ -68,7 +68,7 @@ class GMapViewModel extends BaseViewModel {
   Future<void> zoomOut() async {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
-      _map!.zoom = (currentZoom - 1).clamp(0, 21);
+      _map!.zoom = (currentZoom - 1).clamp(2, 21);
       notifyListeners();
     }
   }

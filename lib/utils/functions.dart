@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/widgets/camera.dart';
-import 'package:pwa/widgets/list_tile.dart';
-import 'package:pwa/widgets/web_view.dart';
+import 'package:pwa/widgets/camera.widget.dart';
+import 'package:pwa/widgets/list_tile.widget.dart';
+import 'package:pwa/widgets/web_view.widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;

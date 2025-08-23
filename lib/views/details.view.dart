@@ -9,6 +9,7 @@ import 'package:pwa/constants/images.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/view_models/details.vm.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
@@ -53,20 +54,26 @@ class _DetailsViewState extends State<DetailsView> {
                     Row(
                       children: [
                         const SizedBox(width: 4),
-                        IconButton(
-                          onPressed: () {
+                        WidgetButton(
+                          onTap: () {
                             Get.back();
                           },
-                          icon: const Padding(
-                            padding: EdgeInsets.only(
-                              top: 2,
-                              right: 4,
-                              bottom: 2,
-                            ),
-                            child: Icon(
-                              MingCuteIcons.mgc_left_line,
-                              color: Color(0xFF030744),
-                              size: 38,
+                          child: const SizedBox(
+                            width: 58,
+                            height: 58,
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  top: 2,
+                                  right: 4,
+                                  bottom: 2,
+                                ),
+                                child: Icon(
+                                  MingCuteIcons.mgc_left_line,
+                                  color: Color(0xFF030744),
+                                  size: 38,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -250,133 +257,73 @@ class _DetailsViewState extends State<DetailsView> {
                                         ),
                                       ),
                                     ),
-                                    SizedBox(
-                                      width: 44,
-                                      height: 44,
-                                      child: Material(
-                                        color: const Color(0xFF030744)
-                                            .withOpacity(0.1),
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              ScaffoldMessenger.of(
-                                                      Get.overlayContext!)
-                                                  .clearSnackBars();
-                                              ScaffoldMessenger.of(
-                                                Get.overlayContext!,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  backgroundColor: Colors.red,
-                                                  content: Text(
-                                                    "You can no longer call your driver."
-                                                    " Please report an issue instead",
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     8,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor:
-                                            //     Colors.black.withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor:
-                                            //     Colors.black.withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     Colors.black.withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: Center(
-                                              child: Icon(
-                                                MingCuteIcons.mgc_phone_fill,
-                                                color: const Color(0xFF030744)
-                                                    .withOpacity(0.3),
+                                    WidgetButton(
+                                      mainColor: const Color(0xFFE5E6EC),
+                                      useDefaultHoverColor: false,
+                                      borderRadius: 8,
+                                      onTap: () {
+                                        ScaffoldMessenger.of(
+                                          Get.overlayContext!,
+                                        ).clearSnackBars();
+                                        ScaffoldMessenger.of(
+                                          Get.overlayContext!,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            backgroundColor: Colors.red,
+                                            content: Text(
+                                              "You can no longer call your driver."
+                                              " Please report an issue instead",
+                                              style: TextStyle(
+                                                color: Colors.white,
                                               ),
                                             ),
+                                          ),
+                                        );
+                                      },
+                                      child: SizedBox(
+                                        width: 44,
+                                        height: 44,
+                                        child: Center(
+                                          child: Icon(
+                                            MingCuteIcons.mgc_phone_fill,
+                                            color: const Color(0xFF030744)
+                                                .withOpacity(0.3),
                                           ),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    SizedBox(
-                                      width: 44,
-                                      height: 44,
-                                      child: Material(
-                                        color: const Color(0xFF030744)
-                                            .withOpacity(0.1),
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              ScaffoldMessenger.of(
-                                                      Get.overlayContext!)
-                                                  .clearSnackBars();
-                                              ScaffoldMessenger.of(
-                                                Get.overlayContext!,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  backgroundColor: Colors.red,
-                                                  content: Text(
-                                                    "You can no longer chat your driver."
-                                                    " Please report an issue instead",
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     8,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor:
-                                            //     Colors.black.withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor:
-                                            //     Colors.black.withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     Colors.black.withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: Center(
-                                              child: Icon(
-                                                MingCuteIcons.mgc_chat_2_fill,
-                                                color: const Color(0xFF030744)
-                                                    .withOpacity(0.3),
+                                    WidgetButton(
+                                      mainColor: const Color(0xFFE5E6EC),
+                                      useDefaultHoverColor: false,
+                                      borderRadius: 8,
+                                      onTap: () {
+                                        ScaffoldMessenger.of(
+                                          Get.overlayContext!,
+                                        ).clearSnackBars();
+                                        ScaffoldMessenger.of(
+                                          Get.overlayContext!,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            backgroundColor: Colors.red,
+                                            content: Text(
+                                              "You can no longer chat your driver."
+                                              " Please report an issue instead",
+                                              style: TextStyle(
+                                                color: Colors.white,
                                               ),
                                             ),
+                                          ),
+                                        );
+                                      },
+                                      child: SizedBox(
+                                        width: 44,
+                                        height: 44,
+                                        child: Center(
+                                          child: Icon(
+                                            MingCuteIcons.mgc_chat_2_fill,
+                                            color: const Color(0xFF030744)
+                                                .withOpacity(0.3),
                                           ),
                                         ),
                                       ),
@@ -751,49 +698,21 @@ class _DetailsViewState extends State<DetailsView> {
                         horizontal: 20,
                       ),
                       child: SizedBox(
-                        height: 50,
-                        child: Material(
-                          color: const Color(0xFF007BFF).withOpacity(0.1),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
+                        child: ActionButton(
+                          text: "Report an issue",
+                          style: const TextStyle(
+                            height: 1,
+                            fontSize: 15,
+                            color: Color(0xFF007BFF),
+                            fontWeight: FontWeight.bold,
                           ),
-                          child: SizedBox(
-                            child: GestureDetector(
-                              onTap: () {
-                                launchUrlString(
-                                  "sms://+639122078420",
-                                  mode: LaunchMode.externalNonBrowserApplication,
-                                );
-                              },
-                              // borderRadius: const BorderRadius.all(
-                              //   Radius.circular(8),
-                              // ),
-                              // focusColor: const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              // hoverColor: const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              // splashColor: const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              // highlightColor:
-                              //     const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              child: const Center(
-                                child: Text(
-                                  "Report an issue",
-                                  style: TextStyle(
-                                    height: 1,
-                                    fontSize: 15,
-                                    color: Color(0xFF007BFF),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          mainColor: const Color(0xFFEAF1FE),
+                          onTap: () {
+                            launchUrlString(
+                              "sms://+639122078420",
+                              mode: LaunchMode.externalNonBrowserApplication,
+                            );
+                          },
                         ),
                       ),
                     ),

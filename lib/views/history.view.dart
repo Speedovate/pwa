@@ -1,10 +1,11 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/view_models/history.vm.dart';
-import 'package:pwa/widgets/order_list_item.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
+import 'package:pwa/widgets/order_list_item.widget.dart';
 
 class HistoryView extends StatefulWidget {
   const HistoryView({super.key});
@@ -23,11 +24,9 @@ class _HistoryViewState extends State<HistoryView> {
   void initState() {
     super.initState();
     vm.initialise();
-
-    // Detect scroll to bottom for load more
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 100 &&
+              _scrollController.position.maxScrollExtent - 100 &&
           !_isLoadingMore &&
           !vm.isBusy) {
         _loadMore();
@@ -59,15 +58,32 @@ class _HistoryViewState extends State<HistoryView> {
           body: SafeArea(
             child: Column(
               children: [
-                /// Header
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     const SizedBox(width: 4),
-                    IconButton(
-                      onPressed: Get.back,
-                      icon: const Icon(MingCuteIcons.mgc_left_line,
-                          color: Color(0xFF030744), size: 38),
+                    WidgetButton(
+                      onTap: () {
+                        Get.back();
+                      },
+                      child: const SizedBox(
+                        width: 58,
+                        height: 58,
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: 2,
+                              right: 4,
+                              bottom: 2,
+                            ),
+                            child: Icon(
+                              MingCuteIcons.mgc_left_line,
+                              color: Color(0xFF030744),
+                              size: 38,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 2),
                     const Text(
@@ -87,58 +103,61 @@ class _HistoryViewState extends State<HistoryView> {
                   thickness: 1,
                   color: const Color(0xFF030744).withOpacity(0.15),
                 ),
-
-                /// List
                 Expanded(
                   child: vm.isBusy
-                      ? const Center(
-                    child: LinearProgressIndicator(
-                      color: Color(0xFF007BFF),
-                      backgroundColor: Color(0xFF007BFF),
-                    ),
-                  )
-                      : vm.hasError
-                      ? _buildErrorWidget()
-                      : NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      if (notification is OverscrollNotification &&
-                          notification.overscroll < 0) {
-                        _refresh(); // Pull-down refresh
-                      }
-                      return false;
-                    },
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      itemCount: vm.orders.length +
-                          (_isLoadingMore ? 1 : 0),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      itemBuilder: (context, index) {
-                        // Show loading indicator at bottom
-                        if (index == vm.orders.length) {
-                          return const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: Center(
-                              child: CircularProgressIndicator(),
+                      ? Column(
+                          children: [
+                            LinearProgressIndicator(
+                              color: const Color(
+                                0xFF007BFF,
+                              ),
+                              backgroundColor: const Color(
+                                0xFF007BFF,
+                              ).withOpacity(0.25),
                             ),
-                          );
-                        }
-                        final order = vm.orders[index];
-                        return Padding(
-                          padding: EdgeInsets.only(
-                              top: index == 0 ? 8 : 0, bottom: 8),
-                          child: OrderListItem(
-                            order: order,
-                            onTap: () {
-                              if (!AuthService.inReviewMode()) {
-                                vm.openOrderDetails(order: order);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                          ],
+                        )
+                      : vm.hasError
+                          ? _buildErrorWidget()
+                          : NotificationListener<ScrollNotification>(
+                              onNotification: (notification) {
+                                if (notification is OverscrollNotification &&
+                                    notification.overscroll < 0) {
+                                  _refresh();
+                                }
+                                return false;
+                              },
+                              child: ListView.builder(
+                                controller: _scrollController,
+                                itemCount:
+                                    vm.orders.length + (_isLoadingMore ? 1 : 0),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                                itemBuilder: (context, index) {
+                                  if (index == vm.orders.length) {
+                                    return const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  }
+                                  final order = vm.orders[index];
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                        top: index == 0 ? 8 : 0, bottom: 8),
+                                    child: OrderListItem(
+                                      order: order,
+                                      onTap: () {
+                                        if (!AuthService.inReviewMode()) {
+                                          vm.openOrderDetails(order: order);
+                                        }
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                 ),
               ],
             ),

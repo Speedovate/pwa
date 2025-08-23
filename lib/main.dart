@@ -50,6 +50,14 @@ class MyApp extends StatelessWidget {
         );
       },
       home: const SplashView(),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: Colors.blue,
+        ).copyWith(
+          secondary: Colors.blueAccent,
+        ),
+      ),
     );
   }
 }

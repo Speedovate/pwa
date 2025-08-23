@@ -3,6 +3,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
+import 'package:pwa/widgets/button.widget.dart';
 
 class AlertService {
   Future<bool?> showAppAlert({
@@ -58,7 +59,8 @@ class AlertService {
                   ),
                   Center(
                     child: SizedBox(
-                      width: (MediaQuery.of(context).size.width - 70).clamp(0, 800),
+                      width: (MediaQuery.of(context).size.width - 70)
+                          .clamp(0, 800),
                       child: !isCustom || customWidget == null
                           ? SingleChildScrollView(
                               child: Column(
@@ -139,179 +141,63 @@ class AlertService {
                                                     hideCancel
                                                         ? const SizedBox()
                                                         : Expanded(
-                                                            child: Container(
+                                                            child: ActionButton(
                                                               height: 38,
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Colors
-                                                                    .white,
-                                                                borderRadius:
-                                                                    const BorderRadius
-                                                                        .all(
-                                                                  Radius
-                                                                      .circular(
-                                                                    8,
-                                                                  ),
-                                                                ),
-                                                                border:
-                                                                    Border.all(
-                                                                  color:
-                                                                      const Color(
-                                                                    0xFF007BFF,
-                                                                  ),
-                                                                ),
+                                                              text:
+                                                                  cancelText ??
+                                                                      "Cancel",
+                                                              mainColor:
+                                                                  Colors.white,
+                                                              borderColor:
+                                                                  const Color(
+                                                                0xFF007BFF,
                                                               ),
-                                                              child: Material(
-                                                                color: Colors
-                                                                    .white,
-                                                                borderRadius:
-                                                                    const BorderRadius
-                                                                        .all(
-                                                                  Radius
-                                                                      .circular(
-                                                                    8,
-                                                                  ),
+                                                              style:
+                                                                  const TextStyle(
+                                                                height: 1,
+                                                                fontSize: 15,
+                                                                color: Color(
+                                                                  0xFF007BFF,
                                                                 ),
-                                                                child: SizedBox(
-                                                                  child:
-                                                                      GestureDetector(
-                                                                    onTap:
-                                                                        cancelAction ??
-                                                                            () {
-                                                                              Get.back();
-                                                                            },
-                                                                    // borderRadius:
-                                                                    //     const BorderRadius
-                                                                    //         .all(
-                                                                    //   Radius
-                                                                    //       .circular(
-                                                                    //     8,
-                                                                    //   ),
-                                                                    // ),
-                                                                    // focusColor:
-                                                                    //     const Color(
-                                                                    //   0xFF030744,
-                                                                    // ).withOpacity(
-                                                                    //   0.1,
-                                                                    // ),
-                                                                    // hoverColor:
-                                                                    //     const Color(
-                                                                    //   0xFF030744,
-                                                                    // ).withOpacity(
-                                                                    //   0.1,
-                                                                    // ),
-                                                                    // splashColor:
-                                                                    //     const Color(
-                                                                    //   0xFF030744,
-                                                                    // ).withOpacity(
-                                                                    //   0.1,
-                                                                    // ),
-                                                                    // highlightColor:
-                                                                    //     const Color(
-                                                                    //   0xFF030744,
-                                                                    // ).withOpacity(
-                                                                    //   0.1,
-                                                                    // ),
-                                                                    child:
-                                                                        Center(
-                                                                      child:
-                                                                          Text(
-                                                                        cancelText ??
-                                                                            "Cancel",
-                                                                        style:
-                                                                            const TextStyle(
-                                                                          height:
-                                                                              1,
-                                                                          fontSize:
-                                                                              15,
-                                                                          color:
-                                                                              Color(
-                                                                            0xFF007BFF,
-                                                                          ),
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
                                                               ),
+                                                              onTap:
+                                                                  cancelAction ??
+                                                                      () {
+                                                                        Get.back();
+                                                                      },
                                                             ),
                                                           ),
                                                     hideCancel
                                                         ? const SizedBox()
                                                         : const SizedBox(
-                                                            width: 16),
+                                                            width: 16,
+                                                          ),
                                                     Expanded(
-                                                      child: SizedBox(
+                                                      child: ActionButton(
                                                         height: 38,
-                                                        child: Material(
-                                                          color: confirmColor ??
-                                                              const Color(
-                                                                0xFF007BFF,
-                                                              ),
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(
-                                                            Radius.circular(8),
-                                                          ),
-                                                          child: SizedBox(
-                                                            child: GestureDetector(
-                                                              onTap:
-                                                                  confirmAction ??
-                                                                      () {
-                                                                        Get.back();
-                                                                      },
-                                                              // borderRadius:
-                                                              //     const BorderRadius
-                                                              //         .all(
-                                                              //   Radius.circular(
-                                                              //     8,
-                                                              //   ),
-                                                              // ),
-                                                              // focusColor:
-                                                              //     const Color(
-                                                              //   0xFF030744,
-                                                              // ).withOpacity(
-                                                              //   0.2,
-                                                              // ),
-                                                              // hoverColor: Colors
-                                                              //     .black
-                                                              //     .withOpacity(
-                                                              //   0.2,
-                                                              // ),
-                                                              // splashColor: Colors
-                                                              //     .black
-                                                              //     .withOpacity(
-                                                              //   0.2,
-                                                              // ),
-                                                              // highlightColor:
-                                                              //     Colors.black
-                                                              //         .withOpacity(
-                                                              //   0.2,
-                                                              // ),
-                                                              child: Center(
-                                                                child: Text(
-                                                                  confirmText ??
-                                                                      (hideCancel
-                                                                          ? "Got it"
-                                                                          : "Confirm"),
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    height: 1,
-                                                                    fontSize:
-                                                                        15,
-                                                                    color: Colors
-                                                                        .white,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                  ),
+                                                        text: confirmText ??
+                                                            (hideCancel
+                                                                ? "Got it"
+                                                                : "Confirm"),
+                                                        mainColor:
+                                                            confirmColor ??
+                                                                const Color(
+                                                                  0xFF007BFF,
                                                                 ),
-                                                              ),
-                                                            ),
-                                                          ),
+                                                        style: const TextStyle(
+                                                          height: 1,
+                                                          fontSize: 15,
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
                                                         ),
+                                                        onTap: confirmAction ??
+                                                            () {
+                                                              Get.back();
+                                                            },
                                                       ),
                                                     ),
                                                   ],
@@ -332,82 +218,30 @@ class AlertService {
                                                                 .center,
                                                         children: [
                                                           Expanded(
-                                                            child: SizedBox(
+                                                            child: ActionButton(
                                                               height: 38,
-                                                              child: Material(
-                                                                color: thirdColor ??
-                                                                    const Color(
-                                                                      0xFF007BFF,
-                                                                    ),
-                                                                borderRadius:
-                                                                    const BorderRadius
-                                                                        .all(
-                                                                  Radius
-                                                                      .circular(
-                                                                    8,
-                                                                  ),
-                                                                ),
-                                                                child: SizedBox(
-                                                                  child:
-                                                                      GestureDetector(
-                                                                    onTap:
-                                                                        thirdAction ??
-                                                                            () {
-                                                                              Get.back();
-                                                                            },
-                                                                    // borderRadius:
-                                                                    //     const BorderRadius
-                                                                    //         .all(
-                                                                    //   Radius
-                                                                    //       .circular(
-                                                                    //     8,
-                                                                    //   ),
-                                                                    // ),
-                                                                    // focusColor:
-                                                                    //     const Color(
-                                                                    //   0xFF030744,
-                                                                    // ).withOpacity(
-                                                                    //   0.2,
-                                                                    // ),
-                                                                    // hoverColor: Colors
-                                                                    //     .black
-                                                                    //     .withOpacity(
-                                                                    //   0.2,
-                                                                    // ),
-                                                                    // splashColor:
-                                                                    //     Colors
-                                                                    //         .black
-                                                                    //         .withOpacity(
-                                                                    //   0.2,
-                                                                    // ),
-                                                                    // highlightColor:
-                                                                    //     Colors
-                                                                    //         .black
-                                                                    //         .withOpacity(
-                                                                    //   0.2,
-                                                                    // ),
-                                                                    child:
-                                                                        Center(
-                                                                      child:
-                                                                          Text(
-                                                                        thirdText ??
-                                                                            "Third Button Text",
-                                                                        style:
-                                                                            const TextStyle(
-                                                                          height:
-                                                                              1,
-                                                                          fontSize:
-                                                                              15,
-                                                                          color:
-                                                                              Colors.white,
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                        ),
+                                                              text: thirdText ??
+                                                                  "Third Button Text",
+                                                              mainColor:
+                                                                  thirdColor ??
+                                                                      const Color(
+                                                                        0xFF007BFF,
                                                                       ),
-                                                                    ),
-                                                                  ),
-                                                                ),
+                                                              style:
+                                                                  const TextStyle(
+                                                                height: 1,
+                                                                fontSize: 15,
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
                                                               ),
+                                                              onTap:
+                                                                  thirdAction ??
+                                                                      () {
+                                                                        Get.back();
+                                                                      },
                                                             ),
                                                           ),
                                                         ],

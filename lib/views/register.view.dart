@@ -1,13 +1,14 @@
 import 'package:get/get.dart';
-import 'package:pwa/constants/api.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/constants/api.dart';
 import 'package:pwa/utils/functions.dart';
-import 'package:pwa/widgets/text_field.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/view_models/register.vm.dart';
+import 'package:pwa/widgets/text_field.widget.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class RegisterView extends StatefulWidget {
@@ -72,8 +73,8 @@ class _RegisterViewState extends State<RegisterView> {
                       Row(
                         children: [
                           const SizedBox(width: 4),
-                          IconButton(
-                            onPressed: () {
+                          WidgetButton(
+                            onTap: () {
                               if (agreed == false &&
                                   selfieFile == null &&
                                   (vm.nameTEC.text == "" ||
@@ -100,16 +101,22 @@ class _RegisterViewState extends State<RegisterView> {
                                 );
                               }
                             },
-                            icon: const Padding(
-                              padding: EdgeInsets.only(
-                                top: 2,
-                                right: 4,
-                                bottom: 2,
-                              ),
-                              child: Icon(
-                                MingCuteIcons.mgc_left_line,
-                                color: Color(0xFF030744),
-                                size: 38,
+                            child: const SizedBox(
+                              width: 58,
+                              height: 58,
+                              child: Center(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    top: 2,
+                                    right: 4,
+                                    bottom: 2,
+                                  ),
+                                  child: Icon(
+                                    MingCuteIcons.mgc_left_line,
+                                    color: Color(0xFF030744),
+                                    size: 38,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -169,28 +176,7 @@ class _RegisterViewState extends State<RegisterView> {
                                           ),
                                         ),
                                       )
-                                    : GestureDetector(
-                                        // borderRadius: const BorderRadius.all(
-                                        //   Radius.circular(
-                                        //     1000,
-                                        //   ),
-                                        // ),
-                                        // focusColor:
-                                        //     const Color(0xFF030744).withOpacity(
-                                        //   0.1,
-                                        // ),
-                                        // hoverColor:
-                                        //     const Color(0xFF030744).withOpacity(
-                                        //   0.1,
-                                        // ),
-                                        // splashColor:
-                                        //     const Color(0xFF030744).withOpacity(
-                                        //   0.1,
-                                        // ),
-                                        // highlightColor:
-                                        //     const Color(0xFF030744).withOpacity(
-                                        //   0.1,
-                                        // ),
+                                    : WidgetButton(
                                         onTap: () async {
                                           FocusManager.instance.primaryFocus
                                               ?.unfocus();
@@ -492,50 +478,12 @@ class _RegisterViewState extends State<RegisterView> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                         ),
-                        child: SizedBox(
-                          height: 50,
-                          width: double.infinity.clamp(0, 800),
-                          child: Material(
-                            color: const Color(0xFF007BFF),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
-                            child: SizedBox(
-                              child: GestureDetector(
-                                onTap: () {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  vm.processRegister();
-                                },
-                                // borderRadius: const BorderRadius.all(
-                                //   Radius.circular(8),
-                                // ),
-                                // focusColor: const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // hoverColor: const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // splashColor:
-                                //     const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // highlightColor:
-                                //     const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                child: const Center(
-                                  child: Text(
-                                    "Create account",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: ActionButton(
+                          text: "Create account",
+                          onTap: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            vm.processRegister();
+                          },
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -552,39 +500,12 @@ class _RegisterViewState extends State<RegisterView> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                         ),
-                        child: SizedBox(
-                          height: 50,
-                          width: double.infinity.clamp(0, 800),
-                          child: Material(
-                            color: const Color(0xFF030744),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
-                            child: SizedBox(
-                              child: GestureDetector(
-                                onTap: () {
-                                  Get.back();
-                                },
-                                // borderRadius: const BorderRadius.all(
-                                //   Radius.circular(8),
-                                // ),
-                                // focusColor: Colors.black,
-                                // hoverColor: Colors.black,
-                                // splashColor: Colors.black,
-                                // highlightColor: Colors.black,
-                                child: const Center(
-                                  child: Text(
-                                    "Login to account",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: ActionButton(
+                          text: "Login to account",
+                          mainColor: const Color(0xFF030744),
+                          onTap: () {
+                            Get.back();
+                          },
                         ),
                       ),
                       const SizedBox(height: 24),

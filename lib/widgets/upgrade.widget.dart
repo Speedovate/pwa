@@ -2,6 +2,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/lotties.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class UpgradeWidget extends StatelessWidget {
@@ -157,49 +158,14 @@ class UpgradeWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                 ),
-                child: SizedBox(
-                  height: 50,
-                  child: Material(
-                    color: const Color(0xFF007BFF),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(8),
-                    ),
-                    child: SizedBox(
-                      child: GestureDetector(
-                        onTap: () {
-                          launchUrlString(
-                            "https://ppctoda.framer.website",
-                            mode: LaunchMode.externalNonBrowserApplication,
-                          );
-                        },
-                        // borderRadius: const BorderRadius.all(
-                        //   Radius.circular(8),
-                        // ),
-                        // focusColor: const Color(0xFF030744).withOpacity(
-                        //   0.2,
-                        // ),
-                        // hoverColor: const Color(0xFF030744).withOpacity(
-                        //   0.2,
-                        // ),
-                        // splashColor: const Color(0xFF030744).withOpacity(
-                        //   0.2,
-                        // ),
-                        // highlightColor: const Color(0xFF030744).withOpacity(
-                        //   0.2,
-                        // ),
-                        child: const Center(
-                          child: Text(
-                            "Update",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                child: ActionButton(
+                  text: "Update",
+                  onTap: () {
+                    launchUrlString(
+                      "https://ppctoda.framer.website",
+                      mode: LaunchMode.externalNonBrowserApplication,
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 32),

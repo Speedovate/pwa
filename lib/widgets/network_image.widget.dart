@@ -11,7 +11,7 @@ typedef ErrorWidgetBuilder = Widget Function(
   dynamic error,
 );
 
-class CachedNetworkImageWidget extends StatelessWidget {
+class NetworkImageWidget extends StatelessWidget {
   final String imageUrl;
   final double? width;
   final double? height;
@@ -20,7 +20,7 @@ class CachedNetworkImageWidget extends StatelessWidget {
   final ProgressIndicatorBuilder? progressIndicatorBuilder;
   final ErrorWidgetBuilder? errorWidget;
 
-  const CachedNetworkImageWidget({
+  const NetworkImageWidget({
     required this.imageUrl,
     this.width,
     this.height,

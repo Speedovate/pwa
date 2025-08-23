@@ -3,25 +3,25 @@ class Api {
     return "https://ppctoda.com/api";
   }
 
-  // Config
+  /// Config
   static const banners = "/banners";
   static const appConfigs = "/config/app";
   static const homeConfigs = "/config/home";
 
-  // Geo
+  /// Geo
   static const geoPolylines = "/geo/polylines";
   static const geoAddresses = "/geo/addresses";
   static const geoCoordinates = "/geo/coordinates";
 
-  // Load
+  /// Load
   static const loadBuy = "/load/buy";
   static const loadBalance = "/load/balance";
   static const loadTransfer = "/load/transfer";
   static const loadTransactions = "/wallet/transactions";
 
-  // static const loadTransactions = "/load/transactions";
+  /// static const loadTransactions = "/load/transactions";
 
-  // Auth
+  /// Auth
   static const authUser = "/auth/user";
   static const authSend = "/auth/send";
   static const authCheck = "/auth/check";
@@ -35,7 +35,7 @@ class Api {
   static const authForgot = "/auth/password/forgot";
   static const authChange = "/auth/password/change";
 
-  // Booking
+  /// Booking
   static const bookingRating = /*"/booking/rating" ??*/ "/rating";
   static const bookingOrders = /*"/booking/orders" ??*/ "/orders";
   static const bookingReport = /*"/booking/report" ??*/ "/report";

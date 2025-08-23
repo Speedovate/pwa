@@ -7,6 +7,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class WebViewWidget extends StatefulWidget {
@@ -87,15 +88,27 @@ class WebViewWidgetState extends State<WebViewWidget> {
       appBar: AppBar(
         titleSpacing: 0,
         toolbarHeight: 74,
-        backgroundColor: isLoading ? Colors.grey : Colors.white,
-        leading: IconButton(
-          onPressed: () => Get.back(),
-          icon: const Padding(
-            padding: EdgeInsets.only(top: 2, right: 4, bottom: 2),
-            child: Icon(
-              MingCuteIcons.mgc_left_line,
-              color: Color(0xFF030744),
-              size: 38,
+        backgroundColor: Colors.white,
+        leading: Center(
+          child: WidgetButton(
+            onTap: () => Get.back(),
+            child: const SizedBox(
+              width: 58,
+              height: 58,
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: 2,
+                    right: 4,
+                    bottom: 2,
+                  ),
+                  child: Icon(
+                    MingCuteIcons.mgc_left_line,
+                    color: Color(0xFF030744),
+                    size: 38,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/view_models/verify.vm.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
@@ -95,8 +96,8 @@ class _VerifyViewState extends State<VerifyView> {
                       Row(
                         children: [
                           const SizedBox(width: 4),
-                          IconButton(
-                            onPressed: () {
+                          WidgetButton(
+                            onTap: () {
                               AlertService().showAppAlert(
                                 title: "Are you sure?",
                                 content: "You're about to leave this page",
@@ -108,16 +109,22 @@ class _VerifyViewState extends State<VerifyView> {
                                 },
                               );
                             },
-                            icon: const Padding(
-                              padding: EdgeInsets.only(
-                                top: 2,
-                                right: 4,
-                                bottom: 2,
-                              ),
-                              child: Icon(
-                                MingCuteIcons.mgc_left_line,
-                                color: Color(0xFF030744),
-                                size: 38,
+                            child: const SizedBox(
+                              width: 58,
+                              height: 58,
+                              child: Center(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    top: 2,
+                                    right: 4,
+                                    bottom: 2,
+                                  ),
+                                  child: Icon(
+                                    MingCuteIcons.mgc_left_line,
+                                    color: Color(0xFF030744),
+                                    size: 38,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -185,8 +192,12 @@ class _VerifyViewState extends State<VerifyView> {
                             horizontal: 24,
                           ),
                           child: SizedBox(
-                            height:
-                                (MediaQuery.of(context).size.width.clamp(0, 800) - 106) / 6,
+                            height: (MediaQuery.of(context)
+                                        .size
+                                        .width
+                                        .clamp(0, 800) -
+                                    106) /
+                                6,
                             width: double.infinity.clamp(0, 800),
                             child: PinCodeTextField(
                               appContext: context,
@@ -199,12 +210,18 @@ class _VerifyViewState extends State<VerifyView> {
                               pinTheme: PinTheme(
                                 shape: PinCodeFieldShape.box,
                                 borderRadius: BorderRadius.circular(10),
-                                fieldHeight:
-                                    (MediaQuery.of(context).size.width.clamp(0, 800) - 106) /
-                                        6,
-                                fieldWidth:
-                                    (MediaQuery.of(context).size.width.clamp(0, 800) - 106) /
-                                        6,
+                                fieldHeight: (MediaQuery.of(context)
+                                            .size
+                                            .width
+                                            .clamp(0, 800) -
+                                        106) /
+                                    6,
+                                fieldWidth: (MediaQuery.of(context)
+                                            .size
+                                            .width
+                                            .clamp(0, 800) -
+                                        106) /
+                                    6,
                                 activeColor: const Color(
                                   0xFF007BFF,
                                 ),
@@ -232,52 +249,12 @@ class _VerifyViewState extends State<VerifyView> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                         ),
-                        child: SizedBox(
-                          height: 50,
-                          width: double.infinity.clamp(0, 800),
-                          child: Material(
-                            color: const Color(0xFF007BFF),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
-                            child: SizedBox(
-                              child: GestureDetector(
-                                onTap: () {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  vm.verifyCode(widget.purpose);
-                                },
-                                // borderRadius: const BorderRadius.all(
-                                //   Radius.circular(8),
-                                // ),
-                                // focusColor: const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // hoverColor: const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // splashColor:
-                                //     const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // highlightColor:
-                                //     const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                child: const Center(
-                                  child: Text(
-                                    "Verify",
-                                    style: TextStyle(
-                                      height: 1,
-                                      fontSize: 18,
-                                      fontFamily: "Inter",
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: ActionButton(
+                          text: "Verify",
+                          onTap: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            vm.verifyCode(widget.purpose);
+                          },
                         ),
                       ),
                       const SizedBox(height: 24),

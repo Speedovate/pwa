@@ -4,15 +4,16 @@ import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/login.view.dart';
-import 'package:pwa/widgets/list_tile.dart';
 import 'package:pwa/views/history.view.dart';
 import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/views/settings.view.dart';
 import 'package:pwa/widgets/gmap.widget.dart';
 import 'package:pwa/view_models/home.vm.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
-import 'package:pwa/widgets/cached_network_image.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
@@ -43,115 +44,98 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 Container(
                   color: Colors.white,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: SizedBox(
-                      child: GestureDetector(
-                        onTap: () {
-                          if (!AuthService.isLoggedIn()) {
-                            Get.to(
-                              () => const LoginView(),
-                            );
-                          } else {
-                            setState(() {
-                              agreed = false;
-                              selfieFile = null;
-                            });
-                            Get.to(
-                              () => const ProfileView(),
-                            );
-                          }
-                        },
-                        // focusColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // hoverColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // splashColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // highlightColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            top: 18,
-                            left: 18,
-                            right: 12,
-                            bottom: 18,
-                          ),
-                          child: Column(
+                  child: WidgetButton(
+                    borderRadius: 0,
+                    onTap: () {
+                      if (!AuthService.isLoggedIn()) {
+                        Get.to(
+                          () => const LoginView(),
+                        );
+                      } else {
+                        setState(() {
+                          agreed = false;
+                          selfieFile = null;
+                        });
+                        Get.to(
+                          () => const ProfileView(),
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        top: 18,
+                        left: 18,
+                        right: 12,
+                        bottom: 18,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  ClipOval(
-                                    child: SizedBox(
-                                      width: 50,
-                                      height: 50,
-                                      child: CachedNetworkImageWidget(
-                                        fit: BoxFit.cover,
-                                        memCacheWidth: 600,
-                                        imageUrl:
-                                            AuthService.currentUser?.cPhoto ??
-                                                "",
-                                        progressIndicatorBuilder: (
-                                          context,
-                                          imageUrl,
-                                          progress,
-                                        ) {
-                                          return const CircularProgressIndicator(
-                                            color: Color(0xFF007BFF),
-                                            strokeWidth: 2,
-                                          );
-                                        },
-                                        errorWidget: (
-                                          context,
-                                          imageUrl,
-                                          progress,
-                                        ) {
-                                          return Container(
-                                            color: const Color(0xFF030744),
-                                            child: const Icon(
-                                              MingCuteIcons.mgc_user_3_line,
-                                              color: Colors.white,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
+                              ClipOval(
+                                child: SizedBox(
+                                  width: 50,
+                                  height: 50,
+                                  child: NetworkImageWidget(
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 600,
+                                    imageUrl:
+                                        AuthService.currentUser?.cPhoto ?? "",
+                                    progressIndicatorBuilder: (
+                                      context,
+                                      imageUrl,
+                                      progress,
+                                    ) {
+                                      return const CircularProgressIndicator(
+                                        color: Color(0xFF007BFF),
+                                        strokeWidth: 2,
+                                      );
+                                    },
+                                    errorWidget: (
+                                      context,
+                                      imageUrl,
+                                      progress,
+                                    ) {
+                                      return Container(
+                                        color: const Color(0xFF030744),
+                                        child: const Icon(
+                                          MingCuteIcons.mgc_user_3_line,
+                                          color: Colors.white,
+                                        ),
+                                      );
+                                    },
                                   ),
-                                  const SizedBox(
-                                    width: 12,
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      !AuthService.isLoggedIn()
-                                          ? "Login Account"
-                                          : capitalizeWords(
-                                              "${AuthService.currentUser!.name}",
-                                            ),
-                                      style: const TextStyle(
-                                        height: 1.05,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF030744),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    width: 12,
-                                  ),
-                                  const Icon(
-                                    MingCuteIcons.mgc_right_line,
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  !AuthService.isLoggedIn()
+                                      ? "Login Account"
+                                      : capitalizeWords(
+                                          "${AuthService.currentUser!.name}",
+                                        ),
+                                  style: const TextStyle(
+                                    height: 1.05,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
                                     color: Color(0xFF030744),
-                                    size: 25,
                                   ),
-                                ],
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              const Icon(
+                                MingCuteIcons.mgc_right_line,
+                                color: Color(0xFF030744),
+                                size: 25,
                               ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
@@ -297,50 +281,14 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      child: Material(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            // hoverDuration: const Duration(
-                                            //   milliseconds: 500,
-                                            // ),
-                                            onTap: () async {
-                                              Scaffold.of(context).openDrawer();
-                                            },
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     1000,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     const Color(0xFF030744)
-                                            //         .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: const Center(
-                                              child: Icon(
-                                                MingCuteIcons.mgc_menu_line,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
+                                      child: WidgetButton(
+                                        onTap: () async {
+                                          Scaffold.of(context).openDrawer();
+                                        },
+                                        child: const Center(
+                                          child: Icon(
+                                            MingCuteIcons.mgc_menu_line,
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
                                       ),
@@ -377,50 +325,14 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      child: Material(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            // hoverDuration: const Duration(
-                                            //   milliseconds: 500,
-                                            // ),
-                                            onTap: () async {
-                                              vm.zoomToCurrentLocation();
-                                            },
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     1000,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     const Color(0xFF030744)
-                                            //         .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: const Center(
-                                              child: Icon(
-                                                MingCuteIcons.mgc_aiming_line,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
+                                      child: WidgetButton(
+                                        onTap: () async {
+                                          vm.zoomToCurrentLocation();
+                                        },
+                                        child: const Center(
+                                          child: Icon(
+                                            MingCuteIcons.mgc_aiming_line,
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
                                       ),
@@ -457,49 +369,12 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      child: Material(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            // hoverDuration: const Duration(
-                                            //   milliseconds: 500,
-                                            // ),
-                                            onTap: () async {},
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     1000,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     const Color(0xFF030744)
-                                            //         .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: const Center(
-                                              child: Icon(
-                                                MingCuteIcons
-                                                    .mgc_refresh_2_line,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
+                                      child: WidgetButton(
+                                        onTap: () async {},
+                                        child: const Center(
+                                          child: Icon(
+                                            MingCuteIcons.mgc_refresh_2_line,
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
                                       ),
@@ -531,49 +406,13 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      child: Material(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            // hoverDuration: const Duration(
-                                            //   milliseconds: 500,
-                                            // ),
-                                            onTap: () {},
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     1000,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     const Color(0xFF030744)
-                                            //         .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: const Center(
-                                              child: Icon(
-                                                MingCuteIcons
-                                                    .mgc_share_forward_line,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
+                                      child: WidgetButton(
+                                        onTap: () {},
+                                        child: const Center(
+                                          child: Icon(
+                                            MingCuteIcons
+                                                .mgc_share_forward_line,
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
                                       ),
@@ -610,50 +449,14 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      child: Material(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            // hoverDuration: const Duration(
-                                            //   milliseconds: 500,
-                                            // ),
-                                            onTap: () async {
-                                              vm.zoomIn();
-                                            },
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     1000,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     const Color(0xFF030744)
-                                            //         .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: const Center(
-                                              child: Icon(
-                                                MingCuteIcons.mgc_add_line,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
+                                      child: WidgetButton(
+                                        onTap: () async {
+                                          vm.zoomIn();
+                                        },
+                                        child: const Center(
+                                          child: Icon(
+                                            MingCuteIcons.mgc_add_line,
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
                                       ),
@@ -685,50 +488,14 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      child: Material(
-                                        color: Colors.white,
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        child: SizedBox(
-                                          child: GestureDetector(
-                                            // hoverDuration: const Duration(
-                                            //   milliseconds: 500,
-                                            // ),
-                                            onTap: () {
-                                              vm.zoomOut();
-                                            },
-                                            // borderRadius:
-                                            //     const BorderRadius.all(
-                                            //   Radius.circular(
-                                            //     1000,
-                                            //   ),
-                                            // ),
-                                            // focusColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // hoverColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // splashColor: const Color(0xFF030744)
-                                            //     .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            // highlightColor:
-                                            //     const Color(0xFF030744)
-                                            //         .withOpacity(
-                                            //   0.2,
-                                            // ),
-                                            child: const Center(
-                                              child: Icon(
-                                                MingCuteIcons.mgc_minimize_line,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
+                                      child: WidgetButton(
+                                        onTap: () {
+                                          vm.zoomOut();
+                                        },
+                                        child: const Center(
+                                          child: Icon(
+                                            MingCuteIcons.mgc_minimize_line,
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
                                       ),

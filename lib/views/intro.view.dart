@@ -1,12 +1,13 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/widgets/upgrade.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/login.view.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/services/auth.service.dart';
-import 'package:pwa/widgets/page_indicator.dart';
+import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/widgets/upgrade.widget.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:pwa/widgets/page_indicator.widget.dart';
 
 class IntroView extends StatefulWidget {
   const IntroView({super.key});
@@ -191,50 +192,13 @@ class _IntroViewState extends State<IntroView> {
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                       ),
-                      child: SizedBox(
-                        height: 50,
-                        width: double.infinity.clamp(0, 800),
-                        child: Material(
-                          color: const Color(0xFF007BFF),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
-                          ),
-                          child: SizedBox(
-                            child: GestureDetector(
-                              onTap: () {
-                                Get.to(
-                                  () => const LoginView(),
-                                );
-                              },
-                              // borderRadius: const BorderRadius.all(
-                              //   Radius.circular(8),
-                              // ),
-                              // focusColor: const Color(0xFF030744).withOpacity(
-                              //   0.2,
-                              // ),
-                              // hoverColor: const Color(0xFF030744).withOpacity(
-                              //   0.2,
-                              // ),
-                              // splashColor: const Color(0xFF030744).withOpacity(
-                              //   0.2,
-                              // ),
-                              // highlightColor:
-                              //     const Color(0xFF030744).withOpacity(
-                              //   0.2,
-                              // ),
-                              child: const Center(
-                                child: Text(
-                                  "Login with phone",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      child: ActionButton(
+                        text: "Login with phone",
+                        onTap: () {
+                          Get.to(
+                            () => const LoginView(),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -242,39 +206,12 @@ class _IntroViewState extends State<IntroView> {
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                       ),
-                      child: SizedBox(
-                        height: 50,
-                        width: double.infinity.clamp(0, 800),
-                        child: Material(
-                          color: const Color(0xFF030744),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
-                          ),
-                          child: SizedBox(
-                            child: GestureDetector(
-                              onTap: () {
-                                Get.offAll(() => const HomeView());
-                              },
-                              // borderRadius: const BorderRadius.all(
-                              //   Radius.circular(8),
-                              // ),
-                              // focusColor: Colors.black,
-                              // hoverColor: Colors.black,
-                              // splashColor: Colors.black,
-                              // highlightColor: Colors.black,
-                              child: const Center(
-                                child: Text(
-                                  "Continue as guest",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      child: ActionButton(
+                        text: "Continue as guest",
+                        mainColor: const Color(0xFF030744),
+                        onTap: () {
+                          Get.offAll(() => const HomeView());
+                        },
                       ),
                     ),
                     const SizedBox(height: 28),

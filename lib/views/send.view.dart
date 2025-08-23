@@ -2,9 +2,10 @@ import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
-import 'package:pwa/widgets/text_field.dart';
 import 'package:pwa/view_models/send.vm.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/text_field.widget.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class SendView extends StatefulWidget {
@@ -72,8 +73,8 @@ class _SendViewState extends State<SendView> {
                       Row(
                         children: [
                           const SizedBox(width: 4),
-                          IconButton(
-                            onPressed: () {
+                          WidgetButton(
+                            onTap: () {
                               if (sendViewModel.phoneTEC.text == "" ||
                                   sendViewModel.phoneTEC.text == "null") {
                                 Get.back();
@@ -90,16 +91,22 @@ class _SendViewState extends State<SendView> {
                                 );
                               }
                             },
-                            icon: const Padding(
-                              padding: EdgeInsets.only(
-                                top: 2,
-                                right: 4,
-                                bottom: 2,
-                              ),
-                              child: Icon(
-                                MingCuteIcons.mgc_left_line,
-                                color: Color(0xFF030744),
-                                size: 38,
+                            child: const SizedBox(
+                              width: 58,
+                              height: 58,
+                              child: Center(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    top: 2,
+                                    right: 4,
+                                    bottom: 2,
+                                  ),
+                                  child: Icon(
+                                    MingCuteIcons.mgc_left_line,
+                                    color: Color(0xFF030744),
+                                    size: 38,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -160,52 +167,12 @@ class _SendViewState extends State<SendView> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                         ),
-                        child: SizedBox(
-                          height: 50,
-                          width: double.infinity.clamp(0, 800),
-                          child: Material(
-                            color: const Color(0xFF007BFF),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
-                            child: SizedBox(
-                              child: GestureDetector(
-                                onTap: () {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  vm.sendCode(widget.purpose);
-                                },
-                                // borderRadius: const BorderRadius.all(
-                                //   Radius.circular(8),
-                                // ),
-                                // focusColor: const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // hoverColor: const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // splashColor:
-                                //     const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                // highlightColor:
-                                //     const Color(0xFF030744).withOpacity(
-                                //   0.2,
-                                // ),
-                                child: const Center(
-                                  child: Text(
-                                    "Send Code",
-                                    style: TextStyle(
-                                      height: 1,
-                                      fontSize: 18,
-                                      fontFamily: "Inter",
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: ActionButton(
+                          text: "Send Code",
+                          onTap: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            vm.sendCode(widget.purpose);
+                          },
                         ),
                       ),
                       const Expanded(

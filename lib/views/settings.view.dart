@@ -3,6 +3,7 @@ import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/change.view.dart';
 import 'package:pwa/views/delete.view.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/view_models/settings.vm.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
@@ -32,24 +33,29 @@ class _SettingsViewState extends State<SettingsView> {
             body: SafeArea(
               child: Column(
                 children: [
-                  const SizedBox(height: 12),
                   Row(
                     children: [
                       const SizedBox(width: 4),
-                      IconButton(
-                        onPressed: () {
+                      WidgetButton(
+                        onTap: () {
                           Get.back();
                         },
-                        icon: const Padding(
-                          padding: EdgeInsets.only(
-                            top: 2,
-                            right: 4,
-                            bottom: 2,
-                          ),
-                          child: Icon(
-                            MingCuteIcons.mgc_left_line,
-                            color: Color(0xFF030744),
-                            size: 38,
+                        child: const SizedBox(
+                          width: 58,
+                          height: 58,
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                top: 2,
+                                right: 4,
+                                bottom: 2,
+                              ),
+                              child: Icon(
+                                MingCuteIcons.mgc_left_line,
+                                color: Color(0xFF030744),
+                                size: 38,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -65,170 +71,119 @@ class _SettingsViewState extends State<SettingsView> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
                   Divider(
                     height: 1,
                     thickness: 1,
                     color: const Color(0xFF030744).withOpacity(0.1),
                   ),
-                  const SizedBox(height: 12),
-                  Material(
-                    color: Colors.transparent,
-                    child: SizedBox(
-                      child: GestureDetector(
-                        onTap: () {
-                          Get.to(
-                            () => ChangeView(
-                              isReset: false,
-                              phone: AuthService.currentUser?.phone!,
-                            ),
-                          );
-                        },
-                        // focusColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // hoverColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // splashColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // highlightColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        child: const Padding(
-                          padding: EdgeInsets.only(
-                            top: 12,
-                            left: 16,
-                            right: 12,
-                            bottom: 12,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                MingCuteIcons.mgc_lock_line,
-                                color: Color(0xFF030744),
-                                size: 25,
-                              ),
-                              SizedBox(width: 12),
-                              Text(
-                                "Change Password",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF030744),
-                                ),
-                              ),
-                              Expanded(child: SizedBox()),
-                              Icon(
-                                MingCuteIcons.mgc_right_line,
-                                color: Color(0xFF030744),
-                                size: 25,
-                              ),
-                            ],
-                          ),
+                  WidgetButton(
+                    borderRadius: 0,
+                    onTap: () {
+                      Get.to(
+                        () => ChangeView(
+                          isReset: false,
+                          phone: AuthService.currentUser?.phone!,
                         ),
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.only(
+                        top: 16,
+                        left: 16,
+                        right: 12,
+                        bottom: 16,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            MingCuteIcons.mgc_lock_line,
+                            color: Color(0xFF030744),
+                            size: 25,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            "Change Password",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF030744),
+                            ),
+                          ),
+                          Expanded(child: SizedBox()),
+                          Icon(
+                            MingCuteIcons.mgc_right_line,
+                            color: Color(0xFF030744),
+                            size: 25,
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   !AuthService.inReviewMode()
                       ? const SizedBox()
-                      : Material(
-                          color: Colors.transparent,
-                          child: SizedBox(
-                            child: GestureDetector(
-                              onTap: () {
-                                Get.to(
-                                  () => const DeleteView(),
-                                );
-                              },
-                              // focusColor: const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              // hoverColor: const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              // splashColor: const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              // highlightColor:
-                              //     const Color(0xFF030744).withOpacity(
-                              //   0.1,
-                              // ),
-                              child: const Padding(
-                                padding: EdgeInsets.only(
-                                  top: 12,
-                                  left: 16,
-                                  right: 12,
-                                  bottom: 12,
+                      : WidgetButton(
+                          borderRadius: 0,
+                          onTap: () {
+                            Get.to(
+                              () => const DeleteView(),
+                            );
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.only(
+                              top: 16,
+                              left: 16,
+                              right: 12,
+                              bottom: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  MingCuteIcons.mgc_delete_2_line,
+                                  color: Colors.red,
+                                  size: 25,
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      MingCuteIcons.mgc_delete_2_line,
-                                      color: Colors.red,
-                                      size: 25,
-                                    ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      "Delete Account",
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.red,
-                                      ),
-                                    ),
-                                  ],
+                                SizedBox(width: 12),
+                                Text(
+                                  "Delete Account",
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.red,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
-                  Material(
-                    color: Colors.transparent,
-                    child: SizedBox(
-                      child: GestureDetector(
-                        onTap: () {
-                          vm.logoutPressed();
-                        },
-                        // focusColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // hoverColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // splashColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        // highlightColor: const Color(0xFF030744).withOpacity(
-                        //   0.1,
-                        // ),
-                        child: const Padding(
-                          padding: EdgeInsets.only(
-                            top: 12,
-                            left: 16,
-                            right: 12,
-                            bottom: 12,
+                  WidgetButton(
+                    borderRadius: 0,
+                    onTap: () {
+                      vm.logoutPressed();
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.only(
+                        top: 16,
+                        left: 16,
+                        right: 12,
+                        bottom: 16,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            MingCuteIcons.mgc_exit_line,
+                            color: Colors.red,
+                            size: 25,
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                MingCuteIcons.mgc_exit_line,
-                                color: Colors.red,
-                                size: 25,
-                              ),
-                              SizedBox(width: 12),
-                              Text(
-                                "Logout",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ],
+                          SizedBox(width: 12),
+                          Text(
+                            "Logout",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.red,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),

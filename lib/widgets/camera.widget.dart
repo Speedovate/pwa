@@ -11,6 +11,7 @@ import 'package:pwa/views/login.view.dart';
 import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/views/register.view.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 Uint8List? webChatBytes;
@@ -185,8 +186,8 @@ class _CameraWidgetState extends State<CameraWidget> {
                           Row(
                             children: [
                               const SizedBox(width: 4),
-                              IconButton(
-                                onPressed: () {
+                              WidgetButton(
+                                onTap: () {
                                   if (widget.cameraType == "chat") {
                                     Get.back();
                                   } else {
@@ -203,16 +204,22 @@ class _CameraWidgetState extends State<CameraWidget> {
                                     );
                                   }
                                 },
-                                icon: const Padding(
-                                  padding: EdgeInsets.only(
-                                    top: 2,
-                                    right: 4,
-                                    bottom: 2,
-                                  ),
-                                  child: Icon(
-                                    MingCuteIcons.mgc_left_line,
-                                    color: Color(0xFF030744),
-                                    size: 38,
+                                child: const SizedBox(
+                                  width: 58,
+                                  height: 58,
+                                  child: Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        top: 2,
+                                        right: 4,
+                                        bottom: 2,
+                                      ),
+                                      child: Icon(
+                                        MingCuteIcons.mgc_left_line,
+                                        color: Color(0xFF030744),
+                                        size: 38,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -316,61 +323,39 @@ class _CameraWidgetState extends State<CameraWidget> {
                                 Radius.circular(10),
                               ),
                             ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: SizedBox(
-                                // decoration: const BoxDecoration(
-                                //   borderRadius: BorderRadius.all(
-                                //     Radius.circular(10),
-                                //   ),
-                                // ),
-                                child: GestureDetector(
-                                  onTap: _isReady && !_isCapturing
-                                      ? _captureImage
-                                      : null,
-                                  // borderRadius: BorderRadius.circular(10),
-                                  // focusColor: Colors.black.withOpacity(
-                                  //   0.1,
-                                  // ),
-                                  // hoverColor: Colors.black.withOpacity(
-                                  //   0.1,
-                                  // ),
-                                  // splashColor: Colors.black.withOpacity(
-                                  //   0.1,
-                                  // ),
-                                  // highlightColor: Colors.black.withOpacity(
-                                  //   0.1,
-                                  // ),
-                                  child: Center(
-                                    child: Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF007BFF),
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(10),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.1,
-                                            ),
-                                            spreadRadius: 0,
-                                            blurRadius: 4,
-                                            offset: const Offset(
-                                              0,
-                                              2,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Icon(
-                                        MingCuteIcons.mgc_camera_2_fill,
-                                        color: Colors.white,
-                                        size: 35,
-                                      ),
+                            child: WidgetButton(
+                              borderRadius: 16,
+                              onTap: _isReady && !_isCapturing
+                                  ? _captureImage
+                                  : () {},
+                              child: Center(
+                                child: Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF007BFF),
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(10),
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            const Color(0xFF030744).withOpacity(
+                                          0.1,
+                                        ),
+                                        spreadRadius: 0,
+                                        blurRadius: 4,
+                                        offset: const Offset(
+                                          0,
+                                          2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    MingCuteIcons.mgc_camera_2_fill,
+                                    color: Colors.white,
+                                    size: 35,
                                   ),
                                 ),
                               ),
@@ -417,8 +402,8 @@ class CameraImageWidget extends StatelessWidget {
               Row(
                 children: [
                   const SizedBox(width: 4),
-                  IconButton(
-                    onPressed: () {
+                  WidgetButton(
+                    onTap: () {
                       AlertService().showAppAlert(
                         title: "Are you sure?",
                         content: "You're about to leave this page",
@@ -431,16 +416,22 @@ class CameraImageWidget extends StatelessWidget {
                         },
                       );
                     },
-                    icon: const Padding(
-                      padding: EdgeInsets.only(
-                        top: 2,
-                        right: 4,
-                        bottom: 2,
-                      ),
-                      child: Icon(
-                        MingCuteIcons.mgc_left_line,
-                        color: Color(0xFF030744),
-                        size: 38,
+                    child: const SizedBox(
+                      width: 58,
+                      height: 58,
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            top: 2,
+                            right: 4,
+                            bottom: 2,
+                          ),
+                          child: Icon(
+                            MingCuteIcons.mgc_left_line,
+                            color: Color(0xFF030744),
+                            size: 38,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -509,67 +500,44 @@ class CameraImageWidget extends StatelessWidget {
                           Radius.circular(10),
                         ),
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: SizedBox(
-                          // decoration: const BoxDecoration(
-                          //   borderRadius: BorderRadius.all(
-                          //     Radius.circular(10),
-                          //   ),
-                          // ),
-                          child: GestureDetector(
-                            onTap: () async {
-                              Get.back();
-                              Get.to(
-                                () => CameraWidget(
-                                  isEdit: isEdit,
-                                  cameraType: cameraType,
-                                ),
-                              );
-                            },
-                            // borderRadius: BorderRadius.circular(10),
-                            // focusColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            // hoverColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            // splashColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            // highlightColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            child: Center(
-                              child: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF030744),
-                                  borderRadius: const BorderRadius.all(
-                                    Radius.circular(10),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          const Color(0xFF030744).withOpacity(
-                                        0.1,
-                                      ),
-                                      spreadRadius: 0,
-                                      blurRadius: 4,
-                                      offset: const Offset(
-                                        0,
-                                        2,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  MingCuteIcons.mgc_back_2_fill,
-                                  color: Colors.white,
-                                  size: 35,
-                                ),
+                      child: WidgetButton(
+                        borderRadius: 16,
+                        onTap: () async {
+                          Get.back();
+                          Get.to(
+                            () => CameraWidget(
+                              isEdit: isEdit,
+                              cameraType: cameraType,
+                            ),
+                          );
+                        },
+                        child: Center(
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF030744),
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(10),
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF030744).withOpacity(
+                                    0.1,
+                                  ),
+                                  spreadRadius: 0,
+                                  blurRadius: 4,
+                                  offset: const Offset(
+                                    0,
+                                    2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              MingCuteIcons.mgc_back_2_fill,
+                              color: Colors.white,
+                              size: 35,
                             ),
                           ),
                         ),
@@ -584,61 +552,38 @@ class CameraImageWidget extends StatelessWidget {
                           Radius.circular(10),
                         ),
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: SizedBox(
-                          // decoration: const BoxDecoration(
-                          //   borderRadius: BorderRadius.all(
-                          //     Radius.circular(10),
-                          //   ),
-                          // ),
-                          child: GestureDetector(
-                            onTap: () {
-                              _onConfirm();
-                            },
-                            // borderRadius: BorderRadius.circular(10),
-                            // focusColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            // hoverColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            // splashColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            // highlightColor: Colors.black.withOpacity(
-                            //   0.1,
-                            // ),
-                            child: Center(
-                              child: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF007BFF),
-                                  borderRadius: const BorderRadius.all(
-                                    Radius.circular(10),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          const Color(0xFF030744).withOpacity(
-                                        0.1,
-                                      ),
-                                      spreadRadius: 0,
-                                      blurRadius: 4,
-                                      offset: const Offset(
-                                        0,
-                                        2,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  MingCuteIcons.mgc_check_fill,
-                                  color: Colors.white,
-                                  size: 35,
-                                ),
+                      child: WidgetButton(
+                        borderRadius: 16,
+                        onTap: () {
+                          _onConfirm();
+                        },
+                        child: Center(
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF007BFF),
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(10),
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF030744).withOpacity(
+                                    0.1,
+                                  ),
+                                  spreadRadius: 0,
+                                  blurRadius: 4,
+                                  offset: const Offset(
+                                    0,
+                                    2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              MingCuteIcons.mgc_check_fill,
+                              color: Colors.white,
+                              size: 35,
                             ),
                           ),
                         ),
