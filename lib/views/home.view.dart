@@ -36,8 +36,7 @@ class _HomeViewState extends State<HomeView> {
           drawer: Drawer(
             backgroundColor: Colors.white,
             shape: const RoundedRectangleBorder(),
-            child: ListView(
-              padding: EdgeInsets.zero,
+            child: Column(
               children: [
                 SizedBox(
                   height: MediaQuery.of(context).padding.top,
@@ -177,9 +176,9 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         onTap: () {
-                          // Get.to(
-                          //   () => const HistoryView(),
-                          // );
+                          Get.to(
+                            () => const HistoryView(),
+                          );
                         },
                       ),
                 !AuthService.isLoggedIn()
