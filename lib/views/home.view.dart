@@ -4,6 +4,7 @@ import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/login.view.dart';
+import 'package:pwa/widgets/list_tile.dart';
 import 'package:pwa/views/history.view.dart';
 import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/views/settings.view.dart';
@@ -163,7 +164,7 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 !AuthService.isLoggedIn()
                     ? const SizedBox()
-                    : ListTile(
+                    : ListTileWidget(
                         leading: const Icon(
                           MingCuteIcons.mgc_history_line,
                           color: Color(0xFF030744),
@@ -176,14 +177,14 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         onTap: () {
-                          Get.to(
-                            () => const HistoryView(),
-                          );
+                          // Get.to(
+                          //   () => const HistoryView(),
+                          // );
                         },
                       ),
                 !AuthService.isLoggedIn()
                     ? const SizedBox()
-                    : ListTile(
+                    : ListTileWidget(
                         leading: const Icon(
                           MingCuteIcons.mgc_settings_3_line,
                           color: Color(0xFF030744),
@@ -206,7 +207,7 @@ class _HomeViewState extends State<HomeView> {
                           }
                         },
                       ),
-                ListTile(
+                ListTileWidget(
                   leading: const Icon(
                     MingCuteIcons.mgc_headphone_line,
                     color: Color(0xFF030744),
@@ -224,7 +225,7 @@ class _HomeViewState extends State<HomeView> {
                     );
                   },
                 ),
-                ListTile(
+                ListTileWidget(
                   leading: const Icon(
                     MingCuteIcons.mgc_code_line,
                     color: Color(0xFF030744),

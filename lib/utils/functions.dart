@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/widgets/camera.dart';
+import 'package:pwa/widgets/list_tile.dart';
 import 'package:pwa/widgets/web_view.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -388,7 +389,7 @@ Future<dynamic> showImageSource({
     builder: (context) => Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ListTile(
+        ListTileWidget(
           onTap: () async {
             Get.back();
             showCameraSource(
@@ -401,7 +402,7 @@ Future<dynamic> showImageSource({
         ),
         hideGallery
             ? const SizedBox()
-            : ListTile(
+            : ListTileWidget(
                 onTap: () async {
                   Get.back();
                   try {
