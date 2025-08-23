@@ -15,7 +15,7 @@ import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/requests/settings.request.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
-import 'package:package_info_plus/package_info_plus.dart';
+// import 'package:package_info_plus/package_info_plus.dart';
 
 class SplashViewModel extends BaseViewModel {
   StreamSubscription? configStream;
@@ -36,9 +36,9 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      versionCode = packageInfo.buildNumber;
-      version = packageInfo.version;
+      // final packageInfo = await PackageInfo.fromPlatform();
+      versionCode = "1.0.10"; // packageInfo.buildNumber;
+      version = "30"; // packageInfo.version;
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

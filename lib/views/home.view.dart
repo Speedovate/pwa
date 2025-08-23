@@ -4,6 +4,7 @@ import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/login.view.dart';
+import 'package:pwa/views/history.view.dart';
 import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/views/settings.view.dart';
 import 'package:pwa/widgets/gmap.widget.dart';
@@ -175,9 +176,9 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         onTap: () {
-                          // Get.to(
-                          //   () => const HistoryView(),
-                          // );
+                          Get.to(
+                            () => const HistoryView(),
+                          );
                         },
                       ),
                 !AuthService.isLoggedIn()
@@ -616,37 +617,37 @@ class _HomeViewState extends State<HomeView> {
                                             1000,
                                           ),
                                         ),
-                                        child: Ink(
-                                          child: InkWell(
-                                            hoverDuration: const Duration(
-                                              milliseconds: 500,
-                                            ),
+                                        // child: Ink(
+                                          child: GestureDetector(
+                                            // hoverDuration: const Duration(
+                                            //   milliseconds: 500,
+                                            // ),
                                             onTap: () async {
                                               vm.zoomIn();
                                             },
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                              Radius.circular(
-                                                1000,
-                                              ),
-                                            ),
-                                            focusColor: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.2,
-                                            ),
-                                            hoverColor: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.2,
-                                            ),
-                                            splashColor: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.2,
-                                            ),
-                                            highlightColor:
-                                                const Color(0xFF030744)
-                                                    .withOpacity(
-                                              0.2,
-                                            ),
+                                            // borderRadius:
+                                            //     const BorderRadius.all(
+                                            //   Radius.circular(
+                                            //     1000,
+                                            //   ),
+                                            // ),
+                                            // focusColor: const Color(0xFF030744)
+                                            //     .withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // hoverColor: const Color(0xFF030744)
+                                            //     .withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // splashColor: const Color(0xFF030744)
+                                            //     .withOpacity(
+                                            //   0.2,
+                                            // ),
+                                            // highlightColor:
+                                            //     const Color(0xFF030744)
+                                            //         .withOpacity(
+                                            //   0.2,
+                                            // ),
                                             child: const Center(
                                               child: Icon(
                                                 MingCuteIcons.mgc_add_line,
@@ -654,7 +655,7 @@ class _HomeViewState extends State<HomeView> {
                                               ),
                                             ),
                                           ),
-                                        ),
+                                        // ),
                                       ),
                                     ),
                                     const SizedBox(

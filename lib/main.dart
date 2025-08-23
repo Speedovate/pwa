@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/splash.view.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -20,6 +21,7 @@ void main() async {
     ),
   );
   await StorageService.getPrefs();
+  GestureBinding.instance.pointerRouter.addGlobalRoute((event) {});
   runApp(
     const MyApp(),
   );
