@@ -71300,7 +71300,7 @@ q.toString
 p=k.a
 o=p.d
 n=k.d
-m=A.qe(n?B.pV:B.JP,j,j,j)
+m=A.qe(n?B.pV:B.JO,j,j,j)
 l=n?"Back":"More"
 l=A.b([new A.a7f(m,new A.aOY(k),l,j)],t.p)
 B.b.S(l,k.a.c)
@@ -110260,7 +110260,7 @@ A.aSH.prototype={
 $0(){return new A.pQ(this.a,this.b,null)},
 $S:238}
 A.aSL.prototype={
-$1(a){var s=A.FH(B.Kn,new A.aSJ(this.a,this.b),B.a0g),r=A.FH(B.Km,new A.aSK(),B.a09)
+$1(a){var s=A.FH(B.Ko,new A.aSJ(this.a,this.b),B.a0g),r=A.FH(B.Kn,new A.aSK(),B.a09)
 return A.cm(A.b([s,r],t.p),B.l,B.n,B.ck)},
 $S:662}
 A.aSJ.prototype={
@@ -111356,7 +111356,7 @@ return A.u(A.CJ(),$async$vJ)
 case 2:s=3
 return A.u(A.PV(),$async$vJ)
 case 3:try{$.b78="1.0.0"
-$.aSS="11"}catch(o){q=A.Q(o)
+$.aSS="12"}catch(o){q=A.Q(o)
 A.c0().$1("getAppInfo error: "+A.e(q))}return A.q(null,r)}})
 return A.r($async$vJ,r)},
 l6(a){var s=0,r=A.t(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d,c,b
@@ -111841,7 +111841,7 @@ if((j?a1:k.f)==null)k=""
 else k=" | "+A.e(j?a1:k.f)
 k=A.ef(new A.ax(B.IO,A.cm(A.b([o,A.aW(A.jd(A.e(m)+i+k,"Driver Info"),a1,a1,a1,a1,B.ZP,a1,a1)],p),B.cX,B.n,B.m),a1),1)
 i=B.d.R(76.5)
-i=new A.ax(B.dp,A.c4(A.b([l,B.bn,k,new A.cK(A.b0(A.cE(A.qe(B.JL,A.P(i,3,7,68),a1,a1),a1,a1),44,44),B.oP,new A.aGa(),8,!1,a1),B.bn,new A.cK(A.b0(A.cE(A.qe(B.JM,A.P(i,3,7,68),a1,a1),a1,a1),44,44),B.oP,new A.aGb(),8,!1,a1)],p),B.l,B.n,B.m),a1)
+i=new A.ax(B.dp,A.c4(A.b([l,B.bn,k,new A.cK(A.b0(A.cE(A.qe(B.JK,A.P(i,3,7,68),a1,a1),a1,a1),44,44),B.oP,new A.aGa(),8,!1,a1),B.bn,new A.cK(A.b0(A.cE(A.qe(B.JL,A.P(i,3,7,68),a1,a1),a1,a1),44,44),B.oP,new A.aGb(),8,!1,a1)],p),B.l,B.n,B.m),a1)
 o=i}}m=A.tj(A.P(38,3,7,68),1)
 l=new A.aGc(r).$0()
 l=A.bD(a1,new A.ax(B.le,A.aW(new A.aGd(r).$0(),a1,a1,a1,a1,A.cj(a1,a1,new A.aGe(r).$0(),a1,a1,a1,a1,a1,a1,a1,a1,13,a1,a1,B.o,a1,1,!0,a1,a1,a1,a1,a1,a1,a1,a1),a1,a1),a1),B.k,a1,a1,new A.bQ(l,a1,a1,B.e_,a1,a1,B.M),a1,a1,a1,a1,a1,a1,a1)
@@ -111850,7 +111850,7 @@ j=A.aW("Ride #"+A.e(k.a),a1,a1,a1,a1,B.Cx,a1,a1)
 i=A.mj(A.P(38,3,7,68),1,1)
 k=k.dy
 h=k==null
-g=h?A.Dc(new A.ax(B.IN,A.bD(a1,B.Kl,B.k,B.z,a1,a1,a1,28,a1,a1,a1,a1,28),a1)):A.ms("assets/images/icon.png",B.B,a1,28,28)
+g=h?A.Dc(new A.ax(B.IN,A.bD(a1,B.Km,B.k,B.z,a1,a1,a1,28,a1,a1,a1,a1,28),a1)):A.ms("assets/images/icon.png",B.B,a1,28,28)
 f=a1
 if(h)k=f
 else{k=k.k3
@@ -112060,7 +112060,7 @@ s=t.p
 l=A.bD(n,new A.cK(new A.ax(B.J1,A.cm(A.b([A.c4(A.b([j,B.bn,A.ef(A.aW(k?"Login Account":A.jd(A.e(l.w),"\u2022\u2022\u2022"),n,n,n,n,B.Zm,n,n),1),B.bn,B.q1],s),B.l,B.n,B.m)],s),B.l,B.n,B.m),n),B.h,new A.aIo(this.a),0,!0,n),B.k,B.h,n,n,n,n,n,n,n,n,n)
 j=A.mj(A.P(B.d.R(25.5),3,7,68),1.05,1)
 k=$.fD==null
-r=k?B.bb:A.FH(B.Ko,new A.aIp(),B.a0A)
+r=k?B.bb:A.FH(B.Kp,new A.aIp(),B.a0A)
 k=k?B.bb:A.FH(B.Ks,new A.aIq(),B.a0J)
 q=A.FH(B.KC,new A.aIr(),B.a0w)
 p=$.b78
@@ -112122,7 +112122,7 @@ if(n==null)return B.kw
 s=this.a
 r=t.sq
 q=t.p
-return A.b0(A.eW(B.b6,A.b([A.cm(A.b([A.ef(A.eW(B.b6,A.b([new A.EW(n,s,p),A.mO(p,A.cm(A.b([A.bD(p,new A.cK(B.FX,B.h,new A.aIa(a),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,20,p,20,p),A.mO(p,A.cm(A.b([A.bD(p,new A.cK(B.FY,B.h,new A.aIb(s),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,p,20,20,p),A.mO(20,A.cm(A.b([A.bD(p,new A.cK(B.FZ,B.h,new A.aIc(),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45),B.co,A.bD(p,new A.cK(B.FW,B.h,new A.aIe(),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,20,p,p,p),A.mO(20,A.cm(A.b([A.bD(p,new A.cK(B.FU,B.h,new A.aIf(s),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45),B.co,A.bD(p,new A.cK(B.G_,B.h,new A.aIg(s),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,p,20,p,p),B.FS],q),B.p,B.aS),1),A.bD(p,B.Hv,B.k,B.h,p,p,p,p,p,p,p,p,p)],q),B.l,B.n,B.m)],q),B.p,B.aS),1/0,1/0)},
+return A.b0(A.eW(B.b6,A.b([A.cm(A.b([A.ef(A.eW(B.b6,A.b([new A.EW(n,s,p),A.mO(p,A.cm(A.b([A.bD(p,new A.cK(B.FX,B.h,new A.aIa(a),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,20,p,20,p),A.mO(p,A.cm(A.b([A.bD(p,new A.cK(B.FY,B.h,new A.aIb(s),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,p,20,20,p),A.mO(20,A.cm(A.b([A.bD(p,new A.cK(B.G_,B.h,new A.aIc(),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45),B.co,A.bD(p,new A.cK(B.FW,B.h,new A.aIe(),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,20,p,p,p),A.mO(20,A.cm(A.b([A.bD(p,new A.cK(B.FU,B.h,new A.aIf(s),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45),B.co,A.bD(p,new A.cK(B.FZ,B.h,new A.aIg(s),o,!0,p),B.k,p,p,new A.bQ(p,p,p,B.bZ,A.b([new A.dh(0,B.aV,A.P(64,3,7,68),B.c5,2)],r),p,B.M),p,45,p,p,p,p,45)],q),B.l,B.n,B.m),p,p,p,20,p,p),B.FS],q),B.p,B.aS),1),A.bD(p,B.Hv,B.k,B.h,p,p,p,p,p,p,p,p,p)],q),B.l,B.n,B.m)],q),B.p,B.aS),1/0,1/0)},
 $S:693}
 A.aIa.prototype={
 $0(){var s=0,r=A.t(t.H),q=this
@@ -119225,9 +119225,9 @@ B.oq=new A.tm(1,"manual")
 B.FR=new A.tm(2,"controller")
 B.a4G=new A.adB(0,"scale")
 B.pg=new A.aw(0,0,0,40)
-B.JR=new A.cb(60069,"MaterialIcons",null,!1)
+B.JQ=new A.cb(60069,"MaterialIcons",null,!1)
 B.a3=new A.x(4278221823)
-B.Kj=new A.d7(B.JR,50,B.a3,null,null)
+B.Kj=new A.d7(B.JQ,50,B.a3,null,null)
 B.R7=new A.ax(B.pg,B.Kj,null)
 B.FS=new A.fF(B.H,null,null,B.R7,null)
 B.H2=new A.x(4293457385)
@@ -119253,20 +119253,20 @@ B.K2=new A.cb(59661,"MingCute","ming_cute_icons",!1)
 B.KE=new A.d7(B.K2,null,B.B,null,null)
 B.FU=new A.fF(B.H,null,null,B.KE,null)
 B.JV=new A.cb(62099,"MingCute","ming_cute_icons",!1)
-B.Kp=new A.d7(B.JV,null,B.B,null,null)
-B.FW=new A.fF(B.H,null,null,B.Kp,null)
+B.Kq=new A.d7(B.JV,null,B.B,null,null)
+B.FW=new A.fF(B.H,null,null,B.Kq,null)
 B.K_=new A.cb(59671,"MingCute","ming_cute_icons",!1)
 B.Ky=new A.d7(B.K_,null,B.B,null,null)
 B.FY=new A.fF(B.H,null,null,B.Ky,null)
 B.K0=new A.cb(61471,"MingCute","ming_cute_icons",!1)
 B.Kz=new A.d7(B.K0,null,B.B,null,null)
 B.FX=new A.fF(B.H,null,null,B.Kz,null)
+B.JR=new A.cb(62044,"MingCute",null,!1)
+B.Kk=new A.d7(B.JR,null,B.B,null,null)
+B.FZ=new A.fF(B.H,null,null,B.Kk,null)
 B.K9=new A.cb(61879,"MingCute","ming_cute_icons",!1)
 B.Ku=new A.d7(B.K9,null,B.B,null,null)
-B.FZ=new A.fF(B.H,null,null,B.Ku,null)
-B.JK=new A.cb(61507,"MingCute","ming_cute_icons",!1)
-B.Kr=new A.d7(B.JK,null,B.B,null,null)
-B.G_=new A.fF(B.H,null,null,B.Kr,null)
+B.G_=new A.fF(B.H,null,null,B.Ku,null)
 B.G0=new A.x7(null,null,null,null,null,null,null,null,null)
 B.G1=new A.D9(null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.or=new A.f0(0,B.x)
@@ -119382,8 +119382,8 @@ B.n=new A.qp(0,"start")
 B.eM=new A.bv("data",null,null,null,null,null,null,null,null)
 B.NC=A.b(s([B.eM,B.eM,B.eM,B.eM,B.eM,B.eM]),t.p)
 B.Hv=new A.nA(B.aM,B.n,B.m,B.l,null,B.bq,null,B.NC,null)
-B.JQ=new A.cb(59103,"MaterialIcons",null,!1)
-B.KB=new A.d7(B.JQ,75,B.a3,null,null)
+B.JP=new A.cb(59103,"MaterialIcons",null,!1)
+B.KB=new A.d7(B.JP,75,B.a3,null,null)
 B.jB=new A.dl(null,20,null,null)
 B.Gd=new A.x(2147682116)
 B.a_G=new A.v(!0,B.Gd,null,null,null,null,15,B.at,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
@@ -119746,11 +119746,11 @@ B.cg=new A.F2(2,"translucent")
 B.ei=new A.u9(null)
 B.a4O=new A.amv(0,"start")
 B.JJ=new A.o5(null)
-B.JM=new A.cb(60234,"MingCute","ming_cute_icons",!1)
-B.JL=new A.cb(61720,"MingCute","ming_cute_icons",!1)
+B.JL=new A.cb(60234,"MingCute","ming_cute_icons",!1)
+B.JK=new A.cb(61720,"MingCute","ming_cute_icons",!1)
 B.pV=new A.cb(57490,"MaterialIcons",null,!0)
 B.pW=new A.cb(58332,"MaterialIcons",null,!1)
-B.JP=new A.cb(58372,"MaterialIcons",null,!1)
+B.JO=new A.cb(58372,"MaterialIcons",null,!1)
 B.JU=new A.cb(60175,"MingCute","ming_cute_icons",!1)
 B.JY=new A.cb(62552,"MingCute","ming_cute_icons",!1)
 B.K4=new A.cb(59701,"MingCute","ming_cute_icons",!1)
@@ -119777,13 +119777,13 @@ B.Pr=new A.du([50,B.Hn,100,B.fd,200,B.H7,300,B.GZ,400,B.H5,500,B.Ha,600,B.GY,700
 B.z=new A.mD(B.Pr,4294198070)
 B.q0=new A.d7(B.pX,null,B.z,null,null)
 B.K5=new A.cb(59700,"MingCute","ming_cute_icons",!1)
-B.Kl=new A.d7(B.K5,18,B.h,null,null)
-B.JO=new A.cb(58162,"MaterialIcons",null,!1)
-B.Km=new A.d7(B.JO,null,null,null,null)
-B.JN=new A.cb(57648,"MaterialIcons",null,!1)
+B.Km=new A.d7(B.K5,18,B.h,null,null)
+B.JN=new A.cb(58162,"MaterialIcons",null,!1)
 B.Kn=new A.d7(B.JN,null,null,null,null)
+B.JM=new A.cb(57648,"MaterialIcons",null,!1)
+B.Ko=new A.d7(B.JM,null,null,null,null)
 B.JZ=new A.cb(61141,"MingCute","ming_cute_icons",!1)
-B.Ko=new A.d7(B.JZ,null,B.B,null,null)
+B.Kp=new A.d7(B.JZ,null,B.B,null,null)
 B.JX=new A.cb(61945,"MingCute","ming_cute_icons",!1)
 B.q1=new A.d7(B.JX,25,B.B,null,null)
 B.Kd=new A.cb(62083,"MingCute","ming_cute_icons",!1)
@@ -121199,9 +121199,9 @@ B.YL=new A.v(!0,B.a3,null,null,null,null,null,B.at,null,null,null,null,null,null
 B.a0l=new A.bv("Resend",null,B.YL,null,null,null,null,null,null)
 B.Ra=new A.ax(B.pk,B.a0l,null)
 B.JT=new A.cb(60499,"MingCute","ming_cute_icons",!1)
-B.Kk=new A.d7(B.JT,25,B.z,null,null)
+B.Kl=new A.d7(B.JT,25,B.z,null,null)
 B.a0x=new A.bv("Delete Account",null,B.Cs,null,null,null,null,null,null)
-B.NA=A.b(s([B.Kk,B.bn,B.a0x]),t.p)
+B.NA=A.b(s([B.Kl,B.bn,B.a0x]),t.p)
 B.Sz=new A.qX(B.aL,B.n,B.m,B.l,null,B.bq,null,B.NA,null)
 B.Rb=new A.ax(B.ld,B.Sz,null)
 B.K1=new A.cb(61397,"MingCute","ming_cute_icons",!1)
@@ -121553,8 +121553,8 @@ B.jA=new A.dl(6,null,null,null)
 B.db=new A.dl(8,null,null,null)
 B.IR=new A.aw(0,2,4,2)
 B.Ke=new A.cb(61319,"MingCute","ming_cute_icons",!1)
-B.Kq=new A.d7(B.Ke,38,B.B,null,null)
-B.Rd=new A.ax(B.IR,B.Kq,null)
+B.Kr=new A.d7(B.Ke,38,B.B,null,null)
+B.Rd=new A.ax(B.IR,B.Kr,null)
 B.FV=new A.fF(B.H,null,null,B.Rd,null)
 B.bH=new A.dl(58,58,B.FV,null)
 B.UA=new A.dl(null,10,null,null)

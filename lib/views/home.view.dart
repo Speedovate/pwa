@@ -494,7 +494,7 @@ class _HomeViewState extends State<HomeView> {
                                         },
                                         child: const Center(
                                           child: Icon(
-                                            MingCuteIcons.mgc_minimize_line,
+                                            IconData(0xf25c, fontFamily: 'MingCute'),
                                             color: Color(0xFF030744),
                                           ),
                                         ),
