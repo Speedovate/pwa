@@ -49,19 +49,24 @@ class _HomeViewState extends State<HomeView> {
                     borderRadius: 0,
                     onTap: () {
                       Get.back();
-                      if (!AuthService.isLoggedIn()) {
-                        Get.to(
-                          () => const LoginView(),
-                        );
-                      } else {
-                        setState(() {
-                          agreed = false;
-                          selfieFile = null;
-                        });
-                        Get.to(
-                          () => const ProfileView(),
-                        );
-                      }
+                      Future.delayed(
+                        const Duration(milliseconds: 200),
+                        () {
+                          if (!AuthService.isLoggedIn()) {
+                            Get.to(
+                              () => const LoginView(),
+                            );
+                          } else {
+                            setState(() {
+                              agreed = false;
+                              selfieFile = null;
+                            });
+                            Get.to(
+                              () => const ProfileView(),
+                            );
+                          }
+                        },
+                      );
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(
@@ -163,8 +168,13 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         onTap: () {
                           Get.back();
-                          Get.to(
-                            () => const HistoryView(),
+                          Future.delayed(
+                            const Duration(milliseconds: 200),
+                            () {
+                              Get.to(
+                                () => const HistoryView(),
+                              );
+                            },
                           );
                         },
                       ),
@@ -183,15 +193,20 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         onTap: () {
                           Get.back();
-                          if (!AuthService.isLoggedIn()) {
-                            Get.to(
-                              () => const LoginView(),
-                            );
-                          } else {
-                            Get.to(
-                              () => const SettingsView(),
-                            );
-                          }
+                          Future.delayed(
+                            const Duration(milliseconds: 200),
+                            () {
+                              if (!AuthService.isLoggedIn()) {
+                                Get.to(
+                                  () => const LoginView(),
+                                );
+                              } else {
+                                Get.to(
+                                  () => const SettingsView(),
+                                );
+                              }
+                            },
+                          );
                         },
                       ),
                 ListTileWidget(
@@ -207,9 +222,14 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   onTap: () {
                     Get.back();
-                    launchUrlString(
-                      "sms://+639122078420",
-                      mode: LaunchMode.externalNonBrowserApplication,
+                    Future.delayed(
+                      const Duration(milliseconds: 200),
+                      () {
+                        launchUrlString(
+                          "sms://+639122078420",
+                          mode: LaunchMode.externalNonBrowserApplication,
+                        );
+                      },
                     );
                   },
                 ),
@@ -226,12 +246,17 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   onTap: () {
                     Get.back();
-                    if (!AuthService.inReviewMode()) {
-                      launchUrlString(
-                        "https://ppctoda.framer.website",
-                        mode: LaunchMode.externalNonBrowserApplication,
-                      );
-                    }
+                    Future.delayed(
+                      const Duration(milliseconds: 200),
+                      () {
+                        if (!AuthService.inReviewMode()) {
+                          launchUrlString(
+                            "https://ppctoda.framer.website",
+                            mode: LaunchMode.externalNonBrowserApplication,
+                          );
+                        }
+                      },
+                    );
                   },
                 ),
               ],
