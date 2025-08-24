@@ -236,8 +236,9 @@ class _HomeViewState extends State<HomeView> {
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: getMyLatLng(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
+            builder: (context, myLatLng) {
+              initLatLng = myLatLng.data ?? gmaps.LatLng(9.7638, 118.7473);
+              if (!myLatLng.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
               return SizedBox(
@@ -251,7 +252,7 @@ class _HomeViewState extends State<HomeView> {
                           child: Stack(
                             children: [
                               GoogleMapWidget(
-                                center: snapshot.data!,
+                                center: myLatLng.data!,
                                 viewModel: vm,
                               ),
                               Positioned(

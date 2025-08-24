@@ -134,6 +134,7 @@ class LoginViewModel extends BaseViewModel {
       await AuthService.getTokenFromStorage();
       try {
         myLatLng = await getMyLatLng();
+        notifyListeners();
         if (myLatLng != null) {
           Point earthCenterLocation = Point(
             latitude: 0.00,

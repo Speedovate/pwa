@@ -35,7 +35,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "3";
+      versionCode = "1";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -57,7 +57,7 @@ class SplashViewModel extends BaseViewModel {
       await AppStrings.getAppSettingsFromStorage();
       try {
         myLatLng = await getMyLatLng();
-        initLatLng = myLatLng;
+        notifyListeners();
         if (AuthService.isLoggedIn()) {
           if (myLatLng != null) {
             Point earthCenterLocation = Point(

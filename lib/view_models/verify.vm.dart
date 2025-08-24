@@ -129,6 +129,7 @@ class VerifyViewModel extends BaseViewModel {
           try {
             if (purpose == "register") {
               myLatLng = await getMyLatLng();
+              notifyListeners();
               if (myLatLng != null) {
                 ApiResponse apiResponse = await authRequest.registerRequest(
                   countryCode: "PH",

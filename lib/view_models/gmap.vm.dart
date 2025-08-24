@@ -27,8 +27,8 @@ class GMapViewModel extends BaseViewModel {
 
   Future<void> zoomToCurrentLocation({double zoom = 16}) async {
     if (_map != null) {
-      final target = initLatLng ?? gmaps.LatLng(9.7638, 118.7473);
-      _map!.panTo(target);
+      final target = initLatLng;
+      _map!.panTo(target!);
       _map!.zoom = zoom;
       notifyListeners();
     }
