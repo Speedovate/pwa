@@ -32,6 +32,7 @@ class _SettingsViewState extends State<SettingsView> {
             body: SafeArea(
               child: Column(
                 children: [
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       const SizedBox(width: 4),
@@ -70,6 +71,7 @@ class _SettingsViewState extends State<SettingsView> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
                   Divider(
                     height: 1,
                     thickness: 1,
