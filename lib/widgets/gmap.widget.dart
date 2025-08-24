@@ -10,11 +10,13 @@ import 'package:google_maps/google_maps.dart' as gmaps;
 class GoogleMapWidget extends StatefulWidget {
   final gmaps.LatLng center;
   final HomeViewModel viewModel;
+  final bool enableGestures;
 
   const GoogleMapWidget({
     super.key,
     required this.center,
     required this.viewModel,
+    this.enableGestures = true,
   });
 
   @override
@@ -23,6 +25,7 @@ class GoogleMapWidget extends StatefulWidget {
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   late final String viewId;
+  gmaps.Map? _map;
 
   @override
   void initState() {
@@ -34,15 +37,18 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         ..id = viewId
         ..style.width = '100%'
         ..style.height = '100%';
+
       final mapOptions = gmaps.MapOptions()
         ..zoom = 16
         ..center = widget.center
         ..clickableIcons = false
         ..disableDefaultUI = true
-        ..gestureHandling = 'greedy'
+        ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
         ..disableDoubleClickZoom = true
         ..mapTypeId = gmaps.MapTypeId.ROADMAP;
-      final map = gmaps.Map(mapDiv as dynamic, mapOptions);
+
+      _map = gmaps.Map(mapDiv as dynamic, mapOptions);
+
       final styles = [
         {
           "featureType": "poi",
@@ -80,12 +86,23 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           "stylers": [
             {"color": "#c9c9c9"}
           ]
-        }
+        },
       ];
-      js_util.setProperty(map, 'styles', styles);
-      widget.viewModel.setMap(map);
+
+      js_util.setProperty(_map!, 'styles', styles);
+      widget.viewModel.setMap(_map!);
+
       return mapDiv;
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant GoogleMapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enableGestures != widget.enableGestures && _map != null) {
+      js_util.setProperty(
+          _map!, 'gestureHandling', widget.enableGestures ? 'greedy' : 'none');
+    }
   }
 
   void _ensureHideGmapUiStyle() {
@@ -94,7 +111,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     final styleEl = html.StyleElement()
       ..id = styleId
       ..appendText('''
-        /* Hide various Google Maps controls & attributions */
         .gm-style-cc,
         .gmnoprint,
         .gm-style a,
@@ -106,7 +122,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           pointer-events: none !important;
         }
       ''');
-
     html.document.head?.append(styleEl);
   }
 
