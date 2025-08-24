@@ -26,35 +26,11 @@ class GMapViewModel extends BaseViewModel {
 
   gmaps.Map? get map => _map;
 
-  Future<void> zoomToCurrentLocation({
-    double zoom = 16,
-    int durationMs = 100,
-  }) async {
+  Future<void> zoomToCurrentLocation({double zoom = 16}) async {
     if (_map == null) return;
-    final target = await getMyLatLng();
-    final startLat = _map!.center.lat;
-    final startLng = _map!.center.lng;
-    final startZoom = _map!.zoom;
-    final endLat = target?.lat ?? 9.7638;
-    final endLng = target?.lng ?? 118.7473;
-    final endZoom = zoom;
-    final distance =
-        ((endLat - startLat).abs() + (endLng - startLng).abs()) / 2;
-    final steps = (50 + (distance * 200)).clamp(50, 150).toInt();
-    final stepDuration = durationMs ~/ steps;
-    for (int i = 1; i <= steps; i++) {
-      final t = i / steps;
-      final lat = lerpDouble(startLat, endLat, t)!;
-      final lng = lerpDouble(startLng, endLng, t)!;
-      final currentZoom = lerpDouble(startZoom, endZoom, t)!;
-      _map!.center = gmaps.LatLng(lat, lng);
-      _map!.zoom = currentZoom;
-      if (i % 2 == 0) notifyListeners();
-      await Future.delayed(Duration(milliseconds: stepDuration));
-    }
-    _map!.center = target ?? gmaps.LatLng(9.7638, 118.7473);
+    final target = await getMyLatLng() ?? gmaps.LatLng(9.7638, 118.7473);
+    _map!.panTo(target);
     _map!.zoom = zoom;
-    notifyListeners();
   }
 
   Future<void> zoomIn() async {
