@@ -265,41 +265,46 @@ class _HomeViewState extends State<HomeView> {
                                 left: 20,
                                 child: Column(
                                   children: [
-                                    Container(
-                                      width: 45,
-                                      height: 45,
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.25,
+                                    Builder(
+                                      builder: (context) {
+                                        return Container(
+                                          width: 45,
+                                          height: 45,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                              Radius.circular(
+                                                1000,
+                                              ),
                                             ),
-                                            spreadRadius: 0,
-                                            blurRadius: 2,
-                                            offset: const Offset(
-                                              0,
-                                              2,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFF030744)
+                                                    .withOpacity(
+                                                  0.25,
+                                                ),
+                                                spreadRadius: 0,
+                                                blurRadius: 2,
+                                                offset: const Offset(
+                                                  0,
+                                                  2,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          child: WidgetButton(
+                                            onTap: () async {
+                                              Scaffold.of(context).openDrawer();
+                                            },
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.menu,
+                                                color: Color(0xFF030744),
+                                              ),
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                      child: WidgetButton(
-                                        onTap: () async {
-                                          Scaffold.of(context).openDrawer();
-                                        },
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.menu,
-                                            color: Color(0xFF030744),
-                                          ),
-                                        ),
-                                      ),
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),
