@@ -7,7 +7,6 @@ import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/view_models/verify.vm.dart';
 import 'package:pwa/services/alert.service.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 
 class VerifyView extends StatefulWidget {
@@ -120,7 +119,7 @@ class _VerifyViewState extends State<VerifyView> {
                                     bottom: 2,
                                   ),
                                   child: Icon(
-                                    MingCuteIcons.mgc_left_line,
+                                    Icons.chevron_left,
                                     color: Color(0xFF030744),
                                     size: 38,
                                   ),

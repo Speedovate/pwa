@@ -12,7 +12,6 @@ import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/views/register.view.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 Uint8List? webChatBytes;
 Uint8List? webProfileBytes;
@@ -215,7 +214,7 @@ class _CameraWidgetState extends State<CameraWidget> {
                                         bottom: 2,
                                       ),
                                       child: Icon(
-                                        MingCuteIcons.mgc_left_line,
+                                        Icons.chevron_left,
                                         color: Color(0xFF030744),
                                         size: 38,
                                       ),
@@ -353,7 +352,7 @@ class _CameraWidgetState extends State<CameraWidget> {
                                     ],
                                   ),
                                   child: const Icon(
-                                    MingCuteIcons.mgc_camera_2_fill,
+                                    Icons.photo_camera,
                                     color: Colors.white,
                                     size: 35,
                                   ),
@@ -427,7 +426,7 @@ class CameraImageWidget extends StatelessWidget {
                             bottom: 2,
                           ),
                           child: Icon(
-                            MingCuteIcons.mgc_left_line,
+                            Icons.chevron_left,
                             color: Color(0xFF030744),
                             size: 38,
                           ),
@@ -535,7 +534,7 @@ class CameraImageWidget extends StatelessWidget {
                               ],
                             ),
                             child: const Icon(
-                              MingCuteIcons.mgc_back_2_fill,
+                              Icons.replay,
                               color: Colors.white,
                               size: 35,
                             ),
@@ -581,7 +580,7 @@ class CameraImageWidget extends StatelessWidget {
                               ],
                             ),
                             child: const Icon(
-                              MingCuteIcons.mgc_check_fill,
+                              Icons.check,
                               color: Colors.white,
                               size: 35,
                             ),

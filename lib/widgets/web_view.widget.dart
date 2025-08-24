@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/widgets/button.widget.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class WebViewWidget extends StatefulWidget {
   const WebViewWidget({
@@ -103,7 +102,7 @@ class WebViewWidgetState extends State<WebViewWidget> {
                     bottom: 2,
                   ),
                   child: Icon(
-                    MingCuteIcons.mgc_left_line,
+                    Icons.chevron_left,
                     color: Color(0xFF030744),
                     size: 38,
                   ),

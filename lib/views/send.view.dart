@@ -6,7 +6,6 @@ import 'package:pwa/view_models/send.vm.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class SendView extends StatefulWidget {
   final String purpose;
@@ -102,7 +101,7 @@ class _SendViewState extends State<SendView> {
                                     bottom: 2,
                                   ),
                                   child: Icon(
-                                    MingCuteIcons.mgc_left_line,
+                                    Icons.chevron_left,
                                     color: Color(0xFF030744),
                                     size: 38,
                                   ),

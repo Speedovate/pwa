@@ -12,7 +12,6 @@ import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/view_models/details.vm.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -69,7 +68,7 @@ class _DetailsViewState extends State<DetailsView> {
                                   bottom: 2,
                                 ),
                                 child: Icon(
-                                  MingCuteIcons.mgc_left_line,
+                                  Icons.chevron_left,
                                   color: Color(0xFF030744),
                                   size: 38,
                                 ),
@@ -135,7 +134,7 @@ class _DetailsViewState extends State<DetailsView> {
                                     children: [
                                       const SizedBox(width: 6),
                                       Icon(
-                                        MingCuteIcons.mgc_user_4_fill,
+                                        Icons.account_circle,
                                         color: const Color(0xFF030744)
                                             .withOpacity(0.5),
                                         size: 36,
@@ -160,175 +159,181 @@ class _DetailsViewState extends State<DetailsView> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 20,
                                 ),
-                                child: Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        AlertService().showAppAlert(
-                                          isCustom: true,
-                                          customWidget: PinchZoom(
-                                            child: ClipOval(
-                                              child: SizedBox(
-                                                height: MediaQuery.of(context)
-                                                        .size
-                                                        .width -
-                                                    70,
-                                                child: Image.network(
+                                child: SizedBox(
+                                  width: double.infinity.clamp(0, 800),
+                                  child: Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          AlertService().showAppAlert(
+                                            isCustom: true,
+                                            customWidget: PinchZoom(
+                                              child: ClipOval(
+                                                child: SizedBox(
+                                                  height: MediaQuery.of(context)
+                                                          .size
+                                                          .width -
+                                                      70,
+                                                  child: Image.network(
+                                                    widget.order.driver
+                                                            ?.cPhoto ??
+                                                        "",
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: ClipOval(
+                                          child: SizedBox(
+                                            width: 50,
+                                            height: 50,
+                                            child: CachedNetworkImage(
+                                              fit: BoxFit.cover,
+                                              memCacheWidth: 600,
+                                              imageUrl:
                                                   widget.order.driver?.cPhoto ??
                                                       "",
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
+                                              progressIndicatorBuilder: (
+                                                context,
+                                                imageUrl,
+                                                progress,
+                                              ) {
+                                                return const CircularProgressIndicator(
+                                                  color: Color(0xFF007BFF),
+                                                  strokeWidth: 2,
+                                                );
+                                              },
+                                              errorWidget: (
+                                                context,
+                                                imageUrl,
+                                                progress,
+                                              ) {
+                                                return Container(
+                                                  color:
+                                                      const Color(0xFF030744),
+                                                  child: const Icon(
+                                                    Icons
+                                                        .person_outline_outlined,
+                                                    color: Colors.white,
+                                                  ),
+                                                );
+                                              },
                                             ),
                                           ),
-                                        );
-                                      },
-                                      child: ClipOval(
-                                        child: SizedBox(
-                                          width: 50,
-                                          height: 50,
-                                          child: CachedNetworkImage(
-                                            fit: BoxFit.cover,
-                                            memCacheWidth: 600,
-                                            imageUrl:
-                                                widget.order.driver?.cPhoto ??
-                                                    "",
-                                            progressIndicatorBuilder: (
-                                              context,
-                                              imageUrl,
-                                              progress,
-                                            ) {
-                                              return const CircularProgressIndicator(
-                                                color: Color(0xFF007BFF),
-                                                strokeWidth: 2,
-                                              );
-                                            },
-                                            errorWidget: (
-                                              context,
-                                              imageUrl,
-                                              progress,
-                                            ) {
-                                              return Container(
-                                                color: const Color(0xFF030744),
-                                                child: const Icon(
-                                                  MingCuteIcons.mgc_user_3_line,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 12,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                capitalizeWords(
+                                                  widget.order.driver?.name,
+                                                  alt: "Driver",
+                                                ),
+                                                style: const TextStyle(
+                                                  height: 1.15,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xFF030744),
+                                                ),
+                                              ),
+                                              Text(
+                                                capitalizeWords(
+                                                  "${widget.order.driver?.vehicle?.vehicleInfo}${widget.order.driver?.franchiseNumber == null ? "" : " | ${widget.order.driver?.franchiseNumber}"}${widget.order.driver?.licenseNumber == null ? "" : " | ${widget.order.driver?.licenseNumber}"}",
+                                                  alt: "Driver Info",
+                                                ),
+                                                style: const TextStyle(
+                                                  height: 1.15,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: Color(0xFF030744),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      WidgetButton(
+                                        mainColor: const Color(0xFFE5E6EC),
+                                        useDefaultHoverColor: false,
+                                        borderRadius: 8,
+                                        onTap: () {
+                                          ScaffoldMessenger.of(
+                                            Get.overlayContext!,
+                                          ).clearSnackBars();
+                                          ScaffoldMessenger.of(
+                                            Get.overlayContext!,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              backgroundColor: Colors.red,
+                                              content: Text(
+                                                "You can no longer call your driver."
+                                                " Please report an issue instead",
+                                                style: TextStyle(
                                                   color: Colors.white,
                                                 ),
-                                              );
-                                            },
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: SizedBox(
+                                          width: 44,
+                                          height: 44,
+                                          child: Center(
+                                            child: Icon(
+                                              Icons.call,
+                                              color: const Color(0xFF030744)
+                                                  .withOpacity(0.3),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 12,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              capitalizeWords(
-                                                widget.order.driver?.name,
-                                                alt: "Driver",
-                                              ),
-                                              style: const TextStyle(
-                                                height: 1.15,
-                                                fontWeight: FontWeight.w500,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
-                                            Text(
-                                              capitalizeWords(
-                                                "${widget.order.driver?.vehicle?.vehicleInfo}${widget.order.driver?.franchiseNumber == null ? "" : " | ${widget.order.driver?.franchiseNumber}"}${widget.order.driver?.licenseNumber == null ? "" : " | ${widget.order.driver?.licenseNumber}"}",
-                                                alt: "Driver Info",
-                                              ),
-                                              style: const TextStyle(
-                                                height: 1.15,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w400,
-                                                color: Color(0xFF030744),
+                                      const SizedBox(width: 12),
+                                      WidgetButton(
+                                        mainColor: const Color(0xFFE5E6EC),
+                                        useDefaultHoverColor: false,
+                                        borderRadius: 8,
+                                        onTap: () {
+                                          ScaffoldMessenger.of(
+                                            Get.overlayContext!,
+                                          ).clearSnackBars();
+                                          ScaffoldMessenger.of(
+                                            Get.overlayContext!,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              backgroundColor: Colors.red,
+                                              content: Text(
+                                                "You can no longer chat your driver."
+                                                " Please report an issue instead",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    WidgetButton(
-                                      mainColor: const Color(0xFFE5E6EC),
-                                      useDefaultHoverColor: false,
-                                      borderRadius: 8,
-                                      onTap: () {
-                                        ScaffoldMessenger.of(
-                                          Get.overlayContext!,
-                                        ).clearSnackBars();
-                                        ScaffoldMessenger.of(
-                                          Get.overlayContext!,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            backgroundColor: Colors.red,
-                                            content: Text(
-                                              "You can no longer call your driver."
-                                              " Please report an issue instead",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                              ),
+                                          );
+                                        },
+                                        child: SizedBox(
+                                          width: 44,
+                                          height: 44,
+                                          child: Center(
+                                            child: Icon(
+                                              Icons.chat,
+                                              color: const Color(0xFF030744)
+                                                  .withOpacity(0.3),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                      child: SizedBox(
-                                        width: 44,
-                                        height: 44,
-                                        child: Center(
-                                          child: Icon(
-                                            MingCuteIcons.mgc_phone_fill,
-                                            color: const Color(0xFF030744)
-                                                .withOpacity(0.3),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    WidgetButton(
-                                      mainColor: const Color(0xFFE5E6EC),
-                                      useDefaultHoverColor: false,
-                                      borderRadius: 8,
-                                      onTap: () {
-                                        ScaffoldMessenger.of(
-                                          Get.overlayContext!,
-                                        ).clearSnackBars();
-                                        ScaffoldMessenger.of(
-                                          Get.overlayContext!,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            backgroundColor: Colors.red,
-                                            content: Text(
-                                              "You can no longer chat your driver."
-                                              " Please report an issue instead",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: SizedBox(
-                                        width: 44,
-                                        height: 44,
-                                        child: Center(
-                                          child: Icon(
-                                            MingCuteIcons.mgc_chat_2_fill,
-                                            color: const Color(0xFF030744)
-                                                .withOpacity(0.3),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                     const SizedBox(height: 20),
@@ -337,6 +342,7 @@ class _DetailsViewState extends State<DetailsView> {
                         horizontal: 20,
                       ),
                       child: Container(
+                        width: double.infinity.clamp(0, 800),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: const BorderRadius.all(
@@ -491,7 +497,7 @@ class _DetailsViewState extends State<DetailsView> {
                                             height: 28,
                                             color: Colors.red,
                                             child: const Icon(
-                                              MingCuteIcons.mgc_alert_fill,
+                                              Icons.warning,
                                               color: Colors.white,
                                               size: 18,
                                             ),
@@ -660,8 +666,8 @@ class _DetailsViewState extends State<DetailsView> {
                                 const SizedBox(width: 14),
                                 Icon(
                                   AuthService.inReviewMode()
-                                      ? MingCuteIcons.mgc_location_fill
-                                      : MingCuteIcons.mgc_card_pay_line,
+                                      ? Icons.location_on
+                                      : Icons.credit_score_outlined,
                                   color: Colors.green,
                                 ),
                                 const SizedBox(width: 8),

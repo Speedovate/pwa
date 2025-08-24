@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/view_models/history.vm.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 import 'package:pwa/widgets/order_list_item.widget.dart';
 
 class HistoryView extends StatefulWidget {
@@ -77,7 +76,7 @@ class _HistoryViewState extends State<HistoryView> {
                               bottom: 2,
                             ),
                             child: Icon(
-                              MingCuteIcons.mgc_left_line,
+                              Icons.chevron_left,
                               color: Color(0xFF030744),
                               size: 38,
                             ),
@@ -172,7 +171,7 @@ class _HistoryViewState extends State<HistoryView> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          MingCuteIcons.mgc_alert_line,
+          Icons.warning_amber_outlined,
           color: const Color(0xFF030744).withOpacity(0.5),
           size: 75,
         ),

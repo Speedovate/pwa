@@ -6,7 +6,6 @@ import 'package:pwa/views/delete.view.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/view_models/settings.vm.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -51,7 +50,7 @@ class _SettingsViewState extends State<SettingsView> {
                                 bottom: 2,
                               ),
                               child: Icon(
-                                MingCuteIcons.mgc_left_line,
+                                Icons.chevron_left,
                                 color: Color(0xFF030744),
                                 size: 38,
                               ),
@@ -96,7 +95,7 @@ class _SettingsViewState extends State<SettingsView> {
                       child: Row(
                         children: [
                           Icon(
-                            MingCuteIcons.mgc_lock_line,
+                            Icons.lock_outlined,
                             color: Color(0xFF030744),
                             size: 25,
                           ),
@@ -111,7 +110,7 @@ class _SettingsViewState extends State<SettingsView> {
                           ),
                           Expanded(child: SizedBox()),
                           Icon(
-                            MingCuteIcons.mgc_right_line,
+                            Icons.chevron_right,
                             color: Color(0xFF030744),
                             size: 25,
                           ),
@@ -138,7 +137,7 @@ class _SettingsViewState extends State<SettingsView> {
                             child: Row(
                               children: [
                                 Icon(
-                                  MingCuteIcons.mgc_delete_2_line,
+                                  Icons.delete_outlined,
                                   color: Colors.red,
                                   size: 25,
                                 ),
@@ -170,7 +169,7 @@ class _SettingsViewState extends State<SettingsView> {
                       child: Row(
                         children: [
                           Icon(
-                            MingCuteIcons.mgc_exit_line,
+                            Icons.logout,
                             color: Colors.red,
                             size: 25,
                           ),

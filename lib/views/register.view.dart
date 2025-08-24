@@ -9,7 +9,6 @@ import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/view_models/register.vm.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -112,7 +111,7 @@ class _RegisterViewState extends State<RegisterView> {
                                     bottom: 2,
                                   ),
                                   child: Icon(
-                                    MingCuteIcons.mgc_left_line,
+                                    Icons.chevron_left,
                                     color: Color(0xFF030744),
                                     size: 38,
                                   ),
@@ -209,8 +208,7 @@ class _RegisterViewState extends State<RegisterView> {
                                                 MainAxisAlignment.center,
                                             children: [
                                               Icon(
-                                                MingCuteIcons
-                                                    .mgc_camera_2_ai_line,
+                                                Icons.photo_camera_outlined,
                                                 color: Color(0xFF030744),
                                                 size: 50,
                                               ),

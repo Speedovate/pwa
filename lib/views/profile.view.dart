@@ -6,7 +6,6 @@ import 'package:pwa/utils/functions.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/view_models/profile.vm.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 
 class ProfileView extends StatefulWidget {
@@ -88,7 +87,7 @@ class _ProfileViewState extends State<ProfileView> {
                                     bottom: 2,
                                   ),
                                   child: Icon(
-                                    MingCuteIcons.mgc_left_line,
+                                    Icons.chevron_left,
                                     color: Color(0xFF030744),
                                     size: 38,
                                   ),
@@ -171,7 +170,7 @@ class _ProfileViewState extends State<ProfileView> {
                                           return Container(
                                             color: const Color(0xFF030744),
                                             child: const Icon(
-                                              MingCuteIcons.mgc_user_3_line,
+                                              Icons.person_outline_outlined,
                                               color: Colors.white,
                                               size: 50,
                                             ),
@@ -220,7 +219,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   },
                                   child: Center(
                                     child: Icon(
-                                      MingCuteIcons.mgc_camera_2_ai_line,
+                                      Icons.photo_camera_outlined,
                                       color: const Color(0xFF030744),
                                       size: (MediaQuery.of(context).size.width /
                                                   3)

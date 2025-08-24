@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class TextFieldWidget extends StatefulWidget {
   final TextEditingController? controller;
@@ -238,8 +237,8 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
                             !widget.obscureText
                                 ? widget.suffixIcon
                                 : isVisible
-                                    ? MingCuteIcons.mgc_eye_line
-                                    : MingCuteIcons.mgc_eye_close_line,
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                             size: widget.suffixIconSize,
                             color: !isFocused
                                 ? widget.readOnly

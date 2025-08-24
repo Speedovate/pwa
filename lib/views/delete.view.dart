@@ -5,7 +5,6 @@ import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/view_models/delete.vm.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class DeleteView extends StatefulWidget {
   const DeleteView({super.key});
@@ -68,7 +67,7 @@ class _DeleteViewState extends State<DeleteView> {
                                     bottom: 2,
                                   ),
                                   child: Icon(
-                                    MingCuteIcons.mgc_left_line,
+                                    Icons.chevron_left,
                                     color: Color(0xFF030744),
                                     size: 38,
                                   ),
@@ -101,16 +100,19 @@ class _DeleteViewState extends State<DeleteView> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                         ),
-                        child: TextFieldWidget(
-                          controller: vm.passwordTEC,
-                          hintText: "Password must be at least 8 characters",
-                          labelText: "Password",
-                          textCapitalization: TextCapitalization.none,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          autoFocus: false,
-                          maxLines: 1,
-                          minLines: null,
+                        child: SizedBox(
+                          width: double.infinity.clamp(0, 800),
+                          child: TextFieldWidget(
+                            controller: vm.passwordTEC,
+                            hintText: "Password must be at least 8 characters",
+                            labelText: "Password",
+                            textCapitalization: TextCapitalization.none,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.next,
+                            autoFocus: false,
+                            maxLines: 1,
+                            minLines: null,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -118,22 +120,25 @@ class _DeleteViewState extends State<DeleteView> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                         ),
-                        child: TextFieldWidget(
-                          controller: vm.reasonTEC,
-                          hintText: "Please tell us your reason",
-                          labelText: "Reason",
-                          textCapitalization: TextCapitalization.sentences,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.done,
-                          obscureText: false,
-                          showPrefix: false,
-                          showSuffix: false,
-                          prefixText: null,
-                          suffixIcon: null,
-                          onSuffixTap: null,
-                          autoFocus: false,
-                          maxLines: null,
-                          minLines: 3,
+                        child: SizedBox(
+                          width: double.infinity.clamp(0, 800),
+                          child: TextFieldWidget(
+                            controller: vm.reasonTEC,
+                            hintText: "Please tell us your reason",
+                            labelText: "Reason",
+                            textCapitalization: TextCapitalization.sentences,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.done,
+                            obscureText: false,
+                            showPrefix: false,
+                            showSuffix: false,
+                            prefixText: null,
+                            suffixIcon: null,
+                            onSuffixTap: null,
+                            autoFocus: false,
+                            maxLines: null,
+                            minLines: 3,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

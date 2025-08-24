@@ -1,12 +1,11 @@
 import 'package:get/get.dart';
-import 'package:pwa/widgets/button.widget.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
-import 'package:pwa/widgets/text_field.widget.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/view_models/change.vm.dart';
 import 'package:pwa/services/alert.service.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
+import 'package:pwa/widgets/text_field.widget.dart';
 
 class ChangeView extends StatefulWidget {
   final String? phone;
@@ -96,7 +95,7 @@ class _ChangeViewState extends State<ChangeView> {
                                     bottom: 2,
                                   ),
                                   child: Icon(
-                                    MingCuteIcons.mgc_left_line,
+                                    Icons.chevron_left,
                                     color: Color(0xFF030744),
                                     size: 38,
                                   ),

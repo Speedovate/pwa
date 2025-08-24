@@ -8,7 +8,6 @@ import 'package:pwa/view_models/login.vm.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
-import 'package:ming_cute_icons/ming_cute_icons.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -95,7 +94,7 @@ class _LoginViewState extends State<LoginView> {
                                     bottom: 2,
                                   ),
                                   child: Icon(
-                                    MingCuteIcons.mgc_left_line,
+                                    Icons.chevron_left,
                                     color: Color(0xFF030744),
                                     size: 38,
                                   ),
