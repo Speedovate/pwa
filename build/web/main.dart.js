@@ -107300,8 +107300,8 @@ while(true)switch(s){case 0:s=2
 return A.t(A.CA(),$async$va)
 case 2:s=3
 return A.t(A.PG(),$async$va)
-case 3:try{$.b61="1.0.10"
-$.aSd="30"}catch(o){q=A.R(o)
+case 3:try{$.b61="1.0.0"
+$.aSd="31"}catch(o){q=A.R(o)
 A.c3().$1("getAppInfo error: "+A.h(q))}return A.p(null,r)}})
 return A.q($async$va,r)},
 kR(a){var s=0,r=A.r(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d,c,b
