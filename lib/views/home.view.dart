@@ -320,7 +320,7 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () async {
+                                        onTap: () {
                                           Scaffold.of(context).openDrawer();
                                         },
                                         child: const Center(
@@ -364,7 +364,7 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () async {
+                                        onTap: () {
                                           vm.zoomToCurrentLocation();
                                         },
                                         child: const Center(
@@ -408,7 +408,17 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () async {},
+                                        onTap: () {
+                                          if (!AuthService.isLoggedIn()) {
+                                            Get.to(
+                                              () => const LoginView(),
+                                            );
+                                          } else {
+                                            Get.to(
+                                              () => const SettingsView(),
+                                            );
+                                          }
+                                        },
                                         child: const Center(
                                           child: Icon(
                                             Icons.cached_outlined,
@@ -445,7 +455,11 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () {},
+                                        onTap: () {
+                                          Get.to(
+                                            () => const HistoryView(),
+                                          );
+                                        },
                                         child: const Center(
                                           child: Icon(
                                             Icons.share,
@@ -487,7 +501,7 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () async {
+                                        onTap: () {
                                           vm.zoomIn();
                                         },
                                         child: const Center(
