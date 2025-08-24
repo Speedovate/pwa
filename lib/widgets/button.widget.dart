@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class ActionButton extends StatefulWidget {
@@ -27,47 +28,58 @@ class ActionButton extends StatefulWidget {
 }
 
 class _ActionButtonState extends State<ActionButton> {
-  bool _isHovered = false;
-  bool _isPressed = false;
+  final ValueNotifier<bool> _isHovered = ValueNotifier(false);
+  final ValueNotifier<bool> _isPressed = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _isHovered.dispose();
+    _isPressed.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      onEnter: (_) => _isHovered.value = true,
+      onExit: (_) => _isHovered.value = false,
       child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapDown: (_) => _isPressed.value = true,
         onTapUp: (_) {
-          setState(() => _isPressed = false);
+          _isPressed.value = false;
           widget.onTap();
         },
-        onTapCancel: () => setState(() => _isPressed = false),
-        child: Container(
-          height: widget.height,
-          width: double.infinity.clamp(0, 800),
-          decoration: BoxDecoration(
-            color: _isPressed
-                ? pressColor(
-                    widget.mainColor ?? const Color(0xFF007BFF),
-                  )
-                : (_isHovered
-                    ? hoverColor(
-                        widget.mainColor ?? const Color(0xFF007BFF),
-                      )
-                    : widget.mainColor),
-            border: widget.borderColor == null
-                ? null
-                : Border.all(
-                    color: widget.borderColor as Color,
-                  ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              widget.text,
-              style: widget.style,
-            ),
-          ),
+        onTapCancel: () => _isPressed.value = false,
+        child: ValueListenableBuilder2<bool, bool>(
+          first: _isHovered,
+          second: _isPressed,
+          builder: (context, isHovered, isPressed, _) {
+            final color = isPressed
+                ? pressColor(widget.mainColor!)
+                : (isHovered
+                    ? hoverColor(widget.mainColor!)
+                    : widget.mainColor);
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              height: widget.height,
+              width: double.infinity.clamp(0, 800),
+              decoration: BoxDecoration(
+                color: color,
+                border: widget.borderColor != null
+                    ? Border.all(color: widget.borderColor!)
+                    : null,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  widget.text,
+                  style: widget.style,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -95,57 +107,90 @@ class WidgetButton extends StatefulWidget {
 }
 
 class _WidgetButtonState extends State<WidgetButton> {
-  bool _isHovered = false;
-  bool _isPressed = false;
+  final ValueNotifier<bool> _isHovered = ValueNotifier(false);
+  final ValueNotifier<bool> _isPressed = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _isHovered.dispose();
+    _isPressed.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      onEnter: (_) => _isHovered.value = true,
+      onExit: (_) => _isHovered.value = false,
       child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapDown: (_) => _isPressed.value = true,
         onTapUp: (_) {
-          setState(() => _isPressed = false);
+          _isPressed.value = false;
           widget.onTap();
         },
-        onTapCancel: () => setState(() => _isPressed = false),
-        child: Container(
-          decoration: BoxDecoration(
-            color: widget.useDefaultHoverColor
-                ? _isPressed
+        onTapCancel: () => _isPressed.value = false,
+        child: ValueListenableBuilder2<bool, bool>(
+          first: _isHovered,
+          second: _isPressed,
+          builder: (context, isHovered, isPressed, _) {
+            final color = widget.useDefaultHoverColor
+                ? isPressed
                     ? Colors.grey.shade400
-                    : (_isHovered ? Colors.grey.shade200 : widget.mainColor)
-                : _isPressed
-                    ? pressColor(
-                        widget.mainColor ?? const Color(0xFF007BFF),
-                      )
-                    : (_isHovered
-                        ? hoverColor(
-                            widget.mainColor ?? const Color(0xFF007BFF),
-                          )
-                        : widget.mainColor),
-            borderRadius: BorderRadius.circular(
-              widget.borderRadius,
-            ),
-          ),
-          child: widget.child,
+                    : (isHovered ? Colors.grey.shade200 : widget.mainColor)
+                : isPressed
+                    ? pressColor(widget.mainColor!)
+                    : (isHovered
+                        ? hoverColor(widget.mainColor!)
+                        : widget.mainColor);
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(widget.borderRadius),
+              ),
+              child: widget.child,
+            );
+          },
         ),
       ),
     );
   }
 }
 
+class ValueListenableBuilder2<A, B> extends StatelessWidget {
+  final ValueListenable<A> first;
+  final ValueListenable<B> second;
+  final Widget Function(BuildContext, A, B, Widget?) builder;
+
+  const ValueListenableBuilder2({
+    super.key,
+    required this.first,
+    required this.second,
+    required this.builder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<A>(
+      valueListenable: first,
+      builder: (context, a, _) {
+        return ValueListenableBuilder<B>(
+          valueListenable: second,
+          builder: (context, b, __) => builder(context, a, b, null),
+        );
+      },
+    );
+  }
+}
+
 Color pressColor(Color color, [double amount = 0.2]) {
-  assert(amount >= 0 && amount <= 1);
   final hsl = HSLColor.fromColor(color);
-  final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
-  return hslDark.toColor();
+  return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
 }
 
 Color hoverColor(Color color, [double amount = 0.1]) {
-  assert(amount >= 0 && amount <= 1);
   final hsl = HSLColor.fromColor(color);
-  final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
-  return hslDark.toColor();
+  return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
 }
