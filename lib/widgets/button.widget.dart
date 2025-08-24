@@ -60,9 +60,7 @@ class _ActionButtonState extends State<ActionButton> {
                     ? hoverColor(widget.mainColor!)
                     : widget.mainColor);
 
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOut,
+            return Container(
               height: widget.height,
               width: double.infinity.clamp(0, 800),
               decoration: BoxDecoration(
@@ -142,10 +140,7 @@ class _WidgetButtonState extends State<WidgetButton> {
                     : (isHovered
                         ? hoverColor(widget.mainColor!)
                         : widget.mainColor);
-
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOut,
+            return Container(
               decoration: BoxDecoration(
                 color: color,
                 borderRadius: BorderRadius.circular(widget.borderRadius),
