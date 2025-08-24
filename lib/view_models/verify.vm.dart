@@ -14,7 +14,6 @@ import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
 
 class VerifyViewModel extends BaseViewModel {
   AuthRequest authRequest = AuthRequest();
@@ -129,16 +128,16 @@ class VerifyViewModel extends BaseViewModel {
         if (apiResponse.allGood) {
           try {
             if (purpose == "register") {
-              gmaps.LatLng? myPosition = await getMyLatLng();
-              if (myPosition != null) {
+              myLatLng = await getMyLatLng();
+              if (myLatLng != null) {
                 ApiResponse apiResponse = await authRequest.registerRequest(
                   countryCode: "PH",
                   email: emailTEC.text,
                   password: passwordTEC.text,
                   phone: "+63${phoneTEC.text}",
                   name: capitalizeWords(nameTEC.text),
-                  lat: double.parse("${myPosition.lat}"),
-                  lng: double.parse("${myPosition.lng}"),
+                  lat: double.parse("${myLatLng?.lat ?? 9.7638}"),
+                  lng: double.parse("${myLatLng?.lng ?? 118.7473}"),
                 );
                 if (apiResponse.hasError()) {
                   AlertService().stopLoading();

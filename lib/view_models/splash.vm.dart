@@ -14,7 +14,6 @@ import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/requests/settings.request.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
 
 class SplashViewModel extends BaseViewModel {
   StreamSubscription? configStream;
@@ -36,7 +35,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "1";
+      versionCode = "2";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -57,7 +56,8 @@ class SplashViewModel extends BaseViewModel {
       );
       await AppStrings.getAppSettingsFromStorage();
       try {
-        gmaps.LatLng? myLatLng = await getMyLatLng();
+        myLatLng = await getMyLatLng();
+        initLatLng = myLatLng;
         if (AuthService.isLoggedIn()) {
           if (myLatLng != null) {
             Point earthCenterLocation = Point(
@@ -67,14 +67,14 @@ class SplashViewModel extends BaseViewModel {
             double earthDistance = GeoRange().distance(
               earthCenterLocation,
               Point(
-                latitude: double.parse("${myLatLng.lat}"),
-                longitude: double.parse("${myLatLng.lng}"),
+                latitude: double.parse("${myLatLng?.lat ?? 9.7638}"),
+                longitude: double.parse("${myLatLng?.lng ?? 118.7473}"),
               ),
             );
             ApiResponse apiResponse = await taxiRequest.syncLocationRequest(
               earthDistance: earthDistance,
-              lat: double.parse("${myLatLng.lat}"),
-              lng: double.parse("${myLatLng.lng}"),
+              lat: double.parse("${myLatLng?.lat ?? 9.7638}"),
+              lng: double.parse("${myLatLng?.lng ?? 118.7473}"),
               isMocked: false,
             );
             if (apiResponse.allGood) {

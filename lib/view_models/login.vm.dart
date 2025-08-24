@@ -13,7 +13,6 @@ import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
 
 class LoginViewModel extends BaseViewModel {
   TaxiRequest taxiRequest = TaxiRequest();
@@ -134,8 +133,8 @@ class LoginViewModel extends BaseViewModel {
       await AuthService.getUserFromStorage();
       await AuthService.getTokenFromStorage();
       try {
-        gmaps.LatLng? myPosition = await getMyLatLng();
-        if (myPosition != null) {
+        myLatLng = await getMyLatLng();
+        if (myLatLng != null) {
           Point earthCenterLocation = Point(
             latitude: 0.00,
             longitude: 0.00,
@@ -143,14 +142,14 @@ class LoginViewModel extends BaseViewModel {
           double earthDistance = GeoRange().distance(
             earthCenterLocation,
             Point(
-              latitude: double.parse("${myPosition.lat}"),
-              longitude: double.parse("${myPosition.lng}"),
+              latitude: double.parse("${myLatLng?.lat ?? 9.7638}"),
+              longitude: double.parse("${myLatLng?.lng ?? 118.7473}"),
             ),
           );
           ApiResponse apiResponse = await taxiRequest.syncLocationRequest(
             earthDistance: earthDistance,
-            lat: double.parse("${myPosition.lat}"),
-            lng: double.parse("${myPosition.lng}"),
+            lat: double.parse("${myLatLng?.lat ?? 9.7638}"),
+            lng: double.parse("${myLatLng?.lng ?? 118.7473}"),
             isMocked: false,
           );
           if (apiResponse.allGood) {

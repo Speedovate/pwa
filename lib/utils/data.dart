@@ -11,6 +11,7 @@ import 'package:pwa/models/chat_media.model.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pwa/models/available_driver.model.dart';
+import 'package:google_maps/google_maps.dart' as gmaps;
 
 Wallet? gWallet;
 dynamic cameras;
@@ -25,8 +26,10 @@ Uint8List? selfieFile;
 bool isAdSeen = false;
 bool isSharing = false;
 Address? pickupAddress;
+gmaps.LatLng? myLatLng;
 bool showBranch = false;
 Address? dropoffAddress;
+gmaps.LatLng? initLatLng;
 bool locUnavailable = false;
 bool mapUnavailable = false;
 bool cameFromSettings = false;
