@@ -42,8 +42,7 @@ class _ActionButtonState extends State<ActionButton> {
           widget.onTap();
         },
         onTapCancel: () => setState(() => _isPressed = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+        child: Container(
           height: widget.height,
           width: double.infinity.clamp(0, 800),
           decoration: BoxDecoration(
@@ -111,8 +110,7 @@ class _WidgetButtonState extends State<WidgetButton> {
           widget.onTap();
         },
         onTapCancel: () => setState(() => _isPressed = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+        child: Container(
           decoration: BoxDecoration(
             color: widget.useDefaultHoverColor
                 ? _isPressed
