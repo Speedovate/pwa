@@ -410,12 +410,14 @@ class _HomeViewState extends State<HomeView> {
                                       child: WidgetButton(
                                         onTap: () {
                                           if (!AuthService.isLoggedIn()) {
-                                            Get.to(
-                                              () => const LoginView(),
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => const LoginView()),
                                             );
                                           } else {
-                                            Get.to(
-                                              () => const SettingsView(),
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => const SettingsView()),
                                             );
                                           }
                                         },
@@ -456,8 +458,9 @@ class _HomeViewState extends State<HomeView> {
                                       ),
                                       child: WidgetButton(
                                         onTap: () {
-                                          Get.to(
-                                            () => const HistoryView(),
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const HistoryView()),
                                           );
                                         },
                                         child: const Center(
