@@ -50,7 +50,7 @@ class _HomeViewState extends State<HomeView> {
                     onTap: () {
                       Get.back();
                       Future.delayed(
-                        const Duration(milliseconds: 200),
+                        const Duration(milliseconds: 500),
                         () {
                           if (!AuthService.isLoggedIn()) {
                             Get.to(
@@ -169,7 +169,7 @@ class _HomeViewState extends State<HomeView> {
                         onTap: () {
                           Get.back();
                           Future.delayed(
-                            const Duration(milliseconds: 200),
+                            const Duration(milliseconds: 500),
                             () {
                               Get.to(
                                 () => const HistoryView(),
@@ -194,7 +194,7 @@ class _HomeViewState extends State<HomeView> {
                         onTap: () {
                           Get.back();
                           Future.delayed(
-                            const Duration(milliseconds: 200),
+                            const Duration(milliseconds: 500),
                             () {
                               if (!AuthService.isLoggedIn()) {
                                 Get.to(
@@ -223,7 +223,7 @@ class _HomeViewState extends State<HomeView> {
                   onTap: () {
                     Get.back();
                     Future.delayed(
-                      const Duration(milliseconds: 200),
+                      const Duration(milliseconds: 500),
                       () {
                         launchUrlString(
                           "sms://+639122078420",
@@ -247,7 +247,7 @@ class _HomeViewState extends State<HomeView> {
                   onTap: () {
                     Get.back();
                     Future.delayed(
-                      const Duration(milliseconds: 200),
+                      const Duration(milliseconds: 500),
                       () {
                         if (!AuthService.inReviewMode()) {
                           launchUrlString(
