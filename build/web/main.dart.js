@@ -111338,7 +111338,7 @@ return A.u(A.CL(),$async$vJ)
 case 2:s=3
 return A.u(A.PY(),$async$vJ)
 case 3:try{$.b77="1.0.0"
-$.aSR="4"}catch(o){q=A.Q(o)
+$.aSR="1"}catch(o){q=A.Q(o)
 A.c0().$1("getAppInfo error: "+A.e(q))}return A.q(null,r)}})
 return A.r($async$vJ,r)},
 l6(a){var s=0,r=A.t(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d,c,b
