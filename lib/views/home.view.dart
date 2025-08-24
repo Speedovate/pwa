@@ -45,9 +45,10 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 Container(
                   color: Colors.white,
-                  child: GestureDetector(
-                    // borderRadius: 0,
+                  child: WidgetButton(
+                    borderRadius: 0,
                     onTap: () {
+                      Get.back();
                       if (!AuthService.isLoggedIn()) {
                         Get.to(
                           () => const LoginView(),
@@ -161,6 +162,7 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         onTap: () {
+                          Get.back();
                           Get.to(
                             () => const HistoryView(),
                           );
@@ -180,6 +182,7 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         onTap: () {
+                          Get.back();
                           if (!AuthService.isLoggedIn()) {
                             Get.to(
                               () => const LoginView(),
@@ -203,6 +206,7 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   onTap: () {
+                    Get.back();
                     launchUrlString(
                       "sms://+639122078420",
                       mode: LaunchMode.externalNonBrowserApplication,
@@ -221,6 +225,7 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   onTap: () {
+                    Get.back();
                     if (!AuthService.inReviewMode()) {
                       launchUrlString(
                         "https://ppctoda.framer.website",

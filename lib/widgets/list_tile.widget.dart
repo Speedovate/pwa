@@ -24,9 +24,9 @@ class ListTileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return WidgetButton(
       onTap: onTap,
-      // borderRadius: 0,
+      borderRadius: 0,
       child: Padding(
         padding: contentPadding,
         child: Row(
