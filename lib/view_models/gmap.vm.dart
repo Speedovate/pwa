@@ -1,6 +1,5 @@
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
-import 'package:pwa/utils/functions.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
 class GMapViewModel extends BaseViewModel {
@@ -27,14 +26,12 @@ class GMapViewModel extends BaseViewModel {
   gmaps.Map? get map => _map;
 
   Future<void> zoomToCurrentLocation({double zoom = 16}) async {
-    if (_map == null) return;
-    final target = await getMyLatLng().timeout(
-          const Duration(seconds: 3),
-        ) ??
-        initLatLng ??
-        gmaps.LatLng(9.7638, 118.7473);
-    _map!.panTo(target);
-    _map!.zoom = zoom;
+    if (_map != null) {
+      final target = initLatLng ?? gmaps.LatLng(9.7638, 118.7473);
+      _map!.panTo(target);
+      _map!.zoom = zoom;
+      notifyListeners();
+    }
   }
 
   Future<void> zoomIn() async {
