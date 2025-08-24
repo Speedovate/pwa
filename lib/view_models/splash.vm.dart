@@ -15,7 +15,6 @@ import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/requests/settings.request.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
-// import 'package:package_info_plus/package_info_plus.dart';
 
 class SplashViewModel extends BaseViewModel {
   StreamSubscription? configStream;
@@ -37,7 +36,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "6";
+      versionCode = "8";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

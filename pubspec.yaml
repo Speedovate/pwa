@@ -1,7 +1,7 @@
 name: pwa
 description: "PPC TODA PWA"
 publish_to: 'none'
-version: 1.0.0+6
+version: 1.0.0+8
 environment:
   sdk: ^3.5.0
 
@@ -39,7 +39,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/fonts/MingCute.ttf
     - assets/images/splash.png
     - assets/images/
     - assets/json/
@@ -48,4 +47,4 @@ flutter:
   fonts:
     - family: MingCute
       fonts:
-        - asset: assets/fonts/MingCute.ttf
+        - asset: packages/ming_cute_icons/fonts/MingCute.ttf
