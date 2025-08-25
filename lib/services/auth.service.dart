@@ -2,12 +2,10 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/intro.view.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/models/user.model.dart';
-import 'package:pwa/services/http.service.dart';
 import 'package:pwa/services/storage.service.dart';
 
 class AuthService {
@@ -28,9 +26,7 @@ class AuthService {
     return userToken;
   }
 
-  Future<User?> saveUserToStorage(
-    String stringMap,
-  ) async {
+  Future<User?> saveUserToStorage(String stringMap) async {
     currentUser = User.fromJson(
       jsonDecode(stringMap),
     );
@@ -38,24 +34,13 @@ class AuthService {
       AppStrings.userKey,
       stringMap,
     );
-    // subscribeToTopic(
-    //   "all",
-    // );
-    // subscribeToTopic(
-    //   "${currentUser?.id}",
-    // );
-    // subscribeToTopic(
-    //   "${currentUser?.role}",
-    // );
-    // subscribeToTopic(
-    //   "c_${currentUser?.id}",
-    // );
-    // subscribeToTopic(
-    //   "branch_${currentUser?.branchID}",
-    // );
-    // subscribeToTopic(
-    //   "branch_${currentUser?.branchID}_${currentUser?.role}",
-    // );
+    subscribeToTopic("all");
+    subscribeToTopic("${currentUser?.id}");
+    subscribeToTopic("${currentUser?.role}");
+    subscribeToTopic("branch_${currentUser?.branchID}");
+    subscribeToTopic("${currentUser?.role?.split("")[0]}");
+    subscribeToTopic("${currentUser?.role}_${currentUser?.id}");
+    subscribeToTopic("${currentUser?.role?.split("")[0]}_${currentUser?.id}");
     return currentUser;
   }
 
@@ -94,24 +79,13 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    // unsubscribeFromTopic(
-    //   "${currentUser?.id}",
-    // );
-    // unsubscribeFromTopic(
-    //   "${currentUser?.role}",
-    // );
-    // unsubscribeFromTopic(
-    //   "c_${currentUser?.id}",
-    // );
-    // unsubscribeFromTopic(
-    //   "branch_${currentUser?.branchID}",
-    // );
-    // unsubscribeFromTopic(
-    //   "branch_${currentUser?.branchID}_${currentUser?.role}",
-    // );
-    if (!kIsWeb) {
-      await HttpService().getCacheManager().clearAll();
-    }
+    unsubscribeFromTopic("${currentUser?.id}");
+    unsubscribeFromTopic("${currentUser?.role}");
+    unsubscribeFromTopic("branch_${currentUser?.branchID}");
+    unsubscribeFromTopic("${currentUser?.role?.split("")[0]}");
+    unsubscribeFromTopic("${currentUser?.role}_${currentUser?.id}");
+    unsubscribeFromTopic(
+        "${currentUser?.role?.split("")[0]}_${currentUser?.id}");
     await StorageService.rxPrefs?.clear();
     await StorageService.prefs?.clear();
     dropoffAddress = null;
@@ -150,23 +124,14 @@ class AuthService {
     }
   }
 
-  static String device() {
-    return "web";
-  }
+  static String device() => "web";
 
   static bool inReviewMode() {
     bool disable = false;
     if (AppStrings.homeSettingsObject != null) {
-      if (device() == "ios" &&
-          "${AppStrings.homeSettingsObject?["disable_ibn"]}" == versionCode) {
+      if (device() == "web" && "${AppStrings.homeSettingsObject?["disable_wbn"]}" == versionCode) {
         disable = true;
       }
-      if (device() == "android" &&
-          "${AppStrings.homeSettingsObject?["disable_gbn"]}" == versionCode) {
-        disable = true;
-      }
-    } else {
-      disable = false;
     }
     return disable;
   }
@@ -183,21 +148,31 @@ class AuthService {
     }
   }
 
-// void subscribeToTopic(String topic) {
-//   try {
-//     fMsg.subscribeToTopic(topic);
-//     debugPrint("Subscribed to topic: $topic");
-//   } catch (e) {
-//     debugPrint("Error subscribing to topic $topic: $e");
-//   }
-// }
+  void subscribeToTopic(String topic) async {
+    try {
+      final topics = StorageService.prefs?.getStringList("topics") ?? [];
+      if (!topics.contains(topic)) {
+        topics.add(topic);
+        await StorageService.prefs?.setStringList("topics", topics);
+      }
+      debugPrint("Subscribed to topic: $topic (web pseudo)");
+    } catch (e) {
+      debugPrint("Error subscribing to topic $topic: $e");
+    }
+  }
 
-// void unsubscribeFromTopic(String topic) {
-//   try {
-//     fMsg.unsubscribeFromTopic(topic);
-//     debugPrint("Unsubscribed from topic: $topic");
-//   } catch (e) {
-//     debugPrint("Error unsubscribing from topic $topic: $e");
-//   }
-// }
+  void unsubscribeFromTopic(String topic) async {
+    try {
+      final topics = StorageService.prefs?.getStringList("topics") ?? [];
+      topics.remove(topic);
+      await StorageService.prefs?.setStringList("topics", topics);
+      debugPrint("Unsubscribed from topic: $topic (web pseudo)");
+    } catch (e) {
+      debugPrint("Error unsubscribing from topic $topic: $e");
+    }
+  }
+
+  Future<List<String>> getSubscribedTopics() async {
+    return StorageService.prefs?.getStringList("topics") ?? [];
+  }
 }

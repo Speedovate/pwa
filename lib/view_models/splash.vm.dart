@@ -23,10 +23,9 @@ class SplashViewModel extends BaseViewModel {
   Future<void> initialise() async {
     await getAppUser();
     await getVehicles();
-    // await getBanners();
+    await getBanners();
     startListeningToConfigs();
-    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
-        !AuthService.isLoggedIn();
+    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ?? !AuthService.isLoggedIn();
     await goToNextPage();
   }
 
@@ -95,18 +94,18 @@ class SplashViewModel extends BaseViewModel {
     startListeningToConfigs();
   }
 
-  // Future<void> getBanners() async {
-  //   try {
-  //     gBanners = await settingsRequest.bannersRequest();
-  //     debugPrint(
-  //       "splash bannersRequest success",
-  //     );
-  //   } catch (e) {
-  //     debugPrint(
-  //       "splash bannersRequest error: $e",
-  //     );
-  //   }
-  // }
+  Future<void> getBanners() async {
+    try {
+      gBanners = await settingsRequest.bannersRequest();
+      debugPrint(
+        "splash bannersRequest success",
+      );
+    } catch (e) {
+      debugPrint(
+        "splash bannersRequest error: $e",
+      );
+    }
+  }
 
   Future<void> getVehicles() async {
     try {

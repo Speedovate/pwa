@@ -716,7 +716,6 @@ class _DetailsViewState extends State<DetailsView> {
                           onTap: () {
                             launchUrlString(
                               "sms://+639122078420",
-                              mode: LaunchMode.externalNonBrowserApplication,
                             );
                           },
                         ),

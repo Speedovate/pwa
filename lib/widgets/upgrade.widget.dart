@@ -111,7 +111,6 @@ class UpgradeWidget extends StatelessWidget {
                             ..onTap = () {
                               launchUrlString(
                                 "sms://+639122078420",
-                                mode: LaunchMode.externalNonBrowserApplication,
                               );
                             },
                         ),
@@ -136,7 +135,6 @@ class UpgradeWidget extends StatelessWidget {
                             ..onTap = () {
                               launchUrlString(
                                 "https://www.facebook.com/ppctodaofficial",
-                                mode: LaunchMode.externalNonBrowserApplication,
                               );
                             },
                         ),
@@ -163,7 +161,6 @@ class UpgradeWidget extends StatelessWidget {
                   onTap: () {
                     launchUrlString(
                       "https://ppctoda.framer.website",
-                      mode: LaunchMode.externalNonBrowserApplication,
                     );
                   },
                 ),

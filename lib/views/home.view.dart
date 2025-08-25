@@ -107,7 +107,7 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 15),
                         Expanded(
                           child: Text(
                             !AuthService.isLoggedIn()
@@ -122,7 +122,7 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 15),
                         const Icon(Icons.chevron_right,
                             color: Color(0xFF030744), size: 25),
                       ],
@@ -188,7 +188,6 @@ class _HomeViewState extends State<HomeView> {
                   onTap: () {
                     launchUrlString(
                       "sms://+639122078420",
-                      mode: LaunchMode.externalNonBrowserApplication,
                     );
                   },
                 ),
@@ -207,7 +206,6 @@ class _HomeViewState extends State<HomeView> {
                     if (!AuthService.inReviewMode()) {
                       launchUrlString(
                         "https://ppctoda.framer.website",
-                        mode: LaunchMode.externalNonBrowserApplication,
                       );
                     }
                   },
@@ -309,7 +307,7 @@ class _HomeViewState extends State<HomeView> {
                                   child: Padding(
                                     padding: EdgeInsets.only(bottom: 40),
                                     child: Icon(
-                                      Icons.location_on_sharp,
+                                      Icons.location_on,
                                       color: Color(0xFF007BFF),
                                       size: 50,
                                     ),
@@ -350,108 +348,103 @@ class _HomeViewState extends State<HomeView> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
-                                          WidgetButton(
-                                            borderRadius: 8,
-                                            child: SizedBox(
-                                              width: ((MediaQuery.of(context)
-                                                              .size
-                                                              .width -
-                                                          64) /
-                                                      3)
-                                                  .clamp(0, 120),
-                                              height: ((MediaQuery.of(context)
-                                                              .size
-                                                              .width -
-                                                          64) /
-                                                      3)
-                                                  .clamp(0, 120),
-                                              child: ConstrainedBox(
-                                                constraints:
-                                                    const BoxConstraints(
-                                                  maxWidth:
-                                                      200, // maximum width in pixels
-                                                ),
-                                                child: Container(
-                                                  height: 50,
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(
-                                                        8,
-                                                      ),
-                                                    ),
-                                                    border: Border.all(
-                                                      color: const Color(
-                                                        0xFF007BFF,
-                                                      ),
+                                          SizedBox(
+                                            width: ((MediaQuery.of(context)
+                                                            .size
+                                                            .width -
+                                                        64) /
+                                                    3)
+                                                .clamp(0, 120),
+                                            height: ((MediaQuery.of(context)
+                                                            .size
+                                                            .width -
+                                                        64) /
+                                                    3)
+                                                .clamp(0, 120),
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 200,
+                                              ),
+                                              child: Container(
+                                                height: 50,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      const BorderRadius.all(
+                                                    Radius.circular(
+                                                      8,
                                                     ),
                                                   ),
-                                                  child: Column(
-                                                    children: [
-                                                      const SizedBox(
-                                                          height: 12),
-                                                      Expanded(
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                            horizontal: 8,
-                                                          ),
-                                                          child: Image.asset(
-                                                            "assets/images/${lowerCase(gVehicleTypes.firstWhere(
-                                                                  (v) =>
-                                                                      v.slug ==
-                                                                      "tricycle",
-                                                                ).name!)}.png",
-                                                          ),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF007BFF,
+                                                    ),
+                                                  ),
+                                                ),
+                                                child: Column(
+                                                  children: [
+                                                    const SizedBox(
+                                                      height: 12,
+                                                    ),
+                                                    Expanded(
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 8,
                                                         ),
-                                                      ),
-                                                      const SizedBox(height: 8),
-                                                      Text(
-                                                        capitalizeWords(
-                                                          gVehicleTypes
-                                                              .firstWhere(
+                                                        child: Image.asset(
+                                                          "assets/images/${lowerCase(gVehicleTypes.firstWhere(
                                                                 (v) =>
                                                                     v.slug ==
                                                                     "tricycle",
-                                                              )
-                                                              .name!,
-                                                        ),
-                                                        style: const TextStyle(
-                                                          height: 1.05,
-                                                          fontSize: 16,
-                                                          color: Color(
-                                                            0xFF007BFF,
-                                                          ),
-                                                          fontWeight:
-                                                              FontWeight.w500,
+                                                              ).name!)}.png",
                                                         ),
                                                       ),
-                                                      Text(
-                                                        "${gVehicleTypes.firstWhere(
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      capitalizeWords(
+                                                        gVehicleTypes
+                                                            .firstWhere(
                                                               (v) =>
                                                                   v.slug ==
                                                                   "tricycle",
-                                                            ).maxSeat!} Seater",
-                                                        style: const TextStyle(
-                                                          height: 1.05,
-                                                          fontSize: 12,
-                                                          color: Color(
-                                                            0xFF007BFF,
-                                                          ),
+                                                            )
+                                                            .name!,
+                                                      ),
+                                                      style: const TextStyle(
+                                                        height: 1.05,
+                                                        fontSize: 16,
+                                                        color: Color(
+                                                          0xFF007BFF,
+                                                        ),
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      "${gVehicleTypes.firstWhere(
+                                                            (v) =>
+                                                                v.slug ==
+                                                                "tricycle",
+                                                          ).maxSeat!} Seater",
+                                                      style: const TextStyle(
+                                                        height: 1.05,
+                                                        fontSize: 12,
+                                                        color: Color(
+                                                          0xFF007BFF,
                                                         ),
                                                       ),
-                                                      const SizedBox(
-                                                        height: 12,
-                                                      ),
-                                                    ],
-                                                  ),
+                                                    ),
+                                                    const SizedBox(
+                                                      height: 12,
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ),
-                                            onTap: () {},
                                           ),
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 15),
                                           Expanded(
                                             child: SizedBox(
                                               height: ((MediaQuery.of(context)
@@ -504,7 +497,7 @@ class _HomeViewState extends State<HomeView> {
                                                       onTap: () {},
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 12),
+                                                  const SizedBox(height: 15),
                                                   Expanded(
                                                     child: WidgetButton(
                                                       borderRadius: 8,
@@ -547,7 +540,7 @@ class _HomeViewState extends State<HomeView> {
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 15),
                                           WidgetButton(
                                             borderRadius: 8,
                                             child: SizedBox(
@@ -566,8 +559,7 @@ class _HomeViewState extends State<HomeView> {
                                               child: ConstrainedBox(
                                                 constraints:
                                                     const BoxConstraints(
-                                                  maxWidth:
-                                                      200, // maximum width in pixels
+                                                  maxWidth: 200,
                                                 ),
                                                 child: Container(
                                                   height: 50,
@@ -587,7 +579,8 @@ class _HomeViewState extends State<HomeView> {
                                                   child: Column(
                                                     children: [
                                                       const SizedBox(
-                                                          height: 12),
+                                                        height: 12,
+                                                      ),
                                                       Expanded(
                                                         child: Padding(
                                                           padding:
@@ -635,48 +628,52 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      Container(
-                                        height: 50,
-                                        decoration: const BoxDecoration(
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const SizedBox(
-                                              width: 12,
-                                            ),
-                                            const Icon(
-                                              Icons.trip_origin,
-                                              color: Color(
-                                                0xFF007BFF,
+                                      GestureDetector(
+                                        onTap: () {},
+                                        child: Container(
+                                          height: 50,
+                                          decoration: const BoxDecoration(
+                                            borderRadius: BorderRadius.all(
+                                              Radius.circular(
+                                                8,
                                               ),
                                             ),
-                                            const SizedBox(
-                                              width: 8,
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                capitalizeWords(
-                                                  pickupAddress?.addressLine,
-                                                  alt: "Where from?",
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const SizedBox(
+                                                width: 12,
+                                              ),
+                                              const Icon(
+                                                Icons.trip_origin,
+                                                color: Color(
+                                                  0xFF007BFF,
                                                 ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  color: Color(
-                                                    0xFF030744,
+                                              ),
+                                              const SizedBox(
+                                                width: 8,
+                                              ),
+                                              Expanded(
+                                                child: Text(
+                                                  capitalizeWords(
+                                                    pickupAddress?.addressLine,
+                                                    alt: "Where from?",
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: Color(
+                                                      0xFF030744,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                            const SizedBox(
-                                              width: 12,
-                                            ),
-                                          ],
+                                              const SizedBox(
+                                                width: 12,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                       WidgetButton(
@@ -721,7 +718,7 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
+                                      const SizedBox(height: 15),
                                       Row(
                                         children: [
                                           SizedBox(
@@ -733,8 +730,7 @@ class _HomeViewState extends State<HomeView> {
                                                 .clamp(0, 120),
                                             child: ConstrainedBox(
                                               constraints: const BoxConstraints(
-                                                maxWidth:
-                                                    200, // maximum width in pixels
+                                                maxWidth: 200,
                                               ),
                                               child: Container(
                                                 height: 50,
@@ -766,14 +762,14 @@ class _HomeViewState extends State<HomeView> {
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 15),
                                           Expanded(
                                             child: ActionButton(
                                               text: "BOOK",
                                               onTap: () {},
                                             ),
                                           ),
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 15),
                                           SizedBox(
                                             width: ((MediaQuery.of(context)
                                                             .size
@@ -783,8 +779,7 @@ class _HomeViewState extends State<HomeView> {
                                                 .clamp(0, 120),
                                             child: ConstrainedBox(
                                               constraints: const BoxConstraints(
-                                                maxWidth:
-                                                    200, // maximum width in pixels
+                                                maxWidth: 200,
                                               ),
                                               child: Container(
                                                 height: 50,
@@ -818,7 +813,7 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 12),
+                                      const SizedBox(height: 20),
                                     ],
                                   ),
                                 ),
