@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -59,8 +58,8 @@ class _VerifyViewState extends State<VerifyView> {
           hideCancel: false,
           confirmText: "Go back",
           confirmAction: () {
-            Get.back();
-            Get.back();
+            Navigator.pop(context);
+            Navigator.pop(context);
           },
         );
       },
@@ -103,8 +102,8 @@ class _VerifyViewState extends State<VerifyView> {
                                 hideCancel: false,
                                 confirmText: "Go back",
                                 confirmAction: () {
-                                  Get.back();
-                                  Get.back();
+                                  Navigator.pop(context);
+                                  Navigator.pop(context);
                                 },
                               );
                             },
@@ -276,7 +275,7 @@ class _VerifyViewState extends State<VerifyView> {
                           Visibility(
                             visible: resendSecs == 0,
                             child: GestureDetector(
-                              onTap: () async {
+                              onTap: () {
                                 vm.resendCode();
                                 setState(() {
                                   resendSecs = maxResendSeconds;

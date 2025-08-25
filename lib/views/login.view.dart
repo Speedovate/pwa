@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +30,7 @@ class _LoginViewState extends State<LoginView> {
                 loginViewModel.phoneTEC.text == "null") &&
             (loginViewModel.passwordTEC.text == "" ||
                 loginViewModel.passwordTEC.text == "null")) {
-          Get.back();
+          Navigator.pop(context);
         } else {
           AlertService().showAppAlert(
             title: "Are you sure?",
@@ -39,8 +38,8 @@ class _LoginViewState extends State<LoginView> {
             hideCancel: false,
             confirmText: "Go back",
             confirmAction: () {
-              Get.back();
-              Get.back();
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
           );
         }
@@ -69,7 +68,7 @@ class _LoginViewState extends State<LoginView> {
                                       vm.phoneTEC.text == "null") &&
                                   (vm.passwordTEC.text == "" ||
                                       vm.passwordTEC.text == "null")) {
-                                Get.back();
+                                Navigator.pop(context);
                               } else {
                                 AlertService().showAppAlert(
                                   title: "Are you sure?",
@@ -77,8 +76,8 @@ class _LoginViewState extends State<LoginView> {
                                   hideCancel: false,
                                   confirmText: "Go back",
                                   confirmAction: () {
-                                    Get.back();
-                                    Get.back();
+                                    Navigator.pop(context);
+                                    Navigator.pop(context);
                                   },
                                 );
                               }
@@ -178,9 +177,12 @@ class _LoginViewState extends State<LoginView> {
                             children: [
                               GestureDetector(
                                 onTap: () {
-                                  Get.to(
-                                    () => const SendView(
-                                      purpose: "forgot_password",
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const SendView(
+                                        purpose: "forgot_password",
+                                      ),
                                     ),
                                   );
                                 },
@@ -233,8 +235,11 @@ class _LoginViewState extends State<LoginView> {
                               agreed = false;
                               selfieFile = null;
                             });
-                            Get.to(
-                              () => const RegisterView(),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const RegisterView(),
+                              ),
                             );
                           },
                         ),

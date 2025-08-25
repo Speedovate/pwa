@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
@@ -38,8 +37,8 @@ class _ChangeViewState extends State<ChangeView> {
           hideCancel: false,
           confirmText: "Go back",
           confirmAction: () {
-            Get.back();
-            Get.back();
+            Navigator.pop(context);
+            Navigator.pop(context);
           },
         );
       },
@@ -79,8 +78,8 @@ class _ChangeViewState extends State<ChangeView> {
                                 hideCancel: false,
                                 confirmText: "Go back",
                                 confirmAction: () {
-                                  Get.back();
-                                  Get.back();
+                                  Navigator.pop(context);
+                                  Navigator.pop(context);
                                 },
                               );
                             },

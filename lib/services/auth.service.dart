@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/intro.view.dart';
@@ -117,9 +118,21 @@ class AuthService {
     pickupAddress = null;
     currentUser = null;
     if (!AuthService.inReviewMode()) {
-      Get.offAll(() => const IntroView());
+      Navigator.pushAndRemoveUntil(
+        Get.overlayContext!,
+        MaterialPageRoute(
+          builder: (context) => const IntroView(),
+        ),
+        (route) => false,
+      );
     } else {
-      Get.offAll(() => const HomeView());
+      Navigator.pushAndRemoveUntil(
+        Get.overlayContext!,
+        MaterialPageRoute(
+          builder: (context) => const HomeView(),
+        ),
+        (route) => false,
+      );
     }
   }
 

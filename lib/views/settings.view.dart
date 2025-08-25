@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/change.view.dart';
@@ -38,7 +37,7 @@ class _SettingsViewState extends State<SettingsView> {
                       const SizedBox(width: 4),
                       WidgetButton(
                         onTap: () {
-                          Get.back();
+                          Navigator.pop(context);
                         },
                         child: const SizedBox(
                           width: 58,
@@ -80,10 +79,13 @@ class _SettingsViewState extends State<SettingsView> {
                   WidgetButton(
                     borderRadius: 0,
                     onTap: () {
-                      Get.to(
-                        () => ChangeView(
-                          isReset: false,
-                          phone: AuthService.currentUser?.phone!,
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChangeView(
+                            isReset: false,
+                            phone: AuthService.currentUser?.phone!,
+                          ),
                         ),
                       );
                     },
@@ -125,8 +127,11 @@ class _SettingsViewState extends State<SettingsView> {
                       : WidgetButton(
                           borderRadius: 0,
                           onTap: () {
-                            Get.to(
-                              () => const DeleteView(),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const DeleteView(),
+                              ),
                             );
                           },
                           child: const Padding(

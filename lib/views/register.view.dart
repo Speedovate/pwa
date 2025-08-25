@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +39,7 @@ class _RegisterViewState extends State<RegisterView> {
                 registerViewModel.passwordTEC.text == "null") &&
             (registerViewModel.cPasswordTEC.text == "" ||
                 registerViewModel.cPasswordTEC.text == "null")) {
-          Get.back();
+          Navigator.pop(context);
         } else {
           AlertService().showAppAlert(
             title: "Are you sure?",
@@ -48,8 +47,8 @@ class _RegisterViewState extends State<RegisterView> {
             hideCancel: false,
             confirmText: "Go back",
             confirmAction: () {
-              Get.back();
-              Get.back();
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
           );
         }
@@ -86,7 +85,7 @@ class _RegisterViewState extends State<RegisterView> {
                                       vm.passwordTEC.text == "null") &&
                                   (vm.cPasswordTEC.text == "" ||
                                       vm.cPasswordTEC.text == "null")) {
-                                Get.back();
+                                Navigator.pop(context);
                               } else {
                                 AlertService().showAppAlert(
                                   title: "Are you sure?",
@@ -94,8 +93,8 @@ class _RegisterViewState extends State<RegisterView> {
                                   hideCancel: false,
                                   confirmText: "Go back",
                                   confirmAction: () {
-                                    Get.back();
-                                    Get.back();
+                                    Navigator.pop(context);
+                                    Navigator.pop(context);
                                   },
                                 );
                               }
@@ -141,7 +140,7 @@ class _RegisterViewState extends State<RegisterView> {
                               children: [
                                 selfieFile != null
                                     ? GestureDetector(
-                                        onTap: () async {
+                                        onTap: () {
                                           FocusManager.instance.primaryFocus
                                               ?.unfocus();
                                           showCameraSource();
@@ -176,7 +175,7 @@ class _RegisterViewState extends State<RegisterView> {
                                         ),
                                       )
                                     : WidgetButton(
-                                        onTap: () async {
+                                        onTap: () {
                                           FocusManager.instance.primaryFocus
                                               ?.unfocus();
                                           showCameraSource();
@@ -502,7 +501,7 @@ class _RegisterViewState extends State<RegisterView> {
                           text: "Login to account",
                           mainColor: const Color(0xFF030744),
                           onTap: () {
-                            Get.back();
+                            Navigator.pop(context);
                           },
                         ),
                       ),

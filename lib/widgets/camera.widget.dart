@@ -113,11 +113,14 @@ class _CameraWidgetState extends State<CameraWidget> {
       if (!mounted) return;
 
       setState(() => _isCapturing = false);
-      Get.to(
-        () => CameraImageWidget(
-          imageBytes: pickedImageBytes!,
-          isEdit: widget.isEdit,
-          cameraType: widget.cameraType,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CameraImageWidget(
+            imageBytes: pickedImageBytes!,
+            isEdit: widget.isEdit,
+            cameraType: widget.cameraType,
+          ),
         ),
       );
     } catch (e) {
@@ -188,7 +191,7 @@ class _CameraWidgetState extends State<CameraWidget> {
                               WidgetButton(
                                 onTap: () {
                                   if (widget.cameraType == "chat") {
-                                    Get.back();
+                                    Navigator.pop(context);
                                   } else {
                                     AlertService().showAppAlert(
                                       title: "Are you sure?",
@@ -501,12 +504,15 @@ class CameraImageWidget extends StatelessWidget {
                       ),
                       child: WidgetButton(
                         borderRadius: 16,
-                        onTap: () async {
-                          Get.back();
-                          Get.to(
-                            () => CameraWidget(
-                              isEdit: isEdit,
-                              cameraType: cameraType,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CameraWidget(
+                                isEdit: isEdit,
+                                cameraType: cameraType,
+                              ),
                             ),
                           );
                         },
@@ -604,16 +610,29 @@ class CameraImageWidget extends StatelessWidget {
   void _onConfirm() {
     if (cameraType == "chat") {
       chatFile = imageBytes;
-      Get.back();
+      Navigator.pop(Get.overlayContext!);
     } else {
       selfieFile = imageBytes;
-      Get.until((route) => route.isFirst);
+      Navigator.popUntil(
+        Get.overlayContext!,
+        (route) => route.isFirst,
+      );
       if (!isEdit) {
-        Get.to(() => const LoginView());
-        Get.to(() => const RegisterView());
+        Navigator.push(
+          Get.overlayContext!,
+          MaterialPageRoute(builder: (context) => const LoginView()),
+        );
+
+        Navigator.push(
+          Get.overlayContext!,
+          MaterialPageRoute(builder: (context) => const RegisterView()),
+        );
       } else {
-        Get.to(
-          () => const ProfileView(),
+        Navigator.push(
+          Get.overlayContext!,
+          MaterialPageRoute(
+            builder: (context) => const ProfileView(),
+          ),
         );
       }
     }

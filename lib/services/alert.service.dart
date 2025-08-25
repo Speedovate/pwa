@@ -166,7 +166,8 @@ class AlertService {
                                                               onTap:
                                                                   cancelAction ??
                                                                       () {
-                                                                        Get.back();
+                                                                        Navigator.pop(
+                                                                            context);
                                                                       },
                                                             ),
                                                           ),
@@ -196,7 +197,8 @@ class AlertService {
                                                         ),
                                                         onTap: confirmAction ??
                                                             () {
-                                                              Get.back();
+                                                              Navigator.pop(
+                                                                  context);
                                                             },
                                                       ),
                                                     ),
@@ -240,7 +242,8 @@ class AlertService {
                                                               onTap:
                                                                   thirdAction ??
                                                                       () {
-                                                                        Get.back();
+                                                                        Navigator.pop(
+                                                                            context);
                                                                       },
                                                             ),
                                                           ),
@@ -311,6 +314,6 @@ class AlertService {
 
   stopLoading() {
     FocusManager.instance.primaryFocus?.unfocus();
-    Get.back();
+    Navigator.pop(Get.overlayContext!);
   }
 }

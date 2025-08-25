@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:pwa/views/details.view.dart';
@@ -45,6 +46,11 @@ class HistoryViewModel extends BaseViewModel {
   }
 
   openOrderDetails({required Order order}) {
-    Get.to(() => DetailsView(order: order));
+    Navigator.push(
+      Get.overlayContext!,
+      MaterialPageRoute(
+        builder: (context) => DetailsView(order: order),
+      ),
+    );
   }
 }

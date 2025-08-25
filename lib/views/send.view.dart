@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
@@ -32,7 +31,7 @@ class _SendViewState extends State<SendView> {
         }
         if (sendViewModel.phoneTEC.text == "" ||
             sendViewModel.phoneTEC.text == "null") {
-          Get.back();
+          Navigator.pop(context);
         } else {
           AlertService().showAppAlert(
             title: "Are you sure?",
@@ -40,8 +39,8 @@ class _SendViewState extends State<SendView> {
             hideCancel: false,
             confirmText: "Go back",
             confirmAction: () {
-              Get.back();
-              Get.back();
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
           );
         }
@@ -76,7 +75,7 @@ class _SendViewState extends State<SendView> {
                             onTap: () {
                               if (sendViewModel.phoneTEC.text == "" ||
                                   sendViewModel.phoneTEC.text == "null") {
-                                Get.back();
+                                Navigator.pop(context);
                               } else {
                                 AlertService().showAppAlert(
                                   title: "Are you sure?",
@@ -84,8 +83,8 @@ class _SendViewState extends State<SendView> {
                                   hideCancel: false,
                                   confirmText: "Go back",
                                   confirmAction: () {
-                                    Get.back();
-                                    Get.back();
+                                    Navigator.pop(context);
+                                    Navigator.pop(context);
                                   },
                                 );
                               }

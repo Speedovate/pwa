@@ -164,17 +164,26 @@ class VerifyViewModel extends BaseViewModel {
                   );
                   await AuthService.getUserFromStorage();
                   await AuthService.getTokenFromStorage();
-                  Get.offAll(() => const HomeView());
+                  Navigator.pushAndRemoveUntil(
+                    Get.overlayContext!,
+                    MaterialPageRoute(
+                      builder: (context) => const HomeView(),
+                    ),
+                    (route) => false,
+                  );
                 }
               } else {
                 AlertService().stopLoading();
               }
             } else if (purpose == "forgot_password") {
               AlertService().stopLoading();
-              Get.to(
-                () => ChangeView(
-                  isReset: true,
-                  phone: phoneTEC.text,
+              Navigator.push(
+                Get.overlayContext!,
+                MaterialPageRoute(
+                  builder: (context) => ChangeView(
+                    isReset: true,
+                    phone: phoneTEC.text,
+                  ),
                 ),
               );
             }

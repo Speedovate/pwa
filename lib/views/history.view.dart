@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/widgets/button.widget.dart';
@@ -63,7 +62,7 @@ class _HistoryViewState extends State<HistoryView> {
                     const SizedBox(width: 4),
                     WidgetButton(
                       onTap: () {
-                        Get.back();
+                        Navigator.pop(context);
                       },
                       child: const SizedBox(
                         width: 58,

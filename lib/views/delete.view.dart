@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
@@ -28,7 +27,7 @@ class _DeleteViewState extends State<DeleteView> {
             if (didPop) {
               return;
             }
-            Get.back();
+            Navigator.pop(context);
           },
           child: GestureDetector(
             onTap: () {
@@ -54,7 +53,7 @@ class _DeleteViewState extends State<DeleteView> {
                           const SizedBox(width: 4),
                           WidgetButton(
                             onTap: () {
-                              Get.back();
+                              Navigator.pop(context);
                             },
                             child: const SizedBox(
                               width: 58,

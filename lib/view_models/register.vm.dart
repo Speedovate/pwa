@@ -279,13 +279,16 @@ class RegisterViewModel extends BaseViewModel {
           }
         }
         AlertService().stopLoading();
-        Get.to(
-          () => VerifyView(
-            name: nameTEC.text.trim(),
-            email: emailTEC.text.trim(),
-            phone: phoneTEC.text.trim(),
-            purpose: "register",
-            password: passwordTEC.text.trim(),
+        Navigator.push(
+          Get.overlayContext!,
+          MaterialPageRoute(
+            builder: (context) => VerifyView(
+              name: nameTEC.text.trim(),
+              email: emailTEC.text.trim(),
+              phone: phoneTEC.text.trim(),
+              purpose: "register",
+              password: passwordTEC.text.trim(),
+            ),
           ),
         );
       } else {

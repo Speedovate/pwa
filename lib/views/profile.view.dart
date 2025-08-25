@@ -115,7 +115,7 @@ class _ProfileViewState extends State<ProfileView> {
                       ),
                       const SizedBox(height: 24),
                       GestureDetector(
-                        onTap: () async {
+                        onTap: () {
                           FocusManager.instance.primaryFocus?.unfocus();
                           showImageSource(isEdit: true);
                         },
@@ -212,7 +212,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   ],
                                 ),
                                 child: WidgetButton(
-                                  onTap: () async {
+                                  onTap: () {
                                     FocusManager.instance.primaryFocus
                                         ?.unfocus();
                                     showImageSource(isEdit: true);

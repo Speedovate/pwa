@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -48,25 +47,25 @@ class _HomeViewState extends State<HomeView> {
                   child: WidgetButton(
                     borderRadius: 0,
                     onTap: () {
-                      Get.back();
-                      Future.delayed(
-                        const Duration(milliseconds: 500),
-                        () {
-                          if (!AuthService.isLoggedIn()) {
-                            Get.to(
-                              () => const LoginView(),
-                            );
-                          } else {
-                            setState(() {
-                              agreed = false;
-                              selfieFile = null;
-                            });
-                            Get.to(
-                              () => const ProfileView(),
-                            );
-                          }
-                        },
-                      );
+                      if (!AuthService.isLoggedIn()) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginView(),
+                          ),
+                        );
+                      } else {
+                        setState(() {
+                          agreed = false;
+                          selfieFile = null;
+                        });
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProfileView(),
+                          ),
+                        );
+                      }
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(
@@ -167,14 +166,11 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         onTap: () {
-                          Get.back();
-                          Future.delayed(
-                            const Duration(milliseconds: 500),
-                            () {
-                              Get.to(
-                                () => const HistoryView(),
-                              );
-                            },
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HistoryView(),
+                            ),
                           );
                         },
                       ),
@@ -192,21 +188,21 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         onTap: () {
-                          Get.back();
-                          Future.delayed(
-                            const Duration(milliseconds: 500),
-                            () {
-                              if (!AuthService.isLoggedIn()) {
-                                Get.to(
-                                  () => const LoginView(),
-                                );
-                              } else {
-                                Get.to(
-                                  () => const SettingsView(),
-                                );
-                              }
-                            },
-                          );
+                          if (!AuthService.isLoggedIn()) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginView(),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsView(),
+                              ),
+                            );
+                          }
                         },
                       ),
                 ListTileWidget(
@@ -221,15 +217,9 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   onTap: () {
-                    Get.back();
-                    Future.delayed(
-                      const Duration(milliseconds: 500),
-                      () {
-                        launchUrlString(
-                          "sms://+639122078420",
-                          mode: LaunchMode.externalNonBrowserApplication,
-                        );
-                      },
+                    launchUrlString(
+                      "sms://+639122078420",
+                      mode: LaunchMode.externalNonBrowserApplication,
                     );
                   },
                 ),
@@ -245,18 +235,12 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   onTap: () {
-                    Get.back();
-                    Future.delayed(
-                      const Duration(milliseconds: 500),
-                      () {
-                        if (!AuthService.inReviewMode()) {
-                          launchUrlString(
-                            "https://ppctoda.framer.website",
-                            mode: LaunchMode.externalNonBrowserApplication,
-                          );
-                        }
-                      },
-                    );
+                    if (!AuthService.inReviewMode()) {
+                      launchUrlString(
+                        "https://ppctoda.framer.website",
+                        mode: LaunchMode.externalNonBrowserApplication,
+                      );
+                    }
                   },
                 ),
               ],
@@ -408,19 +392,7 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () {
-                                          if (!AuthService.isLoggedIn()) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(builder: (context) => const LoginView()),
-                                            );
-                                          } else {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(builder: (context) => const SettingsView()),
-                                            );
-                                          }
-                                        },
+                                        onTap: () {},
                                         child: const Center(
                                           child: Icon(
                                             Icons.cached_outlined,
@@ -457,12 +429,7 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const HistoryView()),
-                                          );
-                                        },
+                                        onTap: () {},
                                         child: const Center(
                                           child: Icon(
                                             Icons.share,

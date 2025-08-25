@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/login.view.dart';
@@ -195,8 +194,11 @@ class _IntroViewState extends State<IntroView> {
                       child: ActionButton(
                         text: "Login with phone",
                         onTap: () {
-                          Get.to(
-                            () => const LoginView(),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginView(),
+                            ),
                           );
                         },
                       ),
@@ -210,7 +212,13 @@ class _IntroViewState extends State<IntroView> {
                         text: "Continue as guest",
                         mainColor: const Color(0xFF030744),
                         onTap: () {
-                          Get.offAll(() => const HomeView());
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HomeView(),
+                            ),
+                            (route) => false,
+                          );
                         },
                       ),
                     ),

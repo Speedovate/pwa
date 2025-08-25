@@ -106,13 +106,16 @@ class SendViewModel extends BaseViewModel {
             );
           }
         }
-        Get.to(
-          () => VerifyView(
-            name: null,
-            email: null,
-            phone: phoneTEC.text,
-            purpose: purpose,
-            password: null,
+        Navigator.push(
+          Get.overlayContext!,
+          MaterialPageRoute(
+            builder: (context) => VerifyView(
+              name: null,
+              email: null,
+              phone: phoneTEC.text,
+              purpose: purpose,
+              password: null,
+            ),
           ),
         );
       } else {
@@ -134,13 +137,16 @@ class SendViewModel extends BaseViewModel {
           ),
         ),
       );
-      Get.to(
-        () => VerifyView(
-          name: null,
-          email: null,
-          phone: phoneTEC.text,
-          purpose: purpose,
-          password: null,
+      Navigator.push(
+        Get.overlayContext!,
+        MaterialPageRoute(
+          builder: (context) => VerifyView(
+            name: null,
+            email: null,
+            phone: phoneTEC.text,
+            purpose: purpose,
+            password: null,
+          ),
         ),
       );
     }

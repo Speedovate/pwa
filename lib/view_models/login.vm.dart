@@ -166,8 +166,12 @@ class LoginViewModel extends BaseViewModel {
           "login syncLocationRequest error: $e",
         );
       }
-      Get.offAll(
-        () => const HomeView(),
+      Navigator.pushAndRemoveUntil(
+        Get.overlayContext!,
+        MaterialPageRoute(
+          builder: (context) => const HomeView(),
+        ),
+        (route) => false,
       );
     }
   }

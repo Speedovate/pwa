@@ -35,7 +35,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "2";
+      versionCode = "5";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -124,12 +124,30 @@ class SplashViewModel extends BaseViewModel {
   goToNextPage() {
     if (!AuthService.isLoggedIn()) {
       if (!AuthService.inReviewMode()) {
-        Get.offAll(() => const IntroView());
+        Navigator.pushAndRemoveUntil(
+          Get.overlayContext!,
+          MaterialPageRoute(
+            builder: (context) => const IntroView(),
+          ),
+          (route) => false,
+        );
       } else {
-        Get.offAll(() => const HomeView());
+        Navigator.pushAndRemoveUntil(
+          Get.overlayContext!,
+          MaterialPageRoute(
+            builder: (context) => const HomeView(),
+          ),
+          (route) => false,
+        );
       }
     } else {
-      Get.offAll(() => const HomeView());
+      Navigator.pushAndRemoveUntil(
+        Get.overlayContext!,
+        MaterialPageRoute(
+          builder: (context) => const HomeView(),
+        ),
+        (route) => false,
+      );
     }
   }
 

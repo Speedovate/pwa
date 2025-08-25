@@ -347,11 +347,14 @@ openWebview(
   String title,
   String url,
 ) {
-  Get.to(
-    () => WebViewWidget(
-      title: title,
-      selectedUrl: Uri.parse(
-        url,
+  Navigator.push(
+    Get.overlayContext!,
+    MaterialPageRoute(
+      builder: (context) => WebViewWidget(
+        title: title,
+        selectedUrl: Uri.parse(
+          url,
+        ),
       ),
     ),
   );
@@ -362,10 +365,13 @@ Future<void> showCameraSource({
   String cameraType = "profile",
 }) async {
   try {
-    Get.to(
-      () => CameraWidget(
-        isEdit: isEdit,
-        cameraType: cameraType,
+    Navigator.push(
+      Get.overlayContext!,
+      MaterialPageRoute(
+        builder: (context) => CameraWidget(
+          isEdit: isEdit,
+          cameraType: cameraType,
+        ),
       ),
     );
   } catch (e) {
@@ -390,8 +396,8 @@ Future<dynamic> showImageSource({
       mainAxisSize: MainAxisSize.min,
       children: [
         ListTileWidget(
-          onTap: () async {
-            Get.back();
+          onTap: () {
+            Navigator.pop(context);
             showCameraSource(
               isEdit: isEdit,
               cameraType: cameraType,
@@ -404,7 +410,7 @@ Future<dynamic> showImageSource({
             ? const SizedBox()
             : ListTileWidget(
                 onTap: () async {
-                  Get.back();
+                  Navigator.pop(context);
                   try {
                     final ImagePicker picker = ImagePicker();
                     final XFile? image =

@@ -19,7 +19,7 @@ class SettingsViewModel extends BaseViewModel {
       confirmText: "Logout",
       confirmColor: Colors.red,
       confirmAction: () {
-        Get.back();
+        Navigator.pop(Get.overlayContext!);
         processLogout();
       },
     );
