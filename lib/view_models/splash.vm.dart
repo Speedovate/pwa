@@ -35,7 +35,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "1";
+      versionCode = "2";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -128,8 +128,13 @@ class SplashViewModel extends BaseViewModel {
           Get.overlayContext!,
           PageRouteBuilder(
             reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const IntroView(),
+            transitionDuration: Duration.zero,
+            pageBuilder: (
+              context,
+              a,
+              b,
+            ) =>
+                const IntroView(),
           ),
           (route) => false,
         );
@@ -138,8 +143,13 @@ pageBuilder: (context, a, b) => const IntroView(),
           Get.overlayContext!,
           PageRouteBuilder(
             reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const HomeView(),
+            transitionDuration: Duration.zero,
+            pageBuilder: (
+              context,
+              a,
+              b,
+            ) =>
+                const HomeView(),
           ),
           (route) => false,
         );
@@ -149,8 +159,13 @@ pageBuilder: (context, a, b) => const HomeView(),
         Get.overlayContext!,
         PageRouteBuilder(
           reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const HomeView(),
+          transitionDuration: Duration.zero,
+          pageBuilder: (
+            context,
+            a,
+            b,
+          ) =>
+              const HomeView(),
         ),
         (route) => false,
       );

@@ -122,8 +122,13 @@ class AuthService {
         Get.overlayContext!,
         PageRouteBuilder(
           reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const IntroView(),
+          transitionDuration: Duration.zero,
+          pageBuilder: (
+            context,
+            a,
+            b,
+          ) =>
+              const IntroView(),
         ),
         (route) => false,
       );
@@ -132,8 +137,13 @@ pageBuilder: (context, a, b) => const IntroView(),
         Get.overlayContext!,
         PageRouteBuilder(
           reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const HomeView(),
+          transitionDuration: Duration.zero,
+          pageBuilder: (
+            context,
+            a,
+            b,
+          ) =>
+              const HomeView(),
         ),
         (route) => false,
       );

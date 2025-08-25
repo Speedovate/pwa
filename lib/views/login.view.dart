@@ -181,8 +181,13 @@ class _LoginViewState extends State<LoginView> {
                                     context,
                                     PageRouteBuilder(
                                       reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const SendView(
+                                      transitionDuration: Duration.zero,
+                                      pageBuilder: (
+                                        context,
+                                        a,
+                                        b,
+                                      ) =>
+                                          const SendView(
                                         purpose: "forgot_password",
                                       ),
                                     ),
@@ -241,8 +246,13 @@ pageBuilder: (context, a, b) => const SendView(
                               context,
                               PageRouteBuilder(
                                 reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const RegisterView(),
+                                transitionDuration: Duration.zero,
+                                pageBuilder: (
+                                  context,
+                                  a,
+                                  b,
+                                ) =>
+                                    const RegisterView(),
                               ),
                             );
                           },

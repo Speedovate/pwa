@@ -199,7 +199,12 @@ class _IntroViewState extends State<IntroView> {
                             PageRouteBuilder(
                               reverseTransitionDuration: Duration.zero,
                               transitionDuration: Duration.zero,
-                              pageBuilder: (context, a, b) => const LoginView(),
+                              pageBuilder: (
+                                context,
+                                a,
+                                b,
+                              ) =>
+                                  const LoginView(),
                             ),
                           );
                         },
@@ -219,7 +224,12 @@ class _IntroViewState extends State<IntroView> {
                             PageRouteBuilder(
                               reverseTransitionDuration: Duration.zero,
                               transitionDuration: Duration.zero,
-                              pageBuilder: (context, a, b) => const HomeView(),
+                              pageBuilder: (
+                                context,
+                                a,
+                                b,
+                              ) =>
+                                  const HomeView(),
                             ),
                             (route) => false,
                           );

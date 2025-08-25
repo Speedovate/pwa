@@ -331,10 +331,11 @@ Future<gmaps.LatLng?> getMyLatLng() async {
     final lat = position.coords?.latitude;
     final lng = position.coords?.longitude;
     if (lat != null && lng != null) {
-      return gmaps.LatLng(
+      initLatLng = gmaps.LatLng(
         lat,
         lng,
       );
+      return initLatLng;
     }
   } catch (_) {}
   return gmaps.LatLng(
@@ -352,7 +353,12 @@ openWebview(
     PageRouteBuilder(
       reverseTransitionDuration: Duration.zero,
       transitionDuration: Duration.zero,
-      pageBuilder: (context, a, b) => WebViewWidget(
+      pageBuilder: (
+        context,
+        a,
+        b,
+      ) =>
+          WebViewWidget(
         title: title,
         selectedUrl: Uri.parse(
           url,
@@ -372,7 +378,12 @@ Future<void> showCameraSource({
       PageRouteBuilder(
         reverseTransitionDuration: Duration.zero,
         transitionDuration: Duration.zero,
-        pageBuilder: (context, a, b) => CameraWidget(
+        pageBuilder: (
+          context,
+          a,
+          b,
+        ) =>
+            CameraWidget(
           isEdit: isEdit,
           cameraType: cameraType,
         ),

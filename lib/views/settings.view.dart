@@ -83,8 +83,13 @@ class _SettingsViewState extends State<SettingsView> {
                         context,
                         PageRouteBuilder(
                           reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => ChangeView(
+                          transitionDuration: Duration.zero,
+                          pageBuilder: (
+                            context,
+                            a,
+                            b,
+                          ) =>
+                              ChangeView(
                             isReset: false,
                             phone: AuthService.currentUser?.phone!,
                           ),
@@ -133,8 +138,13 @@ pageBuilder: (context, a, b) => ChangeView(
                               context,
                               PageRouteBuilder(
                                 reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const DeleteView(),
+                                transitionDuration: Duration.zero,
+                                pageBuilder: (
+                                  context,
+                                  a,
+                                  b,
+                                ) =>
+                                    const DeleteView(),
                               ),
                             );
                           },

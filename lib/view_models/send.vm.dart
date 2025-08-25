@@ -110,8 +110,13 @@ class SendViewModel extends BaseViewModel {
           Get.overlayContext!,
           PageRouteBuilder(
             reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => VerifyView(
+            transitionDuration: Duration.zero,
+            pageBuilder: (
+              context,
+              a,
+              b,
+            ) =>
+                VerifyView(
               name: null,
               email: null,
               phone: phoneTEC.text,
@@ -143,8 +148,13 @@ pageBuilder: (context, a, b) => VerifyView(
         Get.overlayContext!,
         PageRouteBuilder(
           reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => VerifyView(
+          transitionDuration: Duration.zero,
+          pageBuilder: (
+            context,
+            a,
+            b,
+          ) =>
+              VerifyView(
             name: null,
             email: null,
             phone: phoneTEC.text,

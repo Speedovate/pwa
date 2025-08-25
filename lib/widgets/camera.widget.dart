@@ -118,7 +118,12 @@ class _CameraWidgetState extends State<CameraWidget> {
         PageRouteBuilder(
           reverseTransitionDuration: Duration.zero,
           transitionDuration: Duration.zero,
-          pageBuilder: (context, a, b) => CameraImageWidget(
+          pageBuilder: (
+            context,
+            a,
+            b,
+          ) =>
+              CameraImageWidget(
             imageBytes: pickedImageBytes!,
             isEdit: widget.isEdit,
             cameraType: widget.cameraType,
@@ -513,7 +518,12 @@ class CameraImageWidget extends StatelessWidget {
                             PageRouteBuilder(
                               reverseTransitionDuration: Duration.zero,
                               transitionDuration: Duration.zero,
-                              pageBuilder: (context, a, b) => CameraWidget(
+                              pageBuilder: (
+                                context,
+                                a,
+                                b,
+                              ) =>
+                                  CameraWidget(
                                 isEdit: isEdit,
                                 cameraType: cameraType,
                               ),
@@ -627,7 +637,12 @@ class CameraImageWidget extends StatelessWidget {
           PageRouteBuilder(
             reverseTransitionDuration: Duration.zero,
             transitionDuration: Duration.zero,
-            pageBuilder: (context, a, b) => const LoginView(),
+            pageBuilder: (
+              context,
+              a,
+              b,
+            ) =>
+                const LoginView(),
           ),
         );
         Navigator.push(
@@ -635,7 +650,12 @@ class CameraImageWidget extends StatelessWidget {
           PageRouteBuilder(
             reverseTransitionDuration: Duration.zero,
             transitionDuration: Duration.zero,
-            pageBuilder: (context, a, b) => const RegisterView(),
+            pageBuilder: (
+              context,
+              a,
+              b,
+            ) =>
+                const RegisterView(),
           ),
         );
       } else {
@@ -644,7 +664,12 @@ class CameraImageWidget extends StatelessWidget {
           PageRouteBuilder(
             reverseTransitionDuration: Duration.zero,
             transitionDuration: Duration.zero,
-            pageBuilder: (context, a, b) => const ProfileView(),
+            pageBuilder: (
+              context,
+              a,
+              b,
+            ) =>
+                const ProfileView(),
           ),
         );
       }

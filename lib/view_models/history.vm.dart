@@ -50,8 +50,13 @@ class HistoryViewModel extends BaseViewModel {
       Get.overlayContext!,
       PageRouteBuilder(
         reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => DetailsView(order: order),
+        transitionDuration: Duration.zero,
+        pageBuilder: (
+          context,
+          a,
+          b,
+        ) =>
+            DetailsView(order: order),
       ),
     );
   }

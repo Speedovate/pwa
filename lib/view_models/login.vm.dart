@@ -170,8 +170,13 @@ class LoginViewModel extends BaseViewModel {
         Get.overlayContext!,
         PageRouteBuilder(
           reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const HomeView(),
+          transitionDuration: Duration.zero,
+          pageBuilder: (
+            context,
+            a,
+            b,
+          ) =>
+              const HomeView(),
         ),
         (route) => false,
       );

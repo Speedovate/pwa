@@ -168,8 +168,13 @@ class VerifyViewModel extends BaseViewModel {
                     Get.overlayContext!,
                     PageRouteBuilder(
                       reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => const HomeView(),
+                      transitionDuration: Duration.zero,
+                      pageBuilder: (
+                        context,
+                        a,
+                        b,
+                      ) =>
+                          const HomeView(),
                     ),
                     (route) => false,
                   );
@@ -183,8 +188,13 @@ pageBuilder: (context, a, b) => const HomeView(),
                 Get.overlayContext!,
                 PageRouteBuilder(
                   reverseTransitionDuration: Duration.zero,
-transitionDuration: Duration.zero,
-pageBuilder: (context, a, b) => ChangeView(
+                  transitionDuration: Duration.zero,
+                  pageBuilder: (
+                    context,
+                    a,
+                    b,
+                  ) =>
+                      ChangeView(
                     isReset: true,
                     phone: phoneTEC.text,
                   ),
