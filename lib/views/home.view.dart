@@ -34,221 +34,221 @@ class _HomeViewState extends State<HomeView> {
       builder: (context, vm, child) {
         return Scaffold(
           key: _scaffoldKey,
-          // drawer: Drawer(
-          //   backgroundColor: Colors.white,
-          //   shape: const RoundedRectangleBorder(),
-          //   child: Column(
-          //     children: [
-          //       SizedBox(
-          //         height: MediaQuery.of(context).padding.top,
-          //       ),
-          //       Container(
-          //         color: Colors.white,
-          //         child: WidgetButton(
-          //           borderRadius: 0,
-          //           onTap: () {
-          //             if (!AuthService.isLoggedIn()) {
-          //               Navigator.push(
-          //                 context,
-          //                 MaterialPageRoute(
-          //                   builder: (context) => const LoginView(),
-          //                 ),
-          //               );
-          //             } else {
-          //               setState(() {
-          //                 agreed = false;
-          //                 selfieFile = null;
-          //               });
-          //               Navigator.push(
-          //                 context,
-          //                 MaterialPageRoute(
-          //                   builder: (context) => const ProfileView(),
-          //                 ),
-          //               );
-          //             }
-          //           },
-          //           child: Padding(
-          //             padding: const EdgeInsets.only(
-          //               top: 18,
-          //               left: 18,
-          //               right: 12,
-          //               bottom: 18,
-          //             ),
-          //             child: Column(
-          //               children: [
-          //                 Row(
-          //                   children: [
-          //                     ClipOval(
-          //                       child: SizedBox(
-          //                         width: 50,
-          //                         height: 50,
-          //                         child: NetworkImageWidget(
-          //                           fit: BoxFit.cover,
-          //                           memCacheWidth: 600,
-          //                           imageUrl:
-          //                               AuthService.currentUser?.cPhoto ?? "",
-          //                           progressIndicatorBuilder: (
-          //                             context,
-          //                             imageUrl,
-          //                             progress,
-          //                           ) {
-          //                             return const CircularProgressIndicator(
-          //                               color: Color(0xFF007BFF),
-          //                               strokeWidth: 2,
-          //                             );
-          //                           },
-          //                           errorWidget: (
-          //                             context,
-          //                             imageUrl,
-          //                             progress,
-          //                           ) {
-          //                             return Container(
-          //                               color: const Color(0xFF030744),
-          //                               child: const Icon(
-          //                                 Icons.person_outline_outlined,
-          //                                 color: Colors.white,
-          //                               ),
-          //                             );
-          //                           },
-          //                         ),
-          //                       ),
-          //                     ),
-          //                     const SizedBox(
-          //                       width: 12,
-          //                     ),
-          //                     Expanded(
-          //                       child: Text(
-          //                         !AuthService.isLoggedIn()
-          //                             ? "Login Account"
-          //                             : capitalizeWords(
-          //                                 "${AuthService.currentUser!.name}",
-          //                               ),
-          //                         style: const TextStyle(
-          //                           height: 1.05,
-          //                           fontSize: 16,
-          //                           fontWeight: FontWeight.w500,
-          //                           color: Color(0xFF030744),
-          //                         ),
-          //                       ),
-          //                     ),
-          //                     const SizedBox(
-          //                       width: 12,
-          //                     ),
-          //                     const Icon(
-          //                       Icons.chevron_right,
-          //                       color: Color(0xFF030744),
-          //                       size: 25,
-          //                     ),
-          //                   ],
-          //                 ),
-          //               ],
-          //             ),
-          //           ),
-          //         ),
-          //       ),
-          //       Divider(
-          //         height: 1.05,
-          //         thickness: 1,
-          //         color: const Color(0xFF030744).withOpacity(0.1),
-          //       ),
-          //       !AuthService.isLoggedIn()
-          //           ? const SizedBox()
-          //           : ListTileWidget(
-          //               leading: const Icon(
-          //                 Icons.history,
-          //                 color: Color(0xFF030744),
-          //               ),
-          //               title: const Text(
-          //                 "History",
-          //                 style: TextStyle(
-          //                   color: Color(0xFF030744),
-          //                   fontSize: 15,
-          //                 ),
-          //               ),
-          //               onTap: () {
-          //                 Navigator.push(
-          //                   context,
-          //                   MaterialPageRoute(
-          //                     builder: (context) => const HistoryView(),
-          //                   ),
-          //                 );
-          //               },
-          //             ),
-          //       !AuthService.isLoggedIn()
-          //           ? const SizedBox()
-          //           : ListTileWidget(
-          //               leading: const Icon(
-          //                 Icons.settings_outlined,
-          //                 color: Color(0xFF030744),
-          //               ),
-          //               title: const Text(
-          //                 "Settings",
-          //                 style: TextStyle(
-          //                   color: Color(0xFF030744),
-          //                 ),
-          //               ),
-          //               onTap: () {
-          //                 if (!AuthService.isLoggedIn()) {
-          //                   Navigator.push(
-          //                     context,
-          //                     MaterialPageRoute(
-          //                       builder: (context) => const LoginView(),
-          //                     ),
-          //                   );
-          //                 } else {
-          //                   Navigator.push(
-          //                     context,
-          //                     MaterialPageRoute(
-          //                       builder: (context) => const SettingsView(),
-          //                     ),
-          //                   );
-          //                 }
-          //               },
-          //             ),
-          //       ListTileWidget(
-          //         leading: const Icon(
-          //           Icons.headset_outlined,
-          //           color: Color(0xFF030744),
-          //         ),
-          //         title: const Text(
-          //           "Assistance",
-          //           style: TextStyle(
-          //             color: Color(0xFF030744),
-          //           ),
-          //         ),
-          //         onTap: () {
-          //           launchUrlString(
-          //             "sms://+639122078420",
-          //             mode: LaunchMode.externalNonBrowserApplication,
-          //           );
-          //         },
-          //       ),
-          //       ListTileWidget(
-          //         leading: const Icon(
-          //           Icons.code,
-          //           color: Color(0xFF030744),
-          //         ),
-          //         title: Text(
-          //           "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
-          //           style: const TextStyle(
-          //             color: Color(0xFF030744),
-          //           ),
-          //         ),
-          //         onTap: () {
-          //           if (!AuthService.inReviewMode()) {
-          //             launchUrlString(
-          //               "https://ppctoda.framer.website",
-          //               mode: LaunchMode.externalNonBrowserApplication,
-          //             );
-          //           }
-          //         },
-          //       ),
-          //     ],
-          //   ),
-          // ),
-          // onDrawerChanged: (value) {
-          //   setState(() {});
-          // },
+          drawer: Drawer(
+            backgroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).padding.top,
+                ),
+                Container(
+                  color: Colors.white,
+                  child: WidgetButton(
+                    borderRadius: 0,
+                    onTap: () {
+                      if (!AuthService.isLoggedIn()) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginView(),
+                          ),
+                        );
+                      } else {
+                        setState(() {
+                          agreed = false;
+                          selfieFile = null;
+                        });
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProfileView(),
+                          ),
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        top: 18,
+                        left: 18,
+                        right: 12,
+                        bottom: 18,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              ClipOval(
+                                child: SizedBox(
+                                  width: 50,
+                                  height: 50,
+                                  child: NetworkImageWidget(
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 600,
+                                    imageUrl:
+                                        AuthService.currentUser?.cPhoto ?? "",
+                                    progressIndicatorBuilder: (
+                                      context,
+                                      imageUrl,
+                                      progress,
+                                    ) {
+                                      return const CircularProgressIndicator(
+                                        color: Color(0xFF007BFF),
+                                        strokeWidth: 2,
+                                      );
+                                    },
+                                    errorWidget: (
+                                      context,
+                                      imageUrl,
+                                      progress,
+                                    ) {
+                                      return Container(
+                                        color: const Color(0xFF030744),
+                                        child: const Icon(
+                                          Icons.person_outline_outlined,
+                                          color: Colors.white,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  !AuthService.isLoggedIn()
+                                      ? "Login Account"
+                                      : capitalizeWords(
+                                          "${AuthService.currentUser!.name}",
+                                        ),
+                                  style: const TextStyle(
+                                    height: 1.05,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF030744),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Color(0xFF030744),
+                                size: 25,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Divider(
+                  height: 1.05,
+                  thickness: 1,
+                  color: const Color(0xFF030744).withOpacity(0.1),
+                ),
+                !AuthService.isLoggedIn()
+                    ? const SizedBox()
+                    : ListTileWidget(
+                        leading: const Icon(
+                          Icons.history,
+                          color: Color(0xFF030744),
+                        ),
+                        title: const Text(
+                          "History",
+                          style: TextStyle(
+                            color: Color(0xFF030744),
+                            fontSize: 15,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HistoryView(),
+                            ),
+                          );
+                        },
+                      ),
+                !AuthService.isLoggedIn()
+                    ? const SizedBox()
+                    : ListTileWidget(
+                        leading: const Icon(
+                          Icons.settings_outlined,
+                          color: Color(0xFF030744),
+                        ),
+                        title: const Text(
+                          "Settings",
+                          style: TextStyle(
+                            color: Color(0xFF030744),
+                          ),
+                        ),
+                        onTap: () {
+                          if (!AuthService.isLoggedIn()) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginView(),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsView(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                ListTileWidget(
+                  leading: const Icon(
+                    Icons.headset_outlined,
+                    color: Color(0xFF030744),
+                  ),
+                  title: const Text(
+                    "Assistance",
+                    style: TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  onTap: () {
+                    launchUrlString(
+                      "sms://+639122078420",
+                      mode: LaunchMode.externalNonBrowserApplication,
+                    );
+                  },
+                ),
+                ListTileWidget(
+                  leading: const Icon(
+                    Icons.code,
+                    color: Color(0xFF030744),
+                  ),
+                  title: Text(
+                    "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
+                    style: const TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  onTap: () {
+                    if (!AuthService.inReviewMode()) {
+                      launchUrlString(
+                        "https://ppctoda.framer.website",
+                        mode: LaunchMode.externalNonBrowserApplication,
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          onDrawerChanged: (value) {
+            setState(() {});
+          },
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: getMyLatLng(),
