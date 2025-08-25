@@ -219,128 +219,619 @@ class _HomeViewState extends State<HomeView> {
             setState(() {});
           },
           backgroundColor: Colors.white,
-          body: FutureBuilder<gmaps.LatLng?>(
-            future: getMyLatLng(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-              final center = snapshot.data!;
-              return Stack(
-                children: [
-                  Column(
+          body: SafeArea(
+            child: FutureBuilder<gmaps.LatLng?>(
+              future: getMyLatLng(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                final center = snapshot.data!;
+                return SizedBox(
+                  height: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                  child: Stack(
                     children: [
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            GoogleMapWidget(
-                              center: center,
-                              enableGestures: !isBool(
-                                _scaffoldKey.currentState?.isDrawerOpen,
-                              ),
-                              viewModel: vm,
-                            ),
-                            Positioned(
-                              top: 20,
-                              left: 20,
-                              child: _FloatingButton(
-                                icon: Icons.menu,
-                                onTap: () {
-                                  _scaffoldKey.currentState?.openDrawer();
-                                },
-                              ),
-                            ),
-                            Positioned(
-                              top: 20,
-                              right: 20,
-                              child: _FloatingButton(
-                                icon: Icons.my_location_outlined,
-                                onTap: () {
-                                  vm.zoomToCurrentLocation();
-                                },
-                              ),
-                            ),
-                            Positioned(
-                              left: 20,
-                              bottom: 20,
-                              child: Column(
-                                children: [
-                                  _FloatingButton(
-                                    icon: Icons.cached_outlined,
-                                    onTap: () {},
+                      Column(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                GoogleMapWidget(
+                                  center: center,
+                                  enableGestures: !isBool(
+                                    _scaffoldKey.currentState?.isDrawerOpen,
                                   ),
-                                  const SizedBox(height: 8),
-                                  _FloatingButton(
-                                    icon: Icons.share,
+                                  viewModel: vm,
+                                ),
+                                Positioned(
+                                  top: 20,
+                                  left: 20,
+                                  child: _FloatingButton(
+                                    icon: Icons.menu,
                                     onTap: () {
-                                      if (!AuthService.isLoggedIn()) {
-                                        _navigateWithoutTransition(
-                                          const LoginView(),
-                                        );
-                                      } else {
-                                        _navigateWithoutTransition(
-                                          const SettingsView(),
-                                        );
-                                      }
+                                      _scaffoldKey.currentState?.openDrawer();
                                     },
                                   ),
-                                ],
-                              ),
-                            ),
-                            Positioned(
-                              right: 20,
-                              bottom: 20,
-                              child: Column(
-                                children: [
-                                  _FloatingButton(
-                                    icon: Icons.add,
+                                ),
+                                Positioned(
+                                  top: 20,
+                                  right: 20,
+                                  child: _FloatingButton(
+                                    icon: Icons.my_location_outlined,
                                     onTap: () {
-                                      vm.zoomIn();
+                                      vm.zoomToCurrentLocation();
                                     },
                                   ),
-                                  const SizedBox(height: 8),
-                                  _FloatingButton(
-                                    icon: Icons.remove,
-                                    onTap: () {
-                                      vm.zoomOut();
-                                    },
+                                ),
+                                Positioned(
+                                  left: 20,
+                                  bottom: 20,
+                                  child: Column(
+                                    children: [
+                                      _FloatingButton(
+                                        icon: Icons.cached_outlined,
+                                        onTap: () {},
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _FloatingButton(
+                                        icon: Icons.share,
+                                        onTap: () {},
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                                Positioned(
+                                  right: 20,
+                                  bottom: 20,
+                                  child: Column(
+                                    children: [
+                                      _FloatingButton(
+                                        icon: Icons.add,
+                                        onTap: () {
+                                          vm.zoomIn();
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _FloatingButton(
+                                        icon: Icons.remove,
+                                        onTap: () {
+                                          vm.zoomOut();
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(bottom: 40),
+                                    child: Icon(
+                                      Icons.location_on_sharp,
+                                      color: Color(0xFF007BFF),
+                                      size: 50,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const Center(
+                          ),
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF030744).withOpacity(
+                                    0.25,
+                                  ),
+                                  spreadRadius: 0,
+                                  blurRadius: 2,
+                                  offset: const Offset(
+                                    0,
+                                    -2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            child: Center(
                               child: Padding(
-                                padding: EdgeInsets.only(bottom: 40),
-                                child: Icon(
-                                  Icons.location_on_sharp,
-                                  color: Color(0xFF007BFF),
-                                  size: 50,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity.clamp(0, 800),
+                                  child: Column(
+                                    children: [
+                                      const SizedBox(height: 20),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          WidgetButton(
+                                            borderRadius: 8,
+                                            child: SizedBox(
+                                              width: ((MediaQuery.of(context)
+                                                              .size
+                                                              .width -
+                                                          64) /
+                                                      3)
+                                                  .clamp(0, 120),
+                                              height: ((MediaQuery.of(context)
+                                                              .size
+                                                              .width -
+                                                          64) /
+                                                      3)
+                                                  .clamp(0, 120),
+                                              child: ConstrainedBox(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                  maxWidth:
+                                                      200, // maximum width in pixels
+                                                ),
+                                                child: Container(
+                                                  height: 50,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                      Radius.circular(
+                                                        8,
+                                                      ),
+                                                    ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFF007BFF,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      const SizedBox(
+                                                          height: 12),
+                                                      Expanded(
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                            horizontal: 8,
+                                                          ),
+                                                          child: Image.asset(
+                                                            "assets/images/${lowerCase(gVehicleTypes.firstWhere(
+                                                                  (v) =>
+                                                                      v.slug ==
+                                                                      "tricycle",
+                                                                ).name!)}.png",
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Text(
+                                                        capitalizeWords(
+                                                          gVehicleTypes
+                                                              .firstWhere(
+                                                                (v) =>
+                                                                    v.slug ==
+                                                                    "tricycle",
+                                                              )
+                                                              .name!,
+                                                        ),
+                                                        style: const TextStyle(
+                                                          height: 1.05,
+                                                          fontSize: 16,
+                                                          color: Color(
+                                                            0xFF007BFF,
+                                                          ),
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        "${gVehicleTypes.firstWhere(
+                                                              (v) =>
+                                                                  v.slug ==
+                                                                  "tricycle",
+                                                            ).maxSeat!} Seater",
+                                                        style: const TextStyle(
+                                                          height: 1.05,
+                                                          fontSize: 12,
+                                                          color: Color(
+                                                            0xFF007BFF,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                        height: 12,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            onTap: () {},
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: ((MediaQuery.of(context)
+                                                              .size
+                                                              .width -
+                                                          64) /
+                                                      3)
+                                                  .clamp(0, 120),
+                                              child: Column(
+                                                children: [
+                                                  Expanded(
+                                                    child: WidgetButton(
+                                                      borderRadius: 8,
+                                                      mainColor: const Color(
+                                                        0xFF007BFF,
+                                                      ),
+                                                      useDefaultHoverColor:
+                                                          false,
+                                                      child: Container(
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              const BorderRadius
+                                                                  .all(
+                                                            Radius.circular(
+                                                              8,
+                                                            ),
+                                                          ),
+                                                          border: Border.all(
+                                                            color: const Color(
+                                                              0xFF007BFF,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        child: const Center(
+                                                          child: Text(
+                                                            "Cash",
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      onTap: () {},
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 12),
+                                                  Expanded(
+                                                    child: WidgetButton(
+                                                      borderRadius: 8,
+                                                      child: Container(
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              const BorderRadius
+                                                                  .all(
+                                                            Radius.circular(
+                                                              8,
+                                                            ),
+                                                          ),
+                                                          border: Border.all(
+                                                            color: const Color(
+                                                              0xFF007BFF,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        child: const Center(
+                                                          child: Text(
+                                                            "Load",
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: Color(
+                                                                0xFF007BFF,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      onTap: () {},
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          WidgetButton(
+                                            borderRadius: 8,
+                                            child: SizedBox(
+                                              width: ((MediaQuery.of(context)
+                                                              .size
+                                                              .width -
+                                                          64) /
+                                                      3)
+                                                  .clamp(0, 120),
+                                              height: ((MediaQuery.of(context)
+                                                              .size
+                                                              .width -
+                                                          64) /
+                                                      3)
+                                                  .clamp(0, 120),
+                                              child: ConstrainedBox(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                  maxWidth:
+                                                      200, // maximum width in pixels
+                                                ),
+                                                child: Container(
+                                                  height: 50,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                      Radius.circular(
+                                                        8,
+                                                      ),
+                                                    ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFF007BFF,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      const SizedBox(
+                                                          height: 12),
+                                                      Expanded(
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                            horizontal: 8,
+                                                          ),
+                                                          child: Image.asset(
+                                                            "assets/images/load.png",
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      const Text(
+                                                        "₱0",
+                                                        style: TextStyle(
+                                                          height: 1.05,
+                                                          fontSize: 16,
+                                                          color: Color(
+                                                            0xFF007BFF,
+                                                          ),
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      const Text(
+                                                        "TODA Load",
+                                                        style: TextStyle(
+                                                          height: 1.05,
+                                                          fontSize: 12,
+                                                          color: Color(
+                                                            0xFF007BFF,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                        height: 12,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            onTap: () {},
+                                          ),
+                                        ],
+                                      ),
+                                      Container(
+                                        height: 50,
+                                        decoration: const BoxDecoration(
+                                          borderRadius: BorderRadius.all(
+                                            Radius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const SizedBox(
+                                              width: 12,
+                                            ),
+                                            const Icon(
+                                              Icons.trip_origin,
+                                              color: Color(
+                                                0xFF007BFF,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              width: 8,
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                capitalizeWords(
+                                                  pickupAddress?.addressLine,
+                                                  alt: "Where from?",
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Color(
+                                                    0xFF030744,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              width: 12,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      WidgetButton(
+                                        onTap: () {},
+                                        borderRadius: 8,
+                                        useDefaultHoverColor: false,
+                                        mainColor: const Color(0xFFEAF1FE),
+                                        child: SizedBox(
+                                          height: 50,
+                                          child: Row(
+                                            children: [
+                                              const SizedBox(
+                                                width: 12,
+                                              ),
+                                              const Icon(
+                                                Icons.trip_origin,
+                                                color: Colors.red,
+                                              ),
+                                              const SizedBox(
+                                                width: 8,
+                                              ),
+                                              Expanded(
+                                                child: Text(
+                                                  capitalizeWords(
+                                                    pickupAddress?.addressLine,
+                                                    alt: "Where to go?",
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: Color(
+                                                      0xFF030744,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: 12,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                            width: ((MediaQuery.of(context)
+                                                            .size
+                                                            .width -
+                                                        64) /
+                                                    3)
+                                                .clamp(0, 120),
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth:
+                                                    200, // maximum width in pixels
+                                              ),
+                                              child: Container(
+                                                height: 50,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      const BorderRadius.all(
+                                                    Radius.circular(
+                                                      8,
+                                                    ),
+                                                  ),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF007BFF,
+                                                    ),
+                                                  ),
+                                                ),
+                                                child: const Center(
+                                                  child: Text(
+                                                    "Time",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: Color(
+                                                        0xFF007BFF,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: ActionButton(
+                                              text: "BOOK",
+                                              onTap: () {},
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          SizedBox(
+                                            width: ((MediaQuery.of(context)
+                                                            .size
+                                                            .width -
+                                                        64) /
+                                                    3)
+                                                .clamp(0, 120),
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth:
+                                                    200, // maximum width in pixels
+                                              ),
+                                              child: Container(
+                                                height: 50,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      const BorderRadius.all(
+                                                    Radius.circular(
+                                                      8,
+                                                    ),
+                                                  ),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF007BFF,
+                                                    ),
+                                                  ),
+                                                ),
+                                                child: const Center(
+                                                  child: Text(
+                                                    "Fare",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: Color(
+                                                        0xFF007BFF,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        color: Colors.white,
-                        child: const Column(
-                          children: [
-                            Text("data"),
-                            Text("data"),
-                            Text("data"),
-                            Text("data"),
-                            Text("data"),
-                            Text("data"),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
         );
       },
