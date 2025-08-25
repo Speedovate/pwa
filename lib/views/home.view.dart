@@ -392,7 +392,15 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () {},
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const HistoryView(),
+                                            ),
+                                          );
+                                        },
                                         child: const Center(
                                           child: Icon(
                                             Icons.cached_outlined,
@@ -429,7 +437,25 @@ class _HomeViewState extends State<HomeView> {
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () {},
+                                        onTap: () {
+                                          if (!AuthService.isLoggedIn()) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const LoginView(),
+                                              ),
+                                            );
+                                          } else {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const SettingsView(),
+                                              ),
+                                            );
+                                          }
+                                        },
                                         child: const Center(
                                           child: Icon(
                                             Icons.share,
