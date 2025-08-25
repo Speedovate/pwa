@@ -29,7 +29,6 @@ Address? pickupAddress;
 gmaps.LatLng? myLatLng;
 bool showBranch = false;
 Address? dropoffAddress;
-gmaps.LatLng? initLatLng;
 bool locUnavailable = false;
 bool mapUnavailable = false;
 bool cameFromSettings = false;
@@ -39,6 +38,7 @@ bool loadingPolylines = false;
 List<ChatMedia> mediaList = [];
 AvailableDriver? availableDriver;
 List<VehicleType> availableVehicles = [];
+gmaps.LatLng? initLatLng = gmaps.LatLng(9.7638, 118.7473);
 
 RegExp phoneRegex = RegExp(
   r"^9\d{9}$",
