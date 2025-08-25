@@ -168,8 +168,10 @@ class LoginViewModel extends BaseViewModel {
       }
       Navigator.pushAndRemoveUntil(
         Get.overlayContext!,
-        MaterialPageRoute(
-          builder: (context) => const HomeView(),
+        PageRouteBuilder(
+          reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const HomeView(),
         ),
         (route) => false,
       );

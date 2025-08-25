@@ -48,8 +48,10 @@ class HistoryViewModel extends BaseViewModel {
   openOrderDetails({required Order order}) {
     Navigator.push(
       Get.overlayContext!,
-      MaterialPageRoute(
-        builder: (context) => DetailsView(order: order),
+      PageRouteBuilder(
+        reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => DetailsView(order: order),
       ),
     );
   }

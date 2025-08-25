@@ -166,8 +166,10 @@ class VerifyViewModel extends BaseViewModel {
                   await AuthService.getTokenFromStorage();
                   Navigator.pushAndRemoveUntil(
                     Get.overlayContext!,
-                    MaterialPageRoute(
-                      builder: (context) => const HomeView(),
+                    PageRouteBuilder(
+                      reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const HomeView(),
                     ),
                     (route) => false,
                   );
@@ -179,8 +181,10 @@ class VerifyViewModel extends BaseViewModel {
               AlertService().stopLoading();
               Navigator.push(
                 Get.overlayContext!,
-                MaterialPageRoute(
-                  builder: (context) => ChangeView(
+                PageRouteBuilder(
+                  reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => ChangeView(
                     isReset: true,
                     phone: phoneTEC.text,
                   ),

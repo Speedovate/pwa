@@ -179,8 +179,10 @@ class _LoginViewState extends State<LoginView> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const SendView(
+                                    PageRouteBuilder(
+                                      reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const SendView(
                                         purpose: "forgot_password",
                                       ),
                                     ),
@@ -237,8 +239,10 @@ class _LoginViewState extends State<LoginView> {
                             });
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterView(),
+                              PageRouteBuilder(
+                                reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const RegisterView(),
                               ),
                             );
                           },

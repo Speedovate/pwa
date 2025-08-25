@@ -349,8 +349,10 @@ openWebview(
 ) {
   Navigator.push(
     Get.overlayContext!,
-    MaterialPageRoute(
-      builder: (context) => WebViewWidget(
+    PageRouteBuilder(
+      reverseTransitionDuration: Duration.zero,
+      transitionDuration: Duration.zero,
+      pageBuilder: (context, a, b) => WebViewWidget(
         title: title,
         selectedUrl: Uri.parse(
           url,
@@ -367,8 +369,10 @@ Future<void> showCameraSource({
   try {
     Navigator.push(
       Get.overlayContext!,
-      MaterialPageRoute(
-        builder: (context) => CameraWidget(
+      PageRouteBuilder(
+        reverseTransitionDuration: Duration.zero,
+        transitionDuration: Duration.zero,
+        pageBuilder: (context, a, b) => CameraWidget(
           isEdit: isEdit,
           cameraType: cameraType,
         ),

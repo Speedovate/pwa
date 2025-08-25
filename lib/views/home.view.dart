@@ -27,6 +27,12 @@ class _HomeViewState extends State<HomeView> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
+  void dispose() {
+    homeViewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<HomeViewModel>.reactive(
       viewModelBuilder: () => homeViewModel,
@@ -39,9 +45,7 @@ class _HomeViewState extends State<HomeView> {
             shape: const RoundedRectangleBorder(),
             child: Column(
               children: [
-                SizedBox(
-                  height: MediaQuery.of(context).padding.top,
-                ),
+                SizedBox(height: MediaQuery.of(context).padding.top),
                 Container(
                   color: Colors.white,
                   child: WidgetButton(
@@ -50,8 +54,10 @@ class _HomeViewState extends State<HomeView> {
                       if (!AuthService.isLoggedIn()) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginView(),
+                          PageRouteBuilder(
+                            reverseTransitionDuration: Duration.zero,
+                            transitionDuration: Duration.zero,
+                            pageBuilder: (context, a, b) => const LoginView(),
                           ),
                         );
                       } else {
@@ -61,194 +67,145 @@ class _HomeViewState extends State<HomeView> {
                         });
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const ProfileView(),
+                          PageRouteBuilder(
+                            reverseTransitionDuration: Duration.zero,
+                            transitionDuration: Duration.zero,
+                            pageBuilder: (context, a, b) => const ProfileView(),
                           ),
                         );
                       }
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(
-                        top: 18,
-                        left: 18,
-                        right: 12,
-                        bottom: 18,
-                      ),
-                      child: Column(
+                          top: 18, left: 18, right: 12, bottom: 18),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              ClipOval(
-                                child: SizedBox(
-                                  width: 50,
-                                  height: 50,
-                                  child: NetworkImageWidget(
-                                    fit: BoxFit.cover,
-                                    memCacheWidth: 600,
-                                    imageUrl:
-                                        AuthService.currentUser?.cPhoto ?? "",
-                                    progressIndicatorBuilder: (
-                                      context,
-                                      imageUrl,
-                                      progress,
-                                    ) {
-                                      return const CircularProgressIndicator(
-                                        color: Color(0xFF007BFF),
-                                        strokeWidth: 2,
-                                      );
-                                    },
-                                    errorWidget: (
-                                      context,
-                                      imageUrl,
-                                      progress,
-                                    ) {
-                                      return Container(
-                                        color: const Color(0xFF030744),
-                                        child: const Icon(
-                                          Icons.person_outline_outlined,
-                                          color: Colors.white,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
+                          ClipOval(
+                            child: SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: NetworkImageWidget(
+                                fit: BoxFit.cover,
+                                memCacheWidth: 600,
+                                imageUrl: AuthService.currentUser?.cPhoto ?? "",
+                                progressIndicatorBuilder:
+                                    (context, imageUrl, progress) {
+                                  return const CircularProgressIndicator(
+                                    color: Color(0xFF007BFF),
+                                    strokeWidth: 2,
+                                  );
+                                },
+                                errorWidget: (context, imageUrl, progress) {
+                                  return Container(
+                                    color: const Color(0xFF030744),
+                                    child: const Icon(
+                                        Icons.person_outline_outlined,
+                                        color: Colors.white),
+                                  );
+                                },
                               ),
-                              const SizedBox(
-                                width: 12,
-                              ),
-                              Expanded(
-                                child: Text(
-                                  !AuthService.isLoggedIn()
-                                      ? "Login Account"
-                                      : capitalizeWords(
-                                          "${AuthService.currentUser!.name}",
-                                        ),
-                                  style: const TextStyle(
-                                    height: 1.05,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF030744),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(
-                                width: 12,
-                              ),
-                              const Icon(
-                                Icons.chevron_right,
-                                color: Color(0xFF030744),
-                                size: 25,
-                              ),
-                            ],
+                            ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              !AuthService.isLoggedIn()
+                                  ? "Login Account"
+                                  : capitalizeWords(
+                                      "${AuthService.currentUser!.name}"),
+                              style: const TextStyle(
+                                height: 1.05,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF030744),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Icon(Icons.chevron_right,
+                              color: Color(0xFF030744), size: 25),
                         ],
                       ),
                     ),
                   ),
                 ),
                 Divider(
-                  height: 1.05,
-                  thickness: 1,
-                  color: const Color(0xFF030744).withOpacity(0.1),
-                ),
-                !AuthService.isLoggedIn()
-                    ? const SizedBox()
-                    : ListTileWidget(
-                        leading: const Icon(
-                          Icons.history,
-                          color: Color(0xFF030744),
+                    height: 1.05,
+                    thickness: 1,
+                    color: const Color(0xFF030744).withOpacity(0.1)),
+                if (AuthService.isLoggedIn())
+                  ListTileWidget(
+                    leading:
+                        const Icon(Icons.history, color: Color(0xFF030744)),
+                    title: const Text("History",
+                        style:
+                            TextStyle(color: Color(0xFF030744), fontSize: 15)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          reverseTransitionDuration: Duration.zero,
+                          transitionDuration: Duration.zero,
+                          pageBuilder: (context, a, b) => const HistoryView(),
                         ),
-                        title: const Text(
-                          "History",
-                          style: TextStyle(
-                            color: Color(0xFF030744),
-                            fontSize: 15,
+                      );
+                    },
+                  ),
+                if (AuthService.isLoggedIn())
+                  ListTileWidget(
+                    leading: const Icon(Icons.settings_outlined,
+                        color: Color(0xFF030744)),
+                    title: const Text("Settings",
+                        style: TextStyle(color: Color(0xFF030744))),
+                    onTap: () {
+                      if (!AuthService.isLoggedIn()) {
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            reverseTransitionDuration: Duration.zero,
+                            transitionDuration: Duration.zero,
+                            pageBuilder: (context, a, b) => const LoginView(),
                           ),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HistoryView(),
-                            ),
-                          );
-                        },
-                      ),
-                !AuthService.isLoggedIn()
-                    ? const SizedBox()
-                    : ListTileWidget(
-                        leading: const Icon(
-                          Icons.settings_outlined,
-                          color: Color(0xFF030744),
-                        ),
-                        title: const Text(
-                          "Settings",
-                          style: TextStyle(
-                            color: Color(0xFF030744),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            reverseTransitionDuration: Duration.zero,
+                            transitionDuration: Duration.zero,
+                            pageBuilder: (context, a, b) =>
+                                const SettingsView(),
                           ),
-                        ),
-                        onTap: () {
-                          if (!AuthService.isLoggedIn()) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginView(),
-                              ),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SettingsView(),
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                        );
+                      }
+                    },
+                  ),
                 ListTileWidget(
-                  leading: const Icon(
-                    Icons.headset_outlined,
-                    color: Color(0xFF030744),
-                  ),
-                  title: const Text(
-                    "Assistance",
-                    style: TextStyle(
-                      color: Color(0xFF030744),
-                    ),
-                  ),
+                  leading: const Icon(Icons.headset_outlined,
+                      color: Color(0xFF030744)),
+                  title: const Text("Assistance",
+                      style: TextStyle(color: Color(0xFF030744))),
                   onTap: () {
-                    launchUrlString(
-                      "sms://+639122078420",
-                      mode: LaunchMode.externalNonBrowserApplication,
-                    );
+                    launchUrlString("sms://+639122078420",
+                        mode: LaunchMode.externalNonBrowserApplication);
                   },
                 ),
                 ListTileWidget(
-                  leading: const Icon(
-                    Icons.code,
-                    color: Color(0xFF030744),
-                  ),
+                  leading: const Icon(Icons.code, color: Color(0xFF030744)),
                   title: Text(
                     "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
-                    style: const TextStyle(
-                      color: Color(0xFF030744),
-                    ),
+                    style: const TextStyle(color: Color(0xFF030744)),
                   ),
                   onTap: () {
                     if (!AuthService.inReviewMode()) {
-                      launchUrlString(
-                        "https://ppctoda.framer.website",
-                        mode: LaunchMode.externalNonBrowserApplication,
-                      );
+                      launchUrlString("https://ppctoda.framer.website",
+                          mode: LaunchMode.externalNonBrowserApplication);
                     }
                   },
                 ),
               ],
             ),
           ),
-          onDrawerChanged: (value) {
-            setState(() {});
-          },
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: getMyLatLng(),
@@ -270,96 +227,60 @@ class _HomeViewState extends State<HomeView> {
                               GoogleMapWidget(
                                 center: myLatLng.data!,
                                 enableGestures: !isBool(
-                                  _scaffoldKey.currentState?.isDrawerOpen,
-                                ),
+                                    _scaffoldKey.currentState?.isDrawerOpen),
                                 viewModel: vm,
                               ),
                               Positioned(
                                 top: 20,
                                 left: 20,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 45,
-                                      height: 45,
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.25,
-                                            ),
-                                            spreadRadius: 0,
-                                            blurRadius: 2,
-                                            offset: const Offset(
-                                              0,
-                                              2,
-                                            ),
-                                          ),
-                                        ],
+                                child: Container(
+                                  width: 45,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(1000)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF030744)
+                                            .withOpacity(0.25),
+                                        blurRadius: 2,
+                                        offset: const Offset(0, 2),
                                       ),
-                                      child: WidgetButton(
-                                        onTap: () {
-                                          Scaffold.of(context).openDrawer();
-                                        },
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.menu,
-                                            color: Color(0xFF030744),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
+                                  child: WidgetButton(
+                                    onTap: () =>
+                                        _scaffoldKey.currentState?.openDrawer(),
+                                    child: const Center(
+                                        child: Icon(Icons.menu,
+                                            color: Color(0xFF030744))),
+                                  ),
                                 ),
                               ),
                               Positioned(
                                 top: 20,
                                 right: 20,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 45,
-                                      height: 45,
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.25,
-                                            ),
-                                            spreadRadius: 0,
-                                            blurRadius: 2,
-                                            offset: const Offset(
-                                              0,
-                                              2,
-                                            ),
-                                          ),
-                                        ],
+                                child: Container(
+                                  width: 45,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(1000)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF030744)
+                                            .withOpacity(0.25),
+                                        blurRadius: 2,
+                                        offset: const Offset(0, 2),
                                       ),
-                                      child: WidgetButton(
-                                        onTap: () {
-                                          vm.zoomToCurrentLocation();
-                                        },
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.my_location_outlined,
-                                            color: Color(0xFF030744),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
+                                  child: WidgetButton(
+                                    onTap: vm.zoomToCurrentLocation,
+                                    child: const Center(
+                                        child: Icon(Icons.my_location_outlined,
+                                            color: Color(0xFF030744))),
+                                  ),
                                 ),
                               ),
                               Positioned(
@@ -372,22 +293,13 @@ class _HomeViewState extends State<HomeView> {
                                       height: 45,
                                       decoration: BoxDecoration(
                                         borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
+                                            Radius.circular(1000)),
                                         boxShadow: [
                                           BoxShadow(
                                             color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.25,
-                                            ),
-                                            spreadRadius: 0,
+                                                .withOpacity(0.25),
                                             blurRadius: 2,
-                                            offset: const Offset(
-                                              0,
-                                              2,
-                                            ),
+                                            offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
@@ -395,44 +307,33 @@ class _HomeViewState extends State<HomeView> {
                                         onTap: () {
                                           Navigator.push(
                                             context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
+                                            PageRouteBuilder(
+                                              reverseTransitionDuration:
+                                                  Duration.zero,
+                                              transitionDuration: Duration.zero,
+                                              pageBuilder: (context, a, b) =>
                                                   const HistoryView(),
                                             ),
                                           );
                                         },
                                         child: const Center(
-                                          child: Icon(
-                                            Icons.cached_outlined,
-                                            color: Color(0xFF030744),
-                                          ),
-                                        ),
+                                            child: Icon(Icons.cached_outlined,
+                                                color: Color(0xFF030744))),
                                       ),
                                     ),
-                                    const SizedBox(
-                                      height: 8,
-                                    ),
+                                    const SizedBox(height: 8),
                                     Container(
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
                                         borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
+                                            Radius.circular(1000)),
                                         boxShadow: [
                                           BoxShadow(
                                             color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.25,
-                                            ),
-                                            spreadRadius: 0,
+                                                .withOpacity(0.25),
                                             blurRadius: 2,
-                                            offset: const Offset(
-                                              0,
-                                              2,
-                                            ),
+                                            offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
@@ -441,27 +342,32 @@ class _HomeViewState extends State<HomeView> {
                                           if (!AuthService.isLoggedIn()) {
                                             Navigator.push(
                                               context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
+                                              PageRouteBuilder(
+                                                reverseTransitionDuration:
+                                                    Duration.zero,
+                                                transitionDuration:
+                                                    Duration.zero,
+                                                pageBuilder: (context, a, b) =>
                                                     const LoginView(),
                                               ),
                                             );
                                           } else {
                                             Navigator.push(
                                               context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
+                                              PageRouteBuilder(
+                                                reverseTransitionDuration:
+                                                    Duration.zero,
+                                                transitionDuration:
+                                                    Duration.zero,
+                                                pageBuilder: (context, a, b) =>
                                                     const SettingsView(),
                                               ),
                                             );
                                           }
                                         },
                                         child: const Center(
-                                          child: Icon(
-                                            Icons.share,
-                                            color: Color(0xFF030744),
-                                          ),
-                                        ),
+                                            child: Icon(Icons.share,
+                                                color: Color(0xFF030744))),
                                       ),
                                     ),
                                   ],
@@ -477,74 +383,44 @@ class _HomeViewState extends State<HomeView> {
                                       height: 45,
                                       decoration: BoxDecoration(
                                         borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
+                                            Radius.circular(1000)),
                                         boxShadow: [
                                           BoxShadow(
                                             color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.25,
-                                            ),
-                                            spreadRadius: 0,
+                                                .withOpacity(0.25),
                                             blurRadius: 2,
-                                            offset: const Offset(
-                                              0,
-                                              2,
-                                            ),
+                                            offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () {
-                                          vm.zoomIn();
-                                        },
+                                        onTap: vm.zoomIn,
                                         child: const Center(
-                                          child: Icon(
-                                            Icons.add,
-                                            color: Color(0xFF030744),
-                                          ),
-                                        ),
+                                            child: Icon(Icons.add,
+                                                color: Color(0xFF030744))),
                                       ),
                                     ),
-                                    const SizedBox(
-                                      height: 8,
-                                    ),
+                                    const SizedBox(height: 8),
                                     Container(
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
                                         borderRadius: const BorderRadius.all(
-                                          Radius.circular(
-                                            1000,
-                                          ),
-                                        ),
+                                            Radius.circular(1000)),
                                         boxShadow: [
                                           BoxShadow(
                                             color: const Color(0xFF030744)
-                                                .withOpacity(
-                                              0.25,
-                                            ),
-                                            spreadRadius: 0,
+                                                .withOpacity(0.25),
                                             blurRadius: 2,
-                                            offset: const Offset(
-                                              0,
-                                              2,
-                                            ),
+                                            offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
                                       child: WidgetButton(
-                                        onTap: () {
-                                          vm.zoomOut();
-                                        },
+                                        onTap: vm.zoomOut,
                                         child: const Center(
-                                          child: Icon(
-                                            Icons.remove,
-                                            color: Color(0xFF030744),
-                                          ),
-                                        ),
+                                            child: Icon(Icons.remove,
+                                                color: Color(0xFF030744))),
                                       ),
                                     ),
                                   ],
@@ -552,14 +428,9 @@ class _HomeViewState extends State<HomeView> {
                               ),
                               const Center(
                                 child: Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom: 40,
-                                  ),
-                                  child: Icon(
-                                    Icons.location_on_sharp,
-                                    color: Color(0xFF007BFF),
-                                    size: 50,
-                                  ),
+                                  padding: EdgeInsets.only(bottom: 40),
+                                  child: Icon(Icons.location_on_sharp,
+                                      color: Color(0xFF007BFF), size: 50),
                                 ),
                               ),
                             ],

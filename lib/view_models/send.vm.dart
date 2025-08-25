@@ -108,8 +108,10 @@ class SendViewModel extends BaseViewModel {
         }
         Navigator.push(
           Get.overlayContext!,
-          MaterialPageRoute(
-            builder: (context) => VerifyView(
+          PageRouteBuilder(
+            reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => VerifyView(
               name: null,
               email: null,
               phone: phoneTEC.text,
@@ -139,8 +141,10 @@ class SendViewModel extends BaseViewModel {
       );
       Navigator.push(
         Get.overlayContext!,
-        MaterialPageRoute(
-          builder: (context) => VerifyView(
+        PageRouteBuilder(
+          reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => VerifyView(
             name: null,
             email: null,
             phone: phoneTEC.text,

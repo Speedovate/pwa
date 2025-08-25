@@ -81,8 +81,10 @@ class _SettingsViewState extends State<SettingsView> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => ChangeView(
+                        PageRouteBuilder(
+                          reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => ChangeView(
                             isReset: false,
                             phone: AuthService.currentUser?.phone!,
                           ),
@@ -129,8 +131,10 @@ class _SettingsViewState extends State<SettingsView> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const DeleteView(),
+                              PageRouteBuilder(
+                                reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const DeleteView(),
                               ),
                             );
                           },

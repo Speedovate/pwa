@@ -115,8 +115,10 @@ class _CameraWidgetState extends State<CameraWidget> {
       setState(() => _isCapturing = false);
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => CameraImageWidget(
+        PageRouteBuilder(
+          reverseTransitionDuration: Duration.zero,
+          transitionDuration: Duration.zero,
+          pageBuilder: (context, a, b) => CameraImageWidget(
             imageBytes: pickedImageBytes!,
             isEdit: widget.isEdit,
             cameraType: widget.cameraType,
@@ -508,8 +510,10 @@ class CameraImageWidget extends StatelessWidget {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => CameraWidget(
+                            PageRouteBuilder(
+                              reverseTransitionDuration: Duration.zero,
+                              transitionDuration: Duration.zero,
+                              pageBuilder: (context, a, b) => CameraWidget(
                                 isEdit: isEdit,
                                 cameraType: cameraType,
                               ),
@@ -620,18 +624,27 @@ class CameraImageWidget extends StatelessWidget {
       if (!isEdit) {
         Navigator.push(
           Get.overlayContext!,
-          MaterialPageRoute(builder: (context) => const LoginView()),
+          PageRouteBuilder(
+            reverseTransitionDuration: Duration.zero,
+            transitionDuration: Duration.zero,
+            pageBuilder: (context, a, b) => const LoginView(),
+          ),
         );
-
         Navigator.push(
           Get.overlayContext!,
-          MaterialPageRoute(builder: (context) => const RegisterView()),
+          PageRouteBuilder(
+            reverseTransitionDuration: Duration.zero,
+            transitionDuration: Duration.zero,
+            pageBuilder: (context, a, b) => const RegisterView(),
+          ),
         );
       } else {
         Navigator.push(
           Get.overlayContext!,
-          MaterialPageRoute(
-            builder: (context) => const ProfileView(),
+          PageRouteBuilder(
+            reverseTransitionDuration: Duration.zero,
+            transitionDuration: Duration.zero,
+            pageBuilder: (context, a, b) => const ProfileView(),
           ),
         );
       }

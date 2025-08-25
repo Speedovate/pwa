@@ -35,7 +35,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "3";
+      versionCode = "1";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -126,16 +126,20 @@ class SplashViewModel extends BaseViewModel {
       if (!AuthService.inReviewMode()) {
         Navigator.pushAndRemoveUntil(
           Get.overlayContext!,
-          MaterialPageRoute(
-            builder: (context) => const IntroView(),
+          PageRouteBuilder(
+            reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const IntroView(),
           ),
           (route) => false,
         );
       } else {
         Navigator.pushAndRemoveUntil(
           Get.overlayContext!,
-          MaterialPageRoute(
-            builder: (context) => const HomeView(),
+          PageRouteBuilder(
+            reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const HomeView(),
           ),
           (route) => false,
         );
@@ -143,8 +147,10 @@ class SplashViewModel extends BaseViewModel {
     } else {
       Navigator.pushAndRemoveUntil(
         Get.overlayContext!,
-        MaterialPageRoute(
-          builder: (context) => const HomeView(),
+        PageRouteBuilder(
+          reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const HomeView(),
         ),
         (route) => false,
       );

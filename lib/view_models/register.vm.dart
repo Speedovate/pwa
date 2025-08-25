@@ -281,8 +281,10 @@ class RegisterViewModel extends BaseViewModel {
         AlertService().stopLoading();
         Navigator.push(
           Get.overlayContext!,
-          MaterialPageRoute(
-            builder: (context) => VerifyView(
+          PageRouteBuilder(
+            reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => VerifyView(
               name: nameTEC.text.trim(),
               email: emailTEC.text.trim(),
               phone: phoneTEC.text.trim(),

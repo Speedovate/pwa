@@ -95,8 +95,10 @@ class ChangeViewModel extends BaseViewModel {
           );
           Navigator.push(
             Get.overlayContext!,
-            MaterialPageRoute(
-              builder: (context) => const LoginView(),
+            PageRouteBuilder(
+              reverseTransitionDuration: Duration.zero,
+transitionDuration: Duration.zero,
+pageBuilder: (context, a, b) => const LoginView(),
             ),
           );
           AlertService().showAppAlert(
