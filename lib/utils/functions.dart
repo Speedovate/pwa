@@ -338,10 +338,7 @@ Future<gmaps.LatLng?> getMyLatLng() async {
       return initLatLng;
     }
   } catch (_) {}
-  return gmaps.LatLng(
-    9.7392,
-    118.7353,
-  );
+  return gmaps.LatLng(9.7638, 118.7473);
 }
 
 openWebview(
