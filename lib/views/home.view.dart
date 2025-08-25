@@ -64,11 +64,15 @@ class _HomeViewState extends State<HomeView> {
                   borderRadius: 0,
                   onTap: () {
                     if (!AuthService.isLoggedIn()) {
-                      _navigateWithoutTransition(const LoginView());
+                      _navigateWithoutTransition(
+                        const LoginView(),
+                      );
                     } else {
                       agreed = false;
                       selfieFile = null;
-                      _navigateWithoutTransition(const ProfileView());
+                      _navigateWithoutTransition(
+                        const ProfileView(),
+                      );
                     }
                   },
                   child: Padding(
@@ -126,37 +130,61 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 ),
                 Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: const Color(0xFF030744).withOpacity(0.1)),
+                  height: 1,
+                  thickness: 1,
+                  color: const Color(0xFF030744).withOpacity(0.1),
+                ),
                 if (AuthService.isLoggedIn())
                   ListTileWidget(
-                      leading:
-                          const Icon(Icons.history, color: Color(0xFF030744)),
-                      title: const Text("History",
-                          style: TextStyle(
-                              color: Color(0xFF030744), fontSize: 15)),
-                      onTap: () {
-                        _navigateWithoutTransition(const HistoryView());
-                      }),
+                    leading: const Icon(
+                      Icons.history,
+                      color: Color(0xFF030744),
+                    ),
+                    title: const Text(
+                      "History",
+                      style: TextStyle(color: Color(0xFF030744), fontSize: 15),
+                    ),
+                    onTap: () {
+                      _navigateWithoutTransition(
+                        const HistoryView(),
+                      );
+                    },
+                  ),
                 if (AuthService.isLoggedIn())
                   ListTileWidget(
-                      leading: const Icon(Icons.settings_outlined,
-                          color: Color(0xFF030744)),
-                      title: const Text("Settings",
-                          style: TextStyle(color: Color(0xFF030744))),
-                      onTap: () {
-                        if (!AuthService.isLoggedIn()) {
-                          _navigateWithoutTransition(const LoginView());
-                        } else {
-                          _navigateWithoutTransition(const SettingsView());
-                        }
-                      }),
+                    leading: const Icon(
+                      Icons.settings_outlined,
+                      color: Color(0xFF030744),
+                    ),
+                    title: const Text(
+                      "Settings",
+                      style: TextStyle(
+                        color: Color(0xFF030744),
+                      ),
+                    ),
+                    onTap: () {
+                      if (!AuthService.isLoggedIn()) {
+                        _navigateWithoutTransition(
+                          const LoginView(),
+                        );
+                      } else {
+                        _navigateWithoutTransition(
+                          const SettingsView(),
+                        );
+                      }
+                    },
+                  ),
                 ListTileWidget(
-                  leading: const Icon(Icons.headset_outlined,
-                      color: Color(0xFF030744)),
-                  title: const Text("Assistance",
-                      style: TextStyle(color: Color(0xFF030744))),
+                  leading: const Icon(
+                    Icons.headset_outlined,
+                    color: Color(0xFF030744),
+                  ),
+                  title: const Text(
+                    "Assistance",
+                    style: TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                  ),
                   onTap: () {
                     launchUrlString(
                       "sms://+639122078420",
@@ -165,10 +193,15 @@ class _HomeViewState extends State<HomeView> {
                   },
                 ),
                 ListTileWidget(
-                  leading: const Icon(Icons.code, color: Color(0xFF030744)),
+                  leading: const Icon(
+                    Icons.code,
+                    color: Color(0xFF030744),
+                  ),
                   title: Text(
                     "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
-                    style: const TextStyle(color: Color(0xFF030744)),
+                    style: const TextStyle(
+                      color: Color(0xFF030744),
+                    ),
                   ),
                   onTap: () {
                     if (!AuthService.inReviewMode()) {
@@ -182,12 +215,17 @@ class _HomeViewState extends State<HomeView> {
               ],
             ),
           ),
+          onDrawerChanged: (isOpened) {
+            setState(() {});
+          },
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: getMyLatLng(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
               }
               final center = snapshot.data!;
               return Stack(
@@ -200,73 +238,86 @@ class _HomeViewState extends State<HomeView> {
                             GoogleMapWidget(
                               center: center,
                               enableGestures: !isBool(
-                                  _scaffoldKey.currentState?.isDrawerOpen),
+                                _scaffoldKey.currentState?.isDrawerOpen,
+                              ),
                               viewModel: vm,
                             ),
                             Positioned(
-                                top: 20,
-                                left: 20,
-                                child: _FloatingButton(
-                                    icon: Icons.menu,
+                              top: 20,
+                              left: 20,
+                              child: _FloatingButton(
+                                icon: Icons.menu,
+                                onTap: () {
+                                  _scaffoldKey.currentState?.openDrawer();
+                                },
+                              ),
+                            ),
+                            Positioned(
+                              top: 20,
+                              right: 20,
+                              child: _FloatingButton(
+                                icon: Icons.my_location_outlined,
+                                onTap: () {
+                                  vm.zoomToCurrentLocation();
+                                },
+                              ),
+                            ),
+                            Positioned(
+                              left: 20,
+                              bottom: 20,
+                              child: Column(
+                                children: [
+                                  _FloatingButton(
+                                    icon: Icons.cached_outlined,
+                                    onTap: () {},
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _FloatingButton(
+                                    icon: Icons.share,
                                     onTap: () {
-                                      _scaffoldKey.currentState?.openDrawer();
-                                    })),
+                                      if (!AuthService.isLoggedIn()) {
+                                        _navigateWithoutTransition(
+                                          const LoginView(),
+                                        );
+                                      } else {
+                                        _navigateWithoutTransition(
+                                          const SettingsView(),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
                             Positioned(
-                                top: 20,
-                                right: 20,
-                                child: _FloatingButton(
-                                    icon: Icons.my_location_outlined,
+                              right: 20,
+                              bottom: 20,
+                              child: Column(
+                                children: [
+                                  _FloatingButton(
+                                    icon: Icons.add,
                                     onTap: () {
-                                      vm.zoomToCurrentLocation();
-                                    })),
-                            Positioned(
-                                left: 20,
-                                bottom: 20,
-                                child: Column(
-                                  children: [
-                                    _FloatingButton(
-                                        icon: Icons.cached_outlined,
-                                        onTap: () {
-                                          _navigateWithoutTransition(
-                                              const HistoryView());
-                                        }),
-                                    const SizedBox(height: 8),
-                                    _FloatingButton(
-                                        icon: Icons.share,
-                                        onTap: () {
-                                          if (!AuthService.isLoggedIn()) {
-                                            _navigateWithoutTransition(
-                                                const LoginView());
-                                          } else {
-                                            _navigateWithoutTransition(
-                                                const SettingsView());
-                                          }
-                                        }),
-                                  ],
-                                )),
-                            Positioned(
-                                right: 20,
-                                bottom: 20,
-                                child: Column(
-                                  children: [
-                                    _FloatingButton(
-                                        icon: Icons.add,
-                                        onTap: () {
-                                          vm.zoomIn();
-                                        }),
-                                    const SizedBox(height: 8),
-                                    _FloatingButton(
-                                        icon: Icons.remove,
-                                        onTap: () {
-                                          vm.zoomOut();
-                                        }),
-                                  ],
-                                )),
+                                      vm.zoomIn();
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _FloatingButton(
+                                    icon: Icons.remove,
+                                    onTap: () {
+                                      vm.zoomOut();
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
                             const Center(
                               child: Padding(
                                 padding: EdgeInsets.only(bottom: 40),
-                                child: Icon(Icons.location_on_sharp,
-                                    color: Color(0xFF007BFF), size: 50),
+                                child: Icon(
+                                  Icons.location_on_sharp,
+                                  color: Color(0xFF007BFF),
+                                  size: 50,
+                                ),
                               ),
                             ),
                           ],
@@ -301,7 +352,10 @@ class _FloatingButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _FloatingButton({required this.icon, required this.onTap});
+  const _FloatingButton({
+    required this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -321,7 +375,12 @@ class _FloatingButton extends StatelessWidget {
         onTap: () {
           onTap();
         },
-        child: Center(child: Icon(icon, color: const Color(0xFF030744))),
+        child: Center(
+          child: Icon(
+            icon,
+            color: const Color(0xFF030744),
+          ),
+        ),
       ),
     );
   }
