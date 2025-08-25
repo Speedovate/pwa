@@ -5,7 +5,7 @@ import 'dart:html' as html;
 import 'package:pwa/models/banner.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pwa/constants/strings.dart';
-import 'package:pwa/models/wallet.model.dart';
+import 'package:pwa/models/load.model.dart';
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/models/chat_media.model.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
@@ -13,7 +13,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pwa/models/available_driver.model.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
-Wallet? gWallet;
+Load? gLoad;
 dynamic cameras;
 String? version;
 Timer? globalTimer;

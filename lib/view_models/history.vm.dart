@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
+import 'package:flutter/material.dart';
 import 'package:pwa/views/details.view.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/requests/order.request.dart';

@@ -1,15 +1,18 @@
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/views/load.view.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/login.view.dart';
 import 'package:pwa/views/history.view.dart';
 import 'package:pwa/views/profile.view.dart';
+import 'package:pwa/view_models/Load.vm.dart';
 import 'package:pwa/views/settings.view.dart';
 import 'package:pwa/widgets/gmap.widget.dart';
 import 'package:pwa/view_models/home.vm.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -272,7 +275,12 @@ class _HomeViewState extends State<HomeView> {
                                     children: [
                                       _FloatingButton(
                                         icon: Icons.cached_outlined,
-                                        onTap: () {},
+                                        onTap: () async {
+                                          AlertService().showLoading();
+                                          await LoadViewModel()
+                                              .getLoadBalance();
+                                          AlertService().stopLoading();
+                                        },
                                       ),
                                       const SizedBox(height: 8),
                                       _FloatingButton(
@@ -542,6 +550,41 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                           const SizedBox(width: 15),
                                           WidgetButton(
+                                            onTap: () {
+                                              if (!AuthService.isLoggedIn()) {
+                                                Navigator.push(
+                                                  context,
+                                                  PageRouteBuilder(
+                                                    reverseTransitionDuration:
+                                                        Duration.zero,
+                                                    transitionDuration:
+                                                        Duration.zero,
+                                                    pageBuilder: (
+                                                      context,
+                                                      a,
+                                                      b,
+                                                    ) =>
+                                                        const LoginView(),
+                                                  ),
+                                                );
+                                              } else {
+                                                Navigator.push(
+                                                  context,
+                                                  PageRouteBuilder(
+                                                    reverseTransitionDuration:
+                                                        Duration.zero,
+                                                    transitionDuration:
+                                                        Duration.zero,
+                                                    pageBuilder: (
+                                                      context,
+                                                      a,
+                                                      b,
+                                                    ) =>
+                                                        const LoadView(),
+                                                  ),
+                                                );
+                                              }
+                                            },
                                             borderRadius: 8,
                                             child: SizedBox(
                                               width: ((MediaQuery.of(context)
@@ -594,9 +637,9 @@ class _HomeViewState extends State<HomeView> {
                                                         ),
                                                       ),
                                                       const SizedBox(height: 8),
-                                                      const Text(
-                                                        "₱0",
-                                                        style: TextStyle(
+                                                      Text(
+                                                        "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
+                                                        style: const TextStyle(
                                                           height: 1.05,
                                                           fontSize: 16,
                                                           color: Color(
@@ -624,7 +667,6 @@ class _HomeViewState extends State<HomeView> {
                                                 ),
                                               ),
                                             ),
-                                            onTap: () {},
                                           ),
                                         ],
                                       ),

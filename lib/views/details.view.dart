@@ -13,7 +13,7 @@ import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/view_models/details.vm.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 
 class DetailsView extends StatefulWidget {
   const DetailsView({
@@ -189,7 +189,7 @@ class _DetailsViewState extends State<DetailsView> {
                                           child: SizedBox(
                                             width: 50,
                                             height: 50,
-                                            child: CachedNetworkImage(
+                                            child: NetworkImageWidget(
                                               fit: BoxFit.cover,
                                               memCacheWidth: 600,
                                               imageUrl:

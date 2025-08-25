@@ -1,15 +1,15 @@
 import 'package:pwa/utils/functions.dart';
 
-class Wallet {
+class Load {
   double? balance;
   DateTime? updatedAt;
 
-  Wallet({
+  Load({
     this.balance,
     this.updatedAt,
   });
 
-  factory Wallet.fromJson(Map<String, dynamic>? json) => Wallet(
+  factory Load.fromJson(Map<String, dynamic>? json) => Load(
         balance: parseDouble(json?["bal"], "bal"),
         updatedAt: parseDateTime(json?["u_date"], "u_date"),
       );

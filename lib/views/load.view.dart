@@ -1,20 +1,19 @@
+import 'package:pwa/widgets/transaction_list_item.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/view_models/load.vm.dart';
 import 'package:pwa/widgets/button.widget.dart';
-import 'package:pwa/services/auth.service.dart';
-import 'package:pwa/view_models/history.vm.dart';
 import 'package:pwa/widgets/list_view.widget.dart';
-import 'package:pwa/widgets/order_list_item.widget.dart';
 
-class HistoryView extends StatefulWidget {
-  const HistoryView({super.key});
+class LoadView extends StatefulWidget {
+  const LoadView({super.key});
 
   @override
-  State<HistoryView> createState() => _HistoryViewState();
+  State<LoadView> createState() => _LoadViewState();
 }
 
-class _HistoryViewState extends State<HistoryView> {
-  final HistoryViewModel vm = HistoryViewModel();
+class _LoadViewState extends State<LoadView> {
+  final LoadViewModel vm = LoadViewModel();
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   bool _isRefreshing = false;
@@ -34,20 +33,22 @@ class _HistoryViewState extends State<HistoryView> {
 
   Future<void> _loadMore() async {
     setState(() => _isLoadingMore = true);
-    await vm.getOrders(initialLoading: false);
+    await vm.getLoadBalance();
+    await vm.getLoadTransactions(initialLoading: false);
     setState(() => _isLoadingMore = false);
   }
 
   Future<void> _refresh() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
-    await vm.getOrders();
+    await vm.getLoadBalance();
+    await vm.getLoadTransactions(initialLoading: true);
     setState(() => _isRefreshing = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<HistoryViewModel>.reactive(
+    return ViewModelBuilder<LoadViewModel>.reactive(
       viewModelBuilder: () => vm,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
@@ -85,7 +86,7 @@ class _HistoryViewState extends State<HistoryView> {
                     ),
                     const SizedBox(width: 2),
                     const Text(
-                      "History",
+                      "TODA Load",
                       style: TextStyle(
                         height: 1,
                         fontSize: 25,
@@ -118,19 +119,14 @@ class _HistoryViewState extends State<HistoryView> {
                       : vm.hasError
                           ? _buildErrorWidget()
                           : ListViewWidget(
-                              items: vm.orders,
+                              items: vm.loadTransactions,
                               controller: _scrollController,
                               isLoadingMore: _isLoadingMore,
                               onRefresh: _refresh,
                               currentPage: vm.queryPage,
                               itemBuilder: (context, order, index) {
-                                return OrderListItem(
-                                  order: order,
-                                  onTap: () {
-                                    if (!AuthService.inReviewMode()) {
-                                      vm.openOrderDetails(order: order);
-                                    }
-                                  },
+                                return TransactionListItem(
+                                  transaction: vm.loadTransactions[index],
                                 );
                               },
                             ),

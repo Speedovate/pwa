@@ -1,7 +1,7 @@
 name: pwa
 description: "PPC TODA PWA"
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+1
 environment:
   sdk: ^3.5.0
 
@@ -25,10 +25,11 @@ dependencies:
   carousel_slider: ^5.1.1
   pin_code_fields: ^8.0.1
   dio_http_cache_lts: ^0.4.2
+  firebase_messaging: ^15.2.10
   image_picker_for_web: ^3.0.6
   rx_shared_preferences: ^4.0.0
   pull_to_refresh_flutter3: ^2.0.2
-  firebase_messaging: ^15.2.10
+
 
 dev_dependencies:
   flutter_test:
