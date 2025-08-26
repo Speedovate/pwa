@@ -39,7 +39,7 @@ class AlertService {
               return;
             }
             if (dismissible) {
-              Navigator.pop(context, true);
+              Get.back(result: true);
             }
           },
           child: Scaffold(
@@ -47,7 +47,7 @@ class AlertService {
             body: GestureDetector(
               onTap: () {
                 if (dismissible) {
-                  Navigator.pop(context, true);
+                  Get.back(result: true);
                 }
               },
               child: Stack(
@@ -166,8 +166,7 @@ class AlertService {
                                                               onTap:
                                                                   cancelAction ??
                                                                       () {
-                                                                        Navigator.pop(
-                                                                            context);
+                                                                        Get.back();
                                                                       },
                                                             ),
                                                           ),
@@ -197,8 +196,7 @@ class AlertService {
                                                         ),
                                                         onTap: confirmAction ??
                                                             () {
-                                                              Navigator.pop(
-                                                                  context);
+                                                              Get.back();
                                                             },
                                                       ),
                                                     ),
@@ -242,8 +240,7 @@ class AlertService {
                                                               onTap:
                                                                   thirdAction ??
                                                                       () {
-                                                                        Navigator.pop(
-                                                                            context);
+                                                                        Get.back();
                                                                       },
                                                             ),
                                                           ),
@@ -314,6 +311,6 @@ class AlertService {
 
   stopLoading() {
     FocusManager.instance.primaryFocus?.unfocus();
-    Navigator.pop(Get.overlayContext!);
+    Get.back();
   }
 }

@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ class _LoginViewState extends State<LoginView> {
                 loginViewModel.phoneTEC.text == "null") &&
             (loginViewModel.passwordTEC.text == "" ||
                 loginViewModel.passwordTEC.text == "null")) {
-          Navigator.pop(context);
+          Get.back();
         } else {
           AlertService().showAppAlert(
             title: "Are you sure?",
@@ -38,8 +39,8 @@ class _LoginViewState extends State<LoginView> {
             hideCancel: false,
             confirmText: "Go back",
             confirmAction: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
+              Get.back();
+              Get.back();
             },
           );
         }
@@ -68,7 +69,7 @@ class _LoginViewState extends State<LoginView> {
                                       vm.phoneTEC.text == "null") &&
                                   (vm.passwordTEC.text == "" ||
                                       vm.passwordTEC.text == "null")) {
-                                Navigator.pop(context);
+                                Get.back();
                               } else {
                                 AlertService().showAppAlert(
                                   title: "Are you sure?",
@@ -76,8 +77,8 @@ class _LoginViewState extends State<LoginView> {
                                   hideCancel: false,
                                   confirmText: "Go back",
                                   confirmAction: () {
-                                    Navigator.pop(context);
-                                    Navigator.pop(context);
+                                    Get.back();
+                                    Get.back();
                                   },
                                 );
                               }

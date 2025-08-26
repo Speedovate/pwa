@@ -55,7 +55,7 @@ class _DetailsViewState extends State<DetailsView> {
                         const SizedBox(width: 4),
                         WidgetButton(
                           onTap: () {
-                            Navigator.pop(context);
+                            Get.back();
                           },
                           child: const SizedBox(
                             width: 58,

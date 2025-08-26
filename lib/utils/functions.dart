@@ -409,7 +409,7 @@ Future<dynamic> showImageSource({
       children: [
         ListTileWidget(
           onTap: () {
-            Navigator.pop(context);
+            Get.back();
             showCameraSource(
               isEdit: isEdit,
               cameraType: cameraType,
@@ -422,7 +422,7 @@ Future<dynamic> showImageSource({
             ? const SizedBox()
             : ListTileWidget(
                 onTap: () async {
-                  Navigator.pop(context);
+                  Get.back();
                   try {
                     final ImagePicker picker = ImagePicker();
                     final XFile? image =

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -58,8 +59,8 @@ class _VerifyViewState extends State<VerifyView> {
           hideCancel: false,
           confirmText: "Go back",
           confirmAction: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
+            Get.back();
+            Get.back();
           },
         );
       },
@@ -102,8 +103,8 @@ class _VerifyViewState extends State<VerifyView> {
                                 hideCancel: false,
                                 confirmText: "Go back",
                                 confirmAction: () {
-                                  Navigator.pop(context);
-                                  Navigator.pop(context);
+                                  Get.back();
+                                  Get.back();
                                 },
                               );
                             },

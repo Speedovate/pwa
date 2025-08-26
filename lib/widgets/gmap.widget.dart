@@ -11,12 +11,14 @@ class GoogleMapWidget extends StatefulWidget {
   final gmaps.LatLng center;
   final HomeViewModel viewModel;
   final bool enableGestures;
+  final void Function(gmaps.LatLng)? onCameraMove;
 
   const GoogleMapWidget({
     super.key,
     required this.center,
     required this.viewModel,
     this.enableGestures = true,
+    this.onCameraMove,
   });
 
   @override
@@ -91,6 +93,13 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
       js_util.setProperty(_map!, 'styles', styles);
       widget.viewModel.setMap(_map!);
+
+      _map!.onCenterChanged.listen((_) {
+        final center = _map?.center;
+        if (center != null) {
+          widget.onCameraMove?.call(center);
+        }
+      });
 
       return mapDiv;
     });

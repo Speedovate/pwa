@@ -1,10 +1,11 @@
-import 'package:pwa/services/alert.service.dart';
+import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/view_models/profile.vm.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 
@@ -27,7 +28,7 @@ class _ProfileViewState extends State<ProfileView> {
           return;
         }
         if (selfieFile == null) {
-          Navigator.pop(context, true);
+          Get.back(result: true);
         } else {
           AlertService().showAppAlert(
             title: "Are you sure?",
@@ -35,8 +36,8 @@ class _ProfileViewState extends State<ProfileView> {
             hideCancel: false,
             confirmText: "Go back",
             confirmAction: () {
-              Navigator.pop(context, true);
-              Navigator.pop(context, true);
+              Get.back(result: true);
+              Get.back(result: true);
             },
           );
         }
@@ -62,7 +63,7 @@ class _ProfileViewState extends State<ProfileView> {
                           WidgetButton(
                             onTap: () {
                               if (selfieFile == null) {
-                                Navigator.pop(context, true);
+                                Get.back(result: true);
                               } else {
                                 AlertService().showAppAlert(
                                   title: "Are you sure?",
@@ -70,8 +71,8 @@ class _ProfileViewState extends State<ProfileView> {
                                   hideCancel: false,
                                   confirmText: "Go back",
                                   confirmAction: () {
-                                    Navigator.pop(context, true);
-                                    Navigator.pop(context, true);
+                                    Get.back(result: true);
+                                    Get.back(result: true);
                                   },
                                 );
                               }
@@ -180,15 +181,19 @@ class _ProfileViewState extends State<ProfileView> {
                                     ),
                                   ),
                             Positioned(
-                              right: 2,
-                              bottom: 2,
+                              right: (MediaQuery.of(context).size.width / 3)
+                                      .clamp(0, 250) /
+                                  20,
+                              bottom: (MediaQuery.of(context).size.width / 3)
+                                      .clamp(0, 250) /
+                                  20,
                               child: Container(
                                 width: (MediaQuery.of(context).size.width / 3)
                                         .clamp(0, 250) /
-                                    4,
+                                    5,
                                 height: (MediaQuery.of(context).size.width / 3)
                                         .clamp(0, 250) /
-                                    4,
+                                    5,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: const BorderRadius.all(
@@ -218,13 +223,23 @@ class _ProfileViewState extends State<ProfileView> {
                                     showImageSource(isEdit: true);
                                   },
                                   child: Center(
-                                    child: Icon(
-                                      Icons.photo_camera_outlined,
-                                      color: const Color(0xFF030744),
-                                      size: (MediaQuery.of(context).size.width /
-                                                  3)
-                                              .clamp(0, 250) /
-                                          7,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        top:
+                                            (MediaQuery.of(context).size.width /
+                                                        3)
+                                                    .clamp(0, 250) /
+                                                80,
+                                      ),
+                                      child: Icon(
+                                        Icons.photo_camera_outlined,
+                                        color: const Color(0xFF030744),
+                                        size:
+                                            (MediaQuery.of(context).size.width /
+                                                        3)
+                                                    .clamp(0, 250) /
+                                                7,
+                                      ),
                                     ),
                                   ),
                                 ),

@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -66,7 +67,7 @@ class _LoadViewState extends State<LoadView> {
                     const SizedBox(width: 4),
                     WidgetButton(
                       onTap: () {
-                        Navigator.pop(context);
+                        Get.back();
                       },
                       child: const SizedBox(
                         width: 58,
@@ -169,7 +170,7 @@ class _LoadViewState extends State<LoadView> {
                                                 height: 38,
                                                 child: WidgetButton(
                                                   onTap: () {
-                                                    Navigator.pop(context);
+                                                    Get.back();
                                                     vm.initiateLoadTopUp(
                                                       "100",
                                                     );
@@ -197,7 +198,7 @@ class _LoadViewState extends State<LoadView> {
                                                 height: 38,
                                                 child: WidgetButton(
                                                   onTap: () {
-                                                    Navigator.pop(context);
+                                                    Get.back();
                                                     vm.initiateLoadTopUp(
                                                       "300",
                                                     );
@@ -225,7 +226,7 @@ class _LoadViewState extends State<LoadView> {
                                                 height: 38,
                                                 child: WidgetButton(
                                                   onTap: () {
-                                                    Navigator.pop(context);
+                                                    Get.back();
                                                     vm.initiateLoadTopUp(
                                                       "500",
                                                     );

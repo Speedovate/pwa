@@ -83,7 +83,7 @@ class DeleteViewModel extends BaseViewModel {
         confirmText: "Delete",
         confirmColor: Colors.red,
         confirmAction: () async {
-          Navigator.pop(Get.overlayContext!);
+          Get.back();
           AlertService().showLoading();
           try {
             ApiResponse apiResponse = await authRequest.deleteProfile(

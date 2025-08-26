@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/change.view.dart';
@@ -37,7 +38,7 @@ class _SettingsViewState extends State<SettingsView> {
                       const SizedBox(width: 4),
                       WidgetButton(
                         onTap: () {
-                          Navigator.pop(context);
+                          Get.back();
                         },
                         child: const SizedBox(
                           width: 58,

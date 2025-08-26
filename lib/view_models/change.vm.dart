@@ -89,10 +89,7 @@ class ChangeViewModel extends BaseViewModel {
           password: nPasswordTEC.text,
         );
         if (apiResponse.allGood) {
-          Navigator.popUntil(
-            Get.overlayContext!,
-            (route) => route.isFirst,
-          );
+          Get.until((route) => route.isFirst);
           Navigator.push(
             Get.overlayContext!,
             PageRouteBuilder(
@@ -250,7 +247,7 @@ class ChangeViewModel extends BaseViewModel {
         );
         if (apiResponse.allGood) {
           AlertService().stopLoading();
-          Navigator.pop(Get.overlayContext!);
+          Get.back();
           AlertService().showAppAlert(
             asset: AppLotties.success,
             title: "Change Password",

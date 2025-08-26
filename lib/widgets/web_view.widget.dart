@@ -2,6 +2,7 @@
 
 import 'dart:html' as html;
 import 'dart:ui_web' as ui;
+import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
@@ -90,7 +91,7 @@ class WebViewWidgetState extends State<WebViewWidget> {
         leading: Center(
           child: WidgetButton(
             onTap: () {
-              Navigator.pop(context);
+              Get.back();
             },
             child: const SizedBox(
               width: 58,

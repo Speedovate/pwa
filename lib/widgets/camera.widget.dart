@@ -198,7 +198,7 @@ class _CameraWidgetState extends State<CameraWidget> {
                               WidgetButton(
                                 onTap: () {
                                   if (widget.cameraType == "chat") {
-                                    Navigator.pop(context);
+                                    Get.back();
                                   } else {
                                     AlertService().showAppAlert(
                                       title: "Are you sure?",
@@ -207,8 +207,8 @@ class _CameraWidgetState extends State<CameraWidget> {
                                       hideCancel: false,
                                       confirmText: "Go back",
                                       confirmAction: () {
-                                        Navigator.pop(context, true);
-                                        Navigator.pop(context, true);
+                                        Get.back(result: true);
+                                        Get.back(result: true);
                                       },
                                     );
                                   }
@@ -419,9 +419,9 @@ class CameraImageWidget extends StatelessWidget {
                         hideCancel: false,
                         confirmText: "Go back",
                         confirmAction: () {
-                          Navigator.pop(context, true);
-                          Navigator.pop(context, true);
-                          Navigator.pop(context, true);
+                          Get.back(result: true);
+                          Get.back(result: true);
+                          Get.back(result: true);
                         },
                       );
                     },
@@ -512,7 +512,7 @@ class CameraImageWidget extends StatelessWidget {
                       child: WidgetButton(
                         borderRadius: 16,
                         onTap: () {
-                          Navigator.pop(context);
+                          Get.back();
                           Navigator.push(
                             context,
                             PageRouteBuilder(
@@ -624,13 +624,10 @@ class CameraImageWidget extends StatelessWidget {
   void _onConfirm() {
     if (cameraType == "chat") {
       chatFile = imageBytes;
-      Navigator.pop(Get.overlayContext!);
+      Get.back();
     } else {
       selfieFile = imageBytes;
-      Navigator.popUntil(
-        Get.overlayContext!,
-        (route) => route.isFirst,
-      );
+      Get.until((route) => route.isFirst);
       if (!isEdit) {
         Navigator.push(
           Get.overlayContext!,

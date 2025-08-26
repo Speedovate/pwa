@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,7 @@ class _RegisterViewState extends State<RegisterView> {
                 registerViewModel.passwordTEC.text == "null") &&
             (registerViewModel.cPasswordTEC.text == "" ||
                 registerViewModel.cPasswordTEC.text == "null")) {
-          Navigator.pop(context);
+          Get.back();
         } else {
           AlertService().showAppAlert(
             title: "Are you sure?",
@@ -47,8 +48,8 @@ class _RegisterViewState extends State<RegisterView> {
             hideCancel: false,
             confirmText: "Go back",
             confirmAction: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
+              Get.back();
+              Get.back();
             },
           );
         }
@@ -85,7 +86,7 @@ class _RegisterViewState extends State<RegisterView> {
                                       vm.passwordTEC.text == "null") &&
                                   (vm.cPasswordTEC.text == "" ||
                                       vm.cPasswordTEC.text == "null")) {
-                                Navigator.pop(context);
+                                Get.back();
                               } else {
                                 AlertService().showAppAlert(
                                   title: "Are you sure?",
@@ -93,8 +94,8 @@ class _RegisterViewState extends State<RegisterView> {
                                   hideCancel: false,
                                   confirmText: "Go back",
                                   confirmAction: () {
-                                    Navigator.pop(context);
-                                    Navigator.pop(context);
+                                    Get.back();
+                                    Get.back();
                                   },
                                 );
                               }
@@ -501,7 +502,7 @@ class _RegisterViewState extends State<RegisterView> {
                           text: "Login to account",
                           mainColor: const Color(0xFF030744),
                           onTap: () {
-                            Navigator.pop(context);
+                            Get.back();
                           },
                         ),
                       ),
