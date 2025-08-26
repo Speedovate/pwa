@@ -1,9 +1,12 @@
-import 'package:pwa/widgets/transaction_list_item.dart';
+import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/view_models/load.vm.dart';
+import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/list_view.widget.dart';
+import 'package:pwa/widgets/transaction_list_item.dart';
 
 class LoadView extends StatefulWidget {
   const LoadView({super.key});
@@ -85,15 +88,198 @@ class _LoadViewState extends State<LoadView> {
                       ),
                     ),
                     const SizedBox(width: 2),
-                    const Text(
-                      "TODA Load",
-                      style: TextStyle(
-                        height: 1,
-                        fontSize: 25,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF030744),
+                    const Expanded(
+                      child: Text(
+                        "TODA Load",
+                        style: TextStyle(
+                          height: 1,
+                          fontSize: 25,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF030744),
+                        ),
                       ),
                     ),
+                    WidgetButton(
+                      onTap: () {
+                        AlertService().showAppAlert(
+                          isCustom: true,
+                          customWidget: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(
+                                  12,
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: MediaQuery.of(context).size.width - 70,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox(height: 24),
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                        ),
+                                        child: Text(
+                                          "Buy TODA Load",
+                                          style: TextStyle(
+                                            height: 1,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(
+                                              0xFF09244B,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                        ),
+                                        child: Text(
+                                          "Please select a load amount",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            height: 1.05,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w400,
+                                            color: Color(
+                                              0xFF09244B,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 24,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Expanded(
+                                              child: SizedBox(
+                                                height: 38,
+                                                child: WidgetButton(
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                    vm.initiateLoadTopUp(
+                                                      "100",
+                                                    );
+                                                  },
+                                                  borderRadius: 8,
+                                                  mainColor: const Color(
+                                                    0xFF007BFF,
+                                                  ),
+                                                  useDefaultHoverColor: false,
+                                                  child: const Center(
+                                                    child: Text(
+                                                      "₱100",
+                                                      style: TextStyle(
+                                                        height: 1,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: SizedBox(
+                                                height: 38,
+                                                child: WidgetButton(
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                    vm.initiateLoadTopUp(
+                                                      "300",
+                                                    );
+                                                  },
+                                                  borderRadius: 8,
+                                                  mainColor: const Color(
+                                                    0xFF007BFF,
+                                                  ),
+                                                  useDefaultHoverColor: false,
+                                                  child: const Center(
+                                                    child: Text(
+                                                      "₱300",
+                                                      style: TextStyle(
+                                                        height: 1,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: SizedBox(
+                                                height: 38,
+                                                child: WidgetButton(
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                    vm.initiateLoadTopUp(
+                                                      "500",
+                                                    );
+                                                  },
+                                                  borderRadius: 8,
+                                                  mainColor: const Color(
+                                                    0xFF007BFF,
+                                                  ),
+                                                  useDefaultHoverColor: false,
+                                                  child: const Center(
+                                                    child: Text(
+                                                      "₱500",
+                                                      style: TextStyle(
+                                                        height: 1,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 8),
+                          Text(
+                            "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
+                            style: const TextStyle(
+                              height: 1,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF09244B),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.add_circle,
+                            color: Color(0xFF09244B),
+                            size: 38,
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
                   ],
                 ),
                 const SizedBox(height: 12),

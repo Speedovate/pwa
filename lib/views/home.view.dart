@@ -276,10 +276,27 @@ class _HomeViewState extends State<HomeView> {
                                       _FloatingButton(
                                         icon: Icons.cached_outlined,
                                         onTap: () async {
-                                          AlertService().showLoading();
-                                          await LoadViewModel()
-                                              .getLoadBalance();
-                                          AlertService().stopLoading();
+                                          if (!AuthService.isLoggedIn()) {
+                                            Navigator.push(
+                                              context,
+                                              PageRouteBuilder(
+                                                reverseTransitionDuration:
+                                                    Duration.zero,
+                                                transitionDuration:
+                                                    Duration.zero,
+                                                pageBuilder: (
+                                                  context,
+                                                  a,
+                                                  b,
+                                                ) =>
+                                                    const LoginView(),
+                                              ),
+                                            );
+                                          } else {
+                                            AlertService().showLoading();
+                                            await LoadViewModel().getLoadBalance();
+                                            AlertService().stopLoading();
+                                          }
                                         },
                                       ),
                                       const SizedBox(height: 8),
