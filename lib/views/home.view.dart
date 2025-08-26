@@ -1,4 +1,5 @@
 import 'package:pwa/utils/data.dart';
+import 'package:pwa/views/map.view.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/load.view.dart';
@@ -247,11 +248,13 @@ class _HomeViewState extends State<HomeView> {
                                   enableGestures: !isBool(
                                     _scaffoldKey.currentState?.isDrawerOpen,
                                   ),
+                                  onMapCreated: (map) {
+                                    vm.setMap(map);
+                                  },
                                   onCameraMove: (center) {
                                     vm.mapCameraMove(center);
-                                    debugPrint("Camera move");
+                                    debugPrint("Map move");
                                   },
-                                  viewModel: vm,
                                 ),
                                 Positioned(
                                   top: 20,
@@ -272,7 +275,7 @@ class _HomeViewState extends State<HomeView> {
                                       await vm.zoomToCurrentLocation();
                                       if (vm.selectedAddress == null) {
                                         vm.mapCameraMove(vm.map?.center);
-                                        debugPrint("Camera move");
+                                        debugPrint("Map move");
                                       }
                                     },
                                   ),
@@ -328,7 +331,7 @@ class _HomeViewState extends State<HomeView> {
                                           await vm.zoomIn();
                                           if (vm.selectedAddress == null) {
                                             vm.mapCameraMove(vm.map?.center);
-                                            debugPrint("Camera move");
+                                            debugPrint("Map move");
                                           }
                                         },
                                       ),
@@ -339,7 +342,7 @@ class _HomeViewState extends State<HomeView> {
                                           await vm.zoomOut();
                                           if (vm.selectedAddress == null) {
                                             vm.mapCameraMove(vm.map?.center);
-                                            debugPrint("Camera move");
+                                            debugPrint("Map move");
                                           }
                                         },
                                       ),
@@ -738,7 +741,76 @@ class _HomeViewState extends State<HomeView> {
                                               ],
                                             ),
                                             GestureDetector(
-                                              onTap: () {},
+                                              onTap: () async {
+                                                if (!AuthService.isLoggedIn()) {
+                                                  Navigator.push(
+                                                    context,
+                                                    PageRouteBuilder(
+                                                      reverseTransitionDuration:
+                                                          Duration.zero,
+                                                      transitionDuration:
+                                                          Duration.zero,
+                                                      pageBuilder: (
+                                                        context,
+                                                        a,
+                                                        b,
+                                                      ) =>
+                                                          const LoginView(),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  if (vm.ongoingOrder == null ||
+                                                      vm.ongoingOrder?.status ==
+                                                          "cancelled") {
+                                                    var rebuild =
+                                                        await Navigator.push(
+                                                      context,
+                                                      PageRouteBuilder(
+                                                        reverseTransitionDuration:
+                                                            Duration.zero,
+                                                        transitionDuration:
+                                                            Duration.zero,
+                                                        pageBuilder: (
+                                                          context,
+                                                          a,
+                                                          b,
+                                                        ) =>
+                                                            const MapView(
+                                                          isPickup: true,
+                                                        ),
+                                                      ),
+                                                    );
+                                                    if (mounted &&
+                                                        rebuild == true) {
+                                                      setState(() {});
+                                                    }
+                                                    if (pickupAddress != null &&
+                                                            dropoffAddress !=
+                                                                null &&
+                                                            vm.ongoingOrder ==
+                                                                null ||
+                                                        vm.ongoingOrder
+                                                                ?.status ==
+                                                            "cancelled") {
+                                                      setState(() {
+                                                        vm.isPreparing = true;
+                                                      });
+                                                      await vm
+                                                          .drawDropPolyLines(
+                                                        "pickup-dropoff",
+                                                        null,
+                                                        pickupAddress!.latLng,
+                                                        dropoffAddress!.latLng,
+                                                      );
+                                                      await vm
+                                                          .fetchVehicleTypesPricing();
+                                                      setState(() {
+                                                        vm.isPreparing = false;
+                                                      });
+                                                    }
+                                                  }
+                                                }
+                                              },
                                               child: Container(
                                                 height: 50,
                                                 decoration: const BoxDecoration(
@@ -788,7 +860,76 @@ class _HomeViewState extends State<HomeView> {
                                               ),
                                             ),
                                             WidgetButton(
-                                              onTap: () {},
+                                              onTap: () async {
+                                                if (!AuthService.isLoggedIn()) {
+                                                  Navigator.push(
+                                                    context,
+                                                    PageRouteBuilder(
+                                                      reverseTransitionDuration:
+                                                          Duration.zero,
+                                                      transitionDuration:
+                                                          Duration.zero,
+                                                      pageBuilder: (
+                                                        context,
+                                                        a,
+                                                        b,
+                                                      ) =>
+                                                          const LoginView(),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  if (vm.ongoingOrder == null ||
+                                                      vm.ongoingOrder?.status ==
+                                                          "cancelled") {
+                                                    var rebuild =
+                                                        await Navigator.push(
+                                                      context,
+                                                      PageRouteBuilder(
+                                                        reverseTransitionDuration:
+                                                            Duration.zero,
+                                                        transitionDuration:
+                                                            Duration.zero,
+                                                        pageBuilder: (
+                                                          context,
+                                                          a,
+                                                          b,
+                                                        ) =>
+                                                            const MapView(
+                                                          isPickup: false,
+                                                        ),
+                                                      ),
+                                                    );
+                                                    if (mounted &&
+                                                        rebuild == true) {
+                                                      setState(() {});
+                                                    }
+                                                    if (pickupAddress != null &&
+                                                            dropoffAddress !=
+                                                                null &&
+                                                            vm.ongoingOrder ==
+                                                                null ||
+                                                        vm.ongoingOrder
+                                                                ?.status ==
+                                                            "cancelled") {
+                                                      setState(() {
+                                                        vm.isPreparing = true;
+                                                      });
+                                                      await vm
+                                                          .drawDropPolyLines(
+                                                        "pickup-dropoff",
+                                                        null,
+                                                        pickupAddress!.latLng,
+                                                        dropoffAddress!.latLng,
+                                                      );
+                                                      await vm
+                                                          .fetchVehicleTypesPricing();
+                                                      setState(() {
+                                                        vm.isPreparing = false;
+                                                      });
+                                                    }
+                                                  }
+                                                }
+                                              },
                                               borderRadius: 8,
                                               useDefaultHoverColor: false,
                                               mainColor:
@@ -864,12 +1005,56 @@ class _HomeViewState extends State<HomeView> {
                                                           ),
                                                         ),
                                                       ),
-                                                      child: const Center(
+                                                      child: Center(
                                                         child: Text(
-                                                          "Time",
+                                                          vm.ongoingOrder !=
+                                                                      null &&
+                                                                  vm.ongoingOrder
+                                                                          ?.status !=
+                                                                      "cancelled"
+                                                              ? () {
+                                                                  if (vm.ongoingOrder
+                                                                          ?.status ==
+                                                                      "pending") {
+                                                                    return "Waiting";
+                                                                  } else if (vm
+                                                                          .ongoingOrder
+                                                                          ?.status ==
+                                                                      "preparing") {
+                                                                    return capitalizeWords(
+                                                                      (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("any") ||
+                                                                              (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains(
+                                                                                  "unknown")
+                                                                          ? "Any Second"
+                                                                          : formatEtaText(vm
+                                                                              .ongoingOrder!
+                                                                              .taxiOrder!
+                                                                              .tripDetails!
+                                                                              .eta!),
+                                                                    );
+                                                                  } else {
+                                                                    return travelTime(
+                                                                      vm.ongoingOrder?.taxiOrder?.tripDetails
+                                                                              ?.kmDistance ??
+                                                                          0,
+                                                                    );
+                                                                  }
+                                                                }()
+                                                              : vm.selectedVehicle ==
+                                                                      null
+                                                                  ? vm.isPreparing
+                                                                      ? "•••"
+                                                                      : "Time"
+                                                                  : vm.isPreparing
+                                                                      ? "•••"
+                                                                      : travelTime(
+                                                                          vm.selectedVehicle?.kmDistance ??
+                                                                              0,
+                                                                        ),
                                                           textAlign:
                                                               TextAlign.center,
-                                                          style: TextStyle(
+                                                          style:
+                                                              const TextStyle(
                                                             color: Color(
                                                               0xFF007BFF,
                                                             ),
@@ -917,12 +1102,44 @@ class _HomeViewState extends State<HomeView> {
                                                           ),
                                                         ),
                                                       ),
-                                                      child: const Center(
+                                                      child: Center(
                                                         child: Text(
-                                                          "Fare",
+                                                          vm.ongoingOrder !=
+                                                                      null &&
+                                                                  vm.ongoingOrder
+                                                                          ?.status !=
+                                                                      "cancelled"
+                                                              ? AuthService
+                                                                      .inReviewMode()
+                                                                  ? vm
+                                                                          .isPreparing
+                                                                      ? "•••"
+                                                                      : "${vm.ongoingOrder?.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(1)} km"
+                                                                  : vm
+                                                                          .isPreparing
+                                                                      ? "•••"
+                                                                      : "${((vm.ongoingOrder?.subTotal ?? 0) + (vm.ongoingOrder?.taxiOrder?.pickupFee ?? 0)).toStringAsFixed(0)} ${vm.ongoingOrder?.paymentMethodId == 1 ? "Cash" : "Load"}"
+                                                              : vm.selectedVehicle ==
+                                                                      null
+                                                                  ? AuthService
+                                                                          .inReviewMode()
+                                                                      ? vm.isPreparing
+                                                                          ? "•••"
+                                                                          : "Dist"
+                                                                      : vm.isPreparing
+                                                                          ? "•••"
+                                                                          : "Fare"
+                                                                  : AuthService.inReviewMode()
+                                                                      ? vm.isPreparing
+                                                                          ? "•••"
+                                                                          : "${vm.selectedVehicle?.kmDistance?.toStringAsFixed(1)} km"
+                                                                      : vm.isPreparing
+                                                                          ? "•••"
+                                                                          : "${vm.selectedVehicle?.total?.toStringAsFixed(0)} ${vm.paymentMethodId == 1 ? "Cash" : "Load"}",
                                                           textAlign:
                                                               TextAlign.center,
-                                                          style: TextStyle(
+                                                          style:
+                                                              const TextStyle(
                                                             color: Color(
                                                               0xFF007BFF,
                                                             ),

@@ -1,6 +1,6 @@
 import 'package:pwa/utils/data.dart';
-import 'package:pwa/constants/api.dart';
 import 'package:singleton/singleton.dart';
+import 'package:pwa/constants/api.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/models/address.model.dart';
@@ -58,7 +58,7 @@ class GeocoderService extends HttpService {
   Future<List<Address>> findAddressesFromQuery(String keyword) async {
     if (isBool(AppStrings.homeSettingsObject?["use_external"] ?? true)) {
       final apiResult = await getExternal(
-        "https://maps.googleapis.com/maps/api/place/textsearch/json?query=$keyword%20puerto%20princesa&location=${myLatLng?.lat ?? 9.7392},${myLatLng?.lng ?? 118.7353}&radius=15000&key=AIza${AppStrings.homeSettingsObject?["external_api"] ?? "SyAZ_QLjsiFZnrZr33sCqW-SlTtkIV7PTeM"}",
+        "https://cors-anywhere.com/https://maps.googleapis.com/maps/api/place/textsearch/json?query=$keyword%20puerto%20princesa&location=${initLatLng?.lat ?? 9.7392},${initLatLng?.lat ?? 118.7353}&radius=15000&key=AIza${AppStrings.homeSettingsObject?["external_api"] ?? "SyAZ_QLjsiFZnrZr33sCqW-SlTtkIV7PTeM"}",
       );
       if (apiResult.statusCode == 200) {
         Map<String, dynamic> apiResponse = apiResult.data;
@@ -91,12 +91,12 @@ class GeocoderService extends HttpService {
       }
       return [];
     } else {
-      String latLng = "${myLatLng?.lat},${myLatLng?.lng}";
+      String myLatLng = "${initLatLng?.lat},${initLatLng?.lat}";
       final apiResult = await get(
         Api.geoAddresses,
         queryParameters: {
           "keyword": keyword,
-          "location": latLng,
+          "location": myLatLng,
         },
       ).timeout(
         const Duration(seconds: 30),

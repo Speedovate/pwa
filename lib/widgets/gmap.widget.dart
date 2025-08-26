@@ -3,21 +3,21 @@
 import 'dart:html' as html;
 import 'dart:ui_web' as ui;
 import 'dart:js_util' as js_util;
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:pwa/view_models/home.vm.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
 class GoogleMapWidget extends StatefulWidget {
   final gmaps.LatLng center;
-  final HomeViewModel viewModel;
   final bool enableGestures;
+  final void Function(gmaps.Map map)? onMapCreated;
   final void Function(gmaps.LatLng)? onCameraMove;
 
   const GoogleMapWidget({
     super.key,
     required this.center,
-    required this.viewModel,
     this.enableGestures = true,
+    this.onMapCreated,
     this.onCameraMove,
   });
 
@@ -28,12 +28,14 @@ class GoogleMapWidget extends StatefulWidget {
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   late final String viewId;
   gmaps.Map? _map;
+  StreamSubscription? _centerChangedSub;
 
   @override
   void initState() {
     super.initState();
     viewId = 'map-div-${DateTime.now().microsecondsSinceEpoch}';
     _ensureHideGmapUiStyle();
+
     ui.platformViewRegistry.registerViewFactory(viewId, (int _) {
       final mapDiv = html.DivElement()
         ..id = viewId
@@ -51,54 +53,24 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
       _map = gmaps.Map(mapDiv as dynamic, mapOptions);
 
+      // Apply custom styles
       final styles = [
-        {
-          "featureType": "poi",
-          "stylers": [
-            {"visibility": "off"}
-          ]
-        },
-        {
-          "featureType": "transit",
-          "stylers": [
-            {"visibility": "off"}
-          ]
-        },
-        {
-          "featureType": "road",
-          "elementType": "labels.icon",
-          "stylers": [
-            {"visibility": "off"}
-          ]
-        },
-        {
-          "featureType": "administrative",
-          "stylers": [
-            {"visibility": "off"}
-          ]
-        },
-        {
-          "featureType": "landscape",
-          "stylers": [
-            {"color": "#f2f2f2"}
-          ]
-        },
-        {
-          "featureType": "water",
-          "stylers": [
-            {"color": "#c9c9c9"}
-          ]
-        },
+        {"featureType": "poi", "stylers": [{"visibility": "off"}]},
+        {"featureType": "transit", "stylers": [{"visibility": "off"}]},
+        {"featureType": "road", "elementType": "labels.icon", "stylers": [{"visibility": "off"}]},
+        {"featureType": "administrative", "stylers": [{"visibility": "off"}]},
+        {"featureType": "landscape", "stylers": [{"color": "#f2f2f2"}]},
+        {"featureType": "water", "stylers": [{"color": "#c9c9c9"}]},
       ];
-
       js_util.setProperty(_map!, 'styles', styles);
-      widget.viewModel.setMap(_map!);
 
-      _map!.onCenterChanged.listen((_) {
+      // Notify parent of created map
+      widget.onMapCreated?.call(_map!);
+
+      // Listen to camera move
+      _centerChangedSub = _map!.onCenterChanged.listen((_) {
         final center = _map?.center;
-        if (center != null) {
-          widget.onCameraMove?.call(center);
-        }
+        if (center != null && mounted) widget.onCameraMove?.call(center);
       });
 
       return mapDiv;
@@ -112,6 +84,12 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       js_util.setProperty(
           _map!, 'gestureHandling', widget.enableGestures ? 'greedy' : 'none');
     }
+  }
+
+  @override
+  void dispose() {
+    _centerChangedSub?.cancel();
+    super.dispose();
   }
 
   void _ensureHideGmapUiStyle() {

@@ -1,4 +1,5 @@
 import 'package:pwa/models/coordinates.model.dart';
+import 'package:google_maps/google_maps.dart' as gmaps;
 
 class Address {
   final Coordinates coordinates;
@@ -105,4 +106,9 @@ class Address {
     }
     return null;
   }
+
+  gmaps.LatLng get latLng => gmaps.LatLng(
+    coordinates.latitude,
+    coordinates.longitude,
+  );
 }

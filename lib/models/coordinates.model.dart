@@ -17,9 +17,9 @@ class Coordinates {
   }
 
   Map<String, dynamic> toMap() => {
-    "latitude": latitude,
-    "longitude": longitude,
-  };
+        "latitude": latitude,
+        "longitude": longitude,
+      };
 
   @override
   String toString() => "$latitude,$longitude";

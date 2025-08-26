@@ -1,7 +1,7 @@
 name: pwa
 description: "PPC TODA PWA"
 publish_to: 'none'
-version: 1.0.0+5
+version: 1.0.0+1
 environment:
   sdk: ^3.5.0
 
@@ -31,6 +31,7 @@ dependencies:
   pull_to_refresh_flutter3: ^2.0.2
   singleton: ^0.0.3-nullsafety
   flutter_polyline_points: ^3.0.1
+  flutter_typeahead: ^5.2.0
 
 
 dev_dependencies:

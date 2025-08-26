@@ -10,22 +10,53 @@ import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
-class GMapViewModel extends BaseViewModel {
+class MapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
   Address? selectedAddress;
   TaxiRequest taxiRequest = TaxiRequest();
+  FocusNode searchFocusNode = FocusNode();
   GeocoderService geocoderService = GeocoderService();
+  TextEditingController searchTEC = TextEditingController();
 
-  void setMap(gmaps.Map map) async {
+  initialise({required bool isPickup}) {
+    if (isPickup && pickupAddress != null) {
+      selectedAddress = pickupAddress;
+    } else if (!isPickup && pickupAddress != null && dropoffAddress == null) {
+      selectedAddress = pickupAddress;
+    } else if (!isPickup && dropoffAddress != null) {
+      selectedAddress = dropoffAddress;
+    } else {}
+    notifyListeners();
+  }
+
+  void setMap({
+    required bool isPickup,
+    required gmaps.Map map,
+  }) async {
     _map = map;
     debugPrint("Map set");
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      mapCameraMove(_map?.center);
-      debugPrint("Map init");
-      notifyListeners();
-    });
+    selectedAddress = isPickup
+        ? pickupAddress ??
+            Address(
+              addressLine: pickupAddress!.addressLine,
+              coordinates: Coordinates(
+                double.parse("${pickupAddress?.latLng.lat ?? initLatLng?.lat}"),
+                double.parse("${pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
+              ),
+            )
+        : dropoffAddress ??
+            Address(
+              addressLine:
+                  dropoffAddress?.addressLine ?? pickupAddress!.addressLine,
+              coordinates: Coordinates(
+                double.parse(
+                    "${dropoffAddress?.latLng.lat ?? pickupAddress?.latLng.lat ?? initLatLng?.lat}"),
+                double.parse(
+                    "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
+              ),
+            );
   }
 
   gmaps.Map? get map => _map;
@@ -58,6 +89,7 @@ class GMapViewModel extends BaseViewModel {
   Future<void> mapCameraMove(
     gmaps.LatLng? target, {
     bool skipSelectedAddress = false,
+    required bool isPickup,
   }) async {
     if (!skipSelectedAddress) {
       selectedAddress = null;
@@ -85,14 +117,18 @@ class GMapViewModel extends BaseViewModel {
           );
           final Address address = addresses.first;
           isLoading = false;
-          await addressSelected(address, animate: true);
+          await addressSelected(
+            address,
+            animate: true,
+            isPickup: isPickup,
+          );
         } catch (e) {
           // clearGMapDetails();
           isLoading = false;
           selectedAddress = Address(
             coordinates: Coordinates(
-              double.parse("${myLatLng?.lat ?? 9.7638}"),
-              double.parse("${myLatLng?.lng ?? 118.7473}"),
+              double.parse("${initLatLng?.lat ?? 9.7638}"),
+              double.parse("${initLatLng?.lng ?? 118.7473}"),
             ),
           );
           ApiResponse apiResponse = await taxiRequest.locationAvailableRequest(
@@ -155,20 +191,21 @@ class GMapViewModel extends BaseViewModel {
   Future<void> addressSelected(
     Address address, {
     bool animate = false,
+    required bool isPickup,
   }) async {
     setBusyForObject(selectedAddress, true);
-
     try {
       if (address.gMapPlaceId != null) {
         address = await geocoderService.fetchPlaceDetails(address);
       }
-
       selectedAddress = address;
-      pickupAddress = address;
-
+      if (isPickup) {
+        pickupAddress = address;
+      } else {
+        dropoffAddress = address;
+      }
       if (_map != null) {
         num currentZoom = _map!.zoom;
-
         if (animate) {
           _map!.panTo(gmaps.LatLng(
             address.coordinates.latitude,
@@ -180,7 +217,6 @@ class GMapViewModel extends BaseViewModel {
             address.coordinates.longitude,
           );
         }
-
         _map!.zoom = currentZoom;
       }
     } catch (e) {
@@ -190,10 +226,7 @@ class GMapViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> drawDropPolyLines(
-    String purpose,
-    gmaps.LatLng? driverLatLng,
-    gmaps.LatLng pickupLatLng,
-    gmaps.LatLng dropoffLatLng,
-  ) async {}
+  Future<List<Address>> fetchPlaces(String keyword) async {
+    return await geocoderService.findAddressesFromQuery(keyword);
+  }
 }
