@@ -109173,7 +109173,7 @@ return A.y(A.Cc(),$async$vp)
 case 2:s=3
 return A.y(A.P8(),$async$vp)
 case 3:try{$.b3G="1.0.0"
-$.a8I="1"}catch(o){q=A.T(o)
+$.a8I="5"}catch(o){q=A.T(o)
 A.bK().$1("getAppInfo error: "+A.e(q))}return A.q(null,r)}})
 return A.r($async$vp,r)},
 l2(a){var s=0,r=A.t(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d,c,b
