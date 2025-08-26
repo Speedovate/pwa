@@ -1,11 +1,10 @@
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
-import 'package:stacked/stacked.dart';
 import 'package:pwa/utils/functions.dart';
+import 'package:stacked/stacked.dart';
 import 'package:pwa/requests/load.request.dart';
 import 'package:pwa/models/load_transaction.model.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class LoadViewModel extends BaseViewModel {
   int queryPage = 1;
@@ -55,11 +54,11 @@ class LoadViewModel extends BaseViewModel {
   initiateLoadTopUp(String amount) async {
     try {
       final link = await loadRequest.loadTopupRequest(amount);
-      // openWebview("Buy Load", link);
-      launchUrlString(
-        link,
-        mode: LaunchMode.inAppWebView,
-      );
+      openWebview("Buy Load", link);
+      // launchUrlString(
+      //   link,
+      //   mode: LaunchMode.inAppBrowserView,
+      // );
     } catch (_) {}
   }
 }
