@@ -949,12 +949,16 @@ class _HomeViewState extends State<HomeView> {
                               left: 0,
                               right: 0,
                               bottom: 20,
-                              child: Center(
-                                child: SizedBox(
-                                  width: 45,
-                                  height: 45,
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF007BFF),
+                              child: SizedBox(
+                                width: 45,
+                                height: 45,
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 30,
+                                    height: 30,
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFF007BFF),
+                                    ),
                                   ),
                                 ),
                               ),
