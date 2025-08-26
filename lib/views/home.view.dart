@@ -252,66 +252,75 @@ class _HomeViewState extends State<HomeView> {
                                   },
                                   viewModel: vm,
                                 ),
-                                Positioned(
-                                  top: 20,
-                                  left: 20,
-                                  child: _FloatingButton(
-                                    icon: Icons.menu,
-                                    onTap: () {
-                                      _scaffoldKey.currentState?.openDrawer();
-                                    },
-                                  ),
-                                ),
+                                vm.selectedAddress == null
+                                    ? const SizedBox.shrink()
+                                    : Positioned(
+                                        top: 20,
+                                        left: 20,
+                                        child: _FloatingButton(
+                                          icon: Icons.menu,
+                                          onTap: () {
+                                            _scaffoldKey.currentState
+                                                ?.openDrawer();
+                                          },
+                                        ),
+                                      ),
                                 Positioned(
                                   top: 20,
                                   right: 20,
                                   child: _FloatingButton(
                                     icon: Icons.my_location_outlined,
-                                    onTap: () {
-                                      vm.zoomToCurrentLocation();
+                                    onTap: () async {
+                                      await vm.zoomToCurrentLocation();
+                                      if (vm.selectedAddress == null) {
+                                        vm.mapCameraMove(vm.map?.center);
+                                        print("Camera move");
+                                      }
                                     },
                                   ),
                                 ),
-                                Positioned(
-                                  left: 20,
-                                  bottom: 20,
-                                  child: Column(
-                                    children: [
-                                      _FloatingButton(
-                                        icon: Icons.cached_outlined,
-                                        onTap: () async {
-                                          if (!AuthService.isLoggedIn()) {
-                                            Navigator.push(
-                                              context,
-                                              PageRouteBuilder(
-                                                reverseTransitionDuration:
-                                                    Duration.zero,
-                                                transitionDuration:
-                                                    Duration.zero,
-                                                pageBuilder: (
-                                                  context,
-                                                  a,
-                                                  b,
-                                                ) =>
-                                                    const LoginView(),
-                                              ),
-                                            );
-                                          } else {
-                                            AlertService().showLoading();
-                                            await LoadViewModel()
-                                                .getLoadBalance();
-                                            AlertService().stopLoading();
-                                          }
-                                        },
+                                vm.selectedAddress == null
+                                    ? const SizedBox.shrink()
+                                    : Positioned(
+                                        left: 20,
+                                        bottom: 20,
+                                        child: Column(
+                                          children: [
+                                            _FloatingButton(
+                                              icon: Icons.cached_outlined,
+                                              onTap: () async {
+                                                if (!AuthService.isLoggedIn()) {
+                                                  Navigator.push(
+                                                    context,
+                                                    PageRouteBuilder(
+                                                      reverseTransitionDuration:
+                                                          Duration.zero,
+                                                      transitionDuration:
+                                                          Duration.zero,
+                                                      pageBuilder: (
+                                                        context,
+                                                        a,
+                                                        b,
+                                                      ) =>
+                                                          const LoginView(),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  AlertService().showLoading();
+                                                  await LoadViewModel()
+                                                      .getLoadBalance();
+                                                  AlertService().stopLoading();
+                                                }
+                                              },
+                                            ),
+                                            const SizedBox(height: 8),
+                                            _FloatingButton(
+                                              icon: Icons.share,
+                                              onTap: () {},
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      _FloatingButton(
-                                        icon: Icons.share,
-                                        onTap: () {},
-                                      ),
-                                    ],
-                                  ),
-                                ),
                                 Positioned(
                                   right: 20,
                                   bottom: 20,
@@ -319,15 +328,23 @@ class _HomeViewState extends State<HomeView> {
                                     children: [
                                       _FloatingButton(
                                         icon: Icons.add,
-                                        onTap: () {
-                                          vm.zoomIn();
+                                        onTap: () async {
+                                          await vm.zoomIn();
+                                          if (vm.selectedAddress == null) {
+                                            vm.mapCameraMove(vm.map?.center);
+                                            print("Camera move");
+                                          }
                                         },
                                       ),
                                       const SizedBox(height: 8),
                                       _FloatingButton(
                                         icon: Icons.remove,
-                                        onTap: () {
-                                          vm.zoomOut();
+                                        onTap: () async {
+                                          await vm.zoomOut();
+                                          if (vm.selectedAddress == null) {
+                                            vm.mapCameraMove(vm.map?.center);
+                                            print("Camera move");
+                                          }
                                         },
                                       ),
                                     ],
@@ -360,329 +377,149 @@ class _HomeViewState extends State<HomeView> {
                                 ),
                               ],
                             ),
-                            child: ClipRect(
-                              child: AnimatedSize(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.fastOutSlowIn,
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: vm.selectedAddress == null
-                                      ? const SizedBox.shrink()
-                                      : Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 20,
-                                            ),
-                                            child: SizedBox(
-                                              width:
-                                                  double.infinity.clamp(0, 800),
-                                              child: Column(
-                                                children: [
-                                                  const SizedBox(height: 20),
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      SizedBox(
-                                                        width: ((MediaQuery.of(
-                                                                            context)
+                            child: vm.selectedAddress == null
+                                ? const SizedBox.shrink()
+                                : Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      child: SizedBox(
+                                        width: double.infinity.clamp(0, 800),
+                                        child: Column(
+                                          children: [
+                                            const SizedBox(height: 20),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SizedBox(
+                                                  width:
+                                                      ((MediaQuery.of(context)
+                                                                      .size
+                                                                      .width -
+                                                                  64) /
+                                                              3)
+                                                          .clamp(0, 120),
+                                                  height:
+                                                      ((MediaQuery.of(context)
+                                                                      .size
+                                                                      .width -
+                                                                  64) /
+                                                              3)
+                                                          .clamp(0, 120),
+                                                  child: ConstrainedBox(
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                      maxWidth: 200,
+                                                    ),
+                                                    child: Container(
+                                                      height: 50,
+                                                      decoration: BoxDecoration(
+                                                        borderRadius:
+                                                            const BorderRadius
+                                                                .all(
+                                                          Radius.circular(
+                                                            8,
+                                                          ),
+                                                        ),
+                                                        border: Border.all(
+                                                          color: const Color(
+                                                            0xFF007BFF,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      child: Column(
+                                                        children: [
+                                                          const SizedBox(
+                                                            height: 12,
+                                                          ),
+                                                          Expanded(
+                                                            child: Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                horizontal: 8,
+                                                              ),
+                                                              child:
+                                                                  Image.asset(
+                                                                "assets/images/${lowerCase(gVehicleTypes.firstWhere(
+                                                                      (v) =>
+                                                                          v.slug ==
+                                                                          "tricycle",
+                                                                    ).name!)}.png",
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 8),
+                                                          Text(
+                                                            capitalizeWords(
+                                                              gVehicleTypes
+                                                                  .firstWhere(
+                                                                    (v) =>
+                                                                        v.slug ==
+                                                                        "tricycle",
+                                                                  )
+                                                                  .name!,
+                                                            ),
+                                                            style:
+                                                                const TextStyle(
+                                                              height: 1.05,
+                                                              fontSize: 16,
+                                                              color: Color(
+                                                                0xFF007BFF,
+                                                              ),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            "${gVehicleTypes.firstWhere(
+                                                                  (v) =>
+                                                                      v.slug ==
+                                                                      "tricycle",
+                                                                ).maxSeat!} Seater",
+                                                            style:
+                                                                const TextStyle(
+                                                              height: 1.05,
+                                                              fontSize: 12,
+                                                              color: Color(
+                                                                0xFF007BFF,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 12,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 15),
+                                                Expanded(
+                                                  child: SizedBox(
+                                                    height:
+                                                        ((MediaQuery.of(context)
                                                                         .size
                                                                         .width -
                                                                     64) /
                                                                 3)
                                                             .clamp(0, 120),
-                                                        height: ((MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                        child: ConstrainedBox(
-                                                          constraints:
-                                                              const BoxConstraints(
-                                                            maxWidth: 200,
-                                                          ),
-                                                          child: Container(
-                                                            height: 50,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
-                                                                ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                              ),
+                                                    child: Column(
+                                                      children: [
+                                                        Expanded(
+                                                          child: WidgetButton(
+                                                            borderRadius: 8,
+                                                            mainColor:
+                                                                const Color(
+                                                              0xFF007BFF,
                                                             ),
-                                                            child: Column(
-                                                              children: [
-                                                                const SizedBox(
-                                                                  height: 12,
-                                                                ),
-                                                                Expanded(
-                                                                  child:
-                                                                      Padding(
-                                                                    padding:
-                                                                        const EdgeInsets
-                                                                            .symmetric(
-                                                                      horizontal:
-                                                                          8,
-                                                                    ),
-                                                                    child: Image
-                                                                        .asset(
-                                                                      "assets/images/${lowerCase(gVehicleTypes.firstWhere(
-                                                                            (v) =>
-                                                                                v.slug ==
-                                                                                "tricycle",
-                                                                          ).name!)}.png",
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                    height: 8),
-                                                                Text(
-                                                                  capitalizeWords(
-                                                                    gVehicleTypes
-                                                                        .firstWhere(
-                                                                          (v) =>
-                                                                              v.slug ==
-                                                                              "tricycle",
-                                                                        )
-                                                                        .name!,
-                                                                  ),
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    height:
-                                                                        1.05,
-                                                                    fontSize:
-                                                                        16,
-                                                                    color:
-                                                                        Color(
-                                                                      0xFF007BFF,
-                                                                    ),
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                  ),
-                                                                ),
-                                                                Text(
-                                                                  "${gVehicleTypes.firstWhere(
-                                                                        (v) =>
-                                                                            v.slug ==
-                                                                            "tricycle",
-                                                                      ).maxSeat!} Seater",
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    height:
-                                                                        1.05,
-                                                                    fontSize:
-                                                                        12,
-                                                                    color:
-                                                                        Color(
-                                                                      0xFF007BFF,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 12,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 15),
-                                                      Expanded(
-                                                        child: SizedBox(
-                                                          height: ((MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      64) /
-                                                                  3)
-                                                              .clamp(0, 120),
-                                                          child: Column(
-                                                            children: [
-                                                              Expanded(
-                                                                child:
-                                                                    WidgetButton(
-                                                                  borderRadius:
-                                                                      8,
-                                                                  mainColor:
-                                                                      const Color(
-                                                                    0xFF007BFF,
-                                                                  ),
-                                                                  useDefaultHoverColor:
-                                                                      false,
-                                                                  child:
-                                                                      Container(
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      borderRadius:
-                                                                          const BorderRadius
-                                                                              .all(
-                                                                        Radius
-                                                                            .circular(
-                                                                          8,
-                                                                        ),
-                                                                      ),
-                                                                      border:
-                                                                          Border
-                                                                              .all(
-                                                                        color:
-                                                                            const Color(
-                                                                          0xFF007BFF,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    child:
-                                                                        const Center(
-                                                                      child:
-                                                                          Text(
-                                                                        "Cash",
-                                                                        textAlign:
-                                                                            TextAlign.center,
-                                                                        style:
-                                                                            TextStyle(
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                          color:
-                                                                              Colors.white,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  onTap: () {},
-                                                                ),
-                                                              ),
-                                                              const SizedBox(
-                                                                  height: 15),
-                                                              Expanded(
-                                                                child:
-                                                                    WidgetButton(
-                                                                  borderRadius:
-                                                                      8,
-                                                                  child:
-                                                                      Container(
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      borderRadius:
-                                                                          const BorderRadius
-                                                                              .all(
-                                                                        Radius
-                                                                            .circular(
-                                                                          8,
-                                                                        ),
-                                                                      ),
-                                                                      border:
-                                                                          Border
-                                                                              .all(
-                                                                        color:
-                                                                            const Color(
-                                                                          0xFF007BFF,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    child:
-                                                                        const Center(
-                                                                      child:
-                                                                          Text(
-                                                                        "Load",
-                                                                        textAlign:
-                                                                            TextAlign.center,
-                                                                        style:
-                                                                            TextStyle(
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                          color:
-                                                                              Color(
-                                                                            0xFF007BFF,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  onTap: () {},
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 15),
-                                                      WidgetButton(
-                                                        onTap: () {
-                                                          if (!AuthService
-                                                              .isLoggedIn()) {
-                                                            Navigator.push(
-                                                              context,
-                                                              PageRouteBuilder(
-                                                                reverseTransitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                transitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                pageBuilder: (
-                                                                  context,
-                                                                  a,
-                                                                  b,
-                                                                ) =>
-                                                                    const LoginView(),
-                                                              ),
-                                                            );
-                                                          } else {
-                                                            Navigator.push(
-                                                              context,
-                                                              PageRouteBuilder(
-                                                                reverseTransitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                transitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                pageBuilder: (
-                                                                  context,
-                                                                  a,
-                                                                  b,
-                                                                ) =>
-                                                                    const LoadView(),
-                                                              ),
-                                                            );
-                                                          }
-                                                        },
-                                                        borderRadius: 8,
-                                                        child: SizedBox(
-                                                          width: ((MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      64) /
-                                                                  3)
-                                                              .clamp(0, 120),
-                                                          height: ((MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      64) /
-                                                                  3)
-                                                              .clamp(0, 120),
-                                                          child: ConstrainedBox(
-                                                            constraints:
-                                                                const BoxConstraints(
-                                                              maxWidth: 200,
-                                                            ),
+                                                            useDefaultHoverColor:
+                                                                false,
                                                             child: Container(
-                                                              height: 50,
                                                               decoration:
                                                                   BoxDecoration(
                                                                 borderRadius:
@@ -701,296 +538,412 @@ class _HomeViewState extends State<HomeView> {
                                                                   ),
                                                                 ),
                                                               ),
-                                                              child: Column(
-                                                                children: [
-                                                                  const SizedBox(
-                                                                    height: 12,
+                                                              child:
+                                                                  const Center(
+                                                                child: Text(
+                                                                  "Cash",
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: Colors
+                                                                        .white,
                                                                   ),
-                                                                  Expanded(
-                                                                    child:
-                                                                        Padding(
-                                                                      padding:
-                                                                          const EdgeInsets
-                                                                              .symmetric(
-                                                                        horizontal:
-                                                                            8,
-                                                                      ),
-                                                                      child: Image
-                                                                          .asset(
-                                                                        "assets/images/load.png",
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      height:
-                                                                          8),
-                                                                  Text(
-                                                                    "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      height:
-                                                                          1.05,
-                                                                      fontSize:
-                                                                          16,
-                                                                      color:
-                                                                          Color(
-                                                                        0xFF007BFF,
-                                                                      ),
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
-                                                                    ),
-                                                                  ),
-                                                                  const Text(
-                                                                    "TODA Load",
-                                                                    style:
-                                                                        TextStyle(
-                                                                      height:
-                                                                          1.05,
-                                                                      fontSize:
-                                                                          12,
-                                                                      color:
-                                                                          Color(
-                                                                        0xFF007BFF,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    height: 12,
-                                                                  ),
-                                                                ],
+                                                                ),
                                                               ),
+                                                            ),
+                                                            onTap: () {},
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 15),
+                                                        Expanded(
+                                                          child: WidgetButton(
+                                                            borderRadius: 8,
+                                                            child: Container(
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                borderRadius:
+                                                                    const BorderRadius
+                                                                        .all(
+                                                                  Radius
+                                                                      .circular(
+                                                                    8,
+                                                                  ),
+                                                                ),
+                                                                border:
+                                                                    Border.all(
+                                                                  color:
+                                                                      const Color(
+                                                                    0xFF007BFF,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              child:
+                                                                  const Center(
+                                                                child: Text(
+                                                                  "Load",
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color:
+                                                                        Color(
+                                                                      0xFF007BFF,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            onTap: () {},
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 15),
+                                                WidgetButton(
+                                                  onTap: () {
+                                                    if (!AuthService
+                                                        .isLoggedIn()) {
+                                                      Navigator.push(
+                                                        context,
+                                                        PageRouteBuilder(
+                                                          reverseTransitionDuration:
+                                                              Duration.zero,
+                                                          transitionDuration:
+                                                              Duration.zero,
+                                                          pageBuilder: (
+                                                            context,
+                                                            a,
+                                                            b,
+                                                          ) =>
+                                                              const LoginView(),
+                                                        ),
+                                                      );
+                                                    } else {
+                                                      Navigator.push(
+                                                        context,
+                                                        PageRouteBuilder(
+                                                          reverseTransitionDuration:
+                                                              Duration.zero,
+                                                          transitionDuration:
+                                                              Duration.zero,
+                                                          pageBuilder: (
+                                                            context,
+                                                            a,
+                                                            b,
+                                                          ) =>
+                                                              const LoadView(),
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                  borderRadius: 8,
+                                                  child: SizedBox(
+                                                    width:
+                                                        ((MediaQuery.of(context)
+                                                                        .size
+                                                                        .width -
+                                                                    64) /
+                                                                3)
+                                                            .clamp(0, 120),
+                                                    height:
+                                                        ((MediaQuery.of(context)
+                                                                        .size
+                                                                        .width -
+                                                                    64) /
+                                                                3)
+                                                            .clamp(0, 120),
+                                                    child: ConstrainedBox(
+                                                      constraints:
+                                                          const BoxConstraints(
+                                                        maxWidth: 200,
+                                                      ),
+                                                      child: Container(
+                                                        height: 50,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              const BorderRadius
+                                                                  .all(
+                                                            Radius.circular(
+                                                              8,
+                                                            ),
+                                                          ),
+                                                          border: Border.all(
+                                                            color: const Color(
+                                                              0xFF007BFF,
                                                             ),
                                                           ),
                                                         ),
+                                                        child: Column(
+                                                          children: [
+                                                            const SizedBox(
+                                                              height: 12,
+                                                            ),
+                                                            Expanded(
+                                                              child: Padding(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .symmetric(
+                                                                  horizontal: 8,
+                                                                ),
+                                                                child:
+                                                                    Image.asset(
+                                                                  "assets/images/load.png",
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 8),
+                                                            Text(
+                                                              "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
+                                                              style:
+                                                                  const TextStyle(
+                                                                height: 1.05,
+                                                                fontSize: 16,
+                                                                color: Color(
+                                                                  0xFF007BFF,
+                                                                ),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                            const Text(
+                                                              "TODA Load",
+                                                              style: TextStyle(
+                                                                height: 1.05,
+                                                                fontSize: 12,
+                                                                color: Color(
+                                                                  0xFF007BFF,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 12,
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
-                                                    ],
+                                                    ),
                                                   ),
-                                                  GestureDetector(
-                                                    onTap: () {},
+                                                ),
+                                              ],
+                                            ),
+                                            GestureDetector(
+                                              onTap: () {},
+                                              child: Container(
+                                                height: 50,
+                                                decoration: const BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                    Radius.circular(
+                                                      8,
+                                                    ),
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    const SizedBox(
+                                                      width: 12,
+                                                    ),
+                                                    const Icon(
+                                                      Icons.trip_origin,
+                                                      color: Color(
+                                                        0xFF007BFF,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 8,
+                                                    ),
+                                                    Expanded(
+                                                      child: Text(
+                                                        capitalizeWords(
+                                                          pickupAddress
+                                                              ?.addressLine,
+                                                          alt: "Where from?",
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Color(
+                                                            0xFF030744,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 12,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            WidgetButton(
+                                              onTap: () {},
+                                              borderRadius: 8,
+                                              useDefaultHoverColor: false,
+                                              mainColor:
+                                                  const Color(0xFFEAF1FE),
+                                              child: SizedBox(
+                                                height: 50,
+                                                child: Row(
+                                                  children: [
+                                                    const SizedBox(
+                                                      width: 12,
+                                                    ),
+                                                    const Icon(
+                                                      Icons.trip_origin,
+                                                      color: Colors.red,
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 8,
+                                                    ),
+                                                    Expanded(
+                                                      child: Text(
+                                                        capitalizeWords(
+                                                          dropoffAddress
+                                                              ?.addressLine,
+                                                          alt: "Where to go?",
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Color(
+                                                            0xFF030744,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 12,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 15),
+                                            Row(
+                                              children: [
+                                                SizedBox(
+                                                  width:
+                                                      ((MediaQuery.of(context)
+                                                                      .size
+                                                                      .width -
+                                                                  64) /
+                                                              3)
+                                                          .clamp(0, 120),
+                                                  child: ConstrainedBox(
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                      maxWidth: 200,
+                                                    ),
                                                     child: Container(
                                                       height: 50,
-                                                      decoration:
-                                                          const BoxDecoration(
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
                                                         borderRadius:
-                                                            BorderRadius.all(
+                                                            const BorderRadius
+                                                                .all(
                                                           Radius.circular(
                                                             8,
                                                           ),
                                                         ),
-                                                      ),
-                                                      child: Row(
-                                                        children: [
-                                                          const SizedBox(
-                                                            width: 12,
+                                                        border: Border.all(
+                                                          color: const Color(
+                                                            0xFF007BFF,
                                                           ),
-                                                          const Icon(
-                                                            Icons.trip_origin,
+                                                        ),
+                                                      ),
+                                                      child: const Center(
+                                                        child: Text(
+                                                          "Time",
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: TextStyle(
                                                             color: Color(
                                                               0xFF007BFF,
                                                             ),
                                                           ),
-                                                          const SizedBox(
-                                                            width: 8,
-                                                          ),
-                                                          Expanded(
-                                                            child: Text(
-                                                              capitalizeWords(
-                                                                pickupAddress
-                                                                    ?.addressLine,
-                                                                alt:
-                                                                    "Where from?",
-                                                              ),
-                                                              maxLines: 1,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              style:
-                                                                  const TextStyle(
-                                                                color: Color(
-                                                                  0xFF030744,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 12,
-                                                          ),
-                                                        ],
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
-                                                  WidgetButton(
+                                                ),
+                                                const SizedBox(width: 15),
+                                                Expanded(
+                                                  child: ActionButton(
+                                                    text: "BOOK",
                                                     onTap: () {},
-                                                    borderRadius: 8,
-                                                    useDefaultHoverColor: false,
-                                                    mainColor:
-                                                        const Color(0xFFEAF1FE),
-                                                    child: SizedBox(
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 15),
+                                                SizedBox(
+                                                  width:
+                                                      ((MediaQuery.of(context)
+                                                                      .size
+                                                                      .width -
+                                                                  64) /
+                                                              3)
+                                                          .clamp(0, 120),
+                                                  child: ConstrainedBox(
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                      maxWidth: 200,
+                                                    ),
+                                                    child: Container(
                                                       height: 50,
-                                                      child: Row(
-                                                        children: [
-                                                          const SizedBox(
-                                                            width: 12,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius:
+                                                            const BorderRadius
+                                                                .all(
+                                                          Radius.circular(
+                                                            8,
                                                           ),
-                                                          const Icon(
-                                                            Icons.trip_origin,
-                                                            color: Colors.red,
+                                                        ),
+                                                        border: Border.all(
+                                                          color: const Color(
+                                                            0xFF007BFF,
                                                           ),
-                                                          const SizedBox(
-                                                            width: 8,
-                                                          ),
-                                                          Expanded(
-                                                            child: Text(
-                                                              capitalizeWords(
-                                                                dropoffAddress
-                                                                    ?.addressLine,
-                                                                alt:
-                                                                    "Where to go?",
-                                                              ),
-                                                              maxLines: 1,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              style:
-                                                                  const TextStyle(
-                                                                color: Color(
-                                                                  0xFF030744,
-                                                                ),
-                                                              ),
+                                                        ),
+                                                      ),
+                                                      child: const Center(
+                                                        child: Text(
+                                                          "Fare",
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: TextStyle(
+                                                            color: Color(
+                                                              0xFF007BFF,
                                                             ),
                                                           ),
-                                                          const SizedBox(
-                                                            width: 12,
-                                                          ),
-                                                        ],
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 15),
-                                                  Row(
-                                                    children: [
-                                                      SizedBox(
-                                                        width: ((MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                        child: ConstrainedBox(
-                                                          constraints:
-                                                              const BoxConstraints(
-                                                            maxWidth: 200,
-                                                          ),
-                                                          child: Container(
-                                                            height: 50,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color:
-                                                                  Colors.white,
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
-                                                                ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            child: const Center(
-                                                              child: Text(
-                                                                "Time",
-                                                                textAlign:
-                                                                    TextAlign
-                                                                        .center,
-                                                                style:
-                                                                    TextStyle(
-                                                                  color: Color(
-                                                                    0xFF007BFF,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 15),
-                                                      Expanded(
-                                                        child: ActionButton(
-                                                          text: "BOOK",
-                                                          onTap: () {},
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 15),
-                                                      SizedBox(
-                                                        width: ((MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                        child: ConstrainedBox(
-                                                          constraints:
-                                                              const BoxConstraints(
-                                                            maxWidth: 200,
-                                                          ),
-                                                          child: Container(
-                                                            height: 50,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color:
-                                                                  Colors.white,
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
-                                                                ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            child: const Center(
-                                                              child: Text(
-                                                                "Fare",
-                                                                textAlign:
-                                                                    TextAlign
-                                                                        .center,
-                                                                style:
-                                                                    TextStyle(
-                                                                  color: Color(
-                                                                    0xFF007BFF,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 20),
-                                                ],
-                                              ),
+                                                ),
+                                              ],
                                             ),
-                                          ),
+                                            const SizedBox(height: 20),
+                                          ],
                                         ),
-                                ),
-                              ),
-                            ),
+                                      ),
+                                    ),
+                                  ),
                           ),
                         ],
                       ),

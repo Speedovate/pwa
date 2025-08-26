@@ -67,7 +67,7 @@ class GMapViewModel extends BaseViewModel {
     _debounce?.cancel();
     notifyListeners();
     _debounce = Timer(
-      const Duration(milliseconds: 1500),
+      const Duration(seconds: 2),
       () async {
         if (!skipSelectedAddress) {
           selectedAddress = null;
@@ -75,14 +75,6 @@ class GMapViewModel extends BaseViewModel {
           notifyListeners();
         }
         setBusyForObject(selectedAddress, true);
-        // showDialog(
-        //   barrierDismissible: false,
-        //   context: Get.overlayContext!,
-        //   barrierColor: Colors.transparent,
-        //   builder: (context) {
-        //     return const SizedBox();
-        //   },
-        // );
         try {
           List<Address> addresses =
               await geocoderService.findAddressesFromCoordinates(
@@ -95,8 +87,8 @@ class GMapViewModel extends BaseViewModel {
           isLoading = false;
           await addressSelected(address, animate: true);
         } catch (e) {
-          isLoading = false;
           // clearGMapDetails();
+          isLoading = false;
           selectedAddress = Address(
             coordinates: Coordinates(
               double.parse("${myLatLng?.lat ?? 9.7638}"),
