@@ -61,7 +61,9 @@ class ListViewWidget<T> extends StatelessWidget {
                 child: SizedBox(
                   width: 30,
                   height: 30,
-                  child: CircularProgressIndicator(),
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF007BFF),
+                  ),
                 ),
               ),
             ),

@@ -202,7 +202,6 @@ class _DetailsViewState extends State<DetailsView> {
                                               ) {
                                                 return const CircularProgressIndicator(
                                                   color: Color(0xFF007BFF),
-                                                  strokeWidth: 2,
                                                 );
                                               },
                                               errorWidget: (

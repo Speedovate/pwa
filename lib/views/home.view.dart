@@ -95,7 +95,6 @@ class _HomeViewState extends State<HomeView> {
                                   (context, imageUrl, progress) {
                                 return const CircularProgressIndicator(
                                   color: Color(0xFF007BFF),
-                                  strokeWidth: 2,
                                 );
                               },
                               errorWidget: (context, imageUrl, progress) {
@@ -226,7 +225,9 @@ class _HomeViewState extends State<HomeView> {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(),
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF007BFF),
+                    ),
                   );
                 }
                 final center = snapshot.data!;
@@ -248,7 +249,7 @@ class _HomeViewState extends State<HomeView> {
                                   ),
                                   onCameraMove: (center) {
                                     vm.mapCameraMove(center);
-                                    print("Camera move");
+                                    debugPrint("Camera move");
                                   },
                                   viewModel: vm,
                                 ),
@@ -271,7 +272,7 @@ class _HomeViewState extends State<HomeView> {
                                       await vm.zoomToCurrentLocation();
                                       if (vm.selectedAddress == null) {
                                         vm.mapCameraMove(vm.map?.center);
-                                        print("Camera move");
+                                        debugPrint("Camera move");
                                       }
                                     },
                                   ),
@@ -327,7 +328,7 @@ class _HomeViewState extends State<HomeView> {
                                           await vm.zoomIn();
                                           if (vm.selectedAddress == null) {
                                             vm.mapCameraMove(vm.map?.center);
-                                            print("Camera move");
+                                            debugPrint("Camera move");
                                           }
                                         },
                                       ),
@@ -338,7 +339,7 @@ class _HomeViewState extends State<HomeView> {
                                           await vm.zoomOut();
                                           if (vm.selectedAddress == null) {
                                             vm.mapCameraMove(vm.map?.center);
-                                            print("Camera move");
+                                            debugPrint("Camera move");
                                           }
                                         },
                                       ),
@@ -942,6 +943,22 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ],
                       ),
+                      !vm.isLoading
+                          ? const SizedBox()
+                          : const Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 20,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 45,
+                                  height: 45,
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF007BFF),
+                                  ),
+                                ),
+                              ),
+                            ),
                     ],
                   ),
                 );

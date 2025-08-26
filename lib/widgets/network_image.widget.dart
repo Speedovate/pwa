@@ -62,7 +62,11 @@ class NetworkImageWidget extends StatelessWidget {
             : SizedBox(
                 width: width,
                 height: height,
-                child: const Center(child: CircularProgressIndicator()),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF007BFF),
+                  ),
+                ),
               );
       },
       errorBuilder: (context, error, stackTrace) {

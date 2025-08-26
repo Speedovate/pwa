@@ -163,7 +163,6 @@ class _ProfileViewState extends State<ProfileView> {
                                         ) {
                                           return const CircularProgressIndicator(
                                             color: Color(0xFF007BFF),
-                                            strokeWidth: 2,
                                           );
                                         },
                                         errorWidget:

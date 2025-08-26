@@ -20,10 +20,10 @@ class GMapViewModel extends BaseViewModel {
 
   void setMap(gmaps.Map map) async {
     _map = map;
-    print("Camera set");
+    debugPrint("Camera set");
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       mapCameraMove(_map?.center);
-      print("Camera init");
+      debugPrint("Camera init");
       notifyListeners();
     });
   }
