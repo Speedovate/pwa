@@ -252,19 +252,16 @@ class _HomeViewState extends State<HomeView> {
                                   },
                                   viewModel: vm,
                                 ),
-                                vm.selectedAddress == null
-                                    ? const SizedBox.shrink()
-                                    : Positioned(
-                                        top: 20,
-                                        left: 20,
-                                        child: _FloatingButton(
-                                          icon: Icons.menu,
-                                          onTap: () {
-                                            _scaffoldKey.currentState
-                                                ?.openDrawer();
-                                          },
-                                        ),
-                                      ),
+                                Positioned(
+                                  top: 20,
+                                  left: 20,
+                                  child: _FloatingButton(
+                                    icon: Icons.menu,
+                                    onTap: () {
+                                      _scaffoldKey.currentState?.openDrawer();
+                                    },
+                                  ),
+                                ),
                                 Positioned(
                                   top: 20,
                                   right: 20,
@@ -279,48 +276,46 @@ class _HomeViewState extends State<HomeView> {
                                     },
                                   ),
                                 ),
-                                vm.selectedAddress == null
-                                    ? const SizedBox.shrink()
-                                    : Positioned(
-                                        left: 20,
-                                        bottom: 20,
-                                        child: Column(
-                                          children: [
-                                            _FloatingButton(
-                                              icon: Icons.cached_outlined,
-                                              onTap: () async {
-                                                if (!AuthService.isLoggedIn()) {
-                                                  Navigator.push(
-                                                    context,
-                                                    PageRouteBuilder(
-                                                      reverseTransitionDuration:
-                                                          Duration.zero,
-                                                      transitionDuration:
-                                                          Duration.zero,
-                                                      pageBuilder: (
-                                                        context,
-                                                        a,
-                                                        b,
-                                                      ) =>
-                                                          const LoginView(),
-                                                    ),
-                                                  );
-                                                } else {
-                                                  AlertService().showLoading();
-                                                  await LoadViewModel()
-                                                      .getLoadBalance();
-                                                  AlertService().stopLoading();
-                                                }
-                                              },
-                                            ),
-                                            const SizedBox(height: 8),
-                                            _FloatingButton(
-                                              icon: Icons.share,
-                                              onTap: () {},
-                                            ),
-                                          ],
-                                        ),
+                                Positioned(
+                                  left: 20,
+                                  bottom: 20,
+                                  child: Column(
+                                    children: [
+                                      _FloatingButton(
+                                        icon: Icons.cached_outlined,
+                                        onTap: () async {
+                                          if (!AuthService.isLoggedIn()) {
+                                            Navigator.push(
+                                              context,
+                                              PageRouteBuilder(
+                                                reverseTransitionDuration:
+                                                    Duration.zero,
+                                                transitionDuration:
+                                                    Duration.zero,
+                                                pageBuilder: (
+                                                  context,
+                                                  a,
+                                                  b,
+                                                ) =>
+                                                    const LoginView(),
+                                              ),
+                                            );
+                                          } else {
+                                            AlertService().showLoading();
+                                            await LoadViewModel()
+                                                .getLoadBalance();
+                                            AlertService().stopLoading();
+                                          }
+                                        },
                                       ),
+                                      const SizedBox(height: 8),
+                                      _FloatingButton(
+                                        icon: Icons.share,
+                                        onTap: () {},
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 Positioned(
                                   right: 20,
                                   bottom: 20,
