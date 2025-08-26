@@ -279,7 +279,7 @@ class _LoadViewState extends State<LoadView> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 18),
                   ],
                 ),
                 const SizedBox(height: 12),
