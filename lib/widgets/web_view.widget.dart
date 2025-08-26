@@ -1,7 +1,12 @@
 // ignore_for_file: undefined_prefixed_name, avoid_web_libraries_in_flutter
 
 import 'dart:html' as html;
+import 'dart:ui_web' as ui;
+import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/constants/images.dart';
+import 'package:pwa/constants/lotties.dart';
+import 'package:pwa/widgets/button.widget.dart';
 
 class WebViewWidget extends StatefulWidget {
   const WebViewWidget({
@@ -18,24 +23,167 @@ class WebViewWidget extends StatefulWidget {
 }
 
 class WebViewWidgetState extends State<WebViewWidget> {
+  bool showError = false;
+  bool isLoading = true;
+  late String viewType;
+
   @override
   void initState() {
     super.initState();
-    // Open URL in a new tab as soon as this screen is loaded
-    html.window.open(widget.selectedUrl.toString(), "_blank");
+    _registerIframe();
+  }
 
-    // Close this screen after opening the new tab
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) Navigator.pop(context);
-    });
+  void _registerIframe() {
+    viewType = "iframe-${DateTime.now().microsecondsSinceEpoch}";
+    ui.platformViewRegistry.registerViewFactory(
+      viewType,
+      (int viewId) {
+        final iframe = html.IFrameElement()
+          ..src = widget.selectedUrl.toString()
+          ..style.border = 'none'
+          ..style.width = '100%'
+          ..style.height = '100%'
+          ..style.overflow = 'auto'
+          ..style.userSelect = 'auto'
+          ..style.pointerEvents = 'auto';
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allowfullscreen', 'true');
+        iframe.setAttribute('title', widget.title);
+        iframe.onLoad.listen((event) {
+          if (!mounted) return;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                isLoading = false;
+                showError = false;
+              });
+            }
+          });
+        });
+
+        iframe.onError.listen((event) {
+          if (!mounted) return;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                showError = true;
+                isLoading = false;
+              });
+            }
+          });
+        });
+        return iframe;
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final dividerColor = const Color(0xFF030744).withOpacity(0.1);
+
+    return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: CircularProgressIndicator(),
+      appBar: AppBar(
+        titleSpacing: 0,
+        toolbarHeight: 74,
+        backgroundColor: Colors.white,
+        leading: Center(
+          child: WidgetButton(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: const SizedBox(
+              width: 58,
+              height: 58,
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: 2,
+                    right: 4,
+                    bottom: 2,
+                  ),
+                  child: Icon(
+                    Icons.chevron_left,
+                    color: Color(0xFF030744),
+                    size: 38,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        title: Text(
+          widget.title,
+          style: const TextStyle(
+            height: 1,
+            fontSize: 25,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF030744),
+          ),
+        ),
+      ),
+      body: Stack(
+        children: [
+          if (!showError)
+            HtmlElementView(viewType: viewType, key: ValueKey(viewType)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Divider(height: 1, thickness: 1, color: dividerColor),
+          ),
+          if (isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.grey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      height: 150,
+                      child: Stack(
+                        children: [
+                          Lottie.asset(AppLotties.loading, fit: BoxFit.cover),
+                          Center(
+                            child: Image.asset(
+                              AppImages.icon,
+                              height: 50,
+                              width: 50,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                  ],
+                ),
+              ),
+            ),
+          if (showError)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white,
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.web_asset_off,
+                        size: 75, color: Color(0xFF007BFF)),
+                    SizedBox(height: 20),
+                    Text(
+                      "An error occurred. Try again later",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Color(0x80030744),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
