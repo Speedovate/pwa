@@ -521,6 +521,7 @@ class _MapViewState extends State<MapView> {
                                 ),
                                 child: Container(
                                   height: 75,
+                                  width: double.infinity.clamp(0, 800),
                                   decoration: BoxDecoration(
                                     color:
                                         gVehicleTypes.isEmpty || mapUnavailable
@@ -646,6 +647,7 @@ class _MapViewState extends State<MapView> {
                                 ),
                                 child: SizedBox(
                                   height: 50,
+                                  width: double.infinity.clamp(0, 800),
                                   child: Material(
                                     color: vm.selectedAddress == null
                                         ? const Color(0xFF030744)
@@ -655,7 +657,7 @@ class _MapViewState extends State<MapView> {
                                       Radius.circular(8),
                                     ),
                                     child: Ink(
-                                      child: InkWell(
+                                      child: ActionButton(
                                         onTap: () {
                                           FocusManager.instance.primaryFocus
                                               ?.unfocus();
@@ -670,37 +672,9 @@ class _MapViewState extends State<MapView> {
                                             Navigator.pop(context, true);
                                           }
                                         },
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(8),
-                                        ),
-                                        focusColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.2,
-                                        ),
-                                        hoverColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.2,
-                                        ),
-                                        splashColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.2,
-                                        ),
-                                        highlightColor:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.2,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            vm.selectedAddress == null
-                                                ? "•••"
-                                                : "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}",
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
+                                        text: vm.selectedAddress == null
+                                            ? "•••"
+                                            : "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}",
                                       ),
                                     ),
                                   ),
