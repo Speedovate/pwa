@@ -111206,7 +111206,7 @@ return new A.cJ(new A.at(B.IE,A.bM(r,B.l,B.o,B.n),null),B.h,this.r,0,!0,null)}}
 A.F4.prototype={
 H(a){var s,r,q,p=this,o=null,n=p.f
 if(n)s=50
-else s=p.w===1&&J.kF(p.c)?A.ac(a,o,t.w).w.a.b:8
+else s=p.w===1&&J.kF(p.c)?A.ac(a,o,t.w).w.a.b*0.5:8
 r=J.bX(p.c)
 q=o
 r=A.a([new A.T_(new A.X4(new A.alW(p),r,!0,!0,!0,o),new A.aw(20,8,20,s),B.aU,!1,p.e,o,q,!1,o,r,B.F,B.S1,o,B.r,B.ay,o)],t.p)
