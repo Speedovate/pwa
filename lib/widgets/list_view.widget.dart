@@ -23,7 +23,7 @@ class ListViewWidget<T> extends StatelessWidget {
     double computedBottomPadding = isLoadingMore
         ? 50
         : (currentPage == 1 && items.isNotEmpty
-            ? MediaQuery.of(context).size.height * 0.5
+            ? MediaQuery.of(context).size.height
             : 8);
 
     return NotificationListener<ScrollNotification>(
