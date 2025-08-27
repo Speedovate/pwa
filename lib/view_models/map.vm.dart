@@ -14,7 +14,7 @@ class MapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
-  Address? selectedAddress;
+  ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
   TaxiRequest taxiRequest = TaxiRequest();
   FocusNode searchFocusNode = FocusNode();
   GeocoderService geocoderService = GeocoderService();
@@ -26,6 +26,7 @@ class MapViewModel extends BaseViewModel {
     _debounce = null;
     searchFocusNode.dispose();
     searchTEC.dispose();
+    selectedAddress.dispose();
     _map?.controls.clear();
     _map = null;
     super.dispose();
@@ -33,13 +34,12 @@ class MapViewModel extends BaseViewModel {
 
   initialise({required bool isPickup}) {
     if (isPickup && pickupAddress != null) {
-      selectedAddress = pickupAddress;
+      selectedAddress.value = pickupAddress;
     } else if (!isPickup && pickupAddress != null && dropoffAddress == null) {
-      selectedAddress = pickupAddress;
+      selectedAddress.value = pickupAddress;
     } else if (!isPickup && dropoffAddress != null) {
-      selectedAddress = dropoffAddress;
-    } else {}
-    notifyListeners();
+      selectedAddress.value = dropoffAddress;
+    }
   }
 
   void setMap({
@@ -48,7 +48,7 @@ class MapViewModel extends BaseViewModel {
   }) async {
     _map = map;
     debugPrint("Map set");
-    selectedAddress = isPickup
+    selectedAddress.value = isPickup
         ? pickupAddress ??
             Address(
               addressLine: pickupAddress!.addressLine,
@@ -68,7 +68,7 @@ class MapViewModel extends BaseViewModel {
                     "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
               ),
             );
-    map.center = selectedAddress!.latLng;
+    map.center = selectedAddress.value!.latLng;
   }
 
   gmaps.Map? get map => _map;
@@ -78,7 +78,6 @@ class MapViewModel extends BaseViewModel {
       final target = initLatLng;
       _map!.panTo(target!);
       _map!.zoom = zoom;
-      notifyListeners();
     }
   }
 
@@ -86,7 +85,6 @@ class MapViewModel extends BaseViewModel {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom + 1).clamp(2, 21);
-      notifyListeners();
     }
   }
 
@@ -94,7 +92,6 @@ class MapViewModel extends BaseViewModel {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom - 1).clamp(2, 21);
-      notifyListeners();
     }
   }
 
@@ -104,21 +101,18 @@ class MapViewModel extends BaseViewModel {
     required bool isPickup,
   }) async {
     if (!skipSelectedAddress) {
-      selectedAddress = null;
-      notifyListeners();
+      selectedAddress.value = null;
     }
     locUnavailable = false;
     _debounce?.cancel();
-    notifyListeners();
     _debounce = Timer(
       const Duration(seconds: 2),
       () async {
         if (!skipSelectedAddress) {
-          selectedAddress = null;
+          selectedAddress.value = null;
           isLoading = true;
-          notifyListeners();
         }
-        setBusyForObject(selectedAddress, true);
+        setBusyForObject(selectedAddress.value, true);
         try {
           List<Address> addresses =
               await geocoderService.findAddressesFromCoordinates(
@@ -135,9 +129,8 @@ class MapViewModel extends BaseViewModel {
             isPickup: isPickup,
           );
         } catch (e) {
-          // clearGMapDetails();
           isLoading = false;
-          selectedAddress = Address(
+          selectedAddress.value = Address(
             coordinates: Coordinates(
               double.parse("${initLatLng?.lat ?? 9.7638}"),
               double.parse("${initLatLng?.lng ?? 118.7473}"),
@@ -149,53 +142,31 @@ class MapViewModel extends BaseViewModel {
           );
           if (!apiResponse.allGood) {
             locUnavailable = true;
-            notifyListeners();
           }
           ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
-          ScaffoldMessenger.of(
-            Get.overlayContext!,
-          ).showSnackBar(
+          ScaffoldMessenger.of(Get.overlayContext!).showSnackBar(
             SnackBar(
               backgroundColor: Colors.red,
               content: Text(
                 apiResponse.message.contains("service")
                     ? "Please try another location"
-                    : e.toString().toLowerCase().contains("dio")
-                        ? "There was an error while processing"
-                            " your request. Please try again later"
-                        : e.toString().toLowerCase().contains("bad")
-                            ? "There was a problem with your location "
-                                "detection or your internet connection"
-                            : e.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
-                ),
+                    : e.toString(),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           );
         }
+
         if (gVehicleTypes.isEmpty) {
           try {
             gVehicleTypes = await taxiRequest.vehicleTypesRequest();
-            debugPrint(
-              "gmap vehicleTypesRequest success",
-            );
+            debugPrint("gmap vehicleTypesRequest success");
           } catch (e) {
-            debugPrint(
-              "gmap vehicleTypesRequest error 1: $e",
-            );
+            debugPrint("gmap vehicleTypesRequest error: $e");
           }
         }
-        if (pickupAddress != null && dropoffAddress != null) {
-          // await drawDropPolyLines(
-          //   "pickup-dropoff",
-          //   null,
-          //   pickupAddress!.latLng,
-          //   dropoffAddress!.latLng,
-          // );
-          // await HomeViewModel().fetchVehicleTypesPricing();
-        }
-        setBusyForObject(selectedAddress, false);
+
+        setBusyForObject(selectedAddress.value, false);
       },
     );
   }
@@ -205,12 +176,12 @@ class MapViewModel extends BaseViewModel {
     bool animate = false,
     required bool isPickup,
   }) async {
-    setBusyForObject(selectedAddress, true);
+    setBusyForObject(selectedAddress.value, true);
     try {
       if (address.gMapPlaceId != null) {
         address = await geocoderService.fetchPlaceDetails(address);
       }
-      selectedAddress = address;
+      selectedAddress.value = address;
       if (isPickup) {
         pickupAddress = address;
       } else {
@@ -234,7 +205,7 @@ class MapViewModel extends BaseViewModel {
     } catch (e) {
       debugPrint("Error in addressSelected: $e");
     } finally {
-      setBusyForObject(selectedAddress, false);
+      setBusyForObject(selectedAddress.value, false);
     }
   }
 
