@@ -24,6 +24,8 @@ class MapViewModel extends BaseViewModel {
   void dispose() {
     _debounce?.cancel();
     _debounce = null;
+    searchFocusNode.dispose();
+    searchTEC.dispose();
     _map?.controls.clear();
     _map = null;
     super.dispose();
