@@ -269,7 +269,7 @@ class _HomeViewState extends State<HomeView> {
                                     icon: Icons.my_location_outlined,
                                     onTap: () async {
                                       await vm.zoomToCurrentLocation();
-                                      if (vm.selectedAddress == null) {
+                                      if (vm.selectedAddress.value == null) {
                                         if (!vm.disposed) {
                                           vm.mapCameraMove(vm.map?.center);
                                           debugPrint("Map move");
@@ -327,7 +327,8 @@ class _HomeViewState extends State<HomeView> {
                                         icon: Icons.add,
                                         onTap: () async {
                                           await vm.zoomIn();
-                                          if (vm.selectedAddress == null) {
+                                          if (vm.selectedAddress.value ==
+                                              null) {
                                             if (!vm.disposed) {
                                               vm.mapCameraMove(vm.map?.center);
                                               debugPrint("Map move");
@@ -340,7 +341,8 @@ class _HomeViewState extends State<HomeView> {
                                         icon: Icons.remove,
                                         onTap: () async {
                                           await vm.zoomOut();
-                                          if (vm.selectedAddress == null) {
+                                          if (vm.selectedAddress.value ==
+                                              null) {
                                             if (!vm.disposed) {
                                               vm.mapCameraMove(vm.map?.center);
                                               debugPrint("Map move");
@@ -375,7 +377,7 @@ class _HomeViewState extends State<HomeView> {
                                 decoration: const BoxDecoration(
                                   color: Colors.white,
                                 ),
-                                child: vm.selectedAddress == null
+                                child: vm.selectedAddress.value == null
                                     ? const SizedBox.shrink()
                                     : Center(
                                         child: Padding(

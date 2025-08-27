@@ -25,7 +25,8 @@ class SplashViewModel extends BaseViewModel {
     await getVehicles();
     await getBanners();
     startListeningToConfigs();
-    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ?? !AuthService.isLoggedIn();
+    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
+        !AuthService.isLoggedIn();
     await goToNextPage();
   }
 
@@ -34,7 +35,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "1";
+      versionCode = "8";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -182,7 +183,8 @@ class SplashViewModel extends BaseViewModel {
         .listen(
       (event) async {
         try {
-          if ("${StorageService.prefs?.getString("config_version")}" == "" ||
+          if ("${StorageService.prefs?.getString("config_version")}"
+                  .isNotEmpty ||
               "${StorageService.prefs?.getString("config_version")}" ==
                   "null" ||
               "${StorageService.prefs?.getString("config_version")}" !=

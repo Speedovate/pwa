@@ -48,15 +48,20 @@ class _MapViewState extends State<MapView> {
                         children: [
                           const SizedBox(width: 4),
                           IconButton(
-                            onPressed: () => Get.back(),
+                            onPressed: () {
+                              Get.back();
+                            },
                             icon: const Padding(
                               padding: EdgeInsets.only(
                                 top: 2,
                                 right: 4,
                                 bottom: 2,
                               ),
-                              child: Icon(Icons.chevron_left,
-                                  color: Color(0xFF030744), size: 38),
+                              child: Icon(
+                                Icons.chevron_left,
+                                color: Color(0xFF030744),
+                                size: 38,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -103,15 +108,18 @@ class _MapViewState extends State<MapView> {
                                   horizontal: 16,
                                 ),
                                 leading: ClipOval(
-                                  child: Image.asset("assets/images/logo.png",
-                                      height: 25),
+                                  child: Image.asset(
+                                    "assets/images/logo.png",
+                                    height: 25,
+                                  ),
                                 ),
                                 title: Text(
                                   capitalizeWords(suggestion.addressLine),
                                   style: const TextStyle(
-                                      height: 1,
-                                      fontSize: 13,
-                                      color: Color(0xFF030744)),
+                                    height: 1,
+                                    fontSize: 13,
+                                    color: Color(0xFF030744),
+                                  ),
                                 ),
                               ),
                               decorationBuilder: (context, child) => Material(
@@ -137,9 +145,10 @@ class _MapViewState extends State<MapView> {
                                 focusNode: focusNode,
                                 controller: controller,
                                 style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF030744)),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF030744),
+                                ),
                                 decoration: InputDecoration(
                                   hintStyle: TextStyle(
                                     fontSize: 15,
@@ -158,9 +167,11 @@ class _MapViewState extends State<MapView> {
                                   ),
                                   suffixIcon: GestureDetector(
                                     onTap: () => vm.searchTEC.clear(),
-                                    child: Icon(Icons.clear,
-                                        color: const Color(0xFF030744)
-                                            .withOpacity(0.5)),
+                                    child: Icon(
+                                      Icons.clear,
+                                      color: const Color(0xFF030744)
+                                          .withOpacity(0.5),
+                                    ),
                                   ),
                                   hintText:
                                       "Search ${widget.isPickup ? "Pickup" : "Dropoff"}",
@@ -192,8 +203,10 @@ class _MapViewState extends State<MapView> {
                                   isPickup: widget.isPickup, map: map),
                               onCameraMove: (center) {
                                 if (!vm.disposed) {
-                                  vm.mapCameraMove(center,
-                                      isPickup: widget.isPickup);
+                                  vm.mapCameraMove(
+                                    center,
+                                    isPickup: widget.isPickup,
+                                  );
                                   debugPrint("Map move");
                                 }
                               },
@@ -203,7 +216,18 @@ class _MapViewState extends State<MapView> {
                               right: 20,
                               child: _FloatingButton(
                                 icon: Icons.my_location_outlined,
-                                onTap: vm.zoomToCurrentLocation,
+                                onTap: () async {
+                                  await vm.zoomToCurrentLocation();
+                                  if (vm.selectedAddress.value == null) {
+                                    if (!vm.disposed) {
+                                      vm.mapCameraMove(
+                                        vm.map?.center,
+                                        isPickup: widget.isPickup,
+                                      );
+                                      debugPrint("Map move");
+                                    }
+                                  }
+                                },
                               ),
                             ),
                             Positioned(
@@ -213,12 +237,34 @@ class _MapViewState extends State<MapView> {
                                 children: [
                                   _FloatingButton(
                                     icon: Icons.add,
-                                    onTap: vm.zoomIn,
+                                    onTap: () async {
+                                      await vm.zoomIn();
+                                      if (vm.selectedAddress.value == null) {
+                                        if (!vm.disposed) {
+                                          vm.mapCameraMove(
+                                            vm.map?.center,
+                                            isPickup: widget.isPickup,
+                                          );
+                                          debugPrint("Map move");
+                                        }
+                                      }
+                                    },
                                   ),
                                   const SizedBox(height: 8),
                                   _FloatingButton(
                                     icon: Icons.remove,
-                                    onTap: vm.zoomOut,
+                                    onTap: () async {
+                                      await vm.zoomOut();
+                                      if (vm.selectedAddress.value == null) {
+                                        if (!vm.disposed) {
+                                          vm.mapCameraMove(
+                                            vm.map?.center,
+                                            isPickup: widget.isPickup,
+                                          );
+                                          debugPrint("Map move");
+                                        }
+                                      }
+                                    },
                                   ),
                                 ],
                               ),
@@ -369,7 +415,8 @@ class _MapViewState extends State<MapView> {
                                             .withOpacity(0.25)
                                         : const Color(0xFF007BFF),
                                     borderRadius: const BorderRadius.all(
-                                        Radius.circular(8)),
+                                      Radius.circular(8),
+                                    ),
                                     child: Ink(
                                       child: ActionButton(
                                         onTap: () {

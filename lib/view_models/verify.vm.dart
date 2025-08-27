@@ -94,7 +94,7 @@ class VerifyViewModel extends BaseViewModel {
   }
 
   verifyCode(String purpose) async {
-    if ((codeTEC.text == "" || codeTEC.text == "null") ||
+    if ((codeTEC.text.isNotEmpty || codeTEC.text == "null") ||
         codeTEC.text.length != 6) {
       ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
       ScaffoldMessenger.of(

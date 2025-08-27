@@ -14,14 +14,15 @@ class GMapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
-  Address? selectedAddress;
   TaxiRequest taxiRequest = TaxiRequest();
   GeocoderService geocoderService = GeocoderService();
+  ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
 
   @override
   void dispose() {
     _debounce?.cancel();
     _debounce = null;
+    selectedAddress.dispose();
     _map?.controls.clear();
     _map = null;
     super.dispose();
@@ -69,7 +70,7 @@ class GMapViewModel extends BaseViewModel {
     bool skipSelectedAddress = false,
   }) async {
     if (!skipSelectedAddress) {
-      selectedAddress = null;
+      selectedAddress.value = null;
       notifyListeners();
     }
     locUnavailable = false;
@@ -79,7 +80,7 @@ class GMapViewModel extends BaseViewModel {
       const Duration(seconds: 2),
       () async {
         if (!skipSelectedAddress) {
-          selectedAddress = null;
+          selectedAddress.value = null;
           isLoading = true;
           notifyListeners();
         }
@@ -98,7 +99,7 @@ class GMapViewModel extends BaseViewModel {
         } catch (e) {
           // clearGMapDetails();
           isLoading = false;
-          selectedAddress = Address(
+          selectedAddress.value = Address(
             coordinates: Coordinates(
               double.parse("${myLatLng?.lat ?? 9.7638}"),
               double.parse("${myLatLng?.lng ?? 118.7473}"),
@@ -172,7 +173,7 @@ class GMapViewModel extends BaseViewModel {
         address = await geocoderService.fetchPlaceDetails(address);
       }
 
-      selectedAddress = address;
+      selectedAddress.value = address;
       pickupAddress = address;
 
       if (_map != null) {

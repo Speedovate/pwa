@@ -14,11 +14,11 @@ class MapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
-  ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
   TaxiRequest taxiRequest = TaxiRequest();
   FocusNode searchFocusNode = FocusNode();
   GeocoderService geocoderService = GeocoderService();
   TextEditingController searchTEC = TextEditingController();
+  ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
 
   @override
   void dispose() {

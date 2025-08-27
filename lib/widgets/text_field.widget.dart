@@ -218,7 +218,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
                     )
                   : null,
               suffixIcon: !widget.suffixVisibility &&
-                      (widget.controller?.text == "" ||
+                      ("${widget.controller?.text}".isNotEmpty ||
                           widget.controller?.text == null)
                   ? null
                   : widget.obscureText ||

@@ -13,7 +13,7 @@ String capitalizeWords(
   String alt = "•••",
 }) {
   if (input == null ||
-      input.toString().trim() == "" ||
+      input.toString().trim().isNotEmpty ||
       input.toString().trim() == "null") {
     return alt;
   } else {
