@@ -270,8 +270,10 @@ class _HomeViewState extends State<HomeView> {
                                     onTap: () async {
                                       await vm.zoomToCurrentLocation();
                                       if (vm.selectedAddress == null) {
-                                        vm.mapCameraMove(vm.map?.center);
-                                        debugPrint("Map move");
+                                        if (!vm.disposed) {
+                                          vm.mapCameraMove(vm.map?.center);
+                                          debugPrint("Map move");
+                                        }
                                       }
                                     },
                                   ),
@@ -326,8 +328,10 @@ class _HomeViewState extends State<HomeView> {
                                         onTap: () async {
                                           await vm.zoomIn();
                                           if (vm.selectedAddress == null) {
-                                            vm.mapCameraMove(vm.map?.center);
-                                            debugPrint("Map move");
+                                            if (!vm.disposed) {
+                                              vm.mapCameraMove(vm.map?.center);
+                                              debugPrint("Map move");
+                                            }
                                           }
                                         },
                                       ),
@@ -337,8 +341,10 @@ class _HomeViewState extends State<HomeView> {
                                         onTap: () async {
                                           await vm.zoomOut();
                                           if (vm.selectedAddress == null) {
-                                            vm.mapCameraMove(vm.map?.center);
-                                            debugPrint("Map move");
+                                            if (!vm.disposed) {
+                                              vm.mapCameraMove(vm.map?.center);
+                                              debugPrint("Map move");
+                                            }
                                           }
                                         },
                                       ),

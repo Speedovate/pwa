@@ -248,11 +248,13 @@ class _MapViewState extends State<MapView> {
                                 onTap: () async {
                                   await vm.zoomToCurrentLocation();
                                   if (vm.selectedAddress == null) {
-                                    vm.mapCameraMove(
-                                      vm.map?.center,
-                                      isPickup: widget.isPickup,
-                                    );
-                                    debugPrint("Map move");
+                                    if (!vm.disposed) {
+                                      vm.mapCameraMove(
+                                        vm.map?.center,
+                                        isPickup: widget.isPickup,
+                                      );
+                                      debugPrint("Map move");
+                                    }
                                   }
                                 },
                               ),
@@ -267,11 +269,13 @@ class _MapViewState extends State<MapView> {
                                     onTap: () async {
                                       await vm.zoomIn();
                                       if (vm.selectedAddress == null) {
-                                        vm.mapCameraMove(
-                                          vm.map?.center,
-                                          isPickup: widget.isPickup,
-                                        );
-                                        debugPrint("Map move");
+                                        if (!vm.disposed) {
+                                          vm.mapCameraMove(
+                                            vm.map?.center,
+                                            isPickup: widget.isPickup,
+                                          );
+                                          debugPrint("Map move");
+                                        }
                                       }
                                     },
                                   ),
@@ -281,11 +285,13 @@ class _MapViewState extends State<MapView> {
                                     onTap: () async {
                                       await vm.zoomOut();
                                       if (vm.selectedAddress == null) {
-                                        vm.mapCameraMove(
-                                          vm.map?.center,
-                                          isPickup: widget.isPickup,
-                                        );
-                                        debugPrint("Map move");
+                                        if (!vm.disposed) {
+                                          vm.mapCameraMove(
+                                            vm.map?.center,
+                                            isPickup: widget.isPickup,
+                                          );
+                                          debugPrint("Map move");
+                                        }
                                       }
                                     },
                                   ),
