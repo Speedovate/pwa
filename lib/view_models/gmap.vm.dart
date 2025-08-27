@@ -1,5 +1,8 @@
+// ignore_for_file: avoid_web_libraries_in_flutter
+
 import 'dart:async';
 import 'package:get/get.dart';
+import 'dart:js_util' as js_util;
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +17,8 @@ class GMapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
+  List<gmaps.Marker>? markers = [];
+  List<gmaps.Polyline>? polylines = [];
   TaxiRequest taxiRequest = TaxiRequest();
   GeocoderService geocoderService = GeocoderService();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
@@ -148,15 +153,6 @@ class GMapViewModel extends BaseViewModel {
             );
           }
         }
-        if (pickupAddress != null && dropoffAddress != null) {
-          // await drawDropPolyLines(
-          //   "pickup-dropoff",
-          //   null,
-          //   pickupAddress!.latLng,
-          //   dropoffAddress!.latLng,
-          // );
-          // await HomeViewModel().fetchVehicleTypesPricing();
-        }
         setBusyForObject(selectedAddress, false);
       },
     );
@@ -167,30 +163,27 @@ class GMapViewModel extends BaseViewModel {
     bool animate = false,
   }) async {
     setBusyForObject(selectedAddress, true);
-
     try {
       if (address.gMapPlaceId != null) {
         address = await geocoderService.fetchPlaceDetails(address);
       }
-
       selectedAddress.value = address;
       pickupAddress = address;
-
       if (_map != null) {
         num currentZoom = _map!.zoom;
-
         if (animate) {
-          _map!.panTo(gmaps.LatLng(
-            address.coordinates.latitude,
-            address.coordinates.longitude,
-          ));
+          _map!.panTo(
+            gmaps.LatLng(
+              address.coordinates.latitude,
+              address.coordinates.longitude,
+            ),
+          );
         } else {
           _map!.center = gmaps.LatLng(
             address.coordinates.latitude,
             address.coordinates.longitude,
           );
         }
-
         _map!.zoom = currentZoom;
       }
     } catch (e) {
@@ -202,8 +195,107 @@ class GMapViewModel extends BaseViewModel {
 
   Future<void> drawDropPolyLines(
     String purpose,
-    gmaps.LatLng? driverLatLng,
     gmaps.LatLng pickupLatLng,
     gmaps.LatLng dropoffLatLng,
-  ) async {}
+    gmaps.LatLng? driverLatLng,
+  ) async {
+    if (_map == null) return;
+    markers?.forEach((m) => m.map = null);
+    markers = [];
+    polylines?.forEach((p) => p.map = null);
+    polylines = [];
+    markers?.addAll(
+      [
+        gmaps.Marker(
+          gmaps.MarkerOptions(
+            position: pickupLatLng,
+            map: _map,
+            // icon: js_util.jsify(
+            //   {
+            //     'url': 'https://ppctoda.com/storage/3394/photo.jpg',
+            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+            //   },
+            // ),
+          ),
+        ),
+        gmaps.Marker(
+          gmaps.MarkerOptions(
+            position: dropoffLatLng,
+            map: _map,
+            // icon: js_util.jsify(
+            //   {
+            //     'url': 'https://ppctoda.com/storage/3395/photo.jpg',
+            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+            //   },
+            // ),
+          ),
+        ),
+        if (driverLatLng != null)
+          gmaps.Marker(
+            gmaps.MarkerOptions(
+              position: driverLatLng,
+              map: _map,
+              // icon: js_util.jsify(
+              //   {
+              //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
+              //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+              //   },
+              // ),
+            ),
+          ),
+      ],
+    );
+    try {
+      final result = await geocoderService.getPolyline(
+        gmaps.LatLng(pickupAddress!.latLng.lat, pickupAddress!.latLng.lng),
+        gmaps.LatLng(dropoffAddress!.latLng.lat, dropoffAddress!.latLng.lng),
+        purpose,
+      );
+      if (result.isNotEmpty) {
+        final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
+        List<gmaps.LatLng> polylinePoints = points;
+        final pathJs = js_util.jsify(polylinePoints);
+        final polyline = gmaps.Polyline(
+          gmaps.PolylineOptions()
+            ..path = pathJs
+            ..strokeColor = "#42A5F5"
+            ..strokeOpacity = 1
+            ..strokeWeight = 4
+            ..map = _map,
+        );
+        polylines?.add(polyline);
+        num minLat = polylinePoints.first.lat;
+        num minLng = polylinePoints.first.lng;
+        num maxLat = polylinePoints.last.lat;
+        num maxLng = polylinePoints.last.lng;
+        final allPoints = [
+          ...polylinePoints,
+          if (driverLatLng != null) driverLatLng
+        ];
+        for (var point in allPoints) {
+          if (point.lat < minLat) minLat = point.lat;
+          if (point.lat > maxLat) maxLat = point.lat;
+          if (point.lng < minLng) minLng = point.lng;
+          if (point.lng > maxLng) maxLng = point.lng;
+        }
+        const offset = 0.001;
+        if ((maxLat - minLat).abs() < offset) {
+          maxLat += offset;
+          minLat -= offset;
+        }
+        if ((maxLng - minLng).abs() < offset) {
+          maxLng += offset;
+          minLng -= offset;
+        }
+        final sw = gmaps.LatLng(minLat, minLng);
+        final ne = gmaps.LatLng(maxLat, maxLng);
+        final bounds = gmaps.LatLngBounds(sw, ne);
+        _map!.fitBounds(bounds);
+      } else {
+        debugPrint("No polyline points received from backend");
+      }
+    } catch (e) {
+      debugPrint("Error drawing polyline: $e");
+    }
+  }
 }

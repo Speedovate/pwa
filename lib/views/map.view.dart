@@ -273,12 +273,14 @@ class _MapViewState extends State<MapView> {
                                   ],
                                 ),
                               ),
-                              const Center(
+                              Center(
                                 child: Padding(
-                                  padding: EdgeInsets.only(bottom: 40),
+                                  padding: const EdgeInsets.only(bottom: 40),
                                   child: Icon(
                                     Icons.location_on,
-                                    color: Color(0xFF007BFF),
+                                    color: widget.isPickup
+                                        ? const Color(0xFF007BFF)
+                                        : Colors.red,
                                     size: 50,
                                   ),
                                 ),

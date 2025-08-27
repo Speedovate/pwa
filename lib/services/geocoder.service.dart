@@ -1,6 +1,7 @@
+import 'dart:math';
 import 'package:pwa/utils/data.dart';
-import 'package:singleton/singleton.dart';
 import 'package:pwa/constants/api.dart';
+import 'package:singleton/singleton.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/models/address.model.dart';
@@ -8,7 +9,6 @@ import 'package:pwa/services/http.service.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class GeocoderService extends HttpService {
   factory GeocoderService() => Singleton.lazy(() => GeocoderService._());
@@ -16,26 +16,18 @@ class GeocoderService extends HttpService {
   GeocoderService._();
 
   Future<List<Address>> findAddressesFromCoordinates(
-    Coordinates coordinates,
-  ) async {
+      Coordinates coordinates) async {
     final apiResult = await get(
       Api.geoCoordinates,
       queryParameters: {
         "lat": coordinates.latitude,
         "lng": coordinates.longitude,
       },
-    ).timeout(
-      const Duration(
-        seconds: 30,
-      ),
-    );
+    ).timeout(const Duration(seconds: 30));
+
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {
-      return (apiResponse.data).map(
-        (e) {
-          return Address.fromServerMap(e);
-        },
-      ).toList();
+      return (apiResponse.data).map((e) => Address.fromServerMap(e)).toList();
     }
     return [];
   }
@@ -45,13 +37,9 @@ class GeocoderService extends HttpService {
     final plusCodePattern = RegExp(
         r'^[23456789CFGHJMPQRVWX]{4,}\+?[23456789CFGHJMPQRVWX]{2,}',
         caseSensitive: false);
-    if (plusCodePattern.hasMatch(address.trim().split(',').first)) {
-      return false;
-    }
     final coordinatePattern = RegExp(r'^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$');
-    if (coordinatePattern.hasMatch(address.trim())) {
-      return false;
-    }
+    if (plusCodePattern.hasMatch(address.trim().split(',').first)) return false;
+    if (coordinatePattern.hasMatch(address.trim())) return false;
     return true;
   }
 
@@ -60,26 +48,22 @@ class GeocoderService extends HttpService {
       final apiResult = await getExternal(
         "https://cors-anywhere.com/https://maps.googleapis.com/maps/api/place/textsearch/json?query=$keyword%20puerto%20princesa&location=${initLatLng?.lat ?? 9.7392},${initLatLng?.lat ?? 118.7353}&radius=15000&key=AIza${AppStrings.homeSettingsObject?["external_api"] ?? "SyAZ_QLjsiFZnrZr33sCqW-SlTtkIV7PTeM"}",
       );
-      if (apiResult.statusCode == 200) {
-        Map<String, dynamic> apiResponse = apiResult.data;
-        List<dynamic> results = apiResponse["results"];
+      final apiResponse = ApiResponse.fromResponse(apiResult);
+      if (apiResponse.allGood) {
+        List<dynamic> results = apiResponse.body["results"];
         List<Address> finalAddresses = [];
         for (var e in results) {
-          String? rawAddress = e["formatted_address"];
           double? lat = e["geometry"]?["location"]?["lat"];
           double? lng = e["geometry"]?["location"]?["lng"];
           if (lat == null || lng == null) continue;
+          String? rawAddress = e["formatted_address"];
           if (isReadableAddress(rawAddress)) {
             final address = Address.fromServerMap(e);
             address.gMapPlaceId = e["place_id"] ?? "";
             finalAddresses.add(address);
           } else {
-            final fallbackAddresses = await findAddressesFromCoordinates(
-              Coordinates(
-                lat,
-                lng,
-              ),
-            );
+            final fallbackAddresses =
+                await findAddressesFromCoordinates(Coordinates(lat, lng));
             if (fallbackAddresses.isNotEmpty) {
               final address = fallbackAddresses.first;
               address.gMapPlaceId = e["place_id"] ?? "";
@@ -98,18 +82,14 @@ class GeocoderService extends HttpService {
           "keyword": keyword,
           "location": myLatLng,
         },
-      ).timeout(
-        const Duration(seconds: 30),
-      );
+      ).timeout(const Duration(seconds: 30));
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
-        return (apiResponse.data).map(
-          (e) {
-            final address = Address.fromServerMap(e);
-            address.gMapPlaceId = e["place_id"] ?? "";
-            return address;
-          },
-        ).toList();
+        return (apiResponse.data).map((e) {
+          final address = Address.fromServerMap(e);
+          address.gMapPlaceId = e["place_id"] ?? "";
+          return address;
+        }).toList();
       }
       return [];
     }
@@ -121,25 +101,19 @@ class GeocoderService extends HttpService {
       queryParameters: {
         "place_id": address.gMapPlaceId,
       },
-    ).timeout(
-      const Duration(
-        seconds: 30,
-      ),
-    );
+    ).timeout(const Duration(seconds: 30));
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {
       try {
-        return Address.fromServerMap(
-          apiResponse.body as Map<String, dynamic>,
-        );
-      } catch (e) {
+        return Address.fromServerMap(apiResponse.body as Map<String, dynamic>);
+      } catch (_) {
         return address;
       }
     }
     return address;
   }
 
-  Future<List<PointLatLng>> getPolyline(
+  Future<List<List<double>>> getPolyline(
     gmaps.LatLng pointA,
     gmaps.LatLng pointB,
     String purpose,
@@ -147,16 +121,12 @@ class GeocoderService extends HttpService {
     final apiResult = await get(
       Api.geoPolylines,
       queryParameters: {
+        "purpose": purpose,
         "key": AppStrings.googleMapApiKey,
         "origin": "${pointA.lat},${pointA.lng}",
         "destination": "${pointB.lat},${pointB.lng}",
-        "purpose": purpose,
       },
-    ).timeout(
-      const Duration(
-        seconds: 30,
-      ),
-    );
+    ).timeout(const Duration(seconds: 30));
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {
       final decoded = decodeEncodedPolyline(
@@ -167,33 +137,37 @@ class GeocoderService extends HttpService {
     throw apiResponse.message;
   }
 
-  List<PointLatLng> decodeEncodedPolyline(String encoded) {
-    List<PointLatLng> poly = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
+  List<List<double>> decodeEncodedPolyline(String encoded) {
+    List<List<double>> poly = [];
+    int index = 0;
+    final int len = encoded.length;
+    double lat = 0.0;
+    double lng = 0.0;
     while (index < len) {
-      int b, shift = 0, result = 0;
+      double result = 0.0;
+      int shift = 0;
+      int b;
       do {
         b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
+        result += (b & 0x1F) * pow(2, shift);
         shift += 5;
       } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      double dlat = ((result % 2 != 0)
+          ? -(result / 2 + 1).floorToDouble()
+          : (result / 2));
       lat += dlat;
+      result = 0.0;
       shift = 0;
-      result = 0;
       do {
         b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
+        result += (b & 0x1F) * pow(2, shift);
         shift += 5;
       } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      double dlng = ((result % 2 != 0)
+          ? -(result / 2 + 1).floorToDouble()
+          : (result / 2));
       lng += dlng;
-      PointLatLng p = PointLatLng(
-        (lat / 1E5).toDouble(),
-        (lng / 1E5).toDouble(),
-      );
-      poly.add(p);
+      poly.add([lat / 1e5, lng / 1e5]);
     }
     return poly;
   }

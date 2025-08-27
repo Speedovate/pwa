@@ -248,7 +248,9 @@ class _HomeViewState extends State<HomeView> {
                                       vm.setMap(map);
                                     },
                                     onCameraMove: (center) {
-                                      if (!vm.disposed) {
+                                      final a = vm.disposed;
+                                      final b = vm.markers ?? [];
+                                      if (!a && b.isEmpty) {
                                         vm.mapCameraMove(center);
                                         debugPrint("Map move");
                                       }
@@ -270,12 +272,22 @@ class _HomeViewState extends State<HomeView> {
                                     child: _FloatingButton(
                                       icon: Icons.my_location_outlined,
                                       onTap: () async {
-                                        await vm.zoomToCurrentLocation();
-                                        if (vm.selectedAddress.value == null) {
-                                          if (!vm.disposed) {
-                                            vm.mapCameraMove(vm.map?.center);
-                                            debugPrint("Map move");
-                                          }
+                                        final a = vm.disposed;
+                                        final b = vm.markers ?? [];
+                                        final c = vm.selectedAddress.value;
+                                        if (b.isEmpty) {
+                                          await vm.zoomToCurrentLocation();
+                                        } else {
+                                          vm.drawDropPolyLines(
+                                            "pickup-dropoff",
+                                            pickupAddress!.latLng,
+                                            dropoffAddress!.latLng,
+                                            null,
+                                          );
+                                        }
+                                        if (!a && b.isEmpty && c == null) {
+                                          vm.mapCameraMove(vm.map?.center);
+                                          debugPrint("Map move");
                                         }
                                       },
                                     ),
@@ -328,14 +340,13 @@ class _HomeViewState extends State<HomeView> {
                                         _FloatingButton(
                                           icon: Icons.add,
                                           onTap: () async {
+                                            final a = vm.disposed;
+                                            final b = vm.markers ?? [];
+                                            final c = vm.selectedAddress.value;
                                             await vm.zoomIn();
-                                            if (vm.selectedAddress.value ==
-                                                null) {
-                                              if (!vm.disposed) {
-                                                vm.mapCameraMove(
-                                                    vm.map?.center);
-                                                debugPrint("Map move");
-                                              }
+                                            if (!a && b.isEmpty && c == null) {
+                                              vm.mapCameraMove(vm.map?.center);
+                                              debugPrint("Map move");
                                             }
                                           },
                                         ),
@@ -343,30 +354,32 @@ class _HomeViewState extends State<HomeView> {
                                         _FloatingButton(
                                           icon: Icons.remove,
                                           onTap: () async {
+                                            final a = vm.disposed;
+                                            final b = vm.markers ?? [];
+                                            final c = vm.selectedAddress.value;
                                             await vm.zoomOut();
-                                            if (vm.selectedAddress.value ==
-                                                null) {
-                                              if (!vm.disposed) {
-                                                vm.mapCameraMove(
-                                                    vm.map?.center);
-                                                debugPrint("Map move");
-                                              }
+                                            if (!a && b.isEmpty && c == null) {
+                                              vm.mapCameraMove(vm.map?.center);
+                                              debugPrint("Map move");
                                             }
                                           },
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(bottom: 40),
-                                      child: Icon(
-                                        Icons.location_on,
-                                        color: Color(0xFF007BFF),
-                                        size: 50,
-                                      ),
-                                    ),
-                                  ),
+                                  (vm.markers ?? []).isNotEmpty
+                                      ? const SizedBox.shrink()
+                                      : const Center(
+                                          child: Padding(
+                                            padding:
+                                                EdgeInsets.only(bottom: 40),
+                                            child: Icon(
+                                              Icons.location_on,
+                                              color: Color(0xFF007BFF),
+                                              size: 50,
+                                            ),
+                                          ),
+                                        ),
                                 ],
                               ),
                             ),
@@ -847,11 +860,11 @@ class _HomeViewState extends State<HomeView> {
                                                             await vm
                                                                 .drawDropPolyLines(
                                                               "pickup-dropoff",
-                                                              null,
                                                               pickupAddress!
                                                                   .latLng,
                                                               dropoffAddress!
                                                                   .latLng,
+                                                              null,
                                                             );
                                                             await vm
                                                                 .fetchVehicleTypesPricing();
@@ -979,11 +992,11 @@ class _HomeViewState extends State<HomeView> {
                                                             await vm
                                                                 .drawDropPolyLines(
                                                               "pickup-dropoff",
-                                                              null,
                                                               pickupAddress!
                                                                   .latLng,
                                                               dropoffAddress!
                                                                   .latLng,
+                                                              null,
                                                             );
                                                             await vm
                                                                 .fetchVehicleTypesPricing();
