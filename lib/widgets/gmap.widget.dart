@@ -1,9 +1,9 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
+import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui;
 import 'dart:js_util' as js_util;
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
@@ -29,6 +29,47 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   late final String viewId;
   gmaps.Map? _map;
   StreamSubscription? _centerChangedSub;
+  bool _mapInitialized = false;
+
+  static const List<Map<String, dynamic>> _defaultStyles = [
+    {
+      "featureType": "poi",
+      "stylers": [
+        {"visibility": "off"}
+      ]
+    },
+    {
+      "featureType": "transit",
+      "stylers": [
+        {"visibility": "off"}
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels.icon",
+      "stylers": [
+        {"visibility": "off"}
+      ]
+    },
+    {
+      "featureType": "administrative",
+      "stylers": [
+        {"visibility": "off"}
+      ]
+    },
+    {
+      "featureType": "landscape",
+      "stylers": [
+        {"color": "#f2f2f2"}
+      ]
+    },
+    {
+      "featureType": "water",
+      "stylers": [
+        {"color": "#c9c9c9"}
+      ]
+    },
+  ];
 
   @override
   void initState() {
@@ -53,25 +94,16 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
       _map = gmaps.Map(mapDiv as dynamic, mapOptions);
 
-      // Apply custom styles
-      final styles = [
-        {"featureType": "poi", "stylers": [{"visibility": "off"}]},
-        {"featureType": "transit", "stylers": [{"visibility": "off"}]},
-        {"featureType": "road", "elementType": "labels.icon", "stylers": [{"visibility": "off"}]},
-        {"featureType": "administrative", "stylers": [{"visibility": "off"}]},
-        {"featureType": "landscape", "stylers": [{"color": "#f2f2f2"}]},
-        {"featureType": "water", "stylers": [{"color": "#c9c9c9"}]},
-      ];
-      js_util.setProperty(_map!, 'styles', styles);
+      js_util.setProperty(_map!, 'styles', _defaultStyles);
 
-      // Notify parent of created map
       widget.onMapCreated?.call(_map!);
 
-      // Listen to camera move
       _centerChangedSub = _map!.onCenterChanged.listen((_) {
         final center = _map?.center;
         if (center != null && mounted) widget.onCameraMove?.call(center);
       });
+
+      _mapInitialized = true;
 
       return mapDiv;
     });
@@ -80,10 +112,19 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   @override
   void didUpdateWidget(covariant GoogleMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.enableGestures != widget.enableGestures && _map != null) {
-      js_util.setProperty(
-          _map!, 'gestureHandling', widget.enableGestures ? 'greedy' : 'none');
+    if (_mapInitialized && _map != null) {
+      if (oldWidget.enableGestures != widget.enableGestures) {
+        js_util.setProperty(_map!, 'gestureHandling',
+            widget.enableGestures ? 'greedy' : 'none');
+      }
+      if (!_latLngEquals(oldWidget.center, widget.center)) {
+        _map!.panTo(widget.center);
+      }
     }
+  }
+
+  bool _latLngEquals(gmaps.LatLng a, gmaps.LatLng b) {
+    return a.lat == b.lat && a.lng == b.lng;
   }
 
   @override

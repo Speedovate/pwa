@@ -30,12 +30,6 @@ class _HomeViewState extends State<HomeView> {
   final HomeViewModel homeViewModel = HomeViewModel();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  @override
-  void dispose() {
-    homeViewModel.dispose();
-    super.dispose();
-  }
-
   void _navigateWithoutTransition(Widget page) {
     Navigator.push(
       context,
@@ -252,8 +246,10 @@ class _HomeViewState extends State<HomeView> {
                                     vm.setMap(map);
                                   },
                                   onCameraMove: (center) {
-                                    vm.mapCameraMove(center);
-                                    debugPrint("Map move");
+                                    if (!vm.disposed) {
+                                      vm.mapCameraMove(center);
+                                      debugPrint("Map move");
+                                    }
                                   },
                                 ),
                                 Positioned(

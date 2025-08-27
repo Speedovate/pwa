@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/models/order.model.dart';
@@ -8,6 +7,7 @@ import 'package:pwa/view_models/load.vm.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
+import 'package:pwa/models/api_response.model.dart';
 
 class HomeViewModel extends GMapViewModel {
   bool? userSeen;
@@ -40,7 +40,7 @@ class HomeViewModel extends GMapViewModel {
   changeSelectedVehicle(VehicleType vehicleType) {
     if (vehicleTypes.isNotEmpty) {
       selectedVehicle = vehicleTypes.firstWhere(
-            (vType) => vType.name == vehicleType.name,
+        (vType) => vType.name == vehicleType.name,
       );
     }
   }
@@ -63,7 +63,7 @@ class HomeViewModel extends GMapViewModel {
       );
       await changeSelectedVehicle(
         vehicleTypes.firstWhere(
-              (vehicleType) => vehicleType.slug == "tricycle",
+          (vehicleType) => vehicleType.slug == "tricycle",
           orElse: () => vehicleTypes.first,
         ),
       );

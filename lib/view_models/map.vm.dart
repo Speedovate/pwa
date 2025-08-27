@@ -20,6 +20,12 @@ class MapViewModel extends BaseViewModel {
   GeocoderService geocoderService = GeocoderService();
   TextEditingController searchTEC = TextEditingController();
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
   initialise({required bool isPickup}) {
     if (isPickup && pickupAddress != null) {
       selectedAddress = pickupAddress;
@@ -57,6 +63,7 @@ class MapViewModel extends BaseViewModel {
                     "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
               ),
             );
+    map.center = selectedAddress!.latLng;
   }
 
   gmaps.Map? get map => _map;
