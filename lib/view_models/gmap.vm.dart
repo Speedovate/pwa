@@ -18,6 +18,15 @@ class GMapViewModel extends BaseViewModel {
   TaxiRequest taxiRequest = TaxiRequest();
   GeocoderService geocoderService = GeocoderService();
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _debounce = null;
+    _map?.controls.clear();
+    _map = null;
+    super.dispose();
+  }
+
   void setMap(gmaps.Map map) async {
     _map = map;
     debugPrint("Map set");

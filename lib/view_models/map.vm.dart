@@ -23,6 +23,9 @@ class MapViewModel extends BaseViewModel {
   @override
   void dispose() {
     _debounce?.cancel();
+    _debounce = null;
+    _map?.controls.clear();
+    _map = null;
     super.dispose();
   }
 
