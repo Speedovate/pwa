@@ -30,7 +30,7 @@ class _SendViewState extends State<SendView> {
         if (didPop) {
           return;
         }
-        if (sendViewModel.phoneTEC.text.isNotEmpty ||
+        if (sendViewModel.phoneTEC.text == "" ||
             sendViewModel.phoneTEC.text == "null") {
           Get.back();
         } else {
@@ -74,7 +74,7 @@ class _SendViewState extends State<SendView> {
                           const SizedBox(width: 4),
                           WidgetButton(
                             onTap: () {
-                              if (sendViewModel.phoneTEC.text.isNotEmpty ||
+                              if (sendViewModel.phoneTEC.text == "" ||
                                   sendViewModel.phoneTEC.text == "null") {
                                 Get.back();
                               } else {

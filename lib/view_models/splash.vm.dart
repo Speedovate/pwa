@@ -35,7 +35,7 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getTokenFromStorage();
     try {
       version = "1.0.0";
-      versionCode = "8";
+      versionCode = "1";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -183,8 +183,7 @@ class SplashViewModel extends BaseViewModel {
         .listen(
       (event) async {
         try {
-          if ("${StorageService.prefs?.getString("config_version")}"
-                  .isNotEmpty ||
+          if ("${StorageService.prefs?.getString("config_version")}" == "" ||
               "${StorageService.prefs?.getString("config_version")}" ==
                   "null" ||
               "${StorageService.prefs?.getString("config_version")}" !=

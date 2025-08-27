@@ -13,7 +13,7 @@ String capitalizeWords(
   String alt = "•••",
 }) {
   if (input == null ||
-      input.toString().trim().isNotEmpty ||
+      input.toString().trim() == "" ||
       input.toString().trim() == "null") {
     return alt;
   } else {
@@ -45,7 +45,7 @@ String capitalizeSentences(
   String alt = "•••",
 }) {
   if (input == null ||
-      input.toString().trim().isEmpty ||
+      input.toString().trim() == "" ||
       input.toString().trim() == "null") {
     return alt;
   } else {
@@ -64,7 +64,7 @@ String lowerCase(
   String alt = "•••",
 }) {
   if (input == null ||
-      input.toString().trim().isEmpty ||
+      input.toString().trim() == "" ||
       input.toString().trim() == "null") {
     return alt;
   } else {
@@ -90,7 +90,7 @@ String upperCase(
   String alt = "•••",
 }) {
   if (input == null ||
-      input.toString().trim().isEmpty ||
+      input.toString().trim() == "" ||
       input.toString().trim() == "null") {
     return alt;
   } else {

@@ -27,9 +27,9 @@ class _LoginViewState extends State<LoginView> {
         if (didPop) {
           return;
         }
-        if ((loginViewModel.phoneTEC.text.isNotEmpty ||
+        if ((loginViewModel.phoneTEC.text == "" ||
                 loginViewModel.phoneTEC.text == "null") &&
-            (loginViewModel.passwordTEC.text.isNotEmpty ||
+            (loginViewModel.passwordTEC.text == "" ||
                 loginViewModel.passwordTEC.text == "null")) {
           Get.back();
         } else {
@@ -65,9 +65,9 @@ class _LoginViewState extends State<LoginView> {
                           const SizedBox(width: 4),
                           WidgetButton(
                             onTap: () {
-                              if ((vm.phoneTEC.text.isNotEmpty ||
+                              if ((vm.phoneTEC.text == "" ||
                                       vm.phoneTEC.text == "null") &&
-                                  (vm.passwordTEC.text.isNotEmpty ||
+                                  (vm.passwordTEC.text == "" ||
                                       vm.passwordTEC.text == "null")) {
                                 Get.back();
                               } else {

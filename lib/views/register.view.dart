@@ -30,15 +30,15 @@ class _RegisterViewState extends State<RegisterView> {
         }
         if (agreed == false &&
             selfieFile == null &&
-            (registerViewModel.nameTEC.text.isNotEmpty ||
+            (registerViewModel.nameTEC.text == "" ||
                 registerViewModel.nameTEC.text == "null") &&
-            (registerViewModel.emailTEC.text.isNotEmpty ||
+            (registerViewModel.emailTEC.text == "" ||
                 registerViewModel.emailTEC.text == "null") &&
-            (registerViewModel.phoneTEC.text.isNotEmpty ||
+            (registerViewModel.phoneTEC.text == "" ||
                 registerViewModel.phoneTEC.text == "null") &&
-            (registerViewModel.passwordTEC.text.isNotEmpty ||
+            (registerViewModel.passwordTEC.text == "" ||
                 registerViewModel.passwordTEC.text == "null") &&
-            (registerViewModel.cPasswordTEC.text.isNotEmpty ||
+            (registerViewModel.cPasswordTEC.text == "" ||
                 registerViewModel.cPasswordTEC.text == "null")) {
           Get.back();
         } else {
@@ -76,15 +76,15 @@ class _RegisterViewState extends State<RegisterView> {
                             onTap: () {
                               if (agreed == false &&
                                   selfieFile == null &&
-                                  (vm.nameTEC.text.isNotEmpty ||
+                                  (vm.nameTEC.text == "" ||
                                       vm.nameTEC.text == "null") &&
-                                  (vm.emailTEC.text.isNotEmpty ||
+                                  (vm.emailTEC.text == "" ||
                                       vm.emailTEC.text == "null") &&
-                                  (vm.phoneTEC.text.isNotEmpty ||
+                                  (vm.phoneTEC.text == "" ||
                                       vm.phoneTEC.text == "null") &&
-                                  (vm.passwordTEC.text.isNotEmpty ||
+                                  (vm.passwordTEC.text == "" ||
                                       vm.passwordTEC.text == "null") &&
-                                  (vm.cPasswordTEC.text.isNotEmpty ||
+                                  (vm.cPasswordTEC.text == "" ||
                                       vm.cPasswordTEC.text == "null")) {
                                 Get.back();
                               } else {
