@@ -295,8 +295,9 @@ class _HomeViewState extends State<HomeView> {
                                 GoogleMapWidget(
                                   center: center,
                                   enableGestures: !isBool(
-                                    _scaffoldKey.currentState?.isDrawerOpen,
-                                  ),
+                                        _scaffoldKey.currentState?.isDrawerOpen,
+                                      ) &&
+                                      !vm.isLoading,
                                   onMapCreated: (map) {
                                     vm.setMap(map);
                                   },

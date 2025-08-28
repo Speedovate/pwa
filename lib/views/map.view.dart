@@ -205,6 +205,7 @@ class _MapViewState extends State<MapView> {
                             children: [
                               GoogleMapWidget(
                                 center: initLatLng!,
+                                enableGestures: !vm.isLoading,
                                 onMapCreated: (map) => vm.setMap(
                                   isPickup: widget.isPickup,
                                   map: map,
