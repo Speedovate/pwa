@@ -48,27 +48,36 @@ class MapViewModel extends BaseViewModel {
   }) async {
     _map = map;
     debugPrint("Map set");
-    selectedAddress.value = isPickup
-        ? pickupAddress ??
-            Address(
-              addressLine: pickupAddress!.addressLine,
-              coordinates: Coordinates(
-                double.parse("${pickupAddress?.latLng.lat ?? initLatLng?.lat}"),
-                double.parse("${pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
-              ),
-            )
-        : dropoffAddress ??
-            Address(
-              addressLine:
-                  dropoffAddress?.addressLine ?? pickupAddress!.addressLine,
-              coordinates: Coordinates(
-                double.parse(
-                    "${dropoffAddress?.latLng.lat ?? pickupAddress?.latLng.lat ?? initLatLng?.lat}"),
-                double.parse(
-                    "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
-              ),
-            );
-    map.center = selectedAddress.value!.latLng;
+    try {
+      selectedAddress.value = isPickup
+          ? pickupAddress ??
+              Address(
+                addressLine: pickupAddress!.addressLine,
+                coordinates: Coordinates(
+                  double.parse(
+                      "${pickupAddress?.latLng.lat ?? initLatLng?.lat}"),
+                  double.parse(
+                      "${pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
+                ),
+              )
+          : dropoffAddress ??
+              Address(
+                addressLine:
+                    dropoffAddress?.addressLine ?? pickupAddress!.addressLine,
+                coordinates: Coordinates(
+                  double.parse(
+                      "${dropoffAddress?.latLng.lat ?? pickupAddress?.latLng.lat ?? initLatLng?.lat}"),
+                  double.parse(
+                      "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
+                ),
+              );
+      map.center = selectedAddress.value!.latLng;
+    } catch (e) {
+      mapCameraMove(
+        initLatLng,
+        isPickup: isPickup,
+      );
+    }
   }
 
   gmaps.Map? get map => _map;
@@ -103,7 +112,7 @@ class MapViewModel extends BaseViewModel {
     if (!skipSelectedAddress) {
       selectedAddress.value = null;
     }
-    locUnavailable = false;
+    mapUnavailable = false;
     _debounce?.cancel();
     _debounce = Timer(
       const Duration(seconds: 2),
@@ -141,7 +150,7 @@ class MapViewModel extends BaseViewModel {
             double.parse("${target?.lng ?? 118.7473}"),
           );
           if (!apiResponse.allGood) {
-            locUnavailable = true;
+            mapUnavailable = true;
           }
           ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
           ScaffoldMessenger.of(Get.overlayContext!).showSnackBar(

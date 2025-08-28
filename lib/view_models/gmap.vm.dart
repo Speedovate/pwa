@@ -102,7 +102,7 @@ class GMapViewModel extends BaseViewModel {
           isLoading = false;
           await addressSelected(address, animate: true);
         } catch (e) {
-          // clearGMapDetails();
+          clearGMapDetails();
           isLoading = false;
           selectedAddress.value = Address(
             coordinates: Coordinates(
@@ -260,7 +260,7 @@ class GMapViewModel extends BaseViewModel {
             ..path = pathJs
             ..strokeColor = "#42A5F5"
             ..strokeOpacity = 1
-            ..strokeWeight = 4
+            ..strokeWeight = 8
             ..map = _map,
         );
         polylines?.add(polyline);
@@ -297,5 +297,12 @@ class GMapViewModel extends BaseViewModel {
     } catch (e) {
       debugPrint("Error drawing polyline: $e");
     }
+  }
+
+  clearGMapDetails() {
+    markers?.forEach((m) => m.map = null);
+    markers = [];
+    polylines?.forEach((p) => p.map = null);
+    polylines = [];
   }
 }

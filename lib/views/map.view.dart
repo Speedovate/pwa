@@ -95,7 +95,7 @@ class _MapViewState extends State<MapView> {
                                 ),
                                 errorBuilder: (context, error) => ListTile(
                                   title: Text(
-                                    "An error occurred, please try again",
+                                    "An error occurred, please try again!",
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: const Color(0xFF030744)
@@ -204,7 +204,9 @@ class _MapViewState extends State<MapView> {
                               GoogleMapWidget(
                                 center: initLatLng!,
                                 onMapCreated: (map) => vm.setMap(
-                                    isPickup: widget.isPickup, map: map),
+                                  isPickup: widget.isPickup,
+                                  map: map,
+                                ),
                                 onCameraMove: (center) {
                                   if (!vm.disposed) {
                                     vm.mapCameraMove(
@@ -319,15 +321,18 @@ class _MapViewState extends State<MapView> {
                                       children: [
                                         const SizedBox(width: 16),
                                         if (vm.isLoading && address == null)
-                                          const Padding(
-                                            padding: EdgeInsets.symmetric(
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
                                               horizontal: 4,
                                             ),
                                             child: SizedBox(
                                               width: 16,
                                               height: 16,
-                                              child:
-                                                  CircularProgressIndicator(),
+                                              child: CircularProgressIndicator(
+                                                color: widget.isPickup
+                                                    ? const Color(0xFF007BFF)
+                                                    : Colors.red,
+                                              ),
                                             ),
                                           )
                                         else
@@ -379,7 +384,7 @@ class _MapViewState extends State<MapView> {
                                                         mapUnavailable
                                                     ? mapUnavailable
                                                         ? "Service location is not available"
-                                                        : "An error occurred, please try again"
+                                                        : "An error occurred, please try again!"
                                                     : capitalizeWords(
                                                         !(address?.addressLine ??
                                                                     "")
@@ -396,11 +401,22 @@ class _MapViewState extends State<MapView> {
                                                       ),
                                                 maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  height: 1.05,
-                                                  fontSize: 13,
-                                                  color: Color(0xFF030744),
-                                                ),
+                                                style: gVehicleTypes.isEmpty ||
+                                                        mapUnavailable
+                                                    ? const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Color(
+                                                          0xFF030744,
+                                                        ),
+                                                      )
+                                                    : const TextStyle(
+                                                        height: 1.05,
+                                                        fontSize: 13,
+                                                        color: Color(
+                                                          0xFF030744,
+                                                        ),
+                                                      ),
                                               ),
                                             ],
                                           ),
@@ -433,16 +449,31 @@ class _MapViewState extends State<MapView> {
                                           onTap: () {
                                             FocusManager.instance.primaryFocus
                                                 ?.unfocus();
-                                            if (widget.isPickup) {
-                                              pickupAddress = address;
+                                            if (gVehicleTypes.isEmpty ||
+                                                mapUnavailable) {
+                                              vm.setMap(
+                                                isPickup: widget.isPickup,
+                                                map: vm.map!,
+                                              );
                                             } else {
-                                              dropoffAddress = address;
+                                              if (widget.isPickup) {
+                                                pickupAddress = address;
+                                              } else {
+                                                dropoffAddress = address;
+                                              }
+                                              Navigator.pop(context, true);
                                             }
-                                            Navigator.pop(context, true);
                                           },
-                                          text: address == null
-                                              ? "•••"
-                                              : "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}",
+                                          mainColor: gVehicleTypes.isEmpty ||
+                                                  mapUnavailable
+                                              ? Colors.red
+                                              : const Color(0xFF007BFF),
+                                          text: gVehicleTypes.isEmpty ||
+                                                  mapUnavailable
+                                              ? "Retry"
+                                              : address == null
+                                                  ? "•••"
+                                                  : "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}",
                                         ),
                                       ),
                                     );

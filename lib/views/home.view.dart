@@ -304,10 +304,8 @@ class _HomeViewState extends State<HomeView> {
                                               Navigator.push(
                                                 context,
                                                 PageRouteBuilder(
-                                                  reverseTransitionDuration:
-                                                      Duration.zero,
-                                                  transitionDuration:
-                                                      Duration.zero,
+                                                  reverseTransitionDuration: Duration.zero,
+                                                  transitionDuration: Duration.zero,
                                                   pageBuilder: (
                                                     context,
                                                     a,
@@ -318,8 +316,26 @@ class _HomeViewState extends State<HomeView> {
                                               );
                                             } else {
                                               AlertService().showLoading();
-                                              await LoadViewModel()
-                                                  .getLoadBalance();
+                                              await LoadViewModel().getLoadBalance();
+                                              if (pickupAddress != null &&
+                                                  dropoffAddress != null &&
+                                                  vm.ongoingOrder == null ||
+                                                  vm.ongoingOrder?.status == "cancelled") {
+                                                setState(() {
+                                                  vm.isPreparing = true;
+                                                });
+                                                await vm.drawDropPolyLines(
+                                                  "pickup-dropoff",
+                                                  pickupAddress!.latLng,
+                                                  dropoffAddress!.latLng,
+                                                  null,
+                                                );
+                                                await vm.fetchVehicleTypesPricing();
+                                                setState(() {
+                                                  vm.isPreparing =
+                                                  false;
+                                                });
+                                              }
                                               AlertService().stopLoading();
                                             }
                                           },
@@ -408,131 +424,11 @@ class _HomeViewState extends State<HomeView> {
                                               child: Column(
                                                 children: [
                                                   const SizedBox(height: 20),
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      SizedBox(
-                                                        width: ((MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                        height: ((MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                        child: ConstrainedBox(
-                                                          constraints:
-                                                              const BoxConstraints(
-                                                            maxWidth: 200,
-                                                          ),
-                                                          child: Container(
-                                                            height: 50,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
-                                                                ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            child: Column(
-                                                              children: [
-                                                                const SizedBox(
-                                                                  height: 12,
-                                                                ),
-                                                                Expanded(
-                                                                  child:
-                                                                      Padding(
-                                                                    padding:
-                                                                        const EdgeInsets
-                                                                            .symmetric(
-                                                                      horizontal:
-                                                                          8,
-                                                                    ),
-                                                                    child: Image
-                                                                        .asset(
-                                                                      "assets/images/${lowerCase(gVehicleTypes.firstWhere(
-                                                                            (v) =>
-                                                                                v.slug ==
-                                                                                "tricycle",
-                                                                          ).name!)}.png",
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 8,
-                                                                ),
-                                                                Text(
-                                                                  capitalizeWords(
-                                                                    gVehicleTypes
-                                                                        .firstWhere(
-                                                                          (v) =>
-                                                                              v.slug ==
-                                                                              "tricycle",
-                                                                        )
-                                                                        .name!,
-                                                                  ),
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    height:
-                                                                        1.05,
-                                                                    fontSize:
-                                                                        16,
-                                                                    color:
-                                                                        Color(
-                                                                      0xFF007BFF,
-                                                                    ),
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                  ),
-                                                                ),
-                                                                Text(
-                                                                  "${gVehicleTypes.firstWhere(
-                                                                        (v) =>
-                                                                            v.slug ==
-                                                                            "tricycle",
-                                                                      ).maxSeat!} Seater",
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    height:
-                                                                        1.05,
-                                                                    fontSize:
-                                                                        12,
-                                                                    color:
-                                                                        Color(
-                                                                      0xFF007BFF,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 12,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 15),
-                                                      Expanded(
-                                                        child: SizedBox(
+                                                  (gVehicleTypes.isEmpty ||
+                                                              locUnavailable) &&
+                                                          vm.ongoingOrder ==
+                                                              null
+                                                      ? Container(
                                                           height: ((MediaQuery.of(
                                                                               context)
                                                                           .size
@@ -540,262 +436,478 @@ class _HomeViewState extends State<HomeView> {
                                                                       64) /
                                                                   3)
                                                               .clamp(0, 120),
-                                                          child: Column(
-                                                            children: [
-                                                              Expanded(
-                                                                child:
-                                                                    WidgetButton(
-                                                                  borderRadius:
-                                                                      8,
-                                                                  mainColor:
-                                                                      const Color(
-                                                                    0xFF007BFF,
-                                                                  ),
-                                                                  useDefaultHoverColor:
-                                                                      false,
-                                                                  child:
-                                                                      Container(
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      borderRadius:
-                                                                          const BorderRadius
-                                                                              .all(
-                                                                        Radius
-                                                                            .circular(
-                                                                          8,
-                                                                        ),
-                                                                      ),
-                                                                      border:
-                                                                          Border
-                                                                              .all(
-                                                                        color:
-                                                                            const Color(
-                                                                          0xFF007BFF,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    child:
-                                                                        const Center(
-                                                                      child:
-                                                                          Text(
-                                                                        "Cash",
-                                                                        textAlign:
-                                                                            TextAlign.center,
-                                                                        style:
-                                                                            TextStyle(
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                          color:
-                                                                              Colors.white,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  onTap: () {},
-                                                                ),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .red.shade50,
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                8,
                                                               ),
-                                                              const SizedBox(
-                                                                  height: 15),
-                                                              Expanded(
-                                                                child:
-                                                                    WidgetButton(
-                                                                  borderRadius:
-                                                                      8,
-                                                                  child:
-                                                                      Container(
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      borderRadius:
-                                                                          const BorderRadius
-                                                                              .all(
-                                                                        Radius
-                                                                            .circular(
-                                                                          8,
-                                                                        ),
-                                                                      ),
-                                                                      border:
-                                                                          Border
-                                                                              .all(
+                                                            ),
+                                                          ),
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 12,
+                                                            ),
+                                                            child: Column(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .center,
+                                                              children: [
+                                                                Row(
+                                                                  children: [
+                                                                    const Icon(
+                                                                      Icons
+                                                                          .warning,
+                                                                      color: Colors
+                                                                          .red,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      width: 8,
+                                                                    ),
+                                                                    Text(
+                                                                      locUnavailable
+                                                                          ? "Service location is not available"
+                                                                          : "An error occurred, please try again!",
+                                                                      maxLines:
+                                                                          1,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style:
+                                                                          const TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.w500,
                                                                         color:
-                                                                            const Color(
-                                                                          0xFF007BFF,
+                                                                            Color(
+                                                                          0xFF030744,
                                                                         ),
                                                                       ),
                                                                     ),
-                                                                    child:
-                                                                        const Center(
-                                                                      child:
-                                                                          Text(
-                                                                        "Load",
-                                                                        textAlign:
-                                                                            TextAlign.center,
+                                                                  ],
+                                                                ),
+                                                                const SizedBox(
+                                                                  height: 12,
+                                                                ),
+                                                                ActionButton(
+                                                                  onTap: () {
+                                                                    vm.clearGMapDetails();
+                                                                    setState(() {
+                                                                      pickupAddress = null;
+                                                                      dropoffAddress = null;
+                                                                      locUnavailable = false;
+                                                                    });
+                                                                    vm.zoomToCurrentLocation();
+                                                                  },
+                                                                  height: ((MediaQuery.of(
+                                                                      context)
+                                                                      .size
+                                                                      .width -
+                                                                      64) /
+                                                                      3)
+                                                                      .clamp(0, 120)/3,
+                                                                  mainColor:
+                                                                      Colors
+                                                                          .red,
+                                                                  text: locUnavailable
+                                                                      ? "Try another location"
+                                                                      : "Retry",
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    height:
+                                                                        1.05,
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            SizedBox(
+                                                              width: ((MediaQuery.of(context)
+                                                                              .size
+                                                                              .width -
+                                                                          64) /
+                                                                      3)
+                                                                  .clamp(
+                                                                      0, 120),
+                                                              height: ((MediaQuery.of(context)
+                                                                              .size
+                                                                              .width -
+                                                                          64) /
+                                                                      3)
+                                                                  .clamp(
+                                                                      0, 120),
+                                                              child:
+                                                                  ConstrainedBox(
+                                                                constraints:
+                                                                    const BoxConstraints(
+                                                                  maxWidth: 200,
+                                                                ),
+                                                                child:
+                                                                    Container(
+                                                                  height: 50,
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    borderRadius:
+                                                                        const BorderRadius
+                                                                            .all(
+                                                                      Radius
+                                                                          .circular(
+                                                                        8,
+                                                                      ),
+                                                                    ),
+                                                                    border:
+                                                                        Border
+                                                                            .all(
+                                                                      color:
+                                                                          const Color(
+                                                                        0xFF007BFF,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  child: Column(
+                                                                    children: [
+                                                                      const SizedBox(
+                                                                        height:
+                                                                            12,
+                                                                      ),
+                                                                      Expanded(
+                                                                        child:
+                                                                            Padding(
+                                                                          padding:
+                                                                              const EdgeInsets.symmetric(
+                                                                            horizontal:
+                                                                                8,
+                                                                          ),
+                                                                          child:
+                                                                              Image.asset(
+                                                                            "assets/images/${lowerCase(gVehicleTypes.firstWhere(
+                                                                                  (v) => v.slug == "tricycle",
+                                                                                ).name!)}.png",
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      const SizedBox(
+                                                                        height:
+                                                                            8,
+                                                                      ),
+                                                                      Text(
+                                                                        capitalizeWords(
+                                                                          gVehicleTypes
+                                                                              .firstWhere(
+                                                                                (v) => v.slug == "tricycle",
+                                                                              )
+                                                                              .name!,
+                                                                        ),
                                                                         style:
-                                                                            TextStyle(
+                                                                            const TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              16,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF007BFF,
+                                                                          ),
                                                                           fontWeight:
-                                                                              FontWeight.bold,
+                                                                              FontWeight.w500,
+                                                                        ),
+                                                                      ),
+                                                                      Text(
+                                                                        "${gVehicleTypes.firstWhere(
+                                                                              (v) => v.slug == "tricycle",
+                                                                            ).maxSeat!} Seater",
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              12,
                                                                           color:
                                                                               Color(
                                                                             0xFF007BFF,
                                                                           ),
                                                                         ),
                                                                       ),
-                                                                    ),
+                                                                      const SizedBox(
+                                                                        height:
+                                                                            12,
+                                                                      ),
+                                                                    ],
                                                                   ),
-                                                                  onTap: () {},
                                                                 ),
                                                               ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 15),
-                                                      WidgetButton(
-                                                        onTap: () {
-                                                          if (!AuthService
-                                                              .isLoggedIn()) {
-                                                            Navigator.push(
-                                                              context,
-                                                              PageRouteBuilder(
-                                                                reverseTransitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                transitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                pageBuilder: (
-                                                                  context,
-                                                                  a,
-                                                                  b,
-                                                                ) =>
-                                                                    const LoginView(),
-                                                              ),
-                                                            );
-                                                          } else {
-                                                            Navigator.push(
-                                                              context,
-                                                              PageRouteBuilder(
-                                                                reverseTransitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                transitionDuration:
-                                                                    Duration
-                                                                        .zero,
-                                                                pageBuilder: (
-                                                                  context,
-                                                                  a,
-                                                                  b,
-                                                                ) =>
-                                                                    const LoadView(),
-                                                              ),
-                                                            );
-                                                          }
-                                                        },
-                                                        borderRadius: 8,
-                                                        child: SizedBox(
-                                                          width: ((MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      64) /
-                                                                  3)
-                                                              .clamp(0, 120),
-                                                          height: ((MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      64) /
-                                                                  3)
-                                                              .clamp(0, 120),
-                                                          child: ConstrainedBox(
-                                                            constraints:
-                                                                const BoxConstraints(
-                                                              maxWidth: 200,
                                                             ),
-                                                            child: Container(
-                                                              height: 50,
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                borderRadius:
-                                                                    const BorderRadius
-                                                                        .all(
-                                                                  Radius
-                                                                      .circular(
-                                                                    8,
-                                                                  ),
-                                                                ),
-                                                                border:
-                                                                    Border.all(
-                                                                  color:
-                                                                      const Color(
-                                                                    0xFF007BFF,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              child: Column(
-                                                                children: [
-                                                                  const SizedBox(
-                                                                    height: 12,
-                                                                  ),
-                                                                  Expanded(
-                                                                    child:
-                                                                        Padding(
-                                                                      padding:
-                                                                          const EdgeInsets
-                                                                              .symmetric(
-                                                                        horizontal:
+                                                            const SizedBox(
+                                                                width: 15),
+                                                            Expanded(
+                                                              child: SizedBox(
+                                                                height: ((MediaQuery.of(context).size.width -
+                                                                            64) /
+                                                                        3)
+                                                                    .clamp(
+                                                                        0, 120),
+                                                                child: Column(
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child:
+                                                                          WidgetButton(
+                                                                        borderRadius:
                                                                             8,
-                                                                      ),
-                                                                      child: Image
-                                                                          .asset(
-                                                                        "assets/images/load.png",
+                                                                        mainColor:
+                                                                            const Color(
+                                                                          0xFF007BFF,
+                                                                        ),
+                                                                        useDefaultHoverColor:
+                                                                            false,
+                                                                        child:
+                                                                            Container(
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            borderRadius:
+                                                                                const BorderRadius.all(
+                                                                              Radius.circular(
+                                                                                8,
+                                                                              ),
+                                                                            ),
+                                                                            border:
+                                                                                Border.all(
+                                                                              color: const Color(
+                                                                                0xFF007BFF,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          child:
+                                                                              const Center(
+                                                                            child:
+                                                                                Text(
+                                                                              "Cash",
+                                                                              textAlign: TextAlign.center,
+                                                                              style: TextStyle(
+                                                                                fontWeight: FontWeight.bold,
+                                                                                color: Colors.white,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        onTap:
+                                                                            () {},
                                                                       ),
                                                                     ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      height:
-                                                                          8),
-                                                                  Text(
-                                                                    "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      height:
-                                                                          1.05,
-                                                                      fontSize:
-                                                                          16,
-                                                                      color:
-                                                                          Color(
-                                                                        0xFF007BFF,
+                                                                    const SizedBox(
+                                                                        height:
+                                                                            15),
+                                                                    Expanded(
+                                                                      child:
+                                                                          WidgetButton(
+                                                                        borderRadius:
+                                                                            8,
+                                                                        child:
+                                                                            Container(
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            borderRadius:
+                                                                                const BorderRadius.all(
+                                                                              Radius.circular(
+                                                                                8,
+                                                                              ),
+                                                                            ),
+                                                                            border:
+                                                                                Border.all(
+                                                                              color: const Color(
+                                                                                0xFF007BFF,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          child:
+                                                                              const Center(
+                                                                            child:
+                                                                                Text(
+                                                                              "Load",
+                                                                              textAlign: TextAlign.center,
+                                                                              style: TextStyle(
+                                                                                fontWeight: FontWeight.bold,
+                                                                                color: Color(
+                                                                                  0xFF007BFF,
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        onTap:
+                                                                            () {},
                                                                       ),
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
                                                                     ),
-                                                                  ),
-                                                                  const Text(
-                                                                    "TODA Load",
-                                                                    style:
-                                                                        TextStyle(
-                                                                      height:
-                                                                          1.05,
-                                                                      fontSize:
-                                                                          12,
-                                                                      color:
-                                                                          Color(
-                                                                        0xFF007BFF,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    height: 12,
-                                                                  ),
-                                                                ],
+                                                                  ],
+                                                                ),
                                                               ),
                                                             ),
-                                                          ),
+                                                            const SizedBox(
+                                                                width: 15),
+                                                            WidgetButton(
+                                                              onTap: () {
+                                                                if (!AuthService
+                                                                    .isLoggedIn()) {
+                                                                  Navigator
+                                                                      .push(
+                                                                    context,
+                                                                    PageRouteBuilder(
+                                                                      reverseTransitionDuration:
+                                                                          Duration
+                                                                              .zero,
+                                                                      transitionDuration:
+                                                                          Duration
+                                                                              .zero,
+                                                                      pageBuilder: (
+                                                                        context,
+                                                                        a,
+                                                                        b,
+                                                                      ) =>
+                                                                          const LoginView(),
+                                                                    ),
+                                                                  );
+                                                                } else {
+                                                                  Navigator
+                                                                      .push(
+                                                                    context,
+                                                                    PageRouteBuilder(
+                                                                      reverseTransitionDuration:
+                                                                          Duration
+                                                                              .zero,
+                                                                      transitionDuration:
+                                                                          Duration
+                                                                              .zero,
+                                                                      pageBuilder: (
+                                                                        context,
+                                                                        a,
+                                                                        b,
+                                                                      ) =>
+                                                                          const LoadView(),
+                                                                    ),
+                                                                  );
+                                                                }
+                                                              },
+                                                              borderRadius: 8,
+                                                              child: SizedBox(
+                                                                width: ((MediaQuery.of(context).size.width -
+                                                                            64) /
+                                                                        3)
+                                                                    .clamp(
+                                                                        0, 120),
+                                                                height: ((MediaQuery.of(context).size.width -
+                                                                            64) /
+                                                                        3)
+                                                                    .clamp(
+                                                                        0, 120),
+                                                                child:
+                                                                    ConstrainedBox(
+                                                                  constraints:
+                                                                      const BoxConstraints(
+                                                                    maxWidth:
+                                                                        200,
+                                                                  ),
+                                                                  child:
+                                                                      Container(
+                                                                    height: 50,
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      borderRadius:
+                                                                          const BorderRadius
+                                                                              .all(
+                                                                        Radius
+                                                                            .circular(
+                                                                          8,
+                                                                        ),
+                                                                      ),
+                                                                      border:
+                                                                          Border
+                                                                              .all(
+                                                                        color:
+                                                                            const Color(
+                                                                          0xFF007BFF,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    child:
+                                                                        Column(
+                                                                      children: [
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              12,
+                                                                        ),
+                                                                        Expanded(
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(
+                                                                              horizontal: 8,
+                                                                            ),
+                                                                            child:
+                                                                                Image.asset(
+                                                                              "assets/images/load.png",
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                            height:
+                                                                                8),
+                                                                        Text(
+                                                                          "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
+                                                                          style:
+                                                                              const TextStyle(
+                                                                            height:
+                                                                                1.05,
+                                                                            fontSize:
+                                                                                16,
+                                                                            color:
+                                                                                Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                            fontWeight:
+                                                                                FontWeight.w500,
+                                                                          ),
+                                                                        ),
+                                                                        const Text(
+                                                                          "TODA Load",
+                                                                          style:
+                                                                              TextStyle(
+                                                                            height:
+                                                                                1.05,
+                                                                            fontSize:
+                                                                                12,
+                                                                            color:
+                                                                                Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              12,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                      ),
-                                                    ],
-                                                  ),
                                                   GestureDetector(
                                                     onTap: () async {
                                                       if (!AuthService
@@ -871,6 +983,12 @@ class _HomeViewState extends State<HomeView> {
                                                             setState(() {
                                                               vm.isPreparing =
                                                                   false;
+                                                            });
+                                                          } else {
+                                                            setState(() {
+                                                              vm.map!.center =
+                                                                  pickupAddress!
+                                                                      .latLng;
                                                             });
                                                           }
                                                         }
