@@ -51,9 +51,12 @@ class _HomeViewState extends State<HomeView> {
       viewModelBuilder: () => homeViewModel,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
-        return MediaQuery.removePadding(
-          context: context,
-          removeTop: true,
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            padding: EdgeInsets.zero,
+            viewPadding: EdgeInsets.zero,
+            viewInsets: EdgeInsets.zero,
+          ),
           child: Scaffold(
             key: _scaffoldKey,
             appBar: AppBar(
@@ -237,10 +240,10 @@ class _HomeViewState extends State<HomeView> {
                           Center(
                             child: Padding(
                               padding: const EdgeInsets.only(
-                                top: 20,
-                                left: 20,
-                                right: 20,
-                                bottom: 22,
+                                top: 16,
+                                left: 16,
+                                right: 16,
+                                bottom: 18,
                               ),
                               child: Image.asset(
                                 AppImages.logo,
