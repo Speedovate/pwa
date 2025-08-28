@@ -422,7 +422,7 @@ class _HomeViewState extends State<HomeView> {
                                         icon: Icons.share,
                                         onTap: () {
                                           share(
-                                            "Hey there, you can now book tricycles on the PPC TODA app!",
+                                            "Hey there, you can now book tricycles on the PPC TODA app! Here is the download link.",
                                           );
                                         },
                                       ),

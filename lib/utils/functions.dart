@@ -473,8 +473,9 @@ Future<void> share(String text) async {
       Get.overlayContext!,
     ).showSnackBar(
       const SnackBar(
+        backgroundColor: Colors.green,
         content: Text(
-          "Copied to clipboard!",
+          "Text copied to clipboard!",
         ),
       ),
     );

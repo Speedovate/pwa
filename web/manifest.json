@@ -1,11 +1,11 @@
 {
-    "name": "pwa",
-    "short_name": "pwa",
+    "name": "PPC TODA",
+    "short_name": "PPC TODA",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "PPC TODA PWA",
+    "background_color": "#ffffff",
+    "theme_color": "#ffffff",
+    "description": "PPC TODA",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
