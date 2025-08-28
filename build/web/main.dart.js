@@ -112409,7 +112409,7 @@ return A.t(A.Dd(),$async$vP)
 case 2:s=3
 return A.t(A.Qy(),$async$vP)
 case 3:try{$.b7Q="1.0.0"
-$.aag="2"}catch(o){q=A.R(o)
+$.aag="1"}catch(o){q=A.R(o)
 A.b8().$1("getAppInfo error: "+A.e(q))}return A.p(null,r)}})
 return A.q($async$vP,r)},
 la(a){var s=0,r=A.r(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d,c,b
