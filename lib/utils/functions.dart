@@ -329,7 +329,7 @@ Future<gmaps.LatLng?> getMyLatLng() async {
   try {
     final position = await geolocation.getCurrentPosition().timeout(
           const Duration(
-            seconds: 10,
+            seconds: 30,
           ),
         );
     final lat = position.coords?.latitude;

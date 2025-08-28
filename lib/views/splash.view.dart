@@ -21,6 +21,10 @@ class _SplashViewState extends State<SplashView> {
       builder: (context, vm, child) {
         return Scaffold(
           backgroundColor: Colors.white,
+          appBar: AppBar(
+            toolbarHeight: 0,
+            backgroundColor: Colors.white,
+          ),
           body: Center(
             child: Image.asset(
               AppImages.splash,
