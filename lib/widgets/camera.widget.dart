@@ -67,7 +67,7 @@ class _CameraWidgetState extends State<CameraWidget> {
 
       _mediaStream =
           await html.window.navigator.mediaDevices?.getUserMedia(constraints);
-      if (_mediaStream == null) throw Exception('Media stream unavailable');
+      if (_mediaStream == null) throw 'Media stream unavailable';
 
       _videoElement!.srcObject = _mediaStream;
       unawaited(_videoElement!.play());
@@ -89,7 +89,7 @@ class _CameraWidgetState extends State<CameraWidget> {
     try {
       final vw = _videoElement!.videoWidth;
       final vh = _videoElement!.videoHeight;
-      if (vw <= 0 || vh <= 0) throw Exception('Camera not ready');
+      if (vw <= 0 || vh <= 0) throw 'Camera not ready';
 
       final canvas = html.CanvasElement(width: vw, height: vh);
       final ctx = canvas.context2D;
@@ -164,6 +164,10 @@ class _CameraWidgetState extends State<CameraWidget> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        toolbarHeight: 0,
+        backgroundColor: Colors.white,
+      ),
       body: SafeArea(
         child: SizedBox(
           height: MediaQuery.of(context).size.height -
@@ -404,6 +408,10 @@ class CameraImageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        toolbarHeight: 0,
+        backgroundColor: Colors.white,
+      ),
       body: SafeArea(
         child: SizedBox(
           height: MediaQuery.of(context).size.height -

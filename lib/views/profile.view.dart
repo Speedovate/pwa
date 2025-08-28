@@ -52,6 +52,10 @@ class _ProfileViewState extends State<ProfileView> {
             },
             child: Scaffold(
               backgroundColor: Colors.white,
+              appBar: AppBar(
+                toolbarHeight: 0,
+                backgroundColor: Colors.white,
+              ),
               body: SafeArea(
                 child: SingleChildScrollView(
                   child: Column(

@@ -38,6 +38,10 @@ class _DetailsViewState extends State<DetailsView> {
       builder: (context, vm, child) {
         return Scaffold(
           backgroundColor: Colors.white,
+          appBar: AppBar(
+            toolbarHeight: 0,
+            backgroundColor: Colors.white,
+          ),
           body: SafeArea(
             child: SingleChildScrollView(
               physics: const NeverScrollableScrollPhysics(),

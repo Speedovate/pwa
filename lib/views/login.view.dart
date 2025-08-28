@@ -55,6 +55,10 @@ class _LoginViewState extends State<LoginView> {
             },
             child: Scaffold(
               backgroundColor: Colors.white,
+              appBar: AppBar(
+                toolbarHeight: 0,
+                backgroundColor: Colors.white,
+              ),
               body: SafeArea(
                 child: SingleChildScrollView(
                   child: Column(

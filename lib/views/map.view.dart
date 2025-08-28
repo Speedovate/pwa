@@ -34,6 +34,10 @@ class _MapViewState extends State<MapView> {
       builder: (context, vm, child) {
         return Scaffold(
           backgroundColor: Colors.white,
+          appBar: AppBar(
+            toolbarHeight: 0,
+            backgroundColor: Colors.white,
+          ),
           body: SafeArea(
             child: SingleChildScrollView(
               physics: const NeverScrollableScrollPhysics(),
@@ -69,6 +73,7 @@ class _MapViewState extends State<MapView> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: TypeAheadField<Address>(
+                                hideOnEmpty: true,
                                 hideOnLoading: false,
                                 controller: vm.searchTEC,
                                 focusNode: vm.searchFocusNode,
@@ -84,7 +89,7 @@ class _MapViewState extends State<MapView> {
                                 },
                                 emptyBuilder: (context) => ListTile(
                                   title: Text(
-                                    "Location not found, try it on the map",
+                                    "Try another keyword, or find on map!",
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: const Color(0xFF030744)
@@ -131,11 +136,8 @@ class _MapViewState extends State<MapView> {
                                   child: child,
                                 ),
                                 suggestionsCallback: (keyword) async {
-                                  if (keyword != "" && keyword != "null") {
-                                    return await vm.fetchPlaces(keyword);
-                                  } else {
-                                    return [];
-                                  }
+                                  if (keyword.trim().isEmpty) return null;
+                                  return await vm.fetchPlaces(keyword);
                                 },
                                 itemSeparatorBuilder: (context, index) =>
                                     Divider(

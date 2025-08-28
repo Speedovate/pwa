@@ -141,7 +141,7 @@ class HttpService {
     } on DioException catch (e) {
       return _formatDioException(e);
     } catch (e) {
-      throw Exception("An unexpected error occurred: $e");
+      throw "An unexpected error occurred: $e";
     }
   }
 

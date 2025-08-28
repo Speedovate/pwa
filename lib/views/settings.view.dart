@@ -29,6 +29,10 @@ class _SettingsViewState extends State<SettingsView> {
           },
           child: Scaffold(
             backgroundColor: Colors.white,
+            appBar: AppBar(
+              toolbarHeight: 0,
+              backgroundColor: Colors.white,
+            ),
             body: SafeArea(
               child: Column(
                 children: [

@@ -58,6 +58,10 @@ class _LoadViewState extends State<LoadView> {
       builder: (context, vm, child) {
         return Scaffold(
           backgroundColor: Colors.white,
+          appBar: AppBar(
+            toolbarHeight: 0,
+            backgroundColor: Colors.white,
+          ),
           body: SafeArea(
             child: Column(
               children: [

@@ -23,6 +23,10 @@ class _IntroViewState extends State<IntroView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        toolbarHeight: 0,
+        backgroundColor: Colors.white,
+      ),
       body: Stack(
         children: [
           SafeArea(

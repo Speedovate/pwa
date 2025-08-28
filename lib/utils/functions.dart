@@ -327,7 +327,11 @@ List<T>? parseList<T>(
 
 Future<gmaps.LatLng?> getMyLatLng() async {
   try {
-    final position = await geolocation.getCurrentPosition();
+    final position = await geolocation.getCurrentPosition().timeout(
+          const Duration(
+            seconds: 10,
+          ),
+        );
     final lat = position.coords?.latitude;
     final lng = position.coords?.longitude;
     if (lat != null && lng != null) {
@@ -335,10 +339,11 @@ Future<gmaps.LatLng?> getMyLatLng() async {
         lat,
         lng,
       );
-      return initLatLng;
     }
-  } catch (_) {}
-  return gmaps.LatLng(9.7638, 118.7473);
+    return initLatLng;
+  } catch (_) {
+    return gmaps.LatLng(9.7638, 118.7473);
+  }
 }
 
 openWebview(
