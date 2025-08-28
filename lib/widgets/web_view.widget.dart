@@ -3,10 +3,8 @@
 import 'dart:html' as html;
 import 'dart:ui_web' as ui;
 import 'package:get/get.dart';
-import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
-import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/widgets/button.widget.dart';
 
 class WebViewWidget extends StatefulWidget {
@@ -87,6 +85,7 @@ class WebViewWidgetState extends State<WebViewWidget> {
       appBar: AppBar(
         titleSpacing: 0,
         toolbarHeight: 74,
+        centerTitle: false,
         backgroundColor: Colors.white,
         leading: Center(
           child: WidgetButton(
@@ -136,28 +135,51 @@ class WebViewWidgetState extends State<WebViewWidget> {
           if (isLoading)
             Positioned.fill(
               child: Container(
-                color: Colors.grey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 150,
-                      height: 150,
+                color: Colors.white,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: 24,
+                    ),
+                    child: SizedBox(
+                      width: 120,
+                      height: 120,
                       child: Stack(
                         children: [
-                          Lottie.asset(AppLotties.loading, fit: BoxFit.cover),
                           Center(
-                            child: Image.asset(
-                              AppImages.icon,
-                              height: 50,
-                              width: 50,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: 16,
+                                left: 16,
+                                right: 16,
+                                bottom: 18,
+                              ),
+                              child: Image.asset(
+                                AppImages.logo,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Center(
+                            child: SizedBox(
+                              width: 150,
+                              height: 150,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 10,
+                                strokeCap: StrokeCap.round,
+                                color: const Color(
+                                  0xFF007BFF,
+                                ),
+                                backgroundColor: const Color(
+                                  0xFF007BFF,
+                                ).withOpacity(0.25),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 25),
-                  ],
+                  ),
                 ),
               ),
             ),

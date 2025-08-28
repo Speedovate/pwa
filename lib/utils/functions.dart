@@ -350,25 +350,20 @@ Future<gmaps.LatLng?> getMyLatLng() async {
   }
 }
 
-openWebview(
-  String title,
-  String url,
-) {
+void openWebview(String title, String url) {
+  bool isExternal = Uri.tryParse(url)?.host != Uri.base.host;
+  if (isExternal) {
+    html.window.open(url, '_blank');
+    return;
+  }
   Navigator.push(
     Get.overlayContext!,
     PageRouteBuilder(
       reverseTransitionDuration: Duration.zero,
       transitionDuration: Duration.zero,
-      pageBuilder: (
-        context,
-        a,
-        b,
-      ) =>
-          WebViewWidget(
+      pageBuilder: (context, a, b) => WebViewWidget(
         title: title,
-        selectedUrl: Uri.parse(
-          url,
-        ),
+        selectedUrl: Uri.parse(url),
       ),
     ),
   );
@@ -475,7 +470,7 @@ Future<void> share(String text) async {
       const SnackBar(
         backgroundColor: Colors.green,
         content: Text(
-          "Text copied to clipboard!",
+          "Text copied to clipboard",
         ),
       ),
     );

@@ -54,7 +54,7 @@ class LoadViewModel extends BaseViewModel {
   initiateLoadTopUp(String amount) async {
     try {
       final link = await loadRequest.loadTopupRequest(amount);
-      openWebview("Buy Load", "https://cors-anywhere.com/$link");
+      openWebview("Buy Load", link);
     } catch (_) {}
   }
 }
