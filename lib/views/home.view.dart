@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -306,11 +307,13 @@ class _HomeViewState extends State<HomeView> {
                                         ?.unfocus();
                                     final a = vm.disposed;
                                     final b = vm.markers ?? [];
-                                    if (center != vm.lastCenter?.value) {
-                                      vm.lastCenter?.value = center;
-                                      if (!a && b.isEmpty) {
-                                        vm.mapCameraMove(center);
-                                        debugPrint("HomeView - Map move");
+                                    if (vm.ongoingOrder?.value == null) {
+                                      if (center != vm.lastCenter?.value) {
+                                        vm.lastCenter?.value = center;
+                                        if (!a && b.isEmpty) {
+                                          vm.mapCameraMove(center);
+                                          debugPrint("HomeView - Map move");
+                                        }
                                       }
                                     }
                                   },
@@ -397,13 +400,12 @@ class _HomeViewState extends State<HomeView> {
                                             );
                                           } else {
                                             AlertService().showLoading();
-                                            await LoadViewModel()
-                                                .getLoadBalance();
-                                            if (pickupAddress != null &&
-                                                    dropoffAddress != null &&
-                                                    vm.ongoingOrder == null ||
-                                                vm.ongoingOrder?.status ==
-                                                    "cancelled") {
+                                            print("Pwet");
+                                            await vm.getOngoingOrder(refresh: true);
+                                            if (vm.ongoingOrder?.value == null) {
+                                              await LoadViewModel().getLoadBalance();
+                                            }
+                                            if (pickupAddress != null && dropoffAddress != null && vm.ongoingOrder?.value == null || vm.ongoingOrder?.value.status == "cancelled") {
                                               setState(() {
                                                 vm.isPreparing = true;
                                               });
@@ -413,8 +415,7 @@ class _HomeViewState extends State<HomeView> {
                                                 dropoffAddress!.latLng,
                                                 null,
                                               );
-                                              await vm
-                                                  .fetchVehicleTypesPricing();
+                                              await vm.fetchVehicleTypesPricing();
                                               setState(() {
                                                 vm.isPreparing = false;
                                               });
@@ -511,7 +512,9 @@ class _HomeViewState extends State<HomeView> {
                                                 const SizedBox(height: 20),
                                                 (gVehicleTypes.isEmpty ||
                                                             locUnavailable) &&
-                                                        vm.ongoingOrder == null
+                                                        vm.ongoingOrder
+                                                                ?.value ==
+                                                            null
                                                     ? Container(
                                                         height: ((MediaQuery.of(
                                                                             context)
@@ -617,447 +620,806 @@ class _HomeViewState extends State<HomeView> {
                                                           ),
                                                         ),
                                                       )
-                                                    : Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          SizedBox(
-                                                            width: ((MediaQuery.of(context)
-                                                                            .size
-                                                                            .width -
-                                                                        64) /
-                                                                    3)
-                                                                .clamp(0, 120),
-                                                            height: ((MediaQuery.of(context)
-                                                                            .size
-                                                                            .width -
-                                                                        64) /
-                                                                    3)
-                                                                .clamp(0, 120),
-                                                            child:
-                                                                ConstrainedBox(
-                                                              constraints:
-                                                                  const BoxConstraints(
-                                                                maxWidth: 200,
-                                                              ),
-                                                              child: Container(
-                                                                height: 50,
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  borderRadius:
-                                                                      const BorderRadius
-                                                                          .all(
-                                                                    Radius
-                                                                        .circular(
-                                                                      8,
-                                                                    ),
-                                                                  ),
-                                                                  border: Border
-                                                                      .all(
-                                                                    color:
-                                                                        const Color(
-                                                                      0xFF007BFF,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                child: Column(
-                                                                  children: [
-                                                                    const SizedBox(
-                                                                      height:
-                                                                          12,
-                                                                    ),
-                                                                    Expanded(
-                                                                      child:
-                                                                          Padding(
-                                                                        padding:
-                                                                            const EdgeInsets.symmetric(
-                                                                          horizontal:
-                                                                              8,
-                                                                        ),
-                                                                        child: Image
-                                                                            .asset(
-                                                                          "assets/images/${lowerCase(gVehicleTypes.firstWhere(
-                                                                                (v) => v.slug == "tricycle",
-                                                                              ).name!)}.png",
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                      height: 8,
-                                                                    ),
-                                                                    Text(
-                                                                      capitalizeWords(
-                                                                        gVehicleTypes
-                                                                            .firstWhere(
-                                                                              (v) => v.slug == "tricycle",
-                                                                            )
-                                                                            .name!,
-                                                                      ),
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            16,
-                                                                        color:
-                                                                            Color(
+                                                    : vm.ongoingOrder?.value != null && vm.ongoingOrder?.value.status != "cancelled"
+                                                        ? Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Container(
+                                                                decoration: BoxDecoration(
+                                                                      color: vm.ongoingOrder?.value.status != "pending"
+                                                                      ? vm.ongoingOrder?.value.status == "cancelled"
+                                                                          ? Colors.red
+                                                                          : Colors.green
+                                                                      : const Color(
                                                                           0xFF007BFF,
                                                                         ),
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
+                                                                  boxShadow: [
+                                                                    BoxShadow(
+                                                                      color: vm.ongoingOrder?.value.status !=
+                                                                              "pending"
+                                                                          ? vm.ongoingOrder?.value.status == "cancelled"
+                                                                              ? Colors.red
+                                                                              : Colors.green
+                                                                          : const Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                      spreadRadius:
+                                                                          0,
+                                                                      blurRadius:
+                                                                          2,
+                                                                      offset:
+                                                                          const Offset(
+                                                                        0,
+                                                                        -2,
                                                                       ),
-                                                                    ),
-                                                                    Text(
-                                                                      "${gVehicleTypes.firstWhere(
-                                                                            (v) =>
-                                                                                v.slug ==
-                                                                                "tricycle",
-                                                                          ).maxSeat!} Seater",
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            12,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF007BFF,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                      height:
-                                                                          12,
                                                                     ),
                                                                   ],
                                                                 ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 15,
-                                                          ),
-                                                          Expanded(
-                                                            child: SizedBox(
-                                                              height: ((MediaQuery.of(context)
-                                                                              .size
-                                                                              .width -
-                                                                          64) /
-                                                                      3)
-                                                                  .clamp(
-                                                                      0, 120),
-                                                              child: Column(
-                                                                children: [
-                                                                  Expanded(
-                                                                    child:
-                                                                        WidgetButton(
-                                                                      borderRadius:
-                                                                          8,
-                                                                      mainColor: vm.paymentMethodId ==
-                                                                              1
-                                                                          ? const Color(
-                                                                              0xFF007BFF,
-                                                                            )
-                                                                          : Colors
-                                                                              .white,
-                                                                      useDefaultHoverColor:
-                                                                          false,
-                                                                      child:
-                                                                          Container(
-                                                                        decoration:
-                                                                            BoxDecoration(
-                                                                          borderRadius:
-                                                                              const BorderRadius.all(
-                                                                            Radius.circular(
-                                                                              8,
-                                                                            ),
-                                                                          ),
-                                                                          border:
-                                                                              Border.all(
+                                                                child: Column(
+                                                                  children: [
+                                                                    Row(
+                                                                      children: [
+                                                                        Text(
+                                                                          "Ride #${vm.ongoingOrder?.value.id} - ${() {
+                                                                            if (vm.ongoingOrder?.value.status ==
+                                                                                "pending") {
+                                                                              if (vm.ongoingOrder?.value.driver == null) {
+                                                                                return "Finding a driver";
+                                                                              } else {
+                                                                                return "Waiting for driver";
+                                                                              }
+                                                                            } else if (vm.ongoingOrder?.value.status ==
+                                                                                "preparing") {
+                                                                              return "Going to pickup";
+                                                                            } else if (vm.ongoingOrder?.value.status ==
+                                                                                "ready") {
+                                                                              return "Arrived at pickup";
+                                                                            } else if (vm.ongoingOrder?.value.status ==
+                                                                                "enroute") {
+                                                                              return "Going to dropoff";
+                                                                            } else if (vm.ongoingOrder?.value.status ==
+                                                                                "delivered") {
+                                                                              return "Completed";
+                                                                            } else if (vm.ongoingOrder?.value.status ==
+                                                                                "cancelled") {
+                                                                              return "Cancelled";
+                                                                            } else {
+                                                                              return "Connecting";
+                                                                            }
+                                                                          }()}",
+                                                                          style:
+                                                                              const TextStyle(
+                                                                            height:
+                                                                                1.05,
                                                                             color:
-                                                                                const Color(
-                                                                              0xFF007BFF,
-                                                                            ),
+                                                                                Colors.white,
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
                                                                           ),
                                                                         ),
-                                                                        child:
-                                                                            Center(
-                                                                          child:
-                                                                              Text(
-                                                                            "Cash",
-                                                                            textAlign:
-                                                                                TextAlign.center,
-                                                                            style:
-                                                                                TextStyle(
-                                                                              fontWeight: FontWeight.bold,
-                                                                              color: vm.paymentMethodId == 1 ? Colors.white : const Color(0xFF007BFF),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      onTap:
-                                                                          () {
-                                                                        if (!AuthService
-                                                                            .isLoggedIn()) {
-                                                                          Navigator
-                                                                              .push(
-                                                                            Get.overlayContext!,
-                                                                            PageRouteBuilder(
-                                                                              reverseTransitionDuration: Duration.zero,
-                                                                              transitionDuration: Duration.zero,
-                                                                              pageBuilder: (
-                                                                                context,
-                                                                                a,
-                                                                                b,
-                                                                              ) =>
-                                                                                  const LoginView(),
-                                                                            ),
-                                                                          );
-                                                                        } else {
-                                                                          setState(
-                                                                              () {
-                                                                            vm.paymentMethodId =
-                                                                                1;
-                                                                          });
-                                                                        }
-                                                                      },
+                                                                      ],
                                                                     ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    height: 15,
-                                                                  ),
-                                                                  Expanded(
-                                                                    child:
-                                                                        WidgetButton(
-                                                                      borderRadius:
-                                                                          8,
-                                                                      mainColor: vm.paymentMethodId !=
-                                                                              1
-                                                                          ? const Color(
-                                                                              0xFF007BFF,
-                                                                            )
-                                                                          : Colors
-                                                                              .white,
-                                                                      useDefaultHoverColor:
-                                                                          false,
-                                                                      child:
-                                                                          Container(
-                                                                        decoration:
-                                                                            BoxDecoration(
-                                                                          borderRadius:
-                                                                              const BorderRadius.all(
-                                                                            Radius.circular(
-                                                                              8,
-                                                                            ),
-                                                                          ),
-                                                                          border:
-                                                                              Border.all(
-                                                                            color:
-                                                                                const Color(
-                                                                              0xFF007BFF,
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                        child:
-                                                                            Center(
-                                                                          child:
-                                                                              Text(
-                                                                            "Load",
-                                                                            textAlign:
-                                                                                TextAlign.center,
-                                                                            style:
-                                                                                TextStyle(
-                                                                              fontWeight: FontWeight.bold,
-                                                                              color: vm.paymentMethodId != 1 ? Colors.white : const Color(0xFF007BFF),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      onTap:
-                                                                          () {
-                                                                        if (!AuthService
-                                                                            .isLoggedIn()) {
-                                                                          Navigator
-                                                                              .push(
-                                                                            Get.overlayContext!,
-                                                                            PageRouteBuilder(
-                                                                              reverseTransitionDuration: Duration.zero,
-                                                                              transitionDuration: Duration.zero,
-                                                                              pageBuilder: (
-                                                                                context,
-                                                                                a,
-                                                                                b,
-                                                                              ) =>
-                                                                                  const LoginView(),
-                                                                            ),
-                                                                          );
-                                                                        } else {
-                                                                          setState(
-                                                                              () {
-                                                                            vm.paymentMethodId =
-                                                                                2;
-                                                                          });
-                                                                        }
-                                                                      },
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 15),
-                                                          WidgetButton(
-                                                            onTap: () {
-                                                              if (!AuthService
-                                                                  .isLoggedIn()) {
-                                                                Navigator.push(
-                                                                  context,
-                                                                  PageRouteBuilder(
-                                                                    reverseTransitionDuration:
-                                                                        Duration
-                                                                            .zero,
-                                                                    transitionDuration:
-                                                                        Duration
-                                                                            .zero,
-                                                                    pageBuilder: (
-                                                                      context,
-                                                                      a,
-                                                                      b,
-                                                                    ) =>
-                                                                        const LoginView(),
-                                                                  ),
-                                                                );
-                                                              } else {
-                                                                Navigator.push(
-                                                                  context,
-                                                                  PageRouteBuilder(
-                                                                    reverseTransitionDuration:
-                                                                        Duration
-                                                                            .zero,
-                                                                    transitionDuration:
-                                                                        Duration
-                                                                            .zero,
-                                                                    pageBuilder: (
-                                                                      context,
-                                                                      a,
-                                                                      b,
-                                                                    ) =>
-                                                                        const LoadView(),
-                                                                  ),
-                                                                );
-                                                              }
-                                                            },
-                                                            borderRadius: 8,
-                                                            child: SizedBox(
-                                                              width: ((MediaQuery.of(context)
-                                                                              .size
-                                                                              .width -
-                                                                          64) /
-                                                                      3)
-                                                                  .clamp(
-                                                                      0, 120),
-                                                              height: ((MediaQuery.of(context)
-                                                                              .size
-                                                                              .width -
-                                                                          64) /
-                                                                      3)
-                                                                  .clamp(
-                                                                      0, 120),
-                                                              child:
-                                                                  ConstrainedBox(
-                                                                constraints:
-                                                                    const BoxConstraints(
-                                                                  maxWidth: 200,
+                                                                    const SizedBox(
+                                                                        height:
+                                                                            20),
+                                                                  ],
                                                                 ),
-                                                                child:
-                                                                    Container(
-                                                                  height: 50,
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    borderRadius:
-                                                                        const BorderRadius
-                                                                            .all(
-                                                                      Radius
-                                                                          .circular(
-                                                                        8,
-                                                                      ),
-                                                                    ),
-                                                                    border:
-                                                                        Border
-                                                                            .all(
+                                                              ),
+                                                              vm.ongoingOrder?.value
+                                                                          .status !=
+                                                                      "pending"
+                                                                  ? Container(
+                                                                      height: 4,
+                                                                      color: vm.ongoingOrder?.value.status ==
+                                                                              "cancelled"
+                                                                          ? Colors
+                                                                              .red
+                                                                              .shade100
+                                                                          : Colors
+                                                                              .green
+                                                                              .shade100,
+                                                                    )
+                                                                  : LinearProgressIndicator(
                                                                       color:
                                                                           const Color(
                                                                         0xFF007BFF,
                                                                       ),
+                                                                      backgroundColor:
+                                                                          const Color(
+                                                                        0xFF007BFF,
+                                                                      ).withOpacity(
+                                                                              0.25),
+                                                                    ),
+                                                              const Expanded(
+                                                                  child:
+                                                                      SizedBox()),
+                                                              vm.ongoingOrder?.value
+                                                                          .driver ==
+                                                                      null
+                                                                  ? Container(
+                                                                      height:
+                                                                          50,
+                                                                      decoration:
+                                                                          BoxDecoration(
+                                                                        color:
+                                                                            const Color(
+                                                                          0xFF007BFF,
+                                                                        ).withOpacity(0.1),
+                                                                        borderRadius:
+                                                                            const BorderRadius.all(
+                                                                          Radius
+                                                                              .circular(
+                                                                            8,
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      child:
+                                                                          const Row(
+                                                                        children: [
+                                                                          SizedBox(
+                                                                            width:
+                                                                                12,
+                                                                          ),
+                                                                          Icon(
+                                                                            Icons.search,
+                                                                            color:
+                                                                                Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                          ),
+                                                                          SizedBox(
+                                                                            width:
+                                                                                8,
+                                                                          ),
+                                                                          Text(
+                                                                            "We are doing our best to find a driver",
+                                                                            style:
+                                                                                TextStyle(
+                                                                              height: 1.05,
+                                                                              fontSize: 13,
+                                                                              fontWeight: FontWeight.w500,
+                                                                              color: Color(
+                                                                                0xFF007BFF,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    )
+                                                                  : Row(
+                                                                      children: [
+                                                                        GestureDetector(
+                                                                          onTap:
+                                                                              () {
+                                                                            AlertService().showAppAlert(
+                                                                              isCustom: true,
+                                                                              customWidget: PinchZoom(
+                                                                                child: ClipOval(
+                                                                                  child: SizedBox(
+                                                                                    height: MediaQuery.of(context).size.width - 70,
+                                                                                    child: Image.network(
+                                                                                      vm.ongoingOrder?.value.driver?.cPhoto ?? "",
+                                                                                      fit: BoxFit.cover,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            );
+                                                                          },
+                                                                          child:
+                                                                              ClipOval(
+                                                                            child:
+                                                                                SizedBox(
+                                                                              width: 48,
+                                                                              height: 48,
+                                                                              child: NetworkImageWidget(
+                                                                                fit: BoxFit.cover,
+                                                                                memCacheWidth: 600,
+                                                                                imageUrl: vm.ongoingOrder?.value.driver?.cPhoto ?? "",
+                                                                                progressIndicatorBuilder: (
+                                                                                  context,
+                                                                                  imageUrl,
+                                                                                  progress,
+                                                                                ) {
+                                                                                  return const CircularProgressIndicator(
+                                                                                    color: Color(
+                                                                                      0xFF007BFF,
+                                                                                    ),
+                                                                                    strokeWidth: 2,
+                                                                                  );
+                                                                                },
+                                                                                errorWidget: (
+                                                                                  context,
+                                                                                  imageUrl,
+                                                                                  progress,
+                                                                                ) {
+                                                                                  return Container(
+                                                                                    color: const Color(
+                                                                                      0xFF030744,
+                                                                                    ),
+                                                                                    child: const Icon(
+                                                                                      Icons.person_outline_outlined,
+                                                                                      color: Colors.white,
+                                                                                    ),
+                                                                                  );
+                                                                                },
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          width:
+                                                                              12,
+                                                                        ),
+                                                                        Expanded(
+                                                                          child:
+                                                                              Column(
+                                                                            crossAxisAlignment:
+                                                                                CrossAxisAlignment.start,
+                                                                            children: [
+                                                                              Padding(
+                                                                                padding: const EdgeInsets.only(
+                                                                                  right: 12,
+                                                                                ),
+                                                                                child: Text(
+                                                                                  capitalizeWords(
+                                                                                    vm.ongoingOrder?.value.driver?.name,
+                                                                                    alt: "Driver",
+                                                                                  ),
+                                                                                  maxLines: 1,
+                                                                                  overflow: TextOverflow.ellipsis,
+                                                                                  style: const TextStyle(
+                                                                                    height: 1.15,
+                                                                                    fontWeight: FontWeight.w500,
+                                                                                    color: Color(
+                                                                                      0xFF030744,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                capitalizeWords(
+                                                                                  "${vm.ongoingOrder?.value.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.value.driver?.franchiseNumber == null ? "" : " | ${vm.ongoingOrder?.value.driver?.franchiseNumber}"}${vm.ongoingOrder?.value.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.value.driver?.licenseNumber}"}",
+                                                                                  alt: "Driver Info",
+                                                                                ),
+                                                                                style: const TextStyle(
+                                                                                  height: 1.15,
+                                                                                  fontSize: 12,
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                  color: Color(
+                                                                                    0xFF030744,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                        SizedBox(
+                                                                          width:
+                                                                              44,
+                                                                          height:
+                                                                              44,
+                                                                          child:
+                                                                              Material(
+                                                                            color:
+                                                                                const Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                            borderRadius:
+                                                                                const BorderRadius.all(
+                                                                              Radius.circular(
+                                                                                8,
+                                                                              ),
+                                                                            ),
+                                                                            child:
+                                                                                Ink(
+                                                                              child: InkWell(
+                                                                                onTap: () {
+                                                                                  launchUrlString(
+                                                                                    "tel://${vm.ongoingOrder?.value.driver?.phone}",
+                                                                                  );
+                                                                                },
+                                                                                borderRadius: const BorderRadius.all(
+                                                                                  Radius.circular(
+                                                                                    8,
+                                                                                  ),
+                                                                                ),
+                                                                                focusColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                hoverColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                splashColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                highlightColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                child: const Center(
+                                                                                  child: Icon(
+                                                                                    Icons.call,
+                                                                                    color: Colors.white,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          width:
+                                                                              12,
+                                                                        ),
+                                                                        SizedBox(
+                                                                          width:
+                                                                              44,
+                                                                          height:
+                                                                              44,
+                                                                          child:
+                                                                              Material(
+                                                                            color:
+                                                                                const Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                            borderRadius:
+                                                                                const BorderRadius.all(
+                                                                              Radius.circular(
+                                                                                8,
+                                                                              ),
+                                                                            ),
+                                                                            child:
+                                                                                Ink(
+                                                                              child: InkWell(
+                                                                                onTap: () {
+                                                                                  vm.chatDriver();
+                                                                                },
+                                                                                borderRadius: const BorderRadius.all(
+                                                                                  Radius.circular(
+                                                                                    8,
+                                                                                  ),
+                                                                                ),
+                                                                                focusColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                hoverColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                splashColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                highlightColor: const Color(
+                                                                                  0xFF030744,
+                                                                                ).withOpacity(
+                                                                                  0.2,
+                                                                                ),
+                                                                                child: const Center(
+                                                                                  child: Icon(
+                                                                                    Icons.chat,
+                                                                                    color: Colors.white,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                            ],
+                                                          )
+                                                        : Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              SizedBox(
+                                                                width: ((MediaQuery.of(context).size.width -
+                                                                            64) /
+                                                                        3)
+                                                                    .clamp(
+                                                                        0, 120),
+                                                                height: ((MediaQuery.of(context).size.width -
+                                                                            64) /
+                                                                        3)
+                                                                    .clamp(
+                                                                        0, 120),
+                                                                child:
+                                                                    ConstrainedBox(
+                                                                  constraints:
+                                                                      const BoxConstraints(
+                                                                    maxWidth:
+                                                                        200,
+                                                                  ),
+                                                                  child:
+                                                                      Container(
+                                                                    height: 50,
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      borderRadius:
+                                                                          const BorderRadius
+                                                                              .all(
+                                                                        Radius
+                                                                            .circular(
+                                                                          8,
+                                                                        ),
+                                                                      ),
+                                                                      border:
+                                                                          Border
+                                                                              .all(
+                                                                        color:
+                                                                            const Color(
+                                                                          0xFF007BFF,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    child:
+                                                                        Column(
+                                                                      children: [
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              12,
+                                                                        ),
+                                                                        Expanded(
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(
+                                                                              horizontal: 8,
+                                                                            ),
+                                                                            child:
+                                                                                Image.asset(
+                                                                              "assets/images/${lowerCase(gVehicleTypes.firstWhere(
+                                                                                    (v) => v.slug == "tricycle",
+                                                                                  ).name!)}.png",
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              8,
+                                                                        ),
+                                                                        Text(
+                                                                          capitalizeWords(
+                                                                            gVehicleTypes
+                                                                                .firstWhere(
+                                                                                  (v) => v.slug == "tricycle",
+                                                                                )
+                                                                                .name!,
+                                                                          ),
+                                                                          style:
+                                                                              const TextStyle(
+                                                                            height:
+                                                                                1.05,
+                                                                            fontSize:
+                                                                                16,
+                                                                            color:
+                                                                                Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                            fontWeight:
+                                                                                FontWeight.w500,
+                                                                          ),
+                                                                        ),
+                                                                        Text(
+                                                                          "${gVehicleTypes.firstWhere(
+                                                                                (v) => v.slug == "tricycle",
+                                                                              ).maxSeat!} Seater",
+                                                                          style:
+                                                                              const TextStyle(
+                                                                            height:
+                                                                                1.05,
+                                                                            fontSize:
+                                                                                12,
+                                                                            color:
+                                                                                Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          height:
+                                                                              12,
+                                                                        ),
+                                                                      ],
                                                                     ),
                                                                   ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 15,
+                                                              ),
+                                                              Expanded(
+                                                                child: SizedBox(
+                                                                  height: ((MediaQuery.of(context).size.width -
+                                                                              64) /
+                                                                          3)
+                                                                      .clamp(0,
+                                                                          120),
                                                                   child: Column(
                                                                     children: [
+                                                                      Expanded(
+                                                                        child:
+                                                                            WidgetButton(
+                                                                          borderRadius:
+                                                                              8,
+                                                                          mainColor: vm.paymentMethodId == 1
+                                                                              ? const Color(
+                                                                                  0xFF007BFF,
+                                                                                )
+                                                                              : Colors.white,
+                                                                          useDefaultHoverColor:
+                                                                              false,
+                                                                          child:
+                                                                              Container(
+                                                                            decoration:
+                                                                                BoxDecoration(
+                                                                              borderRadius: const BorderRadius.all(
+                                                                                Radius.circular(
+                                                                                  8,
+                                                                                ),
+                                                                              ),
+                                                                              border: Border.all(
+                                                                                color: const Color(
+                                                                                  0xFF007BFF,
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            child:
+                                                                                Center(
+                                                                              child: Text(
+                                                                                "Cash",
+                                                                                textAlign: TextAlign.center,
+                                                                                style: TextStyle(
+                                                                                  fontWeight: FontWeight.bold,
+                                                                                  color: vm.paymentMethodId == 1 ? Colors.white : const Color(0xFF007BFF),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          onTap:
+                                                                              () {
+                                                                            if (!AuthService.isLoggedIn()) {
+                                                                              Navigator.push(
+                                                                                Get.overlayContext!,
+                                                                                PageRouteBuilder(
+                                                                                  reverseTransitionDuration: Duration.zero,
+                                                                                  transitionDuration: Duration.zero,
+                                                                                  pageBuilder: (
+                                                                                    context,
+                                                                                    a,
+                                                                                    b,
+                                                                                  ) =>
+                                                                                      const LoginView(),
+                                                                                ),
+                                                                              );
+                                                                            } else {
+                                                                              setState(() {
+                                                                                vm.paymentMethodId = 1;
+                                                                              });
+                                                                            }
+                                                                          },
+                                                                        ),
+                                                                      ),
                                                                       const SizedBox(
                                                                         height:
-                                                                            12,
+                                                                            15,
                                                                       ),
                                                                       Expanded(
                                                                         child:
-                                                                            Padding(
-                                                                          padding:
-                                                                              const EdgeInsets.symmetric(
-                                                                            horizontal:
-                                                                                8,
-                                                                          ),
+                                                                            WidgetButton(
+                                                                          borderRadius:
+                                                                              8,
+                                                                          mainColor: vm.paymentMethodId != 1
+                                                                              ? const Color(
+                                                                                  0xFF007BFF,
+                                                                                )
+                                                                              : Colors.white,
+                                                                          useDefaultHoverColor:
+                                                                              false,
                                                                           child:
-                                                                              Image.asset(
-                                                                            "assets/images/load.png",
+                                                                              Container(
+                                                                            decoration:
+                                                                                BoxDecoration(
+                                                                              borderRadius: const BorderRadius.all(
+                                                                                Radius.circular(
+                                                                                  8,
+                                                                                ),
+                                                                              ),
+                                                                              border: Border.all(
+                                                                                color: const Color(
+                                                                                  0xFF007BFF,
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            child:
+                                                                                Center(
+                                                                              child: Text(
+                                                                                "Load",
+                                                                                textAlign: TextAlign.center,
+                                                                                style: TextStyle(
+                                                                                  fontWeight: FontWeight.bold,
+                                                                                  color: vm.paymentMethodId != 1 ? Colors.white : const Color(0xFF007BFF),
+                                                                                ),
+                                                                              ),
+                                                                            ),
                                                                           ),
+                                                                          onTap:
+                                                                              () {
+                                                                            if (!AuthService.isLoggedIn()) {
+                                                                              Navigator.push(
+                                                                                Get.overlayContext!,
+                                                                                PageRouteBuilder(
+                                                                                  reverseTransitionDuration: Duration.zero,
+                                                                                  transitionDuration: Duration.zero,
+                                                                                  pageBuilder: (
+                                                                                    context,
+                                                                                    a,
+                                                                                    b,
+                                                                                  ) =>
+                                                                                      const LoginView(),
+                                                                                ),
+                                                                              );
+                                                                            } else {
+                                                                              setState(() {
+                                                                                vm.paymentMethodId = 2;
+                                                                              });
+                                                                            }
+                                                                          },
                                                                         ),
-                                                                      ),
-                                                                      const SizedBox(
-                                                                          height:
-                                                                              8),
-                                                                      Text(
-                                                                        "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
-                                                                        style:
-                                                                            const TextStyle(
-                                                                          height:
-                                                                              1.05,
-                                                                          fontSize:
-                                                                              16,
-                                                                          color:
-                                                                              Color(
-                                                                            0xFF007BFF,
-                                                                          ),
-                                                                          fontWeight:
-                                                                              FontWeight.w500,
-                                                                        ),
-                                                                      ),
-                                                                      const Text(
-                                                                        "TODA Load",
-                                                                        style:
-                                                                            TextStyle(
-                                                                          height:
-                                                                              1.05,
-                                                                          fontSize:
-                                                                              12,
-                                                                          color:
-                                                                              Color(
-                                                                            0xFF007BFF,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      const SizedBox(
-                                                                        height:
-                                                                            12,
                                                                       ),
                                                                     ],
                                                                   ),
                                                                 ),
                                                               ),
-                                                            ),
+                                                              const SizedBox(
+                                                                  width: 15),
+                                                              WidgetButton(
+                                                                onTap: () {
+                                                                  if (!AuthService
+                                                                      .isLoggedIn()) {
+                                                                    Navigator
+                                                                        .push(
+                                                                      context,
+                                                                      PageRouteBuilder(
+                                                                        reverseTransitionDuration:
+                                                                            Duration.zero,
+                                                                        transitionDuration:
+                                                                            Duration.zero,
+                                                                        pageBuilder: (
+                                                                          context,
+                                                                          a,
+                                                                          b,
+                                                                        ) =>
+                                                                            const LoginView(),
+                                                                      ),
+                                                                    );
+                                                                  } else {
+                                                                    Navigator
+                                                                        .push(
+                                                                      context,
+                                                                      PageRouteBuilder(
+                                                                        reverseTransitionDuration:
+                                                                            Duration.zero,
+                                                                        transitionDuration:
+                                                                            Duration.zero,
+                                                                        pageBuilder: (
+                                                                          context,
+                                                                          a,
+                                                                          b,
+                                                                        ) =>
+                                                                            const LoadView(),
+                                                                      ),
+                                                                    );
+                                                                  }
+                                                                },
+                                                                borderRadius: 8,
+                                                                child: SizedBox(
+                                                                  width: ((MediaQuery.of(context).size.width -
+                                                                              64) /
+                                                                          3)
+                                                                      .clamp(0,
+                                                                          120),
+                                                                  height: ((MediaQuery.of(context).size.width -
+                                                                              64) /
+                                                                          3)
+                                                                      .clamp(0,
+                                                                          120),
+                                                                  child:
+                                                                      ConstrainedBox(
+                                                                    constraints:
+                                                                        const BoxConstraints(
+                                                                      maxWidth:
+                                                                          200,
+                                                                    ),
+                                                                    child:
+                                                                        Container(
+                                                                      height:
+                                                                          50,
+                                                                      decoration:
+                                                                          BoxDecoration(
+                                                                        borderRadius:
+                                                                            const BorderRadius.all(
+                                                                          Radius
+                                                                              .circular(
+                                                                            8,
+                                                                          ),
+                                                                        ),
+                                                                        border:
+                                                                            Border.all(
+                                                                          color:
+                                                                              const Color(
+                                                                            0xFF007BFF,
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      child:
+                                                                          Column(
+                                                                        children: [
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                12,
+                                                                          ),
+                                                                          Expanded(
+                                                                            child:
+                                                                                Padding(
+                                                                              padding: const EdgeInsets.symmetric(
+                                                                                horizontal: 8,
+                                                                              ),
+                                                                              child: Image.asset(
+                                                                                "assets/images/load.png",
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          const SizedBox(
+                                                                              height: 8),
+                                                                          Text(
+                                                                            "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
+                                                                            style:
+                                                                                const TextStyle(
+                                                                              height: 1.05,
+                                                                              fontSize: 16,
+                                                                              color: Color(
+                                                                                0xFF007BFF,
+                                                                              ),
+                                                                              fontWeight: FontWeight.w500,
+                                                                            ),
+                                                                          ),
+                                                                          const Text(
+                                                                            "TODA Load",
+                                                                            style:
+                                                                                TextStyle(
+                                                                              height: 1.05,
+                                                                              fontSize: 12,
+                                                                              color: Color(
+                                                                                0xFF007BFF,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                12,
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ),
-                                                        ],
-                                                      ),
                                                 GestureDetector(
                                                   onTap: () async {
                                                     if (!AuthService
@@ -1078,10 +1440,11 @@ class _HomeViewState extends State<HomeView> {
                                                         ),
                                                       );
                                                     } else {
-                                                      if (vm.ongoingOrder ==
+                                                      if (vm.ongoingOrder
+                                                                  ?.value ==
                                                               null ||
-                                                          vm.ongoingOrder
-                                                                  ?.status ==
+                                                          vm.ongoingOrder?.value
+                                                                  .status ==
                                                               "cancelled") {
                                                         var rebuild =
                                                             await Navigator
@@ -1110,10 +1473,13 @@ class _HomeViewState extends State<HomeView> {
                                                                     null &&
                                                                 dropoffAddress !=
                                                                     null &&
-                                                                vm.ongoingOrder ==
+                                                                vm.ongoingOrder
+                                                                        ?.value ==
                                                                     null ||
-                                                            vm.ongoingOrder
-                                                                    ?.status ==
+                                                            vm
+                                                                    .ongoingOrder
+                                                                    ?.value
+                                                                    .status ==
                                                                 "cancelled") {
                                                           setState(() {
                                                             vm.isPreparing =
@@ -1216,10 +1582,11 @@ class _HomeViewState extends State<HomeView> {
                                                         ),
                                                       );
                                                     } else {
-                                                      if (vm.ongoingOrder ==
+                                                      if (vm.ongoingOrder
+                                                                  ?.value ==
                                                               null ||
-                                                          vm.ongoingOrder
-                                                                  ?.status ==
+                                                          vm.ongoingOrder?.value
+                                                                  .status ==
                                                               "cancelled") {
                                                         var rebuild =
                                                             await Navigator
@@ -1248,10 +1615,13 @@ class _HomeViewState extends State<HomeView> {
                                                                     null &&
                                                                 dropoffAddress !=
                                                                     null &&
-                                                                vm.ongoingOrder ==
+                                                                vm.ongoingOrder
+                                                                        ?.value ==
                                                                     null ||
-                                                            vm.ongoingOrder
-                                                                    ?.status ==
+                                                            vm
+                                                                    .ongoingOrder
+                                                                    ?.value
+                                                                    .status ==
                                                                 "cancelled") {
                                                           setState(() {
                                                             vm.isPreparing =
@@ -1358,28 +1728,29 @@ class _HomeViewState extends State<HomeView> {
                                                           ),
                                                           child: Center(
                                                             child: Text(
-                                                              vm.ongoingOrder !=
+                                                              vm.ongoingOrder?.value !=
                                                                           null &&
-                                                                      vm.ongoingOrder
-                                                                              ?.status !=
+                                                                      vm.ongoingOrder?.value
+                                                                              .status !=
                                                                           "cancelled"
                                                                   ? () {
-                                                                      if (vm.ongoingOrder
-                                                                              ?.status ==
+                                                                      if (vm.ongoingOrder?.value
+                                                                              .status ==
                                                                           "pending") {
                                                                         return "Waiting";
                                                                       } else if (vm
                                                                               .ongoingOrder
-                                                                              ?.status ==
+                                                                              ?.value
+                                                                              .status ==
                                                                           "preparing") {
                                                                         return capitalizeWords(
-                                                                          (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("any") || (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("unknown")
+                                                                          (vm.ongoingOrder?.value.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("any") || (vm.ongoingOrder?.value.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("unknown")
                                                                               ? "Any Second"
-                                                                              : formatEtaText(vm.ongoingOrder!.taxiOrder!.tripDetails!.eta!),
+                                                                              : formatEtaText(vm.ongoingOrder!.value.taxiOrder!.tripDetails!.eta!),
                                                                         );
                                                                       } else {
                                                                         return travelTime(
-                                                                          vm.ongoingOrder?.taxiOrder?.tripDetails?.kmDistance ??
+                                                                          vm.ongoingOrder?.value.taxiOrder?.tripDetails?.kmDistance ??
                                                                               0,
                                                                         );
                                                                       }
@@ -1411,8 +1782,138 @@ class _HomeViewState extends State<HomeView> {
                                                     const SizedBox(width: 15),
                                                     Expanded(
                                                       child: ActionButton(
-                                                        text: "BOOK",
-                                                        onTap: () {},
+                                                        text: vm.ongoingOrder
+                                                                        ?.value !=
+                                                                    null &&
+                                                                vm
+                                                                        .ongoingOrder
+                                                                        ?.value
+                                                                        .status !=
+                                                                    "cancelled"
+                                                            ? vm.ongoingOrder
+                                                                            ?.value.status ==
+                                                                        "enroute" ||
+                                                                    vm.ongoingOrder?.value
+                                                                            .status ==
+                                                                        "preparing" ||
+                                                                    vm.ongoingOrder?.value
+                                                                            .status ==
+                                                                        "delivered"
+                                                                ? "REPORT"
+                                                                : "CANCEL"
+                                                            : "BOOK",
+                                                        mainColor: vm
+                                                                .isPreparing
+                                                            ? const Color(
+                                                                0xFF030744,
+                                                              ).withOpacity(0.2)
+                                                            : vm.ongoingOrder !=
+                                                                        null &&
+                                                                    vm.ongoingOrder?.value
+                                                                            .status !=
+                                                                        "cancelled"
+                                                                ? Colors.red
+                                                                    .shade100
+                                                                : const Color(
+                                                                    0xFF007BFF,
+                                                                  ),
+                                                        onTap: () async {
+                                                          if (!AuthService
+                                                              .isLoggedIn()) {
+                                                            Navigator.push(
+                                                              context,
+                                                              PageRouteBuilder(
+                                                                reverseTransitionDuration:
+                                                                    Duration
+                                                                        .zero,
+                                                                transitionDuration:
+                                                                    Duration
+                                                                        .zero,
+                                                                pageBuilder: (
+                                                                  context,
+                                                                  a,
+                                                                  b,
+                                                                ) =>
+                                                                    const LoginView(),
+                                                              ),
+                                                            );
+                                                          } else {
+                                                            FocusManager
+                                                                .instance
+                                                                .primaryFocus
+                                                                ?.unfocus();
+                                                            if (vm.isPreparing ||
+                                                                vm
+                                                                        .ongoingOrder
+                                                                        ?.value
+                                                                        .status ==
+                                                                    "cancelled") {
+                                                              ScaffoldMessenger
+                                                                  .of(
+                                                                Get.overlayContext!,
+                                                              ).clearSnackBars();
+                                                              ScaffoldMessenger
+                                                                  .of(
+                                                                Get.overlayContext!,
+                                                              ).showSnackBar(
+                                                                const SnackBar(
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .green,
+                                                                  content: Text(
+                                                                    "Finalizing your details, please wait ...",
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Colors
+                                                                          .white,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            } else if (vm
+                                                                    .ongoingOrder ==
+                                                                null) {
+                                                              if (!vm.busy(vm
+                                                                  .vehicleTypes)) {
+                                                                vm.processNewOrder();
+                                                              }
+                                                            } else {
+                                                              if (vm.ongoingOrder?.value.status == "enroute" ||
+                                                                  vm.ongoingOrder?.value
+                                                                          .status ==
+                                                                      "preparing" ||
+                                                                  vm.ongoingOrder?.value
+                                                                          .status ==
+                                                                      "delivered") {
+                                                                setState(() {
+                                                                  vm.showReport =
+                                                                      true;
+                                                                });
+                                                              } else {
+                                                                vm.cancelOrder();
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        style: TextStyle(
+                                                          height: 1.05,
+                                                          fontSize: vm.ongoingOrder !=
+                                                                      null &&
+                                                                  vm.ongoingOrder?.value
+                                                                          .status !=
+                                                                      "cancelled"
+                                                              ? null
+                                                              : 18,
+                                                          color: vm.ongoingOrder !=
+                                                                      null &&
+                                                                  vm.ongoingOrder?.value
+                                                                          .status !=
+                                                                      "cancelled"
+                                                              ? Colors.red
+                                                              : Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
                                                     ),
                                                     const SizedBox(width: 15),
@@ -1450,19 +1951,19 @@ class _HomeViewState extends State<HomeView> {
                                                           ),
                                                           child: Center(
                                                             child: Text(
-                                                              vm.ongoingOrder !=
+                                                              vm.ongoingOrder?.value !=
                                                                           null &&
-                                                                      vm.ongoingOrder
-                                                                              ?.status !=
+                                                                      vm.ongoingOrder?.value
+                                                                              .status !=
                                                                           "cancelled"
                                                                   ? AuthService
                                                                           .inReviewMode()
                                                                       ? vm.isPreparing
                                                                           ? "•••"
-                                                                          : "${vm.ongoingOrder?.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(1)} km"
+                                                                          : "${vm.ongoingOrder?.value.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(1)} km"
                                                                       : vm.isPreparing
                                                                           ? "•••"
-                                                                          : "${((vm.ongoingOrder?.subTotal ?? 0) + (vm.ongoingOrder?.taxiOrder?.pickupFee ?? 0)).toStringAsFixed(0)} ${vm.ongoingOrder?.paymentMethodId == 1 ? "Cash" : "Load"}"
+                                                                          : "${((vm.ongoingOrder?.value.subTotal ?? 0) + (vm.ongoingOrder?.value.taxiOrder?.pickupFee ?? 0)).toStringAsFixed(0)} ${vm.ongoingOrder?.value.paymentMethodId == 1 ? "Cash" : "Load"}"
                                                                   : vm.selectedVehicle == null
                                                                       ? AuthService.inReviewMode()
                                                                           ? vm.isPreparing

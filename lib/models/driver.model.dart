@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 import "package:pwa/models/user.model.dart";
 import "package:pwa/models/vehicle.model.dart";
+import 'package:google_maps/google_maps.dart' as gmaps;
 
 class Driver extends User {
   Vehicle? vehicle;
@@ -171,4 +172,9 @@ class Driver extends User {
         "rating": rating,
         "vehicle": vehicle?.toJson(),
       };
+
+  gmaps.LatLng get latLng => gmaps.LatLng(
+        lat ?? 0.0,
+        lng ?? 0.0,
+      );
 }

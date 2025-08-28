@@ -194,6 +194,91 @@ class GMapViewModel extends BaseViewModel {
     }
   }
 
+  Future<void> drawPickPolyLines(
+    String purpose,
+    gmaps.LatLng pickupLatLng,
+    gmaps.LatLng driverLatLng,
+  ) async {
+    if (_map == null) return;
+    markers?.forEach((m) => m.map = null);
+    markers = [];
+    polylines?.forEach((p) => p.map = null);
+    polylines = [];
+    markers?.addAll(
+      [
+        gmaps.Marker(
+          gmaps.MarkerOptions(
+            position: pickupLatLng,
+            map: _map,
+            // icon: js_util.jsify({
+            //   'url': 'https://ppctoda.com/storage/pickup_icon.png',
+            //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+            // }),
+          ),
+        ),
+        gmaps.Marker(
+          gmaps.MarkerOptions(
+            position: driverLatLng,
+            map: _map,
+            // icon: js_util.jsify({
+            //   'url': 'https://ppctoda.com/storage/driver_icon.png',
+            //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+            // }),
+          ),
+        ),
+      ],
+    );
+    try {
+      final result = await geocoderService.getPolyline(
+        driverLatLng,
+        pickupLatLng,
+        purpose,
+      );
+      if (result.isNotEmpty) {
+        final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
+        final pathJs = js_util.jsify(points);
+        final polyline = gmaps.Polyline(
+          gmaps.PolylineOptions()
+            ..path = pathJs
+            ..strokeColor = "#42A5F5"
+            ..strokeOpacity = 1
+            ..strokeWeight = 6
+            ..map = _map,
+        );
+        polylines?.add(polyline);
+        final allPoints = [...points, driverLatLng, pickupLatLng];
+        num minLat = allPoints.first.lat;
+        num maxLat = allPoints.first.lat;
+        num minLng = allPoints.first.lng;
+        num maxLng = allPoints.first.lng;
+        for (var point in allPoints) {
+          if (point.lat < minLat) minLat = point.lat;
+          if (point.lat > maxLat) maxLat = point.lat;
+          if (point.lng < minLng) minLng = point.lng;
+          if (point.lng > maxLng) maxLng = point.lng;
+        }
+        const offset = 0.001;
+        if ((maxLat - minLat).abs() < offset) {
+          maxLat += offset;
+          minLat -= offset;
+        }
+        if ((maxLng - minLng).abs() < offset) {
+          maxLng += offset;
+          minLng -= offset;
+        }
+        final bounds = gmaps.LatLngBounds(
+          gmaps.LatLng(minLat, minLng),
+          gmaps.LatLng(maxLat, maxLng),
+        );
+        _map!.fitBounds(bounds);
+      } else {
+        debugPrint("No polyline points received from backend");
+      }
+    } catch (e) {
+      debugPrint("Error drawing pick polyline: $e");
+    }
+  }
+
   Future<void> drawDropPolyLines(
     String purpose,
     gmaps.LatLng pickupLatLng,
@@ -296,7 +381,7 @@ class GMapViewModel extends BaseViewModel {
         debugPrint("No polyline points received from backend");
       }
     } catch (e) {
-      debugPrint("Error drawing polyline: $e");
+      debugPrint("Error drawing drop polyline: $e");
     }
   }
 
@@ -306,4 +391,45 @@ class GMapViewModel extends BaseViewModel {
     polylines?.forEach((p) => p.map = null);
     polylines = [];
   }
+
+  void updateDriverMarkerPosition(gmaps.LatLng pos) {
+    if (_map == null) return;
+    WebMarker? existing;
+    try {
+      existing = myMarkers.firstWhere((m) => m.id == 'driverMarker');
+    } catch (e) {
+      existing = null;
+    }
+    if (existing == null) {
+      final marker = gmaps.Marker(gmaps.MarkerOptions()
+            ..position = pos
+            ..map = _map
+          // ..icon = js_util.jsify({
+          //   'url': driverIconUrl,
+          //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+          //   'anchor': js_util.jsify([0.55, 0.75]),
+          //   'rotation': driverPositionRotation,
+          // }),
+          );
+      myMarkers.add(WebMarker(id: 'driverMarker', marker: marker));
+    } else {
+      existing.marker.position = pos;
+      // existing.marker.icon = js_util.jsify({
+      //   'url': driverIconUrl,
+      //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+      //   'anchor': js_util.jsify([0.55, 0.75]),
+      //   'rotation': driverPositionRotation,
+      // });
+    }
+    notifyListeners();
+  }
 }
+
+class WebMarker {
+  final String id;
+  final gmaps.Marker marker;
+
+  WebMarker({required this.id, required this.marker});
+}
+
+List<WebMarker> myMarkers = [];

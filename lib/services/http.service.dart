@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -16,10 +17,19 @@ class HttpService {
   late SharedPreferences prefs;
 
   Future<Map<String, String>> getHeaders() async {
+    print("pwet "+jsonEncode({
+      HttpHeaders.authorizationHeader: "Bearer ${AuthService.bearerToken}",
+      HttpHeaders.acceptHeader: "application/json",
+      "build_number": version ?? "",
+      "platform": AuthService.device(),
+      "code": versionCode ?? "",
+      "role": "client",
+      "lang": "en",
+    }));
     return {
       HttpHeaders.authorizationHeader: "Bearer ${AuthService.bearerToken}",
       HttpHeaders.acceptHeader: "application/json",
-      "build_number": versionCode ?? "",
+      "build_number": version ?? "",
       "platform": AuthService.device(),
       "code": versionCode ?? "",
       "role": "client",

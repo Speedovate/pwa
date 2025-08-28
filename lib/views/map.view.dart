@@ -87,6 +87,31 @@ class _MapViewState extends State<MapView> {
                                     isPickup: widget.isPickup,
                                   );
                                 },
+                                loadingBuilder: (context) => ListTile(
+                                  title: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 5,
+                                        ),
+                                        child: SizedBox(
+                                          width: 30,
+                                          height: 30,
+                                          child: CircularProgressIndicator(
+                                            strokeCap: StrokeCap.round,
+                                            color: const Color(
+                                              0xFF007BFF,
+                                            ),
+                                            backgroundColor: const Color(
+                                              0xFF007BFF,
+                                            ).withOpacity(0.25),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 emptyBuilder: (context) => ListTile(
                                   title: Text(
                                     "Try another keyword, or find on map!",
