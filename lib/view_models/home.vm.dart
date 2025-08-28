@@ -1,8 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:get/get.dart';
-import 'package:pwa/models/chat_entity.model.dart';
-import 'package:pwa/models/peer_user.model.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
@@ -14,7 +11,9 @@ import 'package:pwa/view_models/load.vm.dart';
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/http.service.dart';
+import 'package:pwa/models/peer_user.model.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/models/chat_entity.model.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
@@ -24,6 +23,7 @@ class HomeViewModel extends GMapViewModel {
   bool? userSeen;
   String? dvrMessage;
   String? lastStatus;
+  Order? ongoingOrder;
   double rating = 5.0;
   int vehicleIndex = 0;
   Timer? debounceTimer;
@@ -33,7 +33,6 @@ class HomeViewModel extends GMapViewModel {
   VehicleType? selectedVehicle;
   Map<String, dynamic>? cHeaders;
   double driverPositionRotation = 0;
-  ValueNotifier<Order>? ongoingOrder;
   List<VehicleType> vehicleTypes = [];
   StreamSubscription? userUpdateStream;
   StreamSubscription? orderUpdateStream;
@@ -93,24 +92,22 @@ class HomeViewModel extends GMapViewModel {
       notifyListeners();
     }
     try {
-      final order = await taxiRequest.ongoingOrderRequest();
-      ongoingOrder?.value = order!;
-      print("pwet "+jsonEncode(ongoingOrder?.value));
+      ongoingOrder = (await taxiRequest.ongoingOrderRequest())!;
       notifyListeners();
-      if (ongoingOrder?.value != null) {
-        if (ongoingOrder?.value.status == "pending" ||
-            ongoingOrder?.value.status == "preparing") {
+      if (ongoingOrder != null) {
+        if (ongoingOrder?.status == "pending" ||
+            ongoingOrder?.status == "preparing") {
           lastStatus = null;
           notifyListeners();
         }
         await startHandlingOngoingOrder();
         await loadUIByOngoingOrderStatus();
-        if (rebookSecs == 0 && bookingId != ongoingOrder?.value.id) {
+        if (rebookSecs == 0 && bookingId != ongoingOrder?.id) {
           rebookSecs = 30;
           startRebookTimer();
           notifyListeners();
         }
-        bookingId = ongoingOrder?.value.id ?? 0;
+        bookingId = ongoingOrder?.id ?? 0;
         notifyListeners();
       }
     } catch (_) {
@@ -490,7 +487,7 @@ class HomeViewModel extends GMapViewModel {
           notifyListeners();
           try {
             ApiResponse apiResponse = await taxiRequest.cancelOrderRequest(
-              id: ongoingOrder!.value.id!,
+              id: ongoingOrder!.id!,
               reason: "rebook",
               rebook: true,
             );
@@ -592,7 +589,7 @@ class HomeViewModel extends GMapViewModel {
             AlertService().showLoading();
             try {
               ApiResponse apiResponse = await taxiRequest.cancelOrderRequest(
-                id: ongoingOrder!.value.id!,
+                id: ongoingOrder!.id!,
                 reason: "cancelled by passenger",
                 rebook: false,
               );
@@ -673,7 +670,7 @@ class HomeViewModel extends GMapViewModel {
       () async {
         orderUpdateStream = fbStore
             .collection("orders")
-            .doc("${ongoingOrder?.value.code}")
+            .doc("${ongoingOrder?.code}")
             .snapshots()
             .listen(
           (event) async {
@@ -686,7 +683,7 @@ class HomeViewModel extends GMapViewModel {
               try {
                 await fbStore
                     .collection("orders")
-                    .doc("${ongoingOrder?.value.code}")
+                    .doc("${ongoingOrder?.code}")
                     .update(
                   {
                     "headers": headers,
@@ -700,7 +697,7 @@ class HomeViewModel extends GMapViewModel {
             try {
               if ((orderSyncedAt != "${event.data()?["syncedAt"]}" &&
                       "delivered" != "${event.data()?["status"]}") ||
-                  (ongoingOrder?.value.status != "${event.data()?["status"]}" &&
+                  (ongoingOrder?.status != "${event.data()?["status"]}" &&
                       "delivered" != "${event.data()?["status"]}")) {
                 await getOngoingOrder();
               } else {
@@ -710,7 +707,7 @@ class HomeViewModel extends GMapViewModel {
               }
               if ("cancelled" == "${event.data()?["status"]}" ||
                   "delivered" == "${event.data()?["status"]}") {
-                ongoingOrder?.value.status = "${event.data()?["status"]}";
+                ongoingOrder?.status = "${event.data()?["status"]}";
                 notifyListeners();
               }
               userSeen = isBool(event.data()?["userSeen"]);
@@ -731,7 +728,7 @@ class HomeViewModel extends GMapViewModel {
 
   loadUIByOngoingOrderStatus() async {
     if (ongoingOrder != null) {
-      if (ongoingOrder?.value.driver == null) {
+      if (ongoingOrder?.driver == null) {
         Get.until((route) => route.isFirst);
         AlertService().showLoading();
         await Future.delayed(const Duration(seconds: 5));
@@ -739,59 +736,59 @@ class HomeViewModel extends GMapViewModel {
         AlertService().stopLoading();
       } else {
         pickupAddress = Address(
-          addressLine: ongoingOrder?.value.taxiOrder?.pickupAddress,
+          addressLine: ongoingOrder?.taxiOrder?.pickupAddress,
           coordinates: Coordinates(
-            ongoingOrder?.value.taxiOrder?.pickupLatitude ?? 0.0,
-            ongoingOrder?.value.taxiOrder?.pickupLongitude ?? 0.0,
+            ongoingOrder?.taxiOrder?.pickupLatitude ?? 0.0,
+            ongoingOrder?.taxiOrder?.pickupLongitude ?? 0.0,
           ),
         );
         dropoffAddress = Address(
-          addressLine: ongoingOrder?.value.taxiOrder?.dropoffAddress,
+          addressLine: ongoingOrder?.taxiOrder?.dropoffAddress,
           coordinates: Coordinates(
-            ongoingOrder?.value.taxiOrder?.dropoffLatitude ?? 0.0,
-            ongoingOrder?.value.taxiOrder?.dropoffLongitude ?? 0.0,
+            ongoingOrder?.taxiOrder?.dropoffLatitude ?? 0.0,
+            ongoingOrder?.taxiOrder?.dropoffLongitude ?? 0.0,
           ),
         );
-        switch (ongoingOrder?.value.status) {
+        switch (ongoingOrder?.status) {
           case "pending":
-            if (lastStatus != ongoingOrder?.value.status) {
-              lastStatus = ongoingOrder?.value.status;
+            if (lastStatus != ongoingOrder?.status) {
+              lastStatus = ongoingOrder?.status;
               notifyListeners();
               await drawPickPolyLines(
                 "driver-pickup",
-                ongoingOrder!.value.taxiOrder!.pickupLatLng,
-                ongoingOrder!.value.driverLatLng,
+                ongoingOrder!.taxiOrder!.pickupLatLng,
+                ongoingOrder!.driverLatLng,
               );
             }
             break;
           case "preparing":
-            if (lastStatus != ongoingOrder?.value.status) {
-              lastStatus = ongoingOrder?.value.status;
+            if (lastStatus != ongoingOrder?.status) {
+              lastStatus = ongoingOrder?.status;
               notifyListeners();
               await drawPickPolyLines(
                 "driver-pickup",
-                ongoingOrder!.value.taxiOrder!.pickupLatLng,
-                ongoingOrder!.value.driverLatLng,
+                ongoingOrder!.taxiOrder!.pickupLatLng,
+                ongoingOrder!.driverLatLng,
               );
             }
           case "ready":
-            if (lastStatus != ongoingOrder?.value.status) {
-              lastStatus = ongoingOrder?.value.status;
+            if (lastStatus != ongoingOrder?.status) {
+              lastStatus = ongoingOrder?.status;
               notifyListeners();
               await drawPickPolyLines(
                 "driver-pickup",
-                ongoingOrder!.value.taxiOrder!.pickupLatLng,
-                ongoingOrder!.value.driverLatLng,
+                ongoingOrder!.taxiOrder!.pickupLatLng,
+                ongoingOrder!.driverLatLng,
               );
             }
             break;
           case "enroute":
-            if (lastStatus != ongoingOrder?.value.status) {
-              lastStatus = ongoingOrder?.value.status;
+            if (lastStatus != ongoingOrder?.status) {
+              lastStatus = ongoingOrder?.status;
               notifyListeners();
               await drawDropPolyLines(
                 "pickup-dropoff",
-                ongoingOrder!.value.driverLatLng,
+                ongoingOrder!.driverLatLng,
                 pickupAddress!.latLng,
                 dropoffAddress!.latLng,
               );
@@ -801,8 +798,8 @@ class HomeViewModel extends GMapViewModel {
             cHeaders = null;
             notifyListeners();
             if (lastStatus != "delivered") {
-              ongoingOrder?.value = (await taxiRequest.lastOrderRequest())!;
-              lastStatus = ongoingOrder?.value.status;
+              ongoingOrder = (await taxiRequest.lastOrderRequest())!;
+              lastStatus = ongoingOrder?.status;
               notifyListeners();
               stopAllListeners();
             }
@@ -878,11 +875,11 @@ class HomeViewModel extends GMapViewModel {
                   await taxiRequest.syncDriverLocationRequest();
               loadUIByOngoingOrderStatus();
               if (apiResponse.allGood) {
-                ongoingOrder?.value.driver?.lat = apiResponse.body['lat'];
-                ongoingOrder?.value.driver?.lng = apiResponse.body['long'];
+                ongoingOrder?.driver?.lat = apiResponse.body['lat'];
+                ongoingOrder?.driver?.lng = apiResponse.body['long'];
                 driverPositionRotation = apiResponse.body['rotation'] ?? 0;
                 updateDriverMarkerPosition(
-                  ongoingOrder!.value.driver!.latLng,
+                  ongoingOrder!.driver!.latLng,
                 );
                 notifyListeners();
               } else {
@@ -901,26 +898,26 @@ class HomeViewModel extends GMapViewModel {
 
   chatDriver() {
     notifyListeners();
-    fbStore.collection("orders").doc(ongoingOrder?.value.code).update(
+    fbStore.collection("orders").doc(ongoingOrder?.code).update(
       {
         "userSeen": true,
       },
     );
     Map<String, PeerUser> peers = {
-      '${ongoingOrder?.value.user?.id}': PeerUser(
-        id: '${ongoingOrder?.value.user?.id}',
-        name: '${ongoingOrder?.value.user?.name}',
-        image: '${ongoingOrder?.value.user?.photo}',
+      '${ongoingOrder?.user?.id}': PeerUser(
+        id: '${ongoingOrder?.user?.id}',
+        name: '${ongoingOrder?.user?.name}',
+        image: '${ongoingOrder?.user?.photo}',
       ),
-      '${ongoingOrder?.value.driver?.id}': PeerUser(
-        id: "${ongoingOrder?.value.driver?.id}",
-        name: '${ongoingOrder?.value.driver?.name}',
-        image: '${ongoingOrder?.value.driver?.photo}',
+      '${ongoingOrder?.driver?.id}': PeerUser(
+        id: "${ongoingOrder?.driver?.id}",
+        name: '${ongoingOrder?.driver?.name}',
+        image: '${ongoingOrder?.driver?.photo}',
       ),
     };
     final chatEntity = ChatEntity(
       onMessageSent: (message, chatEntity) {
-        fbStore.collection("orders").doc(ongoingOrder?.value.code).update(
+        fbStore.collection("orders").doc(ongoingOrder?.code).update(
           {
             "driverSeen": false,
             "userMessage": message,
@@ -931,9 +928,9 @@ class HomeViewModel extends GMapViewModel {
         //   chatEntity,
         // );
       },
-      mainUser: peers['${ongoingOrder?.value.user?.id}'],
+      mainUser: peers['${ongoingOrder?.user?.id}'],
       peers: peers,
-      path: 'orders/${ongoingOrder?.value.code}/customerDriver/chats',
+      path: 'orders/${ongoingOrder?.code}/customerDriver/chats',
       title: "Chat with driver",
     );
     // Get.to(

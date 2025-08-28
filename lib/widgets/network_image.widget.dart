@@ -65,10 +65,10 @@ class NetworkImageWidget extends StatelessWidget {
                 child: Center(
                   child: CircularProgressIndicator(
                     strokeCap: StrokeCap.round,
-                    color: Color(
+                    color: const Color(
                       0xFF007BFF,
                     ),
-                    backgroundColor: Color(
+                    backgroundColor: const Color(
                       0xFF007BFF,
                     ).withOpacity(0.25),
                   ),

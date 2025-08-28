@@ -1,7 +1,5 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
@@ -78,8 +76,6 @@ class TaxiRequest extends HttpService {
         ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
-      print("pwet "+apiResponse.message);
-      print("pwet "+jsonEncode(apiResponse.body));
       if (apiResponse.allGood) {
         return Order.fromJson(apiResponse.body["order"]);
       } else {
