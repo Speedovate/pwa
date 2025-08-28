@@ -101,8 +101,14 @@ class _HomeViewState extends State<HomeView> {
                                 imageUrl,
                                 progress,
                               ) {
-                                return const CircularProgressIndicator(
-                                  color: Color(0xFF007BFF),
+                                return CircularProgressIndicator(
+                                  strokeCap: StrokeCap.round,
+                                  color: const Color(
+                                    0xFF007BFF,
+                                  ),
+                                  backgroundColor: const Color(
+                                    0xFF007BFF,
+                                  ).withOpacity(0.25),
                                 );
                               },
                               errorWidget: (context, imageUrl, progress) {
@@ -257,6 +263,7 @@ class _HomeViewState extends State<HomeView> {
                             height: 150,
                             child: CircularProgressIndicator(
                               strokeWidth: 10,
+                              strokeCap: StrokeCap.round,
                               color: const Color(
                                 0xFF007BFF,
                               ),
@@ -335,7 +342,7 @@ class _HomeViewState extends State<HomeView> {
                                             const SnackBar(
                                               backgroundColor: Colors.red,
                                               content: Text(
-                                                "Failed to get your location!",
+                                                "There was a problem with your location detection!",
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                 ),
@@ -413,7 +420,11 @@ class _HomeViewState extends State<HomeView> {
                                       const SizedBox(height: 8),
                                       _FloatingButton(
                                         icon: Icons.share,
-                                        onTap: () {},
+                                        onTap: () {
+                                          share(
+                                            "Hey there, you can now book tricycles on the PPC TODA app!",
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
@@ -1431,7 +1442,7 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       !vm.isLoading
                           ? const SizedBox()
-                          : const Positioned(
+                          : Positioned(
                               left: 0,
                               right: 0,
                               bottom: 20,
@@ -1443,7 +1454,13 @@ class _HomeViewState extends State<HomeView> {
                                     width: 30,
                                     height: 30,
                                     child: CircularProgressIndicator(
-                                      color: Color(0xFF007BFF),
+                                      strokeCap: StrokeCap.round,
+                                      color: const Color(
+                                        0xFF007BFF,
+                                      ),
+                                      backgroundColor: const Color(
+                                        0xFF007BFF,
+                                      ).withOpacity(0.25),
                                     ),
                                   ),
                                 ),

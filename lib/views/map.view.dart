@@ -331,9 +331,19 @@ class _MapViewState extends State<MapView> {
                                               width: 16,
                                               height: 16,
                                               child: CircularProgressIndicator(
+                                                strokeCap: StrokeCap.round,
                                                 color: widget.isPickup
                                                     ? const Color(0xFF007BFF)
                                                     : Colors.red,
+                                                backgroundColor: widget.isPickup
+                                                    ? const Color(
+                                                        0xFF007BFF,
+                                                      ).withOpacity(
+                                                        0.25,
+                                                      )
+                                                    : Colors.red.withOpacity(
+                                                        0.25,
+                                                      ),
                                               ),
                                             ),
                                           )

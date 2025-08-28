@@ -53,7 +53,7 @@ class ListViewWidget<T> extends StatelessWidget {
             },
           ),
           if (isLoadingMore)
-            const Positioned(
+            Positioned(
               left: 0,
               right: 0,
               bottom: 15,
@@ -62,7 +62,13 @@ class ListViewWidget<T> extends StatelessWidget {
                   width: 30,
                   height: 30,
                   child: CircularProgressIndicator(
-                    color: Color(0xFF007BFF),
+                    strokeCap: StrokeCap.round,
+                    color: const Color(
+                      0xFF007BFF,
+                    ),
+                    backgroundColor: const Color(
+                      0xFF007BFF,
+                    ).withOpacity(0.25),
                   ),
                 ),
               ),

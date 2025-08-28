@@ -285,9 +285,15 @@ class _CameraWidgetState extends State<CameraWidget> {
                             450,
                           ),
                           child: _videoElement == null
-                              ? const Center(
+                              ? Center(
                                   child: CircularProgressIndicator(
-                                    color: Color(0xFF007BFF),
+                                    strokeCap: StrokeCap.round,
+                                    color: const Color(
+                                      0xFF007BFF,
+                                    ),
+                                    backgroundColor: const Color(
+                                      0xFF007BFF,
+                                    ).withOpacity(0.25),
                                   ),
                                 )
                               : Transform(

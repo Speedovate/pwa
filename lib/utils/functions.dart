@@ -1,11 +1,15 @@
+// ignore_for_file: avoid_web_libraries_in_flutter
+
+import 'dart:html' as html;
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/widgets/camera.widget.dart';
-import 'package:pwa/widgets/list_tile.widget.dart';
-import 'package:pwa/widgets/web_view.widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/web_view.widget.dart';
+import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 
 String capitalizeWords(
@@ -447,4 +451,32 @@ Future<dynamic> showImageSource({
       ],
     ),
   );
+}
+
+Future<void> share(String text) async {
+  try {
+    await html.window.navigator.share(
+      {
+        'title': 'PPC TODA',
+        'text': text,
+        'url': "https://ppctoda.framer.website",
+      },
+    );
+  } catch (e) {
+    Clipboard.setData(
+      ClipboardData(
+        text: "$text Here's the download link: "
+            "https://ppctoda.framer.website",
+      ),
+    );
+    ScaffoldMessenger.of(
+      Get.overlayContext!,
+    ).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Copied to clipboard!",
+        ),
+      ),
+    );
+  }
 }
