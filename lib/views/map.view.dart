@@ -210,12 +210,21 @@ class _MapViewState extends State<MapView> {
                                   map: map,
                                 ),
                                 onCameraMove: (center) {
-                                  if (!vm.disposed) {
-                                    vm.mapCameraMove(
-                                      center,
-                                      isPickup: widget.isPickup,
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  final a = vm.disposed;
+                                  if (center != vm.lastCenter) {
+                                    setState(
+                                      () {
+                                        vm.lastCenter = center;
+                                      },
                                     );
-                                    debugPrint("Map move");
+                                    if (!a) {
+                                      vm.mapCameraMove(
+                                        center,
+                                        isPickup: widget.isPickup,
+                                      );
+                                      debugPrint("MapView - Map move");
+                                    }
                                   }
                                 },
                               ),
@@ -232,7 +241,7 @@ class _MapViewState extends State<MapView> {
                                           vm.map?.center,
                                           isPickup: widget.isPickup,
                                         );
-                                        debugPrint("Map move");
+                                        debugPrint("MapView - Map move");
                                       }
                                     }
                                   },
@@ -253,7 +262,7 @@ class _MapViewState extends State<MapView> {
                                               vm.map?.center,
                                               isPickup: widget.isPickup,
                                             );
-                                            debugPrint("Map move");
+                                            debugPrint("MapView - Map move");
                                           }
                                         }
                                       },
@@ -269,7 +278,7 @@ class _MapViewState extends State<MapView> {
                                               vm.map?.center,
                                               isPickup: widget.isPickup,
                                             );
-                                            debugPrint("Map move");
+                                            debugPrint("MapView - Map move");
                                           }
                                         }
                                       },

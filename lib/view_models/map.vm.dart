@@ -14,6 +14,7 @@ class MapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
+  gmaps.LatLng? lastCenter;
   TaxiRequest taxiRequest = TaxiRequest();
   FocusNode searchFocusNode = FocusNode();
   GeocoderService geocoderService = GeocoderService();

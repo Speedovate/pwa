@@ -301,11 +301,20 @@ class _HomeViewState extends State<HomeView> {
                                     vm.setMap(map);
                                   },
                                   onCameraMove: (center) {
+                                    FocusManager.instance.primaryFocus
+                                        ?.unfocus();
                                     final a = vm.disposed;
                                     final b = vm.markers ?? [];
-                                    if (!a && b.isEmpty) {
-                                      vm.mapCameraMove(center);
-                                      debugPrint("Map move");
+                                    if (center != vm.lastCenter) {
+                                      setState(
+                                        () {
+                                          vm.lastCenter = center;
+                                        },
+                                      );
+                                      if (!a && b.isEmpty) {
+                                        vm.mapCameraMove(center);
+                                        debugPrint("HomeView - Map move");
+                                      }
                                     }
                                   },
                                 ),
@@ -360,7 +369,7 @@ class _HomeViewState extends State<HomeView> {
                                       }
                                       if (!a && b.isEmpty && c == null) {
                                         vm.mapCameraMove(vm.map?.center);
-                                        debugPrint("Map move");
+                                        debugPrint("HomeView - Map move");
                                       }
                                     },
                                   ),
@@ -443,7 +452,7 @@ class _HomeViewState extends State<HomeView> {
                                           await vm.zoomIn();
                                           if (!a && b.isEmpty && c == null) {
                                             vm.mapCameraMove(vm.map?.center);
-                                            debugPrint("Map move");
+                                            debugPrint("HomeView - Map move");
                                           }
                                         },
                                       ),
@@ -457,7 +466,7 @@ class _HomeViewState extends State<HomeView> {
                                           await vm.zoomOut();
                                           if (!a && b.isEmpty && c == null) {
                                             vm.mapCameraMove(vm.map?.center);
-                                            debugPrint("Map move");
+                                            debugPrint("HomeView - Map move");
                                           }
                                         },
                                       ),
@@ -730,7 +739,8 @@ class _HomeViewState extends State<HomeView> {
                                                             ),
                                                           ),
                                                           const SizedBox(
-                                                              width: 15),
+                                                            width: 15,
+                                                          ),
                                                           Expanded(
                                                             child: SizedBox(
                                                               height: ((MediaQuery.of(context)
@@ -747,10 +757,13 @@ class _HomeViewState extends State<HomeView> {
                                                                         WidgetButton(
                                                                       borderRadius:
                                                                           8,
-                                                                      mainColor:
-                                                                          const Color(
-                                                                        0xFF007BFF,
-                                                                      ),
+                                                                      mainColor: vm.paymentMethodId ==
+                                                                              1
+                                                                          ? const Color(
+                                                                              0xFF007BFF,
+                                                                            )
+                                                                          : Colors
+                                                                              .white,
                                                                       useDefaultHoverColor:
                                                                           false,
                                                                       child:
@@ -772,7 +785,7 @@ class _HomeViewState extends State<HomeView> {
                                                                           ),
                                                                         ),
                                                                         child:
-                                                                            const Center(
+                                                                            Center(
                                                                           child:
                                                                               Text(
                                                                             "Cash",
@@ -781,23 +794,56 @@ class _HomeViewState extends State<HomeView> {
                                                                             style:
                                                                                 TextStyle(
                                                                               fontWeight: FontWeight.bold,
-                                                                              color: Colors.white,
+                                                                              color: vm.paymentMethodId == 1 ? Colors.white : const Color(0xFF007BFF),
                                                                             ),
                                                                           ),
                                                                         ),
                                                                       ),
                                                                       onTap:
-                                                                          () {},
+                                                                          () {
+                                                                        if (!AuthService
+                                                                            .isLoggedIn()) {
+                                                                          Navigator
+                                                                              .push(
+                                                                            Get.overlayContext!,
+                                                                            PageRouteBuilder(
+                                                                              reverseTransitionDuration: Duration.zero,
+                                                                              transitionDuration: Duration.zero,
+                                                                              pageBuilder: (
+                                                                                context,
+                                                                                a,
+                                                                                b,
+                                                                              ) =>
+                                                                                  const LoginView(),
+                                                                            ),
+                                                                          );
+                                                                        } else {
+                                                                          setState(
+                                                                              () {
+                                                                            vm.paymentMethodId =
+                                                                                1;
+                                                                          });
+                                                                        }
+                                                                      },
                                                                     ),
                                                                   ),
                                                                   const SizedBox(
-                                                                      height:
-                                                                          15),
+                                                                    height: 15,
+                                                                  ),
                                                                   Expanded(
                                                                     child:
                                                                         WidgetButton(
                                                                       borderRadius:
                                                                           8,
+                                                                      mainColor: vm.paymentMethodId !=
+                                                                              1
+                                                                          ? const Color(
+                                                                              0xFF007BFF,
+                                                                            )
+                                                                          : Colors
+                                                                              .white,
+                                                                      useDefaultHoverColor:
+                                                                          false,
                                                                       child:
                                                                           Container(
                                                                         decoration:
@@ -817,7 +863,7 @@ class _HomeViewState extends State<HomeView> {
                                                                           ),
                                                                         ),
                                                                         child:
-                                                                            const Center(
+                                                                            Center(
                                                                           child:
                                                                               Text(
                                                                             "Load",
@@ -826,15 +872,37 @@ class _HomeViewState extends State<HomeView> {
                                                                             style:
                                                                                 TextStyle(
                                                                               fontWeight: FontWeight.bold,
-                                                                              color: Color(
-                                                                                0xFF007BFF,
-                                                                              ),
+                                                                              color: vm.paymentMethodId != 1 ? Colors.white : const Color(0xFF007BFF),
                                                                             ),
                                                                           ),
                                                                         ),
                                                                       ),
                                                                       onTap:
-                                                                          () {},
+                                                                          () {
+                                                                        if (!AuthService
+                                                                            .isLoggedIn()) {
+                                                                          Navigator
+                                                                              .push(
+                                                                            Get.overlayContext!,
+                                                                            PageRouteBuilder(
+                                                                              reverseTransitionDuration: Duration.zero,
+                                                                              transitionDuration: Duration.zero,
+                                                                              pageBuilder: (
+                                                                                context,
+                                                                                a,
+                                                                                b,
+                                                                              ) =>
+                                                                                  const LoginView(),
+                                                                            ),
+                                                                          );
+                                                                        } else {
+                                                                          setState(
+                                                                              () {
+                                                                            vm.paymentMethodId =
+                                                                                2;
+                                                                          });
+                                                                        }
+                                                                      },
                                                                     ),
                                                                   ),
                                                                 ],
