@@ -212,12 +212,8 @@ class _MapViewState extends State<MapView> {
                                 onCameraMove: (center) {
                                   FocusManager.instance.primaryFocus?.unfocus();
                                   final a = vm.disposed;
-                                  if (center != vm.lastCenter) {
-                                    setState(
-                                      () {
-                                        vm.lastCenter = center;
-                                      },
-                                    );
+                                  if (center != vm.lastCenter?.value) {
+                                    vm.lastCenter?.value = center;
                                     if (!a) {
                                       vm.mapCameraMove(
                                         center,

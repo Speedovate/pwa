@@ -305,12 +305,8 @@ class _HomeViewState extends State<HomeView> {
                                         ?.unfocus();
                                     final a = vm.disposed;
                                     final b = vm.markers ?? [];
-                                    if (center != vm.lastCenter) {
-                                      setState(
-                                        () {
-                                          vm.lastCenter = center;
-                                        },
-                                      );
+                                    if (center != vm.lastCenter?.value) {
+                                      vm.lastCenter?.value = center;
                                       if (!a && b.isEmpty) {
                                         vm.mapCameraMove(center);
                                         debugPrint("HomeView - Map move");

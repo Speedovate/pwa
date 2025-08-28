@@ -17,10 +17,10 @@ class GMapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
-  gmaps.LatLng? lastCenter;
   List<gmaps.Marker>? markers = [];
   List<gmaps.Polyline>? polylines = [];
   TaxiRequest taxiRequest = TaxiRequest();
+  ValueNotifier<gmaps.LatLng>? lastCenter;
   GeocoderService geocoderService = GeocoderService();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
 
