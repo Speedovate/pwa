@@ -80,8 +80,12 @@ class _HomeViewState extends State<HomeView> {
                     }
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 18, horizontal: 18),
+                    padding: const EdgeInsets.only(
+                      top: 18,
+                      left: 18,
+                      right: 12,
+                      bottom: 18,
+                    ),
                     child: Row(
                       children: [
                         ClipOval(
@@ -92,8 +96,11 @@ class _HomeViewState extends State<HomeView> {
                               fit: BoxFit.cover,
                               memCacheWidth: 600,
                               imageUrl: AuthService.currentUser?.cPhoto ?? "",
-                              progressIndicatorBuilder:
-                                  (context, imageUrl, progress) {
+                              progressIndicatorBuilder: (
+                                context,
+                                imageUrl,
+                                progress,
+                              ) {
                                 return const CircularProgressIndicator(
                                   color: Color(0xFF007BFF),
                                 );
@@ -145,8 +152,7 @@ class _HomeViewState extends State<HomeView> {
                     ),
                     title: const Text(
                       "History",
-                      style:
-                          TextStyle(color: Color(0xFF030744), fontSize: 15),
+                      style: TextStyle(color: Color(0xFF030744), fontSize: 15),
                     ),
                     onTap: () {
                       _navigateWithoutTransition(
@@ -451,8 +457,7 @@ class _HomeViewState extends State<HomeView> {
                                     ? const SizedBox.shrink()
                                     : const Center(
                                         child: Padding(
-                                          padding:
-                                              EdgeInsets.only(bottom: 40),
+                                          padding: EdgeInsets.only(bottom: 40),
                                           child: Icon(
                                             Icons.location_on,
                                             color: Color(0xFF007BFF),
@@ -468,8 +473,7 @@ class _HomeViewState extends State<HomeView> {
                               Divider(
                                 height: 1,
                                 thickness: 1,
-                                color:
-                                    const Color(0xFF030744).withOpacity(0.1),
+                                color: const Color(0xFF030744).withOpacity(0.1),
                               ),
                               Container(
                                 decoration: const BoxDecoration(
@@ -490,8 +494,7 @@ class _HomeViewState extends State<HomeView> {
                                                 const SizedBox(height: 20),
                                                 (gVehicleTypes.isEmpty ||
                                                             locUnavailable) &&
-                                                        vm.ongoingOrder ==
-                                                            null
+                                                        vm.ongoingOrder == null
                                                     ? Container(
                                                         height: ((MediaQuery.of(
                                                                             context)
@@ -538,15 +541,15 @@ class _HomeViewState extends State<HomeView> {
                                                                     locUnavailable
                                                                         ? "Service location is not available"
                                                                         : "An error occurred, please try again!",
-                                                                    maxLines:
-                                                                        1,
+                                                                    maxLines: 1,
                                                                     overflow:
                                                                         TextOverflow
                                                                             .ellipsis,
                                                                     style:
                                                                         const TextStyle(
                                                                       fontWeight:
-                                                                          FontWeight.w500,
+                                                                          FontWeight
+                                                                              .w500,
                                                                       color:
                                                                           Color(
                                                                         0xFF030744,
@@ -561,8 +564,7 @@ class _HomeViewState extends State<HomeView> {
                                                               ActionButton(
                                                                 onTap: () {
                                                                   vm.clearGMapDetails();
-                                                                  setState(
-                                                                      () {
+                                                                  setState(() {
                                                                     pickupAddress =
                                                                         null;
                                                                     dropoffAddress =
@@ -572,22 +574,21 @@ class _HomeViewState extends State<HomeView> {
                                                                   });
                                                                   vm.zoomToCurrentLocation();
                                                                 },
-                                                                height: ((MediaQuery.of(context).size.width - 64) /
+                                                                height: ((MediaQuery.of(context).size.width -
+                                                                                64) /
                                                                             3)
                                                                         .clamp(
                                                                             0,
                                                                             120) /
                                                                     3,
                                                                 mainColor:
-                                                                    Colors
-                                                                        .red,
+                                                                    Colors.red,
                                                                 text: locUnavailable
                                                                     ? "Try another location"
                                                                     : "Retry",
                                                                 style:
                                                                     const TextStyle(
-                                                                  height:
-                                                                      1.05,
+                                                                  height: 1.05,
                                                                   color: Colors
                                                                       .white,
                                                                   fontWeight:
@@ -610,23 +611,20 @@ class _HomeViewState extends State<HomeView> {
                                                                             .width -
                                                                         64) /
                                                                     3)
-                                                                .clamp(
-                                                                    0, 120),
+                                                                .clamp(0, 120),
                                                             height: ((MediaQuery.of(context)
                                                                             .size
                                                                             .width -
                                                                         64) /
                                                                     3)
-                                                                .clamp(
-                                                                    0, 120),
+                                                                .clamp(0, 120),
                                                             child:
                                                                 ConstrainedBox(
                                                               constraints:
                                                                   const BoxConstraints(
                                                                 maxWidth: 200,
                                                               ),
-                                                              child:
-                                                                  Container(
+                                                              child: Container(
                                                                 height: 50,
                                                                 decoration:
                                                                     BoxDecoration(
@@ -638,9 +636,8 @@ class _HomeViewState extends State<HomeView> {
                                                                       8,
                                                                     ),
                                                                   ),
-                                                                  border:
-                                                                      Border
-                                                                          .all(
+                                                                  border: Border
+                                                                      .all(
                                                                     color:
                                                                         const Color(
                                                                       0xFF007BFF,
@@ -661,8 +658,8 @@ class _HomeViewState extends State<HomeView> {
                                                                           horizontal:
                                                                               8,
                                                                         ),
-                                                                        child:
-                                                                            Image.asset(
+                                                                        child: Image
+                                                                            .asset(
                                                                           "assets/images/${lowerCase(gVehicleTypes.firstWhere(
                                                                                 (v) => v.slug == "tricycle",
                                                                               ).name!)}.png",
@@ -670,8 +667,7 @@ class _HomeViewState extends State<HomeView> {
                                                                       ),
                                                                     ),
                                                                     const SizedBox(
-                                                                      height:
-                                                                          8,
+                                                                      height: 8,
                                                                     ),
                                                                     Text(
                                                                       capitalizeWords(
@@ -697,7 +693,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     ),
                                                                     Text(
                                                                       "${gVehicleTypes.firstWhere(
-                                                                            (v) => v.slug == "tricycle",
+                                                                            (v) =>
+                                                                                v.slug ==
+                                                                                "tricycle",
                                                                           ).maxSeat!} Seater",
                                                                       style:
                                                                           const TextStyle(
@@ -724,7 +722,9 @@ class _HomeViewState extends State<HomeView> {
                                                               width: 15),
                                                           Expanded(
                                                             child: SizedBox(
-                                                              height: ((MediaQuery.of(context).size.width -
+                                                              height: ((MediaQuery.of(context)
+                                                                              .size
+                                                                              .width -
                                                                           64) /
                                                                       3)
                                                                   .clamp(
@@ -754,7 +754,8 @@ class _HomeViewState extends State<HomeView> {
                                                                           ),
                                                                           border:
                                                                               Border.all(
-                                                                            color: const Color(
+                                                                            color:
+                                                                                const Color(
                                                                               0xFF007BFF,
                                                                             ),
                                                                           ),
@@ -764,8 +765,10 @@ class _HomeViewState extends State<HomeView> {
                                                                           child:
                                                                               Text(
                                                                             "Cash",
-                                                                            textAlign: TextAlign.center,
-                                                                            style: TextStyle(
+                                                                            textAlign:
+                                                                                TextAlign.center,
+                                                                            style:
+                                                                                TextStyle(
                                                                               fontWeight: FontWeight.bold,
                                                                               color: Colors.white,
                                                                             ),
@@ -796,7 +799,8 @@ class _HomeViewState extends State<HomeView> {
                                                                           ),
                                                                           border:
                                                                               Border.all(
-                                                                            color: const Color(
+                                                                            color:
+                                                                                const Color(
                                                                               0xFF007BFF,
                                                                             ),
                                                                           ),
@@ -806,8 +810,10 @@ class _HomeViewState extends State<HomeView> {
                                                                           child:
                                                                               Text(
                                                                             "Load",
-                                                                            textAlign: TextAlign.center,
-                                                                            style: TextStyle(
+                                                                            textAlign:
+                                                                                TextAlign.center,
+                                                                            style:
+                                                                                TextStyle(
                                                                               fontWeight: FontWeight.bold,
                                                                               color: Color(
                                                                                 0xFF007BFF,
@@ -830,8 +836,7 @@ class _HomeViewState extends State<HomeView> {
                                                             onTap: () {
                                                               if (!AuthService
                                                                   .isLoggedIn()) {
-                                                                Navigator
-                                                                    .push(
+                                                                Navigator.push(
                                                                   context,
                                                                   PageRouteBuilder(
                                                                     reverseTransitionDuration:
@@ -849,8 +854,7 @@ class _HomeViewState extends State<HomeView> {
                                                                   ),
                                                                 );
                                                               } else {
-                                                                Navigator
-                                                                    .push(
+                                                                Navigator.push(
                                                                   context,
                                                                   PageRouteBuilder(
                                                                     reverseTransitionDuration:
@@ -871,12 +875,16 @@ class _HomeViewState extends State<HomeView> {
                                                             },
                                                             borderRadius: 8,
                                                             child: SizedBox(
-                                                              width: ((MediaQuery.of(context).size.width -
+                                                              width: ((MediaQuery.of(context)
+                                                                              .size
+                                                                              .width -
                                                                           64) /
                                                                       3)
                                                                   .clamp(
                                                                       0, 120),
-                                                              height: ((MediaQuery.of(context).size.width -
+                                                              height: ((MediaQuery.of(context)
+                                                                              .size
+                                                                              .width -
                                                                           64) /
                                                                       3)
                                                                   .clamp(
@@ -885,8 +893,7 @@ class _HomeViewState extends State<HomeView> {
                                                                   ConstrainedBox(
                                                                 constraints:
                                                                     const BoxConstraints(
-                                                                  maxWidth:
-                                                                      200,
+                                                                  maxWidth: 200,
                                                                 ),
                                                                 child:
                                                                     Container(
@@ -910,8 +917,7 @@ class _HomeViewState extends State<HomeView> {
                                                                       ),
                                                                     ),
                                                                   ),
-                                                                  child:
-                                                                      Column(
+                                                                  child: Column(
                                                                     children: [
                                                                       const SizedBox(
                                                                         height:
@@ -922,7 +928,8 @@ class _HomeViewState extends State<HomeView> {
                                                                             Padding(
                                                                           padding:
                                                                               const EdgeInsets.symmetric(
-                                                                            horizontal: 8,
+                                                                            horizontal:
+                                                                                8,
                                                                           ),
                                                                           child:
                                                                               Image.asset(
@@ -1258,8 +1265,7 @@ class _HomeViewState extends State<HomeView> {
                                                           height: 50,
                                                           decoration:
                                                               BoxDecoration(
-                                                            color:
-                                                                Colors.white,
+                                                            color: Colors.white,
                                                             borderRadius:
                                                                 const BorderRadius
                                                                     .all(
@@ -1267,8 +1273,7 @@ class _HomeViewState extends State<HomeView> {
                                                                 8,
                                                               ),
                                                             ),
-                                                            border:
-                                                                Border.all(
+                                                            border: Border.all(
                                                               color:
                                                                   const Color(
                                                                 0xFF007BFF,
@@ -1279,13 +1284,17 @@ class _HomeViewState extends State<HomeView> {
                                                             child: Text(
                                                               vm.ongoingOrder !=
                                                                           null &&
-                                                                      vm.ongoingOrder?.status !=
+                                                                      vm.ongoingOrder
+                                                                              ?.status !=
                                                                           "cancelled"
                                                                   ? () {
-                                                                      if (vm.ongoingOrder?.status ==
+                                                                      if (vm.ongoingOrder
+                                                                              ?.status ==
                                                                           "pending") {
                                                                         return "Waiting";
-                                                                      } else if (vm.ongoingOrder?.status ==
+                                                                      } else if (vm
+                                                                              .ongoingOrder
+                                                                              ?.status ==
                                                                           "preparing") {
                                                                         return capitalizeWords(
                                                                           (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("any") || (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("unknown")
@@ -1348,8 +1357,7 @@ class _HomeViewState extends State<HomeView> {
                                                           height: 50,
                                                           decoration:
                                                               BoxDecoration(
-                                                            color:
-                                                                Colors.white,
+                                                            color: Colors.white,
                                                             borderRadius:
                                                                 const BorderRadius
                                                                     .all(
@@ -1357,8 +1365,7 @@ class _HomeViewState extends State<HomeView> {
                                                                 8,
                                                               ),
                                                             ),
-                                                            border:
-                                                                Border.all(
+                                                            border: Border.all(
                                                               color:
                                                                   const Color(
                                                                 0xFF007BFF,
@@ -1369,7 +1376,8 @@ class _HomeViewState extends State<HomeView> {
                                                             child: Text(
                                                               vm.ongoingOrder !=
                                                                           null &&
-                                                                      vm.ongoingOrder?.status !=
+                                                                      vm.ongoingOrder
+                                                                              ?.status !=
                                                                           "cancelled"
                                                                   ? AuthService
                                                                           .inReviewMode()
