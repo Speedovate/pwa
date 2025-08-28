@@ -42,6 +42,9 @@ class MyApp extends StatelessWidget {
         var textScaleFactor = 1.0;
         return MediaQuery(
           data: mediaQuery.copyWith(
+            padding: EdgeInsets.zero,
+            viewInsets: EdgeInsets.zero,
+            viewPadding: EdgeInsets.zero,
             textScaler: TextScaler.linear(
               textScaleFactor,
             ),
