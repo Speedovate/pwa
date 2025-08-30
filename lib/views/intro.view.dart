@@ -247,7 +247,7 @@ class _IntroViewState extends State<IntroView> {
             ),
           ),
           !AuthService.shouldUpgrade()
-              ? const SizedBox()
+              ? const SizedBox.shrink()
               : const UpgradeWidget(),
         ],
       ),

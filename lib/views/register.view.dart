@@ -136,10 +136,10 @@ class _RegisterViewState extends State<RegisterView> {
                         ],
                       ),
                       AuthService.inReviewMode()
-                          ? const SizedBox()
+                          ? const SizedBox.shrink()
                           : const SizedBox(height: 8),
                       AuthService.inReviewMode()
-                          ? const SizedBox()
+                          ? const SizedBox.shrink()
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

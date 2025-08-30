@@ -3,12 +3,14 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
+import 'package:pwa/views/chat.view.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/view_models/gmap.vm.dart';
 import 'package:pwa/view_models/load.vm.dart';
 import 'package:pwa/models/address.model.dart';
+import 'package:pwa/services/chat.service.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/http.service.dart';
 import 'package:pwa/models/peer_user.model.dart';
@@ -18,6 +20,7 @@ import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
 import 'package:pwa/models/api_response.model.dart';
+import 'package:pwa/widgets/button.widget.dart';
 
 class HomeViewModel extends GMapViewModel {
   bool? userSeen;
@@ -29,6 +32,7 @@ class HomeViewModel extends GMapViewModel {
   Timer? debounceTimer;
   int paymentMethodId = 1;
   bool showReport = false;
+  bool snackShown = true;
   bool isPreparing = false;
   VehicleType? selectedVehicle;
   Map<String, dynamic>? cHeaders;
@@ -41,9 +45,9 @@ class HomeViewModel extends GMapViewModel {
   initialise() async {
     isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
         !AuthService.isLoggedIn();
-    notifyListeners();
     if (AuthService.isLoggedIn()) {
-      LoadViewModel().getLoadBalance();
+      await LoadViewModel().getLoadBalance();
+      await getOngoingOrder();
     }
     notifyListeners();
   }
@@ -117,20 +121,23 @@ class HomeViewModel extends GMapViewModel {
     notifyListeners();
     if (ongoingOrder == null) {
       if (showSnack) {
-        ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
-        ScaffoldMessenger.of(
-          Get.overlayContext!,
-        ).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              "No driver found. Try again later",
-              style: TextStyle(
-                color: Colors.white,
+        if (!snackShown) {
+          ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
+          ScaffoldMessenger.of(
+            Get.overlayContext!,
+          ).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              content: Text(
+                "No driver found. Try again later",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
-        );
+          );
+          snackShown = true;
+        }
       }
     } else {
       Get.until((route) => route.isFirst);
@@ -260,43 +267,18 @@ class HomeViewModel extends GMapViewModel {
                     ),
                     SizedBox(
                       height: 38,
-                      child: Material(
-                        color: Colors.red.shade100,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(8),
-                        ),
-                        child: Ink(
-                          child: InkWell(
-                            onTap: () {
-                              cancelOrder();
-                            },
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
-                            focusColor: const Color(0xFF030744).withOpacity(
-                              0.1,
-                            ),
-                            hoverColor: const Color(0xFF030744).withOpacity(
-                              0.1,
-                            ),
-                            splashColor: const Color(0xFF030744).withOpacity(
-                              0.1,
-                            ),
-                            highlightColor: const Color(0xFF030744).withOpacity(
-                              0.1,
-                            ),
-                            child: const Center(
-                              child: Text(
-                                "Cancel",
-                                style: TextStyle(
-                                  height: 1,
-                                  fontSize: 15,
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
+                      child: ActionButton(
+                        onTap: () {
+                          cancelOrder();
+                        },
+                        height: 38,
+                        text: "Cancel",
+                        mainColor: Colors.red.shade100,
+                        style: const TextStyle(
+                          height: 1,
+                          fontSize: 15,
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -309,6 +291,7 @@ class HomeViewModel extends GMapViewModel {
       } else {
         AlertService().showLoading();
         try {
+          snackShown = false;
           availableDriver = null;
           availableDriver = await taxiRequest.findAvailableDriver(
             types: vehicleTypes,
@@ -340,20 +323,23 @@ class HomeViewModel extends GMapViewModel {
             );
           }
         } else {
-          ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
-          ScaffoldMessenger.of(
-            Get.overlayContext!,
-          ).showSnackBar(
-            const SnackBar(
-              backgroundColor: Colors.red,
-              content: Text(
-                "No driver found. Try again later",
-                style: TextStyle(
-                  color: Colors.white,
+          if (!snackShown) {
+            ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
+            ScaffoldMessenger.of(
+              Get.overlayContext!,
+            ).showSnackBar(
+              const SnackBar(
+                backgroundColor: Colors.red,
+                content: Text(
+                  "No driver found. Try again later",
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-          );
+            );
+            snackShown = true;
+          }
         }
       }
     }
@@ -496,6 +482,7 @@ class HomeViewModel extends GMapViewModel {
             if (apiResponse.allGood) {
               AlertService().showLoading();
               try {
+                snackShown = false;
                 availableDriver = null;
                 availableDriver = await taxiRequest.findAvailableDriver(
                   types: vehicleTypes,
@@ -527,20 +514,23 @@ class HomeViewModel extends GMapViewModel {
                   );
                 }
               } else {
-                ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
-                ScaffoldMessenger.of(
-                  Get.overlayContext!,
-                ).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: Colors.red,
-                    content: Text(
-                      "No driver found. Try again later",
-                      style: TextStyle(
-                        color: Colors.white,
+                if (!snackShown) {
+                  ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
+                  ScaffoldMessenger.of(
+                    Get.overlayContext!,
+                  ).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Colors.red,
+                      content: Text(
+                        "No driver found. Try again later",
+                        style: TextStyle(
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                );
+                  );
+                  snackShown = true;
+                }
               }
             } else {
               throw apiResponse.message;
@@ -599,18 +589,20 @@ class HomeViewModel extends GMapViewModel {
                 notifyListeners();
                 clearGMapDetails();
                 ongoingOrder = null;
-                AlertService().showAppAlert(
-                  dismissible: false,
-                  asset: AppLotties.error,
-                  title: "Booking Cancelled",
-                  content: "Your booking has been cancelled",
-                  confirmAction: () {
-                    Get.until((route) => route.isFirst);
-                  },
-                );
+                if (!snackShown) {
+                  AlertService().showAppAlert(
+                    dismissible: false,
+                    asset: AppLotties.error,
+                    title: "Booking Cancelled",
+                    content: "Your booking has been cancelled",
+                    confirmAction: () {
+                      Get.until((route) => route.isFirst);
+                    },
+                  );
+                  snackShown = true;
+                }
               } else {
                 if (apiResponse.message.contains("cancel")) {
-                  closeOrder();
                   clearGMapDetails();
                 } else {
                   throw apiResponse.message;
@@ -641,23 +633,22 @@ class HomeViewModel extends GMapViewModel {
 
   closeOrder() async {
     cHeaders = null;
-    notifyListeners();
     LoadViewModel().getLoadBalance();
-    await clearGMapDetails();
     selectedVehicle = null;
     dropoffAddress = null;
     pickupAddress = null;
     ongoingOrder = null;
+    clearGMapDetails();
     lastCenter = null;
     lastStatus = null;
     vehicleTypes = [];
     reviewTEC.clear();
     mapCameraMove(
+      "closeOrder",
       initLatLng,
       skipSelectedAddress: true,
     );
     getOngoingOrder();
-    notifyListeners();
     Get.forceAppUpdate();
   }
 
@@ -860,6 +851,103 @@ class HomeViewModel extends GMapViewModel {
     }
   }
 
+  Future<void> reportDriver() async {
+    if (reviewTEC.text == "" || reviewTEC.text == "null") {
+      ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
+      ScaffoldMessenger.of(
+        Get.overlayContext!,
+      ).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "Please tell us what happened",
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    } else if (reviewTEC.text.length <= 5) {
+      ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
+      ScaffoldMessenger.of(
+        Get.overlayContext!,
+      ).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "Please provide us the details",
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    } else {
+      showReport = false;
+      notifyListeners();
+      AlertService().showAppAlert(
+        title: "Report Driver",
+        content: "Do you want to report driver?",
+        cancelText: "No",
+        confirmText: "Yes",
+        hideCancel: false,
+        confirmColor: Colors.red,
+        confirmAction: () async {
+          Get.back();
+          AlertService().showLoading();
+          try {
+            ApiResponse apiResponse = await taxiRequest.reportDriverRequest(
+              orderId: ongoingOrder?.id,
+              message: reviewTEC.text,
+            );
+            reviewTEC.clear();
+            AlertService().stopLoading();
+            if (apiResponse.allGood) {
+              AlertService().showAppAlert(
+                asset: AppLotties.success,
+                title: "Report Submitted",
+                content: "Driver has been reported",
+              );
+            } else {
+              ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
+              ScaffoldMessenger.of(
+                Get.overlayContext!,
+              ).showSnackBar(
+                SnackBar(
+                  backgroundColor: Colors.red,
+                  content: Text(
+                    apiResponse.message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              );
+            }
+          } catch (e) {
+            showReport = true;
+            notifyListeners();
+            AlertService().stopLoading();
+            ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
+            ScaffoldMessenger.of(
+              Get.overlayContext!,
+            ).showSnackBar(
+              SnackBar(
+                backgroundColor: Colors.red,
+                content: Text(
+                  e.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            );
+          }
+        },
+      );
+    }
+  }
+
   syncDriverLocation() {
     if (ongoingOrder != null && AuthService.isLoggedIn()) {
       globalTimer?.cancel();
@@ -923,22 +1011,32 @@ class HomeViewModel extends GMapViewModel {
             "userMessage": message,
           },
         );
-        // ChatService.sendChatMessage(
-        //   message,
-        //   chatEntity,
-        // );
+        ChatService.sendChatMessage(
+          message,
+          chatEntity,
+        );
       },
       mainUser: peers['${ongoingOrder?.user?.id}'],
       peers: peers,
       path: 'orders/${ongoingOrder?.code}/customerDriver/chats',
       title: "Chat with driver",
     );
-    // Get.to(
-    //   () => ChatView(
-    //     chatEntity,
-    //     ongoingOrder!,
-    //   ),
-    // );
+    Navigator.push(
+      Get.overlayContext!,
+      PageRouteBuilder(
+        reverseTransitionDuration: Duration.zero,
+        transitionDuration: Duration.zero,
+        pageBuilder: (
+          context,
+          a,
+          b,
+        ) =>
+            ChatView(
+          chatEntity,
+          ongoingOrder!,
+        ),
+      ),
+    );
   }
 
   startRebookTimer() {

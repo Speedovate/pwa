@@ -1,9 +1,9 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:html' as html;
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/widgets/camera.widget.dart';
 import 'package:image_picker/image_picker.dart';
@@ -188,9 +188,11 @@ String formatEtaText(String input) {
 parseDouble(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      debugPrint(
-        "Error: '$fieldName' is null.",
-      );
+      if (showParseText) {
+        debugPrint(
+          "Error: '$fieldName' is null.",
+        );
+      }
       return null;
     }
     if (value is double) {
@@ -201,9 +203,11 @@ parseDouble(dynamic value, String fieldName) {
     }
     return double.parse(value.toString());
   } catch (e) {
-    debugPrint(
-      "Error parsing field '$fieldName': $e",
-    );
+    if (showParseText) {
+      debugPrint(
+        "Error '$fieldName': $e",
+      );
+    }
     return 0.0;
   }
 }
@@ -211,9 +215,11 @@ parseDouble(dynamic value, String fieldName) {
 parseString(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      debugPrint(
-        "Error: '$fieldName' is null.",
-      );
+      if (showParseText) {
+        debugPrint(
+          "Error: '$fieldName' is null.",
+        );
+      }
       return null;
     }
     if (value is String) {
@@ -223,9 +229,11 @@ parseString(dynamic value, String fieldName) {
     }
     return value.toString();
   } catch (e) {
-    debugPrint(
-      "Error parsing field '$fieldName': $e",
-    );
+    if (showParseText) {
+      debugPrint(
+        "Error '$fieldName': $e",
+      );
+    }
     return "";
   }
 }
@@ -233,9 +241,11 @@ parseString(dynamic value, String fieldName) {
 parseInt(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      debugPrint(
-        "Error: '$fieldName' is null.",
-      );
+      if (showParseText) {
+        debugPrint(
+          "Error: '$fieldName' is null.",
+        );
+      }
       return null;
     }
     if (value is int) {
@@ -246,9 +256,11 @@ parseInt(dynamic value, String fieldName) {
     }
     return int.parse(value.toString());
   } catch (e) {
-    debugPrint(
-      "Error parsing field '$fieldName': $e",
-    );
+    if (showParseText) {
+      debugPrint(
+        "Error '$fieldName': $e",
+      );
+    }
     return 0;
   }
 }
@@ -256,9 +268,11 @@ parseInt(dynamic value, String fieldName) {
 bool parseBool(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      debugPrint(
-        "Error: '$fieldName' is null",
-      );
+      if (showParseText) {
+        debugPrint(
+          "Error: '$fieldName' is null",
+        );
+      }
       return false;
     }
     if (value is bool) {
@@ -272,9 +286,11 @@ bool parseBool(dynamic value, String fieldName) {
     }
     return false;
   } catch (e) {
-    debugPrint(
-      "Error parsing field '$fieldName': $e",
-    );
+    if (showParseText) {
+      debugPrint(
+        "Error '$fieldName': $e",
+      );
+    }
     return false;
   }
 }
@@ -282,9 +298,11 @@ bool parseBool(dynamic value, String fieldName) {
 parseDateTime(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      debugPrint(
-        "Error: '$fieldName' is null.",
-      );
+      if (showParseText) {
+        debugPrint(
+          "Error: '$fieldName' is null.",
+        );
+      }
       return null;
     }
     if (value is DateTime) {
@@ -295,9 +313,11 @@ parseDateTime(dynamic value, String fieldName) {
     }
     return null;
   } catch (e) {
-    debugPrint(
-      "Error parsing field '$fieldName': $e",
-    );
+    if (showParseText) {
+      debugPrint(
+        "Error '$fieldName': $e",
+      );
+    }
     return null;
   }
 }
@@ -309,9 +329,11 @@ List<T>? parseList<T>(
 }) {
   try {
     if (value == null) {
-      debugPrint(
-        "Error: '$fieldName' is null.",
-      );
+      if (showParseText) {
+        debugPrint(
+          "Error: '$fieldName' is null.",
+        );
+      }
       return null;
     }
     if (value is List) {
@@ -322,32 +344,23 @@ List<T>? parseList<T>(
     }
     return null;
   } catch (e) {
-    debugPrint(
-      "Error parsing field '$fieldName': $e",
-    );
+    if (showParseText) {
+      debugPrint(
+        "Error '$fieldName': $e",
+      );
+    }
     return null;
   }
 }
 
 Future<gmaps.LatLng?> getMyLatLng() async {
-  try {
-    final position = await geolocation.getCurrentPosition().timeout(
-          const Duration(
-            seconds: 30,
-          ),
-        );
-    final lat = position.coords?.latitude;
-    final lng = position.coords?.longitude;
-    if (lat != null && lng != null) {
-      initLatLng = gmaps.LatLng(
-        lat,
-        lng,
+  final position = await geolocation.getCurrentPosition().timeout(
+        const Duration(seconds: 30),
       );
-    }
-    return initLatLng;
-  } catch (_) {
-    return gmaps.LatLng(9.7638, 118.7473);
-  }
+  final lat = position.coords?.latitude ?? 9.7638;
+  final lng = position.coords?.longitude ?? 118.7473;
+  initLatLng = gmaps.LatLng(lat, lng);
+  return initLatLng;
 }
 
 void openWebview(String title, String url) {
@@ -423,7 +436,7 @@ Future<dynamic> showImageSource({
           title: const Text("Camera"),
         ),
         hideGallery
-            ? const SizedBox()
+            ? const SizedBox.shrink()
             : ListTileWidget(
                 onTap: () async {
                   Get.back();
@@ -431,13 +444,16 @@ Future<dynamic> showImageSource({
                     final ImagePicker picker = ImagePicker();
                     final XFile? image =
                         await picker.pickImage(source: ImageSource.gallery);
-
                     if (image != null) {
                       selfieFile = await image.readAsBytes();
                       Get.forceAppUpdate();
                     }
                   } catch (e) {
-                    debugPrint("Error picking image: $e");
+                    if (showParseText) {
+                      debugPrint(
+                        "Error picking image: $e",
+                      );
+                    }
                   }
                 },
                 leading: const Icon(Icons.image),

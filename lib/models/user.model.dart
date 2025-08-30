@@ -1,3 +1,4 @@
+import "package:pwa/utils/data.dart";
 import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 
@@ -68,7 +69,9 @@ class User {
 
   factory User.fromJson(Map<String, dynamic>? json) {
     try {
-      debugPrint("Parsing User from JSON...");
+      if (showParseText) {
+        debugPrint("Parsing User from JSON...");
+      }
       return User(
         id: parseInt(
           json?["id"],
@@ -193,8 +196,10 @@ class User {
         ),
       );
     } catch (e) {
-      debugPrint("Error parsing User: $e");
-      debugPrint("User: $json");
+      if (showParseText) {
+        debugPrint("Error parsing User: $e");
+        debugPrint("User: $json");
+      }
       return User();
     }
   }

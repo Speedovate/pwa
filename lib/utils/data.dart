@@ -29,6 +29,7 @@ Address? pickupAddress;
 gmaps.LatLng? myLatLng;
 bool showBranch = false;
 Address? dropoffAddress;
+bool showParseText = false;
 bool locUnavailable = false;
 bool mapUnavailable = false;
 bool cameFromSettings = false;

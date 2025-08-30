@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:pwa/utils/data.dart';
@@ -63,7 +63,6 @@ class OrderRequest extends HttpService {
 
   Future<ApiResponse> postMedia(
     int id,
-    File media,
     String uploadedBy,
   ) async {
     dynamic body = {
@@ -73,8 +72,9 @@ class OrderRequest extends HttpService {
     formData.files.add(
       MapEntry(
         "media",
-        await MultipartFile.fromFile(
-          media.path,
+        MultipartFile.fromBytes(
+          chatFile!,
+          filename: "image_${Random().nextInt(900000)}.jpg",
         ),
       ),
     );

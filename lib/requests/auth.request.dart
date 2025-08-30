@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:pwa/utils/data.dart';
@@ -157,7 +158,7 @@ class AuthRequest extends HttpService {
             "profile",
             MultipartFile.fromBytes(
               selfieFile!,
-              filename: "profile.jpg",
+              filename: "image_${Random().nextInt(900000)}.jpg",
             ),
           ),
         );
@@ -166,7 +167,7 @@ class AuthRequest extends HttpService {
             "customizable_photo",
             MultipartFile.fromBytes(
               selfieFile!,
-              filename: "customizable_photo.jpg",
+              filename: "image_${Random().nextInt(900000)}.jpg",
             ),
           ),
         );
@@ -306,7 +307,7 @@ class AuthRequest extends HttpService {
               ? null
               : MultipartFile.fromBytes(
                   selfieFile!,
-                  filename: "photo.jpg",
+                  filename: "image_${Random().nextInt(900000)}.jpg",
                 ),
         },
       ).timeout(

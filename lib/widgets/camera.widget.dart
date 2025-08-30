@@ -21,7 +21,11 @@ class CameraWidget extends StatefulWidget {
   final bool isEdit;
   String cameraType;
 
-  CameraWidget({this.isEdit = false, this.cameraType = "profile", super.key});
+  CameraWidget({
+    required this.isEdit,
+    required this.cameraType,
+    super.key,
+  });
 
   @override
   State<CameraWidget> createState() => _CameraWidgetState();
@@ -85,33 +89,26 @@ class _CameraWidgetState extends State<CameraWidget> {
   Future<void> _captureImage() async {
     if (_videoElement == null || !_isReady) return;
     setState(() => _isCapturing = true);
-
     try {
       final vw = _videoElement!.videoWidth;
       final vh = _videoElement!.videoHeight;
       if (vw <= 0 || vh <= 0) throw 'Camera not ready';
-
       final canvas = html.CanvasElement(width: vw, height: vh);
       final ctx = canvas.context2D;
-
       if (widget.cameraType == 'profile' || widget.cameraType == 'chat') {
         ctx.translate(vw.toDouble(), 0);
         ctx.scale(-1, 1);
       }
       ctx.drawImage(_videoElement!, 0, 0);
-
       final blob = await canvas.toBlob('image/jpeg', 0.92);
       final reader = html.FileReader();
       final completer = Completer<Uint8List>();
-
       reader.onLoad.listen(
         (_) => completer.complete(reader.result as Uint8List),
       );
       reader.readAsArrayBuffer(blob);
-
       pickedImageBytes = await completer.future;
       if (!mounted) return;
-
       setState(() => _isCapturing = false);
       Navigator.push(
         context,
@@ -405,8 +402,8 @@ class CameraImageWidget extends StatelessWidget {
 
   const CameraImageWidget({
     required this.imageBytes,
-    this.isEdit = false,
-    this.cameraType = "profile",
+    required this.isEdit,
+    required this.cameraType,
     super.key,
   });
 
@@ -486,7 +483,7 @@ class CameraImageWidget extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Expanded(
-                child: SizedBox(),
+                child: SizedBox.shrink(),
               ),
               Container(
                 width: (MediaQuery.of(context).size.width - 70).clamp(
@@ -510,7 +507,7 @@ class CameraImageWidget extends StatelessWidget {
                 ),
               ),
               const Expanded(
-                child: SizedBox(),
+                child: SizedBox.shrink(),
               ),
               Padding(
                 padding: const EdgeInsets.only(
@@ -630,7 +627,7 @@ class CameraImageWidget extends StatelessWidget {
                 ),
               ),
               const Expanded(
-                child: SizedBox(),
+                child: SizedBox.shrink(),
               ),
             ],
           ),
@@ -642,6 +639,7 @@ class CameraImageWidget extends StatelessWidget {
   void _onConfirm() {
     if (cameraType == "chat") {
       chatFile = imageBytes;
+      Get.back();
       Get.back();
     } else {
       selfieFile = imageBytes;

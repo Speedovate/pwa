@@ -17,6 +17,7 @@ class GMapViewModel extends BaseViewModel {
   gmaps.Map? _map;
   Timer? _debounce;
   bool isLoading = false;
+  bool isInitializing = false;
   List<gmaps.Marker>? markers = [];
   List<gmaps.Polyline>? polylines = [];
   TaxiRequest taxiRequest = TaxiRequest();
@@ -36,10 +37,14 @@ class GMapViewModel extends BaseViewModel {
 
   void setMap(gmaps.Map map) async {
     _map = map;
-    debugPrint("Map set");
+    isInitializing = true;
+    await Future.delayed(
+      const Duration(
+        seconds: 3,
+      ),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      mapCameraMove(_map?.center);
-      debugPrint("Map init");
+      mapCameraMove("setMap", _map?.center);
       notifyListeners();
     });
   }
@@ -72,9 +77,11 @@ class GMapViewModel extends BaseViewModel {
   }
 
   Future<void> mapCameraMove(
+    String function,
     gmaps.LatLng? target, {
     bool skipSelectedAddress = false,
   }) async {
+    debugPrint("Map move - $function");
     if (!skipSelectedAddress) {
       selectedAddress.value = null;
       notifyListeners();
@@ -101,10 +108,12 @@ class GMapViewModel extends BaseViewModel {
           );
           final Address address = addresses.first;
           isLoading = false;
+          isInitializing = false;
           await addressSelected(address, animate: true);
         } catch (e) {
           clearGMapDetails();
           isLoading = false;
+          isInitializing = false;
           selectedAddress.value = Address(
             coordinates: Coordinates(
               double.parse("${myLatLng?.lat ?? 9.7638}"),
@@ -208,22 +217,26 @@ class GMapViewModel extends BaseViewModel {
       [
         gmaps.Marker(
           gmaps.MarkerOptions(
-            position: pickupLatLng,
             map: _map,
-            // icon: js_util.jsify({
-            //   'url': 'https://ppctoda.com/storage/pickup_icon.png',
-            //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-            // }),
+            position: pickupLatLng,
+            // icon: js_util.jsify(
+            //   {
+            //     'url': 'https://ppctoda.com/storage/3394/photo.jpg',
+            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+            //   },
+            // ),
           ),
         ),
         gmaps.Marker(
           gmaps.MarkerOptions(
             position: driverLatLng,
             map: _map,
-            // icon: js_util.jsify({
-            //   'url': 'https://ppctoda.com/storage/driver_icon.png',
-            //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-            // }),
+            // icon: js_util.jsify(
+            //   {
+            //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
+            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+            //   },
+            // ),
           ),
         ),
       ],
@@ -401,25 +414,27 @@ class GMapViewModel extends BaseViewModel {
       existing = null;
     }
     if (existing == null) {
-      final marker = gmaps.Marker(gmaps.MarkerOptions()
-            ..position = pos
-            ..map = _map
-          // ..icon = js_util.jsify({
-          //   'url': driverIconUrl,
-          //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-          //   'anchor': js_util.jsify([0.55, 0.75]),
-          //   'rotation': driverPositionRotation,
-          // }),
-          );
+      final marker = gmaps.Marker(
+        gmaps.MarkerOptions()
+          ..position = pos
+          ..map = _map
+        // ..icon = js_util.jsify(
+        //   {
+        //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
+        //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+        //   },
+        // )
+        ,
+      );
       myMarkers.add(WebMarker(id: 'driverMarker', marker: marker));
     } else {
       existing.marker.position = pos;
-      // existing.marker.icon = js_util.jsify({
-      //   'url': driverIconUrl,
-      //   'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-      //   'anchor': js_util.jsify([0.55, 0.75]),
-      //   'rotation': driverPositionRotation,
-      // });
+      // existing.marker.icon = js_util.jsify(
+      //   {
+      //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
+      //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
+      //   },
+      // );
     }
     notifyListeners();
   }

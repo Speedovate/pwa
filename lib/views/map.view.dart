@@ -236,17 +236,24 @@ class _MapViewState extends State<MapView> {
                                   map: map,
                                 ),
                                 onCameraMove: (center) {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  final a = vm.disposed;
-                                  if (center != vm.lastCenter?.value) {
-                                    vm.lastCenter?.value = center;
-                                    if (!a) {
-                                      vm.mapCameraMove(
-                                        center,
-                                        isPickup: widget.isPickup,
-                                      );
-                                      debugPrint("MapView - Map move");
+                                  try {
+                                    FocusManager.instance.primaryFocus
+                                        ?.unfocus();
+                                    final a = vm.disposed;
+                                    if (center != vm.lastCenter?.value) {
+                                      vm.lastCenter?.value = center;
+                                      if (!a) {
+                                        vm.mapCameraMove(
+                                          center,
+                                          isPickup: widget.isPickup,
+                                        );
+                                        debugPrint("MapView - Map move");
+                                      }
                                     }
+                                  } catch (e) {
+                                    debugPrint(
+                                      "MapView - onCameraMove error: $e",
+                                    );
                                   }
                                 },
                               ),
@@ -400,7 +407,7 @@ class _MapViewState extends State<MapView> {
                                             children: [
                                               gVehicleTypes.isEmpty ||
                                                       mapUnavailable
-                                                  ? const SizedBox()
+                                                  ? const SizedBox.shrink()
                                                   : Text(
                                                       capitalizeWords(
                                                           address?.addressLine
@@ -487,18 +494,18 @@ class _MapViewState extends State<MapView> {
                                       borderRadius: const BorderRadius.all(
                                         Radius.circular(8),
                                       ),
-                                      child: Ink(
-                                        child: ActionButton(
-                                          onTap: () {
-                                            FocusManager.instance.primaryFocus
-                                                ?.unfocus();
-                                            if (gVehicleTypes.isEmpty ||
-                                                mapUnavailable) {
-                                              vm.setMap(
-                                                isPickup: widget.isPickup,
-                                                map: vm.map!,
-                                              );
-                                            } else {
+                                      child: ActionButton(
+                                        onTap: () {
+                                          FocusManager.instance.primaryFocus
+                                              ?.unfocus();
+                                          if (gVehicleTypes.isEmpty ||
+                                              mapUnavailable) {
+                                            vm.setMap(
+                                              isPickup: widget.isPickup,
+                                              map: vm.map!,
+                                            );
+                                          } else {
+                                            if (address != null) {
                                               if (widget.isPickup) {
                                                 pickupAddress = address;
                                               } else {
@@ -506,18 +513,18 @@ class _MapViewState extends State<MapView> {
                                               }
                                               Navigator.pop(context, true);
                                             }
-                                          },
-                                          mainColor: gVehicleTypes.isEmpty ||
-                                                  mapUnavailable
-                                              ? Colors.red
-                                              : const Color(0xFF007BFF),
-                                          text: gVehicleTypes.isEmpty ||
-                                                  mapUnavailable
-                                              ? "Retry"
-                                              : address == null
-                                                  ? "•••"
-                                                  : "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}",
-                                        ),
+                                          }
+                                        },
+                                        mainColor: gVehicleTypes.isEmpty ||
+                                                mapUnavailable
+                                            ? Colors.red
+                                            : const Color(0xFF007BFF),
+                                        text: gVehicleTypes.isEmpty ||
+                                                mapUnavailable
+                                            ? "Retry"
+                                            : address == null
+                                                ? "•••"
+                                                : "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}",
                                       ),
                                     );
                                   },

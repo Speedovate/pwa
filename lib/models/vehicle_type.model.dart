@@ -1,3 +1,4 @@
+import "package:pwa/utils/data.dart";
 import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 
@@ -60,7 +61,9 @@ class VehicleType {
 
   factory VehicleType.fromJson(Map<String, dynamic>? json) {
     try {
-      debugPrint("Parsing VehicleType from JSON...");
+      if (showParseText) {
+        debugPrint("Parsing VehicleType from JSON...");
+      }
       return VehicleType(
         id: parseInt(json?["id"], "id"),
         zoneId: parseInt(json?["zone_id"], "zone_id"),
@@ -90,8 +93,10 @@ class VehicleType {
         prevTotal: parseDouble(json?["prev_total"], "prev_total"),
       );
     } catch (e) {
-      debugPrint("Error parsing VehicleType: $e");
-      debugPrint("VehicleType JSON: $json");
+      if (showParseText) {
+        debugPrint("Error parsing VehicleType: $e");
+        debugPrint("VehicleType JSON: $json");
+      }
       return VehicleType();
     }
   }

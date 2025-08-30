@@ -41,7 +41,7 @@ class UpgradeWidget extends StatelessWidget {
                   width: 50,
                 ),
               ),
-              const Expanded(flex: 1, child: SizedBox()),
+              const Expanded(flex: 1, child: SizedBox.shrink()),
               SizedBox(
                 height: MediaQuery.of(context).size.height / 3,
                 child: Lottie.asset(
@@ -61,7 +61,7 @@ class UpgradeWidget extends StatelessWidget {
                   ),
                 ),
               ),
-              const Expanded(child: SizedBox()),
+              const Expanded(child: SizedBox.shrink()),
               const Text(
                 "New version available",
                 style: TextStyle(

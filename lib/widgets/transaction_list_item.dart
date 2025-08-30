@@ -47,7 +47,7 @@ class _TransactionListItemState extends State<TransactionListItem> {
                   color: Color(0xFF09244B),
                 ),
               ),
-              const Expanded(child: SizedBox()),
+              const Expanded(child: SizedBox.shrink()),
               Text(
                 "${isBool(widget.transaction.isCredit) ? "+" : "-"} ₱${widget.transaction.amount?.toStringAsFixed(0)}",
                 style: TextStyle(

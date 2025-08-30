@@ -106,10 +106,10 @@ class _DetailsViewState extends State<DetailsView> {
                       color: const Color(0xFF030744).withOpacity(0.15),
                     ),
                     widget.order.driver == null
-                        ? const SizedBox()
+                        ? const SizedBox.shrink()
                         : const SizedBox(height: 20),
                     widget.order.driver == null
-                        ? const SizedBox()
+                        ? const SizedBox.shrink()
                         : DateTime.now()
                                     .difference(
                                       widget.order.createdAt ?? DateTime.now(),
@@ -619,7 +619,7 @@ class _DetailsViewState extends State<DetailsView> {
                               height: 12,
                             ),
                             AuthService.inReviewMode()
-                                ? const SizedBox()
+                                ? const SizedBox.shrink()
                                 : Row(
                                     children: [
                                       const SizedBox(width: 14),
@@ -657,7 +657,7 @@ class _DetailsViewState extends State<DetailsView> {
                                           color: Color(0xFF030744),
                                         ),
                                       ),
-                                      const Expanded(child: SizedBox()),
+                                      const Expanded(child: SizedBox.shrink()),
                                       Text(
                                         "₱${((widget.order.subTotal ?? 0) + (widget.order.taxiOrder?.pickupFee ?? 0)).toStringAsFixed(0)}",
                                         style: const TextStyle(
@@ -668,7 +668,7 @@ class _DetailsViewState extends State<DetailsView> {
                                     ],
                                   ),
                             AuthService.inReviewMode()
-                                ? const SizedBox()
+                                ? const SizedBox.shrink()
                                 : const SizedBox(height: 8),
                             Row(
                               children: [
@@ -688,7 +688,7 @@ class _DetailsViewState extends State<DetailsView> {
                                     color: Color(0xFF030744),
                                   ),
                                 ),
-                                const Expanded(child: SizedBox()),
+                                const Expanded(child: SizedBox.shrink()),
                                 Text(
                                   AuthService.inReviewMode()
                                       ? "${widget.order.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(1)} km"

@@ -124,7 +124,7 @@ class _SettingsViewState extends State<SettingsView> {
                               color: Color(0xFF030744),
                             ),
                           ),
-                          Expanded(child: SizedBox()),
+                          Expanded(child: SizedBox.shrink()),
                           Icon(
                             Icons.chevron_right,
                             color: Color(0xFF030744),
@@ -135,7 +135,7 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                   ),
                   !AuthService.inReviewMode()
-                      ? const SizedBox()
+                      ? const SizedBox.shrink()
                       : WidgetButton(
                           borderRadius: 0,
                           onTap: () {

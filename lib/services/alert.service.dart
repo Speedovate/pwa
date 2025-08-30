@@ -139,7 +139,8 @@ class AlertService {
                                                       MainAxisAlignment.center,
                                                   children: [
                                                     hideCancel
-                                                        ? const SizedBox()
+                                                        ? const SizedBox
+                                                            .shrink()
                                                         : Expanded(
                                                             child: ActionButton(
                                                               height: 38,
@@ -171,7 +172,8 @@ class AlertService {
                                                             ),
                                                           ),
                                                     hideCancel
-                                                        ? const SizedBox()
+                                                        ? const SizedBox
+                                                            .shrink()
                                                         : const SizedBox(
                                                             width: 16,
                                                           ),
@@ -204,7 +206,7 @@ class AlertService {
                                                 ),
                                               ),
                                               hideThird
-                                                  ? const SizedBox()
+                                                  ? const SizedBox.shrink()
                                                   : Padding(
                                                       padding:
                                                           const EdgeInsets.only(

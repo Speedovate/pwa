@@ -1,4 +1,5 @@
 import "dart:convert";
+import "package:pwa/utils/data.dart";
 import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 import "package:pwa/models/trip_details.model.dart";
@@ -58,7 +59,9 @@ class TaxiOrder {
 
   factory TaxiOrder.fromJson(Map<String, dynamic>? json) {
     try {
-      debugPrint("Parsing TaxiOrder from JSON...");
+      if (showParseText) {
+        debugPrint("Parsing TaxiOrder from JSON...");
+      }
       return TaxiOrder(
         id: parseInt(json?["id"], "id"),
         orderId: parseInt(json?["order_id"], "order_id"),
@@ -96,8 +99,10 @@ class TaxiOrder {
             : VehicleType.fromJson(json?["vehicle_type"]),
       );
     } catch (e) {
-      debugPrint("Error parsing TaxiOrder: $e");
-      debugPrint("TaxiOrder JSON: $json");
+      if (showParseText) {
+        debugPrint("Error parsing TaxiOrder: $e");
+        debugPrint("TaxiOrder JSON: $json");
+      }
       return TaxiOrder();
     }
   }

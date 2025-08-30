@@ -125,7 +125,7 @@ class _ChangeViewState extends State<ChangeView> {
                         ),
                       ),
                       widget.isReset
-                          ? const SizedBox()
+                          ? const SizedBox.shrink()
                           : Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -152,7 +152,7 @@ class _ChangeViewState extends State<ChangeView> {
                               ),
                             ),
                       widget.isReset
-                          ? const SizedBox()
+                          ? const SizedBox.shrink()
                           : const SizedBox(height: 16),
                       Padding(
                         padding: const EdgeInsets.symmetric(

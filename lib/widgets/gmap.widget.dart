@@ -76,37 +76,34 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     super.initState();
     viewId = 'map-div-${DateTime.now().microsecondsSinceEpoch}';
     _ensureHideGmapUiStyle();
-
-    ui.platformViewRegistry.registerViewFactory(viewId, (int _) {
-      final mapDiv = html.DivElement()
-        ..id = viewId
-        ..style.width = '100%'
-        ..style.height = '100%';
-
-      final mapOptions = gmaps.MapOptions()
-        ..zoom = 16
-        ..center = widget.center
-        ..clickableIcons = false
-        ..disableDefaultUI = true
-        ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
-        ..disableDoubleClickZoom = true
-        ..mapTypeId = gmaps.MapTypeId.ROADMAP;
-
-      _map = gmaps.Map(mapDiv as dynamic, mapOptions);
-
-      js_util.setProperty(_map!, 'styles', _defaultStyles);
-
-      widget.onMapCreated?.call(_map!);
-
-      _centerChangedSub = _map!.onCenterChanged.listen((_) {
-        final center = _map?.center;
-        if (center != null && mounted) widget.onCameraMove?.call(center);
-      });
-
-      _mapInitialized = true;
-
-      return mapDiv;
-    });
+    ui.platformViewRegistry.registerViewFactory(
+      viewId,
+      (int _) {
+        final mapDiv = html.DivElement()
+          ..id = viewId
+          ..style.width = '100%'
+          ..style.height = '100%';
+        final mapOptions = gmaps.MapOptions()
+          ..zoom = 16
+          ..center = widget.center
+          ..clickableIcons = false
+          ..disableDefaultUI = true
+          ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
+          ..disableDoubleClickZoom = true
+          ..mapTypeId = gmaps.MapTypeId.ROADMAP;
+        _map = gmaps.Map(mapDiv as dynamic, mapOptions);
+        js_util.setProperty(_map!, 'styles', _defaultStyles);
+        widget.onMapCreated?.call(_map!);
+        _centerChangedSub = _map!.onCenterChanged.listen(
+          (_) {
+            final center = _map?.center;
+            if (center != null && mounted) widget.onCameraMove?.call(center);
+          },
+        );
+        _mapInitialized = true;
+        return mapDiv;
+      },
+    );
   }
 
   @override

@@ -1,3 +1,4 @@
+import "package:pwa/utils/data.dart";
 import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 import "package:pwa/models/user.model.dart";
@@ -44,7 +45,9 @@ class Driver extends User {
 
   factory Driver.fromJson(Map<String, dynamic>? json) {
     try {
-      debugPrint("Parsing Driver from JSON...");
+      if (showParseText) {
+        debugPrint("Parsing Driver from JSON...");
+      }
       return Driver(
         id: parseInt(
           json?['id'],
@@ -160,8 +163,10 @@ class Driver extends User {
         ),
       );
     } catch (e) {
-      debugPrint("Error parsing Driver: $e");
-      debugPrint("Driver JSON: $json");
+      if (showParseText) {
+        debugPrint("Error parsing Driver: $e");
+        debugPrint("Driver JSON: $json");
+      }
       return Driver();
     }
   }
