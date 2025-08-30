@@ -883,7 +883,7 @@ class _ChatViewState extends State<ChatView> {
                                         height: MediaQuery.of(context)
                                             .size
                                             .width
-                                            .clamp(0, 500),
+                                            .clamp(0, 450),
                                         decoration: BoxDecoration(
                                           image: DecorationImage(
                                             fit: BoxFit.cover,

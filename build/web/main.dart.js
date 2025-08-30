@@ -115330,7 +115330,7 @@ while(true)switch(s){case 0:s=2
 return A.l(A.DU(),$async$wh)
 case 2:s=3
 return A.l(A.Ru(),$async$wh)
-case 3:try{$.b0S="1.0.10"
+case 3:try{$.b0S="1.0.0"
 $.abl="30"}catch(o){q=A.Q(o)
 A.bY().$1("getAppInfo error: "+A.d(q))}return A.p(null,r)}})
 return A.q($async$wh,r)},
@@ -115833,7 +115833,7 @@ $3(a,b,c){var s,r,q,p=null,o=this.a,n=t.p,m=A.bb(A.a([B.bf,A.anV(p,B.mL,p,new A.
 if($.xx==null)s=B.K
 else{s=t.w
 r=A.a2(a,p,s).w
-s=B.c.an(A.a2(a,p,s).w.a.a,0,500)
+s=B.c.an(A.a2(a,p,s).w.a.a,0,450)
 q=$.xx
 q.toString
 r=A.aR(p,p,B.n,p,p,new A.bn(p,A.yn(B.ar,new A.jO(q)),p,p,p,p,B.C),p,s,p,p,p,p,r.a.a)
@@ -116818,7 +116818,7 @@ if(h)i="Sent a photo"
 i=A.ai(k+" (Driver): "+i,a7,a7,a7,a7,a7,a7,a7)
 if(!h)s=B.K
 else{k=A.a2(b5,a7,s).w
-s=B.c.an(A.a2(b5,a7,s).w.a.a,0,500)
+s=B.c.an(A.a2(b5,a7,s).w.a.a,0,450)
 k=A.ch(a7,new A.a8(B.q3,A.aR(a7,a7,B.n,a7,a7,new A.bn(B.t,A.yn(B.ar,new A.oV(A.d(o.p1),1,a7)),a7,B.fi,a7,a7,B.C),a7,s,a7,a7,a7,a7,k.a.a),a7),B.B,!1,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,new A.aKT(o),a7,a7,a7,a7,a7,a7,!1,B.R)
 s=k}k=A.bG(A.ak(A.cb(8,B.H_,!1,B.q,new A.aKU(o),!1),55,a7),1)
 s=A.fR(0,A.aR(a7,A.bi(A.a([new A.a8(B.dD,g,a7),e,new A.a8(B.dD,i,a7),s,new A.a8(B.q3,A.bb(A.a([k,B.CY,A.bG(A.ak(A.cb(8,A.bC(o.lE(0,o)?B.D_:B.TW,a7,a7),!1,B.t,new A.aKV(o),!1),55,a7),1)],j),B.j,B.m,B.k),a7)],j),B.bH,B.m,B.k),B.n,B.h,a7,a7,a7,a7,a7,a7,a7,a7,a7),a7,a7,0,0,a7,a7)}return A.i_(A.ak(A.ed(B.aW,A.a([b4,n,m,l,s],j),B.p,B.ay),r.a.b-q.r.b-p.r.d,a7),a7,B.jl)},
