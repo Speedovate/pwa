@@ -118450,7 +118450,7 @@ q=B.c.an(A.a2(a,l,i).w.a.a-75,0,450)
 if(m.d==null)k=A.bC(A.o6(A.K(64,0,123,255),B.t,B.bX,4),l,l)
 else{k=new A.aE(new Float64Array(16))
 k.bI()
-k.mc(0,-1,1,1)
+k.mc(0,m.a.d==="profile"?-1:1,1,1)
 p=B.e.an(1/0,0,450)
 o=B.e.an(1/0,0,450)
 n=m.f

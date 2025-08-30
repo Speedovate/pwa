@@ -61,10 +61,7 @@ class _CameraWidgetState extends State<CameraWidget> {
 
       final constraints = {
         'video': {
-          'facingMode':
-              widget.cameraType == 'profile'
-                  ? 'user'
-                  : 'environment'
+          'facingMode': widget.cameraType == 'profile' ? 'user' : 'environment'
         },
         'audio': false,
       };
@@ -297,7 +294,9 @@ class _CameraWidgetState extends State<CameraWidget> {
                                   alignment: Alignment.center,
                                   transform: Matrix4.identity()
                                     ..scale(
-                                      -1.0,
+                                      widget.cameraType == "profile"
+                                          ? -1.0
+                                          : 1.0,
                                       1.0,
                                       1.0,
                                     ),
