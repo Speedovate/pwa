@@ -35,10 +35,9 @@ class GMapViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  void setMap(gmaps.Map map) async {
+  void setMap(gmaps.Map map) {
     _map = map;
     isInitializing = true;
-    await Future.delayed(const Duration(seconds: 2));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await mapCameraMove("setMap", _map?.center);
       notifyListeners();

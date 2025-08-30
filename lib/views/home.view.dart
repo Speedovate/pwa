@@ -341,8 +341,15 @@ class _HomeViewState extends State<HomeView> {
                                         _scaffoldKey.currentState?.isDrawerOpen,
                                       ) &&
                                       !vm.isLoading,
-                                  onMapCreated: (map) {
+                                  onMapCreated: (map) async {
                                     vm.setMap(map);
+                                    if (AuthService.isLoggedIn()) {
+                                      await Future.delayed(
+                                        const Duration(seconds: 2),
+                                      );
+                                      vm.getOngoingOrder();
+                                      LoadViewModel().getLoadBalance();
+                                    }
                                   },
                                   onCameraMove: (center) {
                                     try {
