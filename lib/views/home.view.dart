@@ -462,7 +462,8 @@ class _HomeViewState extends State<HomeView> {
                                             vm.lastStatus = null;
                                             await vm.getOngoingOrder();
                                             if (vm.ongoingOrder == null) {
-                                              await LoadViewModel().getLoadBalance();
+                                              await LoadViewModel()
+                                                  .getLoadBalance();
                                             }
                                             if (pickupAddress != null &&
                                                     dropoffAddress != null &&
@@ -801,12 +802,9 @@ class _HomeViewState extends State<HomeView> {
                                                                           .green
                                                                           .shade100,
                                                                 )
-                                                              : LinearProgressIndicator(
+                                                              : Container(
+                                                                  height: 4,
                                                                   color:
-                                                                      const Color(
-                                                                    0xFF007BFF,
-                                                                  ),
-                                                                  backgroundColor:
                                                                       const Color(
                                                                     0xFF007BFF,
                                                                   ).withOpacity(
@@ -3167,15 +3165,15 @@ class _HomeViewState extends State<HomeView> {
                                                                       ?.unfocus();
                                                                   vm.reportDriver();
                                                                 },
-                                                                mainColor: Colors
-                                                                    .red
-                                                                    .shade100,
-                                                                text: "Report",
+                                                                mainColor:
+                                                                    Colors.red,
+                                                                text:
+                                                                    "Report Driver",
                                                                 style:
                                                                     const TextStyle(
                                                                   fontSize: 15,
                                                                   color: Colors
-                                                                      .red,
+                                                                      .white,
                                                                   fontWeight:
                                                                       FontWeight
                                                                           .bold,
