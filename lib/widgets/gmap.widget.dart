@@ -130,7 +130,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     super.dispose();
   }
 
-  void _ensureHideGmapUiStyle() {
+   _ensureHideGmapUiStyle() {
     const styleId = 'gmap-hide-ui';
     if (html.document.getElementById(styleId) != null) return;
     final styleEl = html.StyleElement()

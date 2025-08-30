@@ -382,7 +382,7 @@ void openWebview(String title, String url) {
   );
 }
 
-Future<void> showCameraSource({
+showCameraSource({
   bool isEdit = false,
   String cameraType = "profile",
 }) async {
@@ -464,7 +464,7 @@ Future<dynamic> showImageSource({
   );
 }
 
-Future<void> share(String text) async {
+share(String text) async {
   try {
     await html.window.navigator.share(
       {

@@ -20,7 +20,7 @@ class SplashViewModel extends BaseViewModel {
   TaxiRequest taxiRequest = TaxiRequest();
   SettingsRequest settingsRequest = SettingsRequest();
 
-  Future<void> initialise() async {
+  initialise() async {
     await getAppUser();
     await getVehicles();
     await getBanners();
@@ -29,7 +29,7 @@ class SplashViewModel extends BaseViewModel {
     await goToNextPage();
   }
 
-  Future<void> getAppUser() async {
+  getAppUser() async {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
@@ -42,7 +42,7 @@ class SplashViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> getSettings() async {
+  getSettings() async {
     try {
       ApiResponse hResponse = await settingsRequest.homeSettingsRequest();
       await AppStrings.saveHomeSettingsToStorage(
@@ -94,7 +94,7 @@ class SplashViewModel extends BaseViewModel {
     startListeningToConfigs();
   }
 
-  Future<void> getBanners() async {
+  getBanners() async {
     try {
       gBanners = await settingsRequest.bannersRequest();
       debugPrint(
@@ -107,7 +107,7 @@ class SplashViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> getVehicles() async {
+  getVehicles() async {
     try {
       gVehicleTypes = await taxiRequest.vehicleTypesRequest();
       debugPrint(
@@ -171,7 +171,7 @@ class SplashViewModel extends BaseViewModel {
     }
   }
 
-  void startListeningToConfigs() {
+   startListeningToConfigs() {
     if (configStream != null && !configStream!.isPaused) {
       return;
     }

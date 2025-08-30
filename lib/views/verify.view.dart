@@ -312,7 +312,7 @@ class _VerifyViewState extends State<VerifyView> {
     );
   }
 
-  void startCountDown() {
+  startCountDown() {
     if (resendCountdownTimer != null && resendCountdownTimer!.isActive) {
       return;
     }

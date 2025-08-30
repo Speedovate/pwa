@@ -32,7 +32,7 @@ class WebViewWidgetState extends State<WebViewWidget> {
     _registerIframe();
   }
 
-  void _registerIframe() {
+  _registerIframe() {
     viewType = "iframe-${DateTime.now().microsecondsSinceEpoch}";
     ui.platformViewRegistry.registerViewFactory(
       viewType,

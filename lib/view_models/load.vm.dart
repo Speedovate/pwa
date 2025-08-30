@@ -17,14 +17,14 @@ class LoadViewModel extends BaseViewModel {
     await getLoadTransactions();
   }
 
-  Future<void> getLoadBalance() async {
+  getLoadBalance() async {
     try {
       gLoad = await loadRequest.loadBalanceRequest();
       Get.forceAppUpdate();
     } catch (_) {}
   }
 
-  Future<void> getLoadTransactions({
+  getLoadTransactions({
     bool initialLoading = true,
   }) async {
     if (initialLoading) {

@@ -35,14 +35,14 @@ class _LoadViewState extends State<LoadView> {
     });
   }
 
-  Future<void> _loadMore() async {
+  _loadMore() async {
     setState(() => _isLoadingMore = true);
     await vm.getLoadBalance();
     await vm.getLoadTransactions(initialLoading: false);
     setState(() => _isLoadingMore = false);
   }
 
-  Future<void> _refresh() async {
+  _refresh() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
     await vm.getLoadBalance();

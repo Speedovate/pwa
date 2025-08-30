@@ -43,7 +43,8 @@ class HomeViewModel extends GMapViewModel {
   TextEditingController reviewTEC = TextEditingController();
 
   initialise() async {
-    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ?? !AuthService.isLoggedIn();
+    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
+        !AuthService.isLoggedIn();
     notifyListeners();
   }
 
@@ -593,13 +594,16 @@ class HomeViewModel extends GMapViewModel {
                     content: "Your booking has been cancelled",
                     confirmAction: () async {
                       Get.until((route) => route.isFirst);
-                      if (pickupAddress != null && dropoffAddress != null && ongoingOrder == null || ongoingOrder?.status == "cancelled") {
+                      if (pickupAddress != null &&
+                              dropoffAddress != null &&
+                              ongoingOrder == null ||
+                          ongoingOrder?.status == "cancelled") {
                         isPreparing = true;
                         await drawDropPolyLines(
-                        "pickup-dropoff",
-                        pickupAddress!.latLng,
-                        dropoffAddress!.latLng,
-                        null,
+                          "pickup-dropoff",
+                          pickupAddress!.latLng,
+                          dropoffAddress!.latLng,
+                          null,
                         );
                         await fetchVehicleTypesPricing();
                         isPreparing = false;
@@ -847,7 +851,10 @@ class HomeViewModel extends GMapViewModel {
                   "Your booking has been ${lastOrder?.reason == "pass" ? "passed" : "cancelled"}",
               confirmAction: () async {
                 Get.until((route) => route.isFirst);
-                if (pickupAddress != null && dropoffAddress != null && ongoingOrder == null || ongoingOrder?.status == "cancelled") {
+                if (pickupAddress != null &&
+                        dropoffAddress != null &&
+                        ongoingOrder == null ||
+                    ongoingOrder?.status == "cancelled") {
                   isPreparing = true;
                   await drawDropPolyLines(
                     "pickup-dropoff",
@@ -866,7 +873,7 @@ class HomeViewModel extends GMapViewModel {
     }
   }
 
-  Future<void> reportDriver() async {
+  reportDriver() async {
     if (reviewTEC.text == "" || reviewTEC.text == "null") {
       ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
       ScaffoldMessenger.of(

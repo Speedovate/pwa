@@ -33,13 +33,13 @@ class _HistoryViewState extends State<HistoryView> {
     });
   }
 
-  Future<void> _loadMore() async {
+  _loadMore() async {
     setState(() => _isLoadingMore = true);
     await vm.getOrders(initialLoading: false);
     setState(() => _isLoadingMore = false);
   }
 
-  Future<void> _refresh() async {
+  _refresh() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
     await vm.getOrders();

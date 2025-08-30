@@ -5,7 +5,7 @@ class ListViewWidget<T> extends StatelessWidget {
   final Widget Function(BuildContext context, T item, int index) itemBuilder;
   final ScrollController? controller;
   final bool isLoadingMore;
-  final Future<void> Function()? onRefresh;
+  final Function()? onRefresh;
   final int currentPage;
 
   const ListViewWidget({

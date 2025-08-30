@@ -38,7 +38,7 @@ class _HomeViewState extends State<HomeView> {
   final HomeViewModel homeViewModel = HomeViewModel();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  void _navigateWithoutTransition(Widget page) {
+  _navigateWithoutTransition(Widget page) {
     Navigator.push(
       context,
       PageRouteBuilder(

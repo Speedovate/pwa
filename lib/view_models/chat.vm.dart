@@ -32,7 +32,7 @@ class ChatViewModel extends BaseViewModel {
     setBusy(false);
   }
 
-  Future<void> loadAllMessages() async {
+  loadAllMessages() async {
     setBusy(true);
     try {
       QuerySnapshot<Object?>? chatData =
@@ -56,7 +56,7 @@ class ChatViewModel extends BaseViewModel {
     }
   }
 
-  void listenToNewMessages() {
+   listenToNewMessages() {
     chatStreamListener?.cancel();
     chatStreamListener = chatRef!
         .orderBy("timestamp")
@@ -88,7 +88,7 @@ class ChatViewModel extends BaseViewModel {
     );
   }
 
-  Future<void> sendMessage(ChatMessage message) async {
+  sendMessage(ChatMessage message) async {
     setBusy(true);
     try {
       await chatRef?.doc().set(Chat.jsonFrom(message)).timeout(

@@ -13,7 +13,7 @@ class ProfileViewModel extends BaseViewModel {
 
   initialise() async {}
 
-  Future<void> processUpdate() async {
+  processUpdate() async {
     AlertService().showLoading();
     try {
       final apiResponse = await authRequest

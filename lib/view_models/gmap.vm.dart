@@ -35,7 +35,7 @@ class GMapViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  void setMap(gmaps.Map map) {
+  setMap(gmaps.Map map) {
     _map = map;
     isInitializing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -395,7 +395,7 @@ class GMapViewModel extends BaseViewModel {
     polylines = [];
   }
 
-  void updateDriverMarkerPosition(gmaps.LatLng position) {
+  updateDriverMarkerPosition(gmaps.LatLng position) {
     if (_map == null) return;
     WebMarker? existing;
     try {
@@ -418,7 +418,6 @@ class GMapViewModel extends BaseViewModel {
     } else {
       existing.marker.position = position;
     }
-    notifyListeners();
   }
 }
 

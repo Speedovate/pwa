@@ -46,7 +46,7 @@ class _CameraWidgetState extends State<CameraWidget> {
     _initCamera();
   }
 
-  Future<void> _initCamera() async {
+  _initCamera() async {
     try {
       _videoElement = html.VideoElement()
         ..autoplay = true
@@ -83,7 +83,7 @@ class _CameraWidgetState extends State<CameraWidget> {
     }
   }
 
-  Future<void> _captureImage() async {
+  _captureImage() async {
     if (_videoElement == null || !_isReady) return;
     setState(() => _isCapturing = true);
     try {
@@ -130,7 +130,7 @@ class _CameraWidgetState extends State<CameraWidget> {
     }
   }
 
-  void _showError(String msg) {
+ _showError(String msg) {
     final ctx = Get.overlayContext;
     if (ctx != null) {
       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -648,7 +648,7 @@ class CameraImageWidget extends StatelessWidget {
     );
   }
 
-  void _onConfirm() async {
+ _onConfirm() async {
     if (cameraType == "chat") {
       final img = html.ImageElement();
       final completer = Completer<Uint8List>();

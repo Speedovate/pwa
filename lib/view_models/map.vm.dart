@@ -83,7 +83,7 @@ class MapViewModel extends BaseViewModel {
 
   gmaps.Map? get map => _map;
 
-  Future<void> zoomToCurrentLocation({double zoom = 16}) async {
+  zoomToCurrentLocation({double zoom = 16}) async {
     if (_map != null) {
       final target = initLatLng;
       _map!.panTo(target!);
@@ -91,21 +91,21 @@ class MapViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> zoomIn() async {
+  zoomIn() async {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom + 1).clamp(2, 21);
     }
   }
 
-  Future<void> zoomOut() async {
+  zoomOut() async {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom - 1).clamp(2, 21);
     }
   }
 
-  Future<void> mapCameraMove(
+  mapCameraMove(
     gmaps.LatLng? target, {
     bool skipSelectedAddress = false,
     required bool isPickup,
@@ -181,7 +181,7 @@ class MapViewModel extends BaseViewModel {
     );
   }
 
-  Future<void> addressSelected(
+  addressSelected(
     Address address, {
     bool animate = false,
     required bool isPickup,

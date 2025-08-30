@@ -41,7 +41,7 @@ class _ChatViewState extends State<ChatView> {
 
   Key _getKey() => Key('selectable-text-$_index');
 
-  void _removeSelection() => setState(() => _index++);
+   _removeSelection() => setState(() => _index++);
 
   @override
   void initState() {

@@ -78,7 +78,7 @@ class AuthService {
     return currentUser;
   }
 
-  Future<void> logout() async {
+  logout() async {
     unsubscribeFromTopic("${currentUser?.id}");
     unsubscribeFromTopic("${currentUser?.role}");
     unsubscribeFromTopic("branch_${currentUser?.branchID}");
@@ -149,7 +149,7 @@ class AuthService {
     }
   }
 
-  void subscribeToTopic(String topic) async {
+   subscribeToTopic(String topic) async {
     try {
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       if (!topics.contains(topic)) {
@@ -162,7 +162,7 @@ class AuthService {
     }
   }
 
-  void unsubscribeFromTopic(String topic) async {
+   unsubscribeFromTopic(String topic) async {
     try {
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       topics.remove(topic);

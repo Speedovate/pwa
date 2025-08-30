@@ -18,7 +18,7 @@ class HistoryViewModel extends BaseViewModel {
     await getOrders();
   }
 
-  Future<void> getOrders({
+  getOrders({
     bool initialLoading = true,
   }) async {
     if (initialLoading) {
