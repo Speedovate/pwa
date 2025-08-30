@@ -484,23 +484,34 @@ class CameraImageWidget extends StatelessWidget {
               const Expanded(
                 child: SizedBox.shrink(),
               ),
-              Container(
-                width: (MediaQuery.of(context).size.width - 70).clamp(
-                  0,
-                  450,
-                ),
-                height: (MediaQuery.of(context).size.width - 75).clamp(
-                  0,
-                  450,
-                ),
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    fit: BoxFit.cover,
-                    image: MemoryImage(imageBytes),
+              Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..scale(
+                    cameraType != "profile"
+                        ? -1.0
+                        : 1.0,
+                    1.0,
+                    1.0,
                   ),
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(
-                      cameraType != "profile" ? 10 : 1000,
+                child: Container(
+                  width: (MediaQuery.of(context).size.width - 70).clamp(
+                    0,
+                    450,
+                  ),
+                  height: (MediaQuery.of(context).size.width - 75).clamp(
+                    0,
+                    450,
+                  ),
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: MemoryImage(imageBytes),
+                    ),
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(
+                        cameraType != "profile" ? 10 : 1000,
+                      ),
                     ),
                   ),
                 ),
