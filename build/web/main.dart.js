@@ -115330,7 +115330,7 @@ while(true)switch(s){case 0:s=2
 return A.l(A.DU(),$async$wh)
 case 2:s=3
 return A.l(A.Ru(),$async$wh)
-case 3:try{$.b0S="1.0.10"
+case 3:try{$.b0S="1.0.0"
 $.abl="30"}catch(o){q=A.Q(o)
 A.bY().$1("getAppInfo error: "+A.d(q))}return A.p(null,r)}})
 return A.q($async$wh,r)},
@@ -116049,32 +116049,32 @@ $S:8}
 A.aGH.prototype={
 $0(){var s=0,r=A.r(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g
 var $async$$0=A.n(function(a,b){if(a===1){p=b
-s=q}while(true)switch(s){case 0:i=o.b
-h=i.dN$
-h.n(0,i.gv(0),!0)
-if(!i.aM$)i.be()
-s=!i.lE(0,i)?2:3
+s=q}while(true)switch(s){case 0:h=o.b
+s=!h.lE(0,h)?2:3
 break
-case 2:q=5
-m=A.aZm()
-l=o.a
-k=l.a.d.a
-k.toString
+case 2:m=h.dN$
+m.n(0,h.gv(0),!0)
+if(!h.aM$)h.be()
+q=5
+l=A.aZm()
+k=o.a
+j=k.a.d.a
+j.toString
 s=8
-return A.l(m.H7(k,"driver"),$async$$0)
-case 8:k=A.aZm()
-m=l.a.d.a
-m.toString
+return A.l(l.H7(j,"driver"),$async$$0)
+case 8:j=A.aZm()
+l=k.a.d.a
+l.toString
 s=9
-return A.l(k.B4(m),$async$$0)
-case 9:s=$.aWr.length!==0&&!B.b.iK(i.ax,new A.aGE())?10:11
+return A.l(j.B4(l),$async$$0)
+case 9:s=$.aWr.length!==0&&!B.b.iK(h.ax,new A.aGE())?10:11
 break
-case 10:m=B.b.ga2($.aWr).b
-m.toString
-l=l.a.c.a.HH()
-l=i.tv(A.af0(new A.cB(Date.now(),0,!1).AL(),null,null,m,l))
+case 10:l=B.b.ga2($.aWr).b
+l.toString
+k=k.a.c.a.HH()
+k=h.tv(A.af0(new A.cB(Date.now(),0,!1).AL(),null,null,l,k))
 s=12
-return A.l(l,$async$$0)
+return A.l(k,$async$$0)
 case 12:case 11:$.xx=null
 q=1
 s=7
@@ -116082,21 +116082,21 @@ break
 case 5:q=4
 g=p
 n=A.Q(g)
-m=$.U()
-l=t.q
-k=A.Z(m).F(l)
-k.toString
-k.f.b1()
-m=A.Z(m).F(l)
-m.toString
-m.f.aY(A.dY(null,null,null,B.q,null,B.p,null,A.ai("Error: "+A.d(n),null,null,null,null,B.F,null,null),null,B.E,null,null,null,null,null,null,null,null,null))
+l=$.U()
+k=t.q
+j=A.Z(l).F(k)
+j.toString
+j.f.b1()
+l=A.Z(l).F(k)
+l.toString
+l.f.aY(A.dY(null,null,null,B.q,null,B.p,null,A.ai("Error: "+A.d(n),null,null,null,null,B.F,null,null),null,B.E,null,null,null,null,null,null,null,null,null))
 s=7
 break
 case 4:s=1
 break
-case 7:case 3:h.n(0,i.gv(0),!1)
-if(!i.aM$)i.be()
-return A.p(null,r)
+case 7:m.n(0,h.gv(0),!1)
+if(!h.aM$)h.be()
+case 3:return A.p(null,r)
 case 1:return A.o(p,r)}})
 return A.q($async$$0,r)},
 $S:8}

@@ -41,7 +41,7 @@ class _ChatViewState extends State<ChatView> {
 
   Key _getKey() => Key('selectable-text-$_index');
 
-   _removeSelection() => setState(() => _index++);
+  _removeSelection() => setState(() => _index++);
 
   @override
   void initState() {
@@ -940,8 +940,8 @@ class _ChatViewState extends State<ChatView> {
                                                 height: 55,
                                                 child: WidgetButton(
                                                   onTap: () async {
-                                                    vm.setBusy(true);
                                                     if (!vm.isBusy) {
+                                                      vm.setBusy(true);
                                                       try {
                                                         await OrderRequest()
                                                             .postMedia(
@@ -1001,8 +1001,8 @@ class _ChatViewState extends State<ChatView> {
                                                           ),
                                                         );
                                                       }
+                                                      vm.setBusy(false);
                                                     }
-                                                    vm.setBusy(false);
                                                   },
                                                   mainColor:
                                                       const Color(0xFF007BFF),
