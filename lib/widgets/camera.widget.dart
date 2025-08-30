@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:pwa/views/login.view.dart';
 import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/views/register.view.dart';
-import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/services/alert.service.dart';
 
 Uint8List? webChatBytes;
 Uint8List? webProfileBytes;
@@ -62,7 +62,7 @@ class _CameraWidgetState extends State<CameraWidget> {
       final constraints = {
         'video': {
           'facingMode':
-              widget.cameraType == 'profile' || widget.cameraType == 'chat'
+              widget.cameraType == 'profile'
                   ? 'user'
                   : 'environment'
         },

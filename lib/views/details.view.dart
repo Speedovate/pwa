@@ -172,18 +172,15 @@ class _DetailsViewState extends State<DetailsView> {
                                           AlertService().showAppAlert(
                                             isCustom: true,
                                             customWidget: PinchZoom(
-                                              child: ClipOval(
-                                                child: SizedBox(
-                                                  height: MediaQuery.of(context)
-                                                          .size
-                                                          .width -
-                                                      70,
-                                                  child: Image.network(
-                                                    widget.order.driver
-                                                            ?.cPhoto ??
-                                                        "",
-                                                    fit: BoxFit.cover,
-                                                  ),
+                                              child: SizedBox(
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .width -
+                                                    70,
+                                                child: Image.network(
+                                                  widget.order.driver?.cPhoto ??
+                                                      "",
+                                                  fit: BoxFit.cover,
                                                 ),
                                               ),
                                             ),

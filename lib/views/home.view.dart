@@ -908,13 +908,11 @@ class _HomeViewState extends State<HomeView> {
                                                                             AlertService().showAppAlert(
                                                                               isCustom: true,
                                                                               customWidget: PinchZoom(
-                                                                                child: ClipOval(
-                                                                                  child: SizedBox(
-                                                                                    height: MediaQuery.of(context).size.width - 70,
-                                                                                    child: Image.network(
-                                                                                      vm.ongoingOrder!.driver?.cPhoto ?? "",
-                                                                                      fit: BoxFit.cover,
-                                                                                    ),
+                                                                                child: SizedBox(
+                                                                                  height: MediaQuery.of(context).size.width - 70,
+                                                                                  child: Image.network(
+                                                                                    vm.ongoingOrder!.driver?.cPhoto ?? "",
+                                                                                    fit: BoxFit.cover,
                                                                                   ),
                                                                                 ),
                                                                               ),
@@ -2156,20 +2154,18 @@ class _HomeViewState extends State<HomeView> {
                                                                 customWidget:
                                                                     PinchZoom(
                                                                   child:
-                                                                      ClipOval(
-                                                                    child:
-                                                                        SizedBox(
-                                                                      height: MediaQuery.of(context)
-                                                                              .size
-                                                                              .width -
-                                                                          70,
-                                                                      child: Image
-                                                                          .network(
-                                                                        vm.ongoingOrder?.driver?.cPhoto ??
-                                                                            "",
-                                                                        fit: BoxFit
-                                                                            .cover,
-                                                                      ),
+                                                                      SizedBox(
+                                                                    height: MediaQuery.of(context)
+                                                                            .size
+                                                                            .width -
+                                                                        70,
+                                                                    child: Image
+                                                                        .network(
+                                                                      vm.ongoingOrder?.driver
+                                                                              ?.cPhoto ??
+                                                                          "",
+                                                                      fit: BoxFit
+                                                                          .cover,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -2969,19 +2965,17 @@ class _HomeViewState extends State<HomeView> {
                                                                   customWidget:
                                                                       PinchZoom(
                                                                     child:
-                                                                        ClipOval(
-                                                                      child:
-                                                                          SizedBox(
-                                                                        height:
-                                                                            MediaQuery.of(context).size.width -
-                                                                                70,
-                                                                        child: Image
-                                                                            .network(
-                                                                          vm.ongoingOrder?.driver?.cPhoto ??
-                                                                              "",
-                                                                          fit: BoxFit
-                                                                              .cover,
-                                                                        ),
+                                                                        SizedBox(
+                                                                      height: MediaQuery.of(context)
+                                                                              .size
+                                                                              .width -
+                                                                          70,
+                                                                      child: Image
+                                                                          .network(
+                                                                        vm.ongoingOrder?.driver?.cPhoto ??
+                                                                            "",
+                                                                        fit: BoxFit
+                                                                            .cover,
                                                                       ),
                                                                     ),
                                                                   ),
@@ -3357,19 +3351,17 @@ class _HomeViewState extends State<HomeView> {
                                               AlertService().showAppAlert(
                                                 isCustom: true,
                                                 customWidget: PinchZoom(
-                                                  child: ClipOval(
-                                                    child: SizedBox(
-                                                      height:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width -
-                                                              70,
-                                                      child: Image.network(
-                                                        vm.ongoingOrder?.driver
-                                                                ?.cPhoto ??
-                                                            "",
-                                                        fit: BoxFit.cover,
-                                                      ),
+                                                  child: SizedBox(
+                                                    height:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width -
+                                                            70,
+                                                    child: Image.network(
+                                                      vm.ongoingOrder?.driver
+                                                              ?.cPhoto ??
+                                                          "",
+                                                      fit: BoxFit.cover,
                                                     ),
                                                   ),
                                                 ),
