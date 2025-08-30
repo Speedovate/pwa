@@ -1,11 +1,11 @@
 {
-    "name": "PPC TODA",
-    "short_name": "PPC TODA",
+    "name": "PPC TODA (BETA)",
+    "short_name": "PPC TODA (BETA)",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#ffffff",
-    "description": "PPC TODA",
+    "description": "PPC TODA (BETA)",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -38,14 +38,9 @@ class GMapViewModel extends BaseViewModel {
   void setMap(gmaps.Map map) async {
     _map = map;
     isInitializing = true;
-    notifyListeners();
-    await Future.delayed(
-      const Duration(
-        seconds: 3,
-      ),
-    );
+    await Future.delayed(const Duration(seconds: 2));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      mapCameraMove("setMap", _map?.center);
+      await mapCameraMove("setMap", _map?.center);
       notifyListeners();
     });
   }
@@ -222,14 +217,22 @@ class GMapViewModel extends BaseViewModel {
       gmaps.MarkerOptions(
         map: _map,
         position: pickupLatLng,
-      ),
+        title: "Pickup Location",
+      )..icon = gmaps.Icon(
+          url: 'https://storage.googleapis.com/ppc_toda_app/pickup.png',
+          scaledSize: gmaps.Size(50, 50),
+        ),
     );
     markers.add(WebMarker(id: "pickupMarker", marker: pickupMarker));
     final driverMarker = gmaps.Marker(
       gmaps.MarkerOptions(
         map: _map,
         position: driverLatLng,
-      ),
+        title: "Driver Location",
+      )..icon = gmaps.Icon(
+          url: 'https://storage.googleapis.com/ppc_toda_app/driver.png',
+          scaledSize: gmaps.Size(35, 35),
+        ),
     );
     markers.add(WebMarker(id: "driverMarker", marker: driverMarker));
     try {
@@ -261,7 +264,7 @@ class GMapViewModel extends BaseViewModel {
           if (point.lng < minLng) minLng = point.lng;
           if (point.lng > maxLng) maxLng = point.lng;
         }
-        const offset = 0.001;
+        const offset = 0.002;
         if ((maxLat - minLat).abs() < offset) {
           maxLat += offset;
           minLat -= offset;
@@ -301,7 +304,10 @@ class GMapViewModel extends BaseViewModel {
         map: _map,
         position: pickupLatLng,
         title: "Pickup Location",
-      ),
+      )..icon = gmaps.Icon(
+          url: 'https://storage.googleapis.com/ppc_toda_app/pickup.png',
+          scaledSize: gmaps.Size(50, 50),
+        ),
     );
     markers.add(WebMarker(id: "pickupMarker", marker: pickupMarker));
 
@@ -310,7 +316,10 @@ class GMapViewModel extends BaseViewModel {
         map: _map,
         position: dropoffLatLng,
         title: "Dropoff Location",
-      ),
+      )..icon = gmaps.Icon(
+          url: 'https://storage.googleapis.com/ppc_toda_app/dropoff.png',
+          scaledSize: gmaps.Size(50, 50),
+        ),
     );
     markers.add(WebMarker(id: "dropoffMarker", marker: dropoffMarker));
     if (driverLatLng != null) {
@@ -319,7 +328,10 @@ class GMapViewModel extends BaseViewModel {
           map: _map,
           position: driverLatLng,
           title: "Driver Location",
-        ),
+        )..icon = gmaps.Icon(
+            url: 'https://storage.googleapis.com/ppc_toda_app/driver.png',
+            scaledSize: gmaps.Size(35, 35),
+          ),
       );
       markers.add(WebMarker(id: "driverMarker", marker: driverMarker));
     }
@@ -353,7 +365,7 @@ class GMapViewModel extends BaseViewModel {
           if (point.lng < minLng) minLng = point.lng;
           if (point.lng > maxLng) maxLng = point.lng;
         }
-        const offset = 0.001;
+        const offset = 0.002;
         if ((maxLat - minLat).abs() < offset) {
           maxLat += offset;
           minLat -= offset;
@@ -384,7 +396,7 @@ class GMapViewModel extends BaseViewModel {
     polylines = [];
   }
 
-  void updateDriverMarkerPosition(gmaps.LatLng pos) {
+  void updateDriverMarkerPosition(gmaps.LatLng position) {
     if (_map == null) return;
     WebMarker? existing;
     try {
@@ -394,13 +406,18 @@ class GMapViewModel extends BaseViewModel {
     }
     if (existing == null) {
       final marker = gmaps.Marker(
-        gmaps.MarkerOptions()
-          ..position = pos
-          ..map = _map,
+        gmaps.MarkerOptions(
+          map: _map,
+          position: position,
+          title: "Driver Location",
+        )..icon = gmaps.Icon(
+            url: 'https://storage.googleapis.com/ppc_toda_app/driver.png',
+            scaledSize: gmaps.Size(35, 35),
+          ),
       );
       markers.add(WebMarker(id: 'driverMarker', marker: marker));
     } else {
-      existing.marker.position = pos;
+      existing.marker.position = position;
     }
     notifyListeners();
   }
