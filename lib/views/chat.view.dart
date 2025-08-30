@@ -941,63 +941,66 @@ class _ChatViewState extends State<ChatView> {
                                                 child: WidgetButton(
                                                   onTap: () async {
                                                     vm.setBusy(true);
-                                                    try {
-                                                      await OrderRequest()
-                                                          .postMedia(
-                                                        widget.order.id!,
-                                                        "driver",
-                                                      );
-                                                      await OrderRequest()
-                                                          .getMedia(
-                                                        widget.order.id!,
-                                                      );
-                                                      if (mediaList
-                                                              .isNotEmpty &&
-                                                          !vm.messages.any(
-                                                            (message) =>
-                                                                message.text.contains(
-                                                                    mediaList
-                                                                        .last
-                                                                        .photoUrl!) &&
-                                                                message.user
-                                                                        .id ==
-                                                                    "${AuthService.currentUser?.id}",
-                                                          )) {
-                                                        await vm.sendMessage(
-                                                          ChatMessage(
-                                                            text: mediaList
-                                                                .last.photoUrl!,
-                                                            user: widget
-                                                                .chatEntity
-                                                                .mainUser!
-                                                                .toChatUser(),
-                                                            createdAt:
-                                                                DateTime.now()
-                                                                    .toUtc(),
+                                                    if (!vm.isBusy) {
+                                                      try {
+                                                        await OrderRequest()
+                                                            .postMedia(
+                                                          widget.order.id!,
+                                                          "driver",
+                                                        );
+                                                        await OrderRequest()
+                                                            .getMedia(
+                                                          widget.order.id!,
+                                                        );
+                                                        if (mediaList
+                                                                .isNotEmpty &&
+                                                            !vm.messages.any(
+                                                              (message) =>
+                                                                  message.text.contains(
+                                                                      mediaList
+                                                                          .last
+                                                                          .photoUrl!) &&
+                                                                  message.user
+                                                                          .id ==
+                                                                      "${AuthService.currentUser?.id}",
+                                                            )) {
+                                                          await vm.sendMessage(
+                                                            ChatMessage(
+                                                              text: mediaList
+                                                                  .last
+                                                                  .photoUrl!,
+                                                              user: widget
+                                                                  .chatEntity
+                                                                  .mainUser!
+                                                                  .toChatUser(),
+                                                              createdAt:
+                                                                  DateTime.now()
+                                                                      .toUtc(),
+                                                            ),
+                                                          );
+                                                        }
+                                                        chatFile = null;
+                                                      } catch (e) {
+                                                        ScaffoldMessenger.of(Get
+                                                                .overlayContext!)
+                                                            .clearSnackBars();
+                                                        ScaffoldMessenger.of(
+                                                          Get.overlayContext!,
+                                                        ).showSnackBar(
+                                                          SnackBar(
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                            content: Text(
+                                                              "Error: $e",
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
                                                           ),
                                                         );
                                                       }
-                                                      chatFile = null;
-                                                    } catch (e) {
-                                                      ScaffoldMessenger.of(Get
-                                                              .overlayContext!)
-                                                          .clearSnackBars();
-                                                      ScaffoldMessenger.of(
-                                                        Get.overlayContext!,
-                                                      ).showSnackBar(
-                                                        SnackBar(
-                                                          backgroundColor:
-                                                              Colors.red,
-                                                          content: Text(
-                                                            "Error: $e",
-                                                            style:
-                                                                const TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      );
                                                     }
                                                     vm.setBusy(false);
                                                   },
