@@ -38,6 +38,7 @@ class GMapViewModel extends BaseViewModel {
   void setMap(gmaps.Map map) async {
     _map = map;
     isInitializing = true;
+    notifyListeners();
     await Future.delayed(
       const Duration(
         seconds: 3,
@@ -109,11 +110,13 @@ class GMapViewModel extends BaseViewModel {
           final Address address = addresses.first;
           isLoading = false;
           isInitializing = false;
+          notifyListeners();
           await addressSelected(address, animate: true);
         } catch (e) {
           clearGMapDetails();
           isLoading = false;
           isInitializing = false;
+          notifyListeners();
           selectedAddress.value = Address(
             coordinates: Coordinates(
               double.parse("${myLatLng?.lat ?? 9.7638}"),
