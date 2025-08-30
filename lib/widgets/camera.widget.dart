@@ -460,8 +460,10 @@ class CameraImageWidget extends StatelessWidget {
                   ),
                   const SizedBox(width: 2),
                   Text(
-                    () {
-                      if (cameraType == "vehicle") {
+                        () {
+                      if (cameraType == "chat") {
+                        return "Capture Photo";
+                      } else if (cameraType == "vehicle") {
                         return "Vehicle Photo";
                       } else if (cameraType == "vPapers") {
                         return "Vehicle Papers";
@@ -646,9 +648,25 @@ class CameraImageWidget extends StatelessWidget {
     );
   }
 
-  void _onConfirm() {
+  void _onConfirm() async {
     if (cameraType == "chat") {
-      chatFile = imageBytes;
+      final img = html.ImageElement();
+      final completer = Completer<Uint8List>();
+      img.src = html.Url.createObjectUrlFromBlob(html.Blob([imageBytes]));
+      img.onLoad.listen((_) async {
+        final canvas = html.CanvasElement(width: img.width!, height: img.height!);
+        final ctx = canvas.context2D;
+        ctx.translate(img.width!.toDouble(), 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, 0);
+        final blob = await canvas.toBlob('image/jpeg', 0.92);
+        final reader = html.FileReader();
+        reader.onLoad.listen((e) {
+          completer.complete(reader.result as Uint8List);
+        });
+        reader.readAsArrayBuffer(blob);
+      });
+      chatFile = await completer.future;
       Get.back();
       Get.back();
     } else {
