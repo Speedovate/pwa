@@ -345,7 +345,7 @@ class _HomeViewState extends State<HomeView> {
                                     vm.setMap(map);
                                     if (AuthService.isLoggedIn()) {
                                       await Future.delayed(
-                                        const Duration(seconds: 2),
+                                        const Duration(seconds: 5),
                                       );
                                       vm.getOngoingOrder();
                                       LoadViewModel().getLoadBalance();

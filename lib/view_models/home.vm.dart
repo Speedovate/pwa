@@ -716,7 +716,6 @@ class HomeViewModel extends GMapViewModel {
             } catch (_) {}
             loadUIByOngoingOrderStatus();
             syncDriverLocation();
-            notifyListeners();
           },
         );
       },
@@ -980,8 +979,7 @@ class HomeViewModel extends GMapViewModel {
         (Timer timer) async {
           if (ongoingOrder != null && AuthService.isLoggedIn()) {
             try {
-              ApiResponse apiResponse =
-                  await taxiRequest.syncDriverLocationRequest();
+              ApiResponse apiResponse = await taxiRequest.syncDriverLocationRequest();
               loadUIByOngoingOrderStatus();
               if (apiResponse.allGood) {
                 ongoingOrder?.driver?.lat = apiResponse.body['lat'];
@@ -990,7 +988,6 @@ class HomeViewModel extends GMapViewModel {
                 updateDriverMarkerPosition(
                   ongoingOrder!.driver!.latLng,
                 );
-                notifyListeners();
               } else {
                 globalTimer?.cancel();
               }
