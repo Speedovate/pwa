@@ -43,7 +43,8 @@ class HomeViewModel extends GMapViewModel {
   TextEditingController reviewTEC = TextEditingController();
 
   initialise() async {
-    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ?? !AuthService.isLoggedIn();
+    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
+        !AuthService.isLoggedIn();
     notifyListeners();
   }
 
@@ -784,9 +785,10 @@ class HomeViewModel extends GMapViewModel {
               notifyListeners();
               await drawDropPolyLines(
                 "pickup-dropoff",
-                ongoingOrder!.driverLatLng,
-                pickupAddress!.latLng,
-                dropoffAddress!.latLng,
+                ongoingOrder?.taxiOrder?.pickupLatLng ?? pickupAddress!.latLng,
+                ongoingOrder?.taxiOrder?.dropoffLatLng ??
+                    dropoffAddress!.latLng,
+                ongoingOrder?.driverLatLng,
               );
             }
             break;
@@ -979,7 +981,8 @@ class HomeViewModel extends GMapViewModel {
         (Timer timer) async {
           if (ongoingOrder != null && AuthService.isLoggedIn()) {
             try {
-              ApiResponse apiResponse = await taxiRequest.syncDriverLocationRequest();
+              ApiResponse apiResponse =
+                  await taxiRequest.syncDriverLocationRequest();
               loadUIByOngoingOrderStatus();
               if (apiResponse.allGood) {
                 ongoingOrder?.driver?.lat = apiResponse.body['lat'];

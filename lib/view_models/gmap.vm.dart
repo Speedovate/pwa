@@ -95,13 +95,11 @@ class GMapViewModel extends BaseViewModel {
           final Address address = addresses.first;
           isLoading = false;
           isInitializing = false;
-
           await addressSelected(address, animate: true);
         } catch (e) {
           clearGMapDetails();
           isLoading = false;
           isInitializing = false;
-
           selectedAddress.value = Address(
             coordinates: Coordinates(
               double.parse("${myLatLng?.lat ?? 9.7638}"),
@@ -242,11 +240,11 @@ class GMapViewModel extends BaseViewModel {
             ..map = _map,
         );
         polylines?.add(polyline);
-        final allPoints = [...points, driverLatLng, pickupLatLng];
+        final allPoints = [driverLatLng, ...points, pickupLatLng];
         num minLat = allPoints.first.lat;
-        num maxLat = allPoints.first.lat;
         num minLng = allPoints.first.lng;
-        num maxLng = allPoints.first.lng;
+        num maxLat = allPoints.last.lat;
+        num maxLng = allPoints.last.lng;
         for (var point in allPoints) {
           if (point.lat < minLat) minLat = point.lat;
           if (point.lat > maxLat) maxLat = point.lat;
@@ -299,7 +297,6 @@ class GMapViewModel extends BaseViewModel {
         ),
     );
     markers.add(WebMarker(id: "pickupMarker", marker: pickupMarker));
-
     final dropoffMarker = gmaps.Marker(
       gmaps.MarkerOptions(
         map: _map,
@@ -342,12 +339,11 @@ class GMapViewModel extends BaseViewModel {
             ..map = _map,
         );
         polylines?.add(polyline);
-        final allPoints = [...points, pickupLatLng, dropoffLatLng];
-        if (driverLatLng != null) allPoints.add(driverLatLng);
+        final allPoints = [pickupLatLng, ...points, dropoffLatLng];
         num minLat = allPoints.first.lat;
-        num maxLat = allPoints.first.lat;
         num minLng = allPoints.first.lng;
-        num maxLng = allPoints.first.lng;
+        num maxLat = allPoints.last.lat;
+        num maxLng = allPoints.last.lng;
         for (var point in allPoints) {
           if (point.lat < minLat) minLat = point.lat;
           if (point.lat > maxLat) maxLat = point.lat;

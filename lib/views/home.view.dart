@@ -421,9 +421,13 @@ class _HomeViewState extends State<HomeView> {
                                         if (vm.ongoingOrder == null) {
                                           vm.drawDropPolyLines(
                                             "pickup-dropoff",
-                                            pickupAddress!.latLng,
-                                            dropoffAddress!.latLng,
-                                            null,
+                                            vm.ongoingOrder?.taxiOrder
+                                                    ?.pickupLatLng ??
+                                                pickupAddress!.latLng,
+                                            vm.ongoingOrder?.taxiOrder
+                                                    ?.dropoffLatLng ??
+                                                dropoffAddress!.latLng,
+                                            vm.ongoingOrder?.driverLatLng,
                                           );
                                         } else {
                                           vm.lastStatus = null;
@@ -483,9 +487,13 @@ class _HomeViewState extends State<HomeView> {
                                               if (vm.ongoingOrder == null) {
                                                 await vm.drawDropPolyLines(
                                                   "pickup-dropoff",
-                                                  pickupAddress!.latLng,
-                                                  dropoffAddress!.latLng,
-                                                  null,
+                                                  vm.ongoingOrder?.taxiOrder
+                                                          ?.pickupLatLng ??
+                                                      pickupAddress!.latLng,
+                                                  vm.ongoingOrder?.taxiOrder
+                                                          ?.dropoffLatLng ??
+                                                      dropoffAddress!.latLng,
+                                                  vm.ongoingOrder?.driverLatLng,
                                                 );
                                                 await vm
                                                     .fetchVehicleTypesPricing();
@@ -1549,10 +1557,20 @@ class _HomeViewState extends State<HomeView> {
                                                         await vm
                                                             .drawDropPolyLines(
                                                           "pickup-dropoff",
-                                                          pickupAddress!.latLng,
-                                                          dropoffAddress!
-                                                              .latLng,
-                                                          null,
+                                                          vm
+                                                                  .ongoingOrder
+                                                                  ?.taxiOrder
+                                                                  ?.pickupLatLng ??
+                                                              pickupAddress!
+                                                                  .latLng,
+                                                          vm
+                                                                  .ongoingOrder
+                                                                  ?.taxiOrder
+                                                                  ?.dropoffLatLng ??
+                                                              dropoffAddress!
+                                                                  .latLng,
+                                                          vm.ongoingOrder
+                                                              ?.driverLatLng,
                                                         );
                                                         await vm
                                                             .fetchVehicleTypesPricing();
@@ -1696,10 +1714,20 @@ class _HomeViewState extends State<HomeView> {
                                                         await vm
                                                             .drawDropPolyLines(
                                                           "pickup-dropoff",
-                                                          pickupAddress!.latLng,
-                                                          dropoffAddress!
-                                                              .latLng,
-                                                          null,
+                                                          vm
+                                                                  .ongoingOrder
+                                                                  ?.taxiOrder
+                                                                  ?.pickupLatLng ??
+                                                              pickupAddress!
+                                                                  .latLng,
+                                                          vm
+                                                                  .ongoingOrder
+                                                                  ?.taxiOrder
+                                                                  ?.dropoffLatLng ??
+                                                              dropoffAddress!
+                                                                  .latLng,
+                                                          vm.ongoingOrder
+                                                              ?.driverLatLng,
                                                         );
                                                         await vm
                                                             .fetchVehicleTypesPricing();
