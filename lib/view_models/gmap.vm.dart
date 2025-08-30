@@ -18,7 +18,7 @@ class GMapViewModel extends BaseViewModel {
   Timer? _debounce;
   bool isLoading = false;
   bool isInitializing = false;
-  List<gmaps.Marker>? markers = [];
+  List<WebMarker> markers = [];
   List<gmaps.Polyline>? polylines = [];
   TaxiRequest taxiRequest = TaxiRequest();
   ValueNotifier<gmaps.LatLng>? lastCenter;
@@ -51,7 +51,7 @@ class GMapViewModel extends BaseViewModel {
 
   gmaps.Map? get map => _map;
 
-  Future<void> zoomToCurrentLocation({double zoom = 16}) async {
+  zoomToCurrentLocation({double zoom = 16}) async {
     if (_map != null) {
       final target = initLatLng;
       _map!.panTo(target!);
@@ -60,7 +60,7 @@ class GMapViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> zoomIn() async {
+  zoomIn() async {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom + 1).clamp(2, 21);
@@ -68,7 +68,7 @@ class GMapViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> zoomOut() async {
+  zoomOut() async {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom - 1).clamp(2, 21);
@@ -76,7 +76,7 @@ class GMapViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> mapCameraMove(
+  mapCameraMove(
     String function,
     gmaps.LatLng? target, {
     bool skipSelectedAddress = false,
@@ -168,7 +168,7 @@ class GMapViewModel extends BaseViewModel {
     );
   }
 
-  Future<void> addressSelected(
+  addressSelected(
     Address address, {
     bool animate = false,
   }) async {
@@ -203,44 +203,32 @@ class GMapViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> drawPickPolyLines(
+  drawPickPolyLines(
     String purpose,
     gmaps.LatLng pickupLatLng,
     gmaps.LatLng driverLatLng,
   ) async {
     if (_map == null) return;
-    markers?.forEach((m) => m.map = null);
-    markers = [];
+    for (var m in markers) {
+      m.marker.map = null;
+    }
+    markers.clear();
     polylines?.forEach((p) => p.map = null);
-    polylines = [];
-    markers?.addAll(
-      [
-        gmaps.Marker(
-          gmaps.MarkerOptions(
-            map: _map,
-            position: pickupLatLng,
-            // icon: js_util.jsify(
-            //   {
-            //     'url': 'https://ppctoda.com/storage/3394/photo.jpg',
-            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-            //   },
-            // ),
-          ),
-        ),
-        gmaps.Marker(
-          gmaps.MarkerOptions(
-            position: driverLatLng,
-            map: _map,
-            // icon: js_util.jsify(
-            //   {
-            //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
-            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-            //   },
-            // ),
-          ),
-        ),
-      ],
+    polylines?.clear();
+    final pickupMarker = gmaps.Marker(
+      gmaps.MarkerOptions(
+        map: _map,
+        position: pickupLatLng,
+      ),
     );
+    markers.add(WebMarker(id: "pickupMarker", marker: pickupMarker));
+    final driverMarker = gmaps.Marker(
+      gmaps.MarkerOptions(
+        map: _map,
+        position: driverLatLng,
+      ),
+    );
+    markers.add(WebMarker(id: "driverMarker", marker: driverMarker));
     try {
       final result = await geocoderService.getPolyline(
         driverLatLng,
@@ -292,68 +280,55 @@ class GMapViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> drawDropPolyLines(
+  drawDropPolyLines(
     String purpose,
     gmaps.LatLng pickupLatLng,
     gmaps.LatLng dropoffLatLng,
     gmaps.LatLng? driverLatLng,
   ) async {
     if (_map == null) return;
-    markers?.forEach((m) => m.map = null);
-    markers = [];
+    for (var m in markers) {
+      m.marker.map = null;
+    }
+    markers.clear();
     polylines?.forEach((p) => p.map = null);
-    polylines = [];
-    markers?.addAll(
-      [
-        gmaps.Marker(
-          gmaps.MarkerOptions(
-            position: pickupLatLng,
-            map: _map,
-            // icon: js_util.jsify(
-            //   {
-            //     'url': 'https://ppctoda.com/storage/3394/photo.jpg',
-            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-            //   },
-            // ),
-          ),
-        ),
-        gmaps.Marker(
-          gmaps.MarkerOptions(
-            position: dropoffLatLng,
-            map: _map,
-            // icon: js_util.jsify(
-            //   {
-            //     'url': 'https://ppctoda.com/storage/3395/photo.jpg',
-            //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-            //   },
-            // ),
-          ),
-        ),
-        if (driverLatLng != null)
-          gmaps.Marker(
-            gmaps.MarkerOptions(
-              position: driverLatLng,
-              map: _map,
-              // icon: js_util.jsify(
-              //   {
-              //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
-              //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-              //   },
-              // ),
-            ),
-          ),
-      ],
+    polylines?.clear();
+    final pickupMarker = gmaps.Marker(
+      gmaps.MarkerOptions(
+        map: _map,
+        position: pickupLatLng,
+        title: "Pickup Location",
+      ),
     );
+    markers.add(WebMarker(id: "pickupMarker", marker: pickupMarker));
+
+    final dropoffMarker = gmaps.Marker(
+      gmaps.MarkerOptions(
+        map: _map,
+        position: dropoffLatLng,
+        title: "Dropoff Location",
+      ),
+    );
+    markers.add(WebMarker(id: "dropoffMarker", marker: dropoffMarker));
+    if (driverLatLng != null) {
+      final driverMarker = gmaps.Marker(
+        gmaps.MarkerOptions(
+          map: _map,
+          position: driverLatLng,
+          title: "Driver Location",
+        ),
+      );
+      markers.add(WebMarker(id: "driverMarker", marker: driverMarker));
+    }
     try {
       final result = await geocoderService.getPolyline(
-        gmaps.LatLng(pickupAddress!.latLng.lat, pickupAddress!.latLng.lng),
-        gmaps.LatLng(dropoffAddress!.latLng.lat, dropoffAddress!.latLng.lng),
+        pickupLatLng,
+        dropoffLatLng,
         purpose,
       );
       if (result.isNotEmpty) {
         final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
-        List<gmaps.LatLng> polylinePoints = points;
-        final pathJs = js_util.jsify(polylinePoints);
+        final pathJs = js_util.jsify(points);
         final polyline = gmaps.Polyline(
           gmaps.PolylineOptions()
             ..path = pathJs
@@ -363,14 +338,12 @@ class GMapViewModel extends BaseViewModel {
             ..map = _map,
         );
         polylines?.add(polyline);
-        num minLat = polylinePoints.first.lat;
-        num minLng = polylinePoints.first.lng;
-        num maxLat = polylinePoints.last.lat;
-        num maxLng = polylinePoints.last.lng;
-        final allPoints = [
-          ...polylinePoints,
-          if (driverLatLng != null) driverLatLng
-        ];
+        final allPoints = [...points, pickupLatLng, dropoffLatLng];
+        if (driverLatLng != null) allPoints.add(driverLatLng);
+        num minLat = allPoints.first.lat;
+        num maxLat = allPoints.first.lat;
+        num minLng = allPoints.first.lng;
+        num maxLng = allPoints.first.lng;
         for (var point in allPoints) {
           if (point.lat < minLat) minLat = point.lat;
           if (point.lat > maxLat) maxLat = point.lat;
@@ -386,9 +359,10 @@ class GMapViewModel extends BaseViewModel {
           maxLng += offset;
           minLng -= offset;
         }
-        final sw = gmaps.LatLng(minLat, minLng);
-        final ne = gmaps.LatLng(maxLat, maxLng);
-        final bounds = gmaps.LatLngBounds(sw, ne);
+        final bounds = gmaps.LatLngBounds(
+          gmaps.LatLng(minLat, minLng),
+          gmaps.LatLng(maxLat, maxLng),
+        );
         _map!.fitBounds(bounds);
       } else {
         debugPrint("No polyline points received from backend");
@@ -399,8 +373,10 @@ class GMapViewModel extends BaseViewModel {
   }
 
   clearGMapDetails() {
-    markers?.forEach((m) => m.map = null);
-    markers = [];
+    for (var m in markers) {
+      m.marker.map = null;
+    }
+    markers.clear();
     polylines?.forEach((p) => p.map = null);
     polylines = [];
   }
@@ -409,7 +385,7 @@ class GMapViewModel extends BaseViewModel {
     if (_map == null) return;
     WebMarker? existing;
     try {
-      existing = myMarkers.firstWhere((m) => m.id == 'driverMarker');
+      existing = markers.firstWhere((m) => m.id == 'driverMarker');
     } catch (e) {
       existing = null;
     }
@@ -417,24 +393,11 @@ class GMapViewModel extends BaseViewModel {
       final marker = gmaps.Marker(
         gmaps.MarkerOptions()
           ..position = pos
-          ..map = _map
-        // ..icon = js_util.jsify(
-        //   {
-        //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
-        //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-        //   },
-        // )
-        ,
+          ..map = _map,
       );
-      myMarkers.add(WebMarker(id: 'driverMarker', marker: marker));
+      markers.add(WebMarker(id: 'driverMarker', marker: marker));
     } else {
       existing.marker.position = pos;
-      // existing.marker.icon = js_util.jsify(
-      //   {
-      //     'url': 'https://ppctoda.com/storage/3393/photo.jpg',
-      //     'scaledSize': js_util.jsify({'width': 50, 'height': 50}),
-      //   },
-      // );
     }
     notifyListeners();
   }
@@ -446,5 +409,3 @@ class WebMarker {
 
   WebMarker({required this.id, required this.marker});
 }
-
-List<WebMarker> myMarkers = [];

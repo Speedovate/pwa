@@ -590,13 +590,25 @@ class HomeViewModel extends GMapViewModel {
                 clearGMapDetails();
                 ongoingOrder = null;
                 if (!snackShown) {
+                  clearGMapDetails();
                   AlertService().showAppAlert(
                     dismissible: false,
                     asset: AppLotties.error,
                     title: "Booking Cancelled",
                     content: "Your booking has been cancelled",
-                    confirmAction: () {
+                    confirmAction: () async {
                       Get.until((route) => route.isFirst);
+                      if (pickupAddress != null && dropoffAddress != null && ongoingOrder == null || ongoingOrder?.status == "cancelled") {
+                        isPreparing = true;
+                        await drawDropPolyLines(
+                        "pickup-dropoff",
+                        pickupAddress!.latLng,
+                        dropoffAddress!.latLng,
+                        null,
+                        );
+                        await fetchVehicleTypesPricing();
+                        isPreparing = false;
+                      }
                     },
                   );
                   snackShown = true;
@@ -632,24 +644,20 @@ class HomeViewModel extends GMapViewModel {
   }
 
   closeOrder() async {
-    cHeaders = null;
     LoadViewModel().getLoadBalance();
     selectedVehicle = null;
     dropoffAddress = null;
     pickupAddress = null;
     ongoingOrder = null;
-    clearGMapDetails();
     lastCenter = null;
     lastStatus = null;
+    cHeaders = null;
     vehicleTypes = [];
     reviewTEC.clear();
-    mapCameraMove(
-      "closeOrder",
-      initLatLng,
-      skipSelectedAddress: true,
-    );
     getOngoingOrder();
+    clearGMapDetails();
     Get.forceAppUpdate();
+    zoomToCurrentLocation();
   }
 
   startHandlingOngoingOrder() async {
@@ -832,6 +840,7 @@ class HomeViewModel extends GMapViewModel {
           stopAllListeners();
           if (lastOrder?.reason != "rebook") {
             Get.until((route) => route.isFirst);
+            clearGMapDetails();
             AlertService().showAppAlert(
               dismissible: false,
               title:
@@ -841,8 +850,19 @@ class HomeViewModel extends GMapViewModel {
                   : AppLotties.error,
               content:
                   "Your booking has been ${lastOrder?.reason == "pass" ? "passed" : "cancelled"}",
-              confirmAction: () {
+              confirmAction: () async {
                 Get.until((route) => route.isFirst);
+                if (pickupAddress != null && dropoffAddress != null && ongoingOrder == null || ongoingOrder?.status == "cancelled") {
+                  isPreparing = true;
+                  await drawDropPolyLines(
+                    "pickup-dropoff",
+                    pickupAddress!.latLng,
+                    dropoffAddress!.latLng,
+                    null,
+                  );
+                  await fetchVehicleTypesPricing();
+                  isPreparing = false;
+                }
               },
             );
           }

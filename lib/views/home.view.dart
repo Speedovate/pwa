@@ -349,7 +349,7 @@ class _HomeViewState extends State<HomeView> {
                                       FocusManager.instance.primaryFocus
                                           ?.unfocus();
                                       final a = vm.disposed;
-                                      final b = vm.markers ?? [];
+                                      final b = vm.markers;
                                       if (vm.ongoingOrder == null) {
                                         if (center != vm.lastCenter?.value) {
                                           vm.lastCenter?.value = center;
@@ -375,8 +375,7 @@ class _HomeViewState extends State<HomeView> {
                                   child: _FloatingButton(
                                     icon: Icons.menu,
                                     onTap: () {
-                                      // _scaffoldKey.currentState?.openDrawer();
-                                      vm.closeOrder();
+                                      _scaffoldKey.currentState?.openDrawer();
                                     },
                                   ),
                                 ),
@@ -387,7 +386,7 @@ class _HomeViewState extends State<HomeView> {
                                     icon: Icons.my_location_outlined,
                                     onTap: () async {
                                       final a = vm.disposed;
-                                      final b = vm.markers ?? [];
+                                      final b = vm.markers;
                                       final c = vm.selectedAddress.value;
                                       if (b.isEmpty) {
                                         if (initLatLng?.lat != 9.7638 &&
@@ -463,8 +462,7 @@ class _HomeViewState extends State<HomeView> {
                                             vm.lastStatus = null;
                                             await vm.getOngoingOrder();
                                             if (vm.ongoingOrder == null) {
-                                              await LoadViewModel()
-                                                  .getLoadBalance();
+                                              await LoadViewModel().getLoadBalance();
                                             }
                                             if (pickupAddress != null &&
                                                     dropoffAddress != null &&
@@ -515,7 +513,7 @@ class _HomeViewState extends State<HomeView> {
                                         icon: Icons.add,
                                         onTap: () async {
                                           final a = vm.disposed;
-                                          final b = vm.markers ?? [];
+                                          final b = vm.markers;
                                           final c = vm.selectedAddress.value;
                                           await vm.zoomIn();
                                           if (!a && b.isEmpty && c == null) {
@@ -534,7 +532,7 @@ class _HomeViewState extends State<HomeView> {
                                         icon: Icons.remove,
                                         onTap: () async {
                                           final a = vm.disposed;
-                                          final b = vm.markers ?? [];
+                                          final b = vm.markers;
                                           final c = vm.selectedAddress.value;
                                           await vm.zoomOut();
                                           if (!a && b.isEmpty && c == null) {
@@ -549,7 +547,7 @@ class _HomeViewState extends State<HomeView> {
                                     ],
                                   ),
                                 ),
-                                (vm.markers ?? []).isNotEmpty
+                                vm.markers.isNotEmpty
                                     ? const SizedBox.shrink()
                                     : const Center(
                                         child: Padding(
@@ -669,16 +667,7 @@ class _HomeViewState extends State<HomeView> {
                                                               ),
                                                               ActionButton(
                                                                 onTap: () {
-                                                                  vm.clearGMapDetails();
-                                                                  setState(() {
-                                                                    pickupAddress =
-                                                                        null;
-                                                                    dropoffAddress =
-                                                                        null;
-                                                                    locUnavailable =
-                                                                        false;
-                                                                  });
-                                                                  vm.zoomToCurrentLocation();
+                                                                  vm.closeOrder();
                                                                 },
                                                                 height: ((MediaQuery.of(context).size.width -
                                                                                 64) /

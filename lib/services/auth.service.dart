@@ -124,12 +124,13 @@ class AuthService {
     }
   }
 
-  static String device() => "web";
+  static String device() => "huawei";
 
   static bool inReviewMode() {
     bool disable = false;
     if (AppStrings.homeSettingsObject != null) {
-      if (device() == "web" && "${AppStrings.homeSettingsObject?["disable_wbn"]}" == versionCode) {
+      if (device() == "huawei" &&
+          "${AppStrings.homeSettingsObject?["disable_hbn"]}" == versionCode) {
         disable = true;
       }
     }
@@ -139,7 +140,7 @@ class AuthService {
   static bool shouldUpgrade() {
     try {
       final webNewVersion = int.parse(
-        "${AppStrings.appSettingsObject?["strings"]?["upgrade"]?["customer"]?["web"] ?? 0}",
+        "${AppStrings.appSettingsObject?["strings"]?["upgrade"]?["customer"]?["huawei"] ?? 0}",
       );
       final currentVersion = int.parse("${versionCode ?? 0}");
       return currentVersion < webNewVersion;
