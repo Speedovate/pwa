@@ -43,8 +43,7 @@ class HomeViewModel extends GMapViewModel {
   TextEditingController reviewTEC = TextEditingController();
 
   initialise() async {
-    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
-        !AuthService.isLoggedIn();
+    isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ?? !AuthService.isLoggedIn();
     notifyListeners();
   }
 

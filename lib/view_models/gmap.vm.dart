@@ -38,10 +38,7 @@ class GMapViewModel extends BaseViewModel {
   setMap(gmaps.Map map) {
     _map = map;
     isInitializing = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await mapCameraMove("setMap", _map?.center);
-      notifyListeners();
-    });
+    mapCameraMove("setMap", _map?.center);
   }
 
   gmaps.Map? get map => _map;
@@ -51,7 +48,6 @@ class GMapViewModel extends BaseViewModel {
       final target = initLatLng;
       _map!.panTo(target!);
       _map!.zoom = zoom;
-      notifyListeners();
     }
   }
 
@@ -59,7 +55,6 @@ class GMapViewModel extends BaseViewModel {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom + 1).clamp(2, 21);
-      notifyListeners();
     }
   }
 
@@ -67,7 +62,6 @@ class GMapViewModel extends BaseViewModel {
     if (_map != null) {
       final currentZoom = _map!.zoom.toDouble();
       _map!.zoom = (currentZoom - 1).clamp(2, 21);
-      notifyListeners();
     }
   }
 
@@ -79,18 +73,15 @@ class GMapViewModel extends BaseViewModel {
     debugPrint("Map move - $function");
     if (!skipSelectedAddress) {
       selectedAddress.value = null;
-      notifyListeners();
     }
     locUnavailable = false;
     _debounce?.cancel();
-    notifyListeners();
     _debounce = Timer(
       const Duration(seconds: 2),
       () async {
         if (!skipSelectedAddress) {
           selectedAddress.value = null;
           isLoading = true;
-          notifyListeners();
         }
         setBusyForObject(selectedAddress, true);
         try {
@@ -104,13 +95,13 @@ class GMapViewModel extends BaseViewModel {
           final Address address = addresses.first;
           isLoading = false;
           isInitializing = false;
-          notifyListeners();
+
           await addressSelected(address, animate: true);
         } catch (e) {
           clearGMapDetails();
           isLoading = false;
           isInitializing = false;
-          notifyListeners();
+
           selectedAddress.value = Address(
             coordinates: Coordinates(
               double.parse("${myLatLng?.lat ?? 9.7638}"),
@@ -123,7 +114,6 @@ class GMapViewModel extends BaseViewModel {
           );
           if (!apiResponse.allGood) {
             locUnavailable = true;
-            notifyListeners();
           }
           ScaffoldMessenger.of(Get.overlayContext!).clearSnackBars();
           ScaffoldMessenger.of(
