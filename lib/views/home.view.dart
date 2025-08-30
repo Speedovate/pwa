@@ -3547,7 +3547,8 @@ class _HomeViewState extends State<HomeView> {
                                                     .width,
                                                 height: MediaQuery.of(context)
                                                     .size
-                                                    .width,
+                                                    .width
+                                                    .clamp(0, 500),
                                                 decoration: BoxDecoration(
                                                   color: const Color(
                                                     0xFF007BFF,
