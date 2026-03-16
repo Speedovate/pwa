@@ -122,11 +122,15 @@ class MapViewModel extends BaseViewModel {
     Duration debounceDuration = const Duration(milliseconds: 3000),
   }) async {
     if (target == null || _isResolvingCameraMove) {
-      isLoading = false;
       return;
     }
     mapUnavailable = false;
     _debounce?.cancel();
+    if (!skipSelectedAddress) {
+      selectedAddress.value = null;
+      isLoading = true;
+      notifyListeners();
+    }
     _debounce = Timer(
       debounceDuration,
       () async {
@@ -134,11 +138,6 @@ class MapViewModel extends BaseViewModel {
           return;
         }
         _isResolvingCameraMove = true;
-        if (!skipSelectedAddress) {
-          selectedAddress.value = null;
-          isLoading = true;
-          notifyListeners();
-        }
         setBusyForObject(selectedAddress.value, true);
         try {
           List<Address> addresses =
@@ -165,15 +164,12 @@ class MapViewModel extends BaseViewModel {
               double.parse("${target.lng}"),
             ),
           );
-          isLoading = false;
           await addressSelected(
             address,
             animate: true,
             isPickup: isPickup,
           );
-          notifyListeners();
         } catch (e) {
-          isLoading = false;
           selectedAddress.value = Address(
             coordinates: Coordinates(
               double.parse("${initLatLng?.lat ?? 9.7638}"),
@@ -199,7 +195,6 @@ class MapViewModel extends BaseViewModel {
               ),
             ),
           );
-          notifyListeners();
         }
         if (gVehicleTypes.isEmpty) {
           try {
@@ -211,6 +206,8 @@ class MapViewModel extends BaseViewModel {
         }
 
         setBusyForObject(selectedAddress.value, false);
+        isLoading = false;
+        notifyListeners();
         _isResolvingCameraMove = false;
       },
     );

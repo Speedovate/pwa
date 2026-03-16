@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
@@ -164,7 +165,7 @@ class HomeViewModel extends GMapViewModel {
           lastStatus = null;
           notifyListeners();
         }
-        await startHandlingOngoingOrder();
+        await startHandlingOngoingOrder(forceStop: forceStop);
         await loadUIByOngoingOrderStatus(forceStop: forceStop);
         if (rebookSecs == 0 && bookingId != ongoingOrder?.id) {
           rebookSecs = 40;
@@ -496,7 +497,7 @@ class HomeViewModel extends GMapViewModel {
       if (apiResponse.allGood) {
         cHeaders = null;
         notifyListeners();
-        await getOngoingOrder();
+        await getOngoingOrder(forceStop: true);
       } else {
         ScaffoldMessenger.of(Get.context!).clearSnackBars();
         ScaffoldMessenger.of(
@@ -786,7 +787,7 @@ class HomeViewModel extends GMapViewModel {
     zoomToCurrentLocation();
   }
 
-  startHandlingOngoingOrder() async {
+  startHandlingOngoingOrder({bool forceStop = false}) async {
     if (dbTimer != null && dbTimer!.isActive) {
       dbTimer?.cancel();
     }
@@ -831,7 +832,7 @@ class HomeViewModel extends GMapViewModel {
                       "delivered" != "${event.data()?["status"]}") ||
                   (ongoingOrder?.status != "${event.data()?["status"]}" &&
                       "delivered" != "${event.data()?["status"]}")) {
-                await getOngoingOrder();
+                await getOngoingOrder(forceStop: forceStop);
               } else {
                 if ("delivered" == "${event.data()?["status"]}") {
                   await clearGMapDetails();
@@ -849,8 +850,8 @@ class HomeViewModel extends GMapViewModel {
                 "${event.data()?["syncedAt"]}",
               );
             } catch (_) {}
-            loadUIByOngoingOrderStatus();
-            syncDriverLocation();
+            loadUIByOngoingOrderStatus(forceStop: forceStop);
+            syncDriverLocation(forceStop: forceStop);
           },
         );
       },
@@ -864,7 +865,10 @@ class HomeViewModel extends GMapViewModel {
         await Future.delayed(
           const Duration(seconds: 5),
         );
-        await getOngoingOrder(showSnack: true);
+        await getOngoingOrder(
+          showSnack: true,
+          forceStop: forceStop,
+        );
         AlertService().stopLoading(forceStop: forceStop);
       } else {
         pickupAddress = Address(
@@ -1110,7 +1114,7 @@ class HomeViewModel extends GMapViewModel {
     }
   }
 
-  syncDriverLocation() {
+  syncDriverLocation({bool forceStop = false}) {
     if (ongoingOrder != null && AuthService.isLoggedIn()) {
       globalTimer?.cancel();
       globalTimer = Timer.periodic(
@@ -1123,7 +1127,7 @@ class HomeViewModel extends GMapViewModel {
             try {
               ApiResponse apiResponse =
                   await taxiRequest.syncDriverLocationRequest();
-              loadUIByOngoingOrderStatus();
+              loadUIByOngoingOrderStatus(forceStop: forceStop);
               if (apiResponse.allGood) {
                 ongoingOrder?.driver?.lat = apiResponse.body['lat'];
                 ongoingOrder?.driver?.lng = apiResponse.body['long'];
