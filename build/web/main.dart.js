@@ -115930,12 +115930,12 @@ p=A.bQ(p==null?q:p.fx)}else p=!1
 p=p?r.CW=0.05*r.ch:r.CW=0
 s=r.ch
 r.ay=s-p
-if(r.rx!==8){p=$.bp
-p=A.bQ(p==null?q:p.fx)}else p=!1
-if(p){p=r.ay
-s=r.aZ
-s=s==null?q:s.h(0,"markup_amount")
-r.ay=p+(s==null?0:s)}if(!r.aC$)r.aT()},
+p=$.bp
+if(A.bQ(p==null?q:p.fx)){p=r.rx
+s=r.ay
+if(p!==8){p=r.aZ
+p=p==null?q:p.h(0,"markup_amount")
+r.ay=s+(p==null?0:p)+20}else r.ay=s+20}if(!r.aC$)r.aT()},
 aAg(a){var s=this
 if(J.j4(s.ac))s.u=J.acM(s.ac,new A.ap_(a))
 s.Fe()},
@@ -116214,7 +116214,7 @@ a=$.dx
 b=a==null
 a0=b?null:a.a.a
 a1=b?null:a.a.b
-a2=A.a_(["tip",0,"total",a4,"is_pautos",!1,"is_delivery",!1,"has_luggage",!1,"discount",j,"sub_total",i,"payment_method",null,"payment_method_id",8,"is_mov_reached",!1,"includes_ride_cover",!1,"includes_shower_cap",!1,"vehicle_type_id",g,"vehicle_type",k,"coupon_code",h,"actual",e,"pickup",f,"dropoff",A.a_(["lat",a0,"lng",a1,"address",b?null:a.b],d,c)],d,c)}else{a4=o.rx
+a2=A.a_(["tip",0,"total",a4,"is_pautos",!1,"is_delivery",!1,"has_luggage",!1,"discount",j,"sub_total",i,"payment_method",null,"payment_method_id",8,"is_mov_reached",!1,"includes_ride_cover",!0,"includes_shower_cap",!0,"vehicle_type_id",g,"vehicle_type",k,"coupon_code",h,"actual",e,"pickup",f,"dropoff",A.a_(["lat",a0,"lng",a1,"address",b?null:a.b],d,c)],d,c)}else{a4=o.rx
 j=k==null
 i=j?null:k.Q
 h=j?null:k.Q
@@ -118469,8 +118469,8 @@ while(true)switch(s){case 0:s=2
 return A.i(A.ug(),$async$wx)
 case 2:s=3
 return A.i(A.Ew(),$async$wx)
-case 3:try{$.b5_="1.0.30"
-$.b_K="50"}catch(o){q=A.M(o)
+case 3:try{$.b5_="1.0.31"
+$.b_K="51"}catch(o){q=A.M(o)
 A.bu().$1("getAppInfo error: "+A.d(q))}return A.m(null,r)}})
 return A.n($async$wx,r)},
 mq(a){var s=0,r=A.o(t.z),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d,c

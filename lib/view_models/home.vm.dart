@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:get/get.dart';
-import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
@@ -93,8 +92,12 @@ class HomeViewModel extends GMapViewModel {
       discount = 0;
     }
     total = (subTotal ?? 0) - (discount ?? 0);
-    if (paymentId != 8 && isBool(AuthService.currentUser?.isProvider)) {
-      total = total! + (user?["markup_amount"] ?? 0);
+    if (isBool(AuthService.currentUser?.isProvider)) {
+      if (paymentId != 8) {
+        total = total! + (user?["markup_amount"] ?? 0) + 20;
+      } else {
+        total = total! + 20;
+      }
     }
     notifyListeners();
   }
@@ -437,8 +440,8 @@ class HomeViewModel extends GMapViewModel {
             "payment_method": null,
             "payment_method_id": 8,
             "is_mov_reached": false,
-            "includes_ride_cover": false,
-            "includes_shower_cap": false,
+            "includes_ride_cover": true,
+            "includes_shower_cap": true,
             "vehicle_type_id": selectedVehicle?.id,
             "vehicle_type": selectedVehicle?.encrypted,
             "coupon_code": paymentId != 8 ? null : "employee",
