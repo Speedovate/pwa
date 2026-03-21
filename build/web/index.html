@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="redirect-guard.js"></script>
     <script>
     (function () {
       const NEW_DOMAIN = "https://ppc-toda.com";
@@ -101,6 +102,20 @@
 
 <!-- End Splash -->
 <script>
+
+  if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('Service Worker registered:', registration);
+      })
+      .catch(error => {
+        console.log('Service Worker registration failed:', error);
+      });
+  });
+}
+
+
   window.addEventListener("flutter-first-frame", function () {
     document.getElementById("splash").style.display = "none";
   });

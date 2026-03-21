@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <script>
+  <script src="redirect-guard.js"></script>
+  <script>
     (function () {
       const NEW_DOMAIN = "https://ppc-toda.com";
       if (location.hostname !== "ppc-toda.com") {
-      const target = NEW_DOMAIN + location.pathname + location.search + location.hash;
+        const target = NEW_DOMAIN + location.pathname + location.search + location.hash;
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function (regs) {
             regs.forEach(function (reg) {
@@ -25,55 +27,57 @@
     })();
   </script>
 
-    <!-- Base & Charset -->
-    <base href="$FLUTTER_BASE_HREF">
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <!-- Base & Charset -->
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
 
-    <!-- App Info -->
-    <title>PPC TODA (Beta)</title>
-    <meta name="description" content="PPC TODA (Beta)">
+  <!-- App Info -->
+  <title>PPC TODA (Beta)</title>
+  <meta name="description" content="PPC TODA (Beta)">
 
-    <!-- Force Mobile View -->
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <!-- Force Mobile View -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-    <!-- Mobile App Capable -->
-    <meta name="mobile-web-app-capable" content="yes"/>
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-    <meta name="apple-mobile-web-app-title" content="PPC TODA (Beta)"/>
+  <!-- Mobile App Capable -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="PPC TODA (Beta)" />
 
-    <!-- Firebase (for Web Push) -->
-    <meta name="firebase-messaging-sender-id" content="599344409686">
+  <!-- Firebase (for Web Push) -->
+  <meta name="firebase-messaging-sender-id" content="599344409686">
 
-    <!-- Theme Colors -->
-    <meta name="theme-color" content="#ffffff"/>
-    <meta name="theme-color" content="transparent" media="(prefers-color-scheme: light)"/>
-    <meta name="theme-color" content="transparent" media="(prefers-color-scheme: dark)"/>
+  <!-- Theme Colors -->
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="transparent" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="transparent" media="(prefers-color-scheme: dark)" />
 
-    <!-- Icons -->
-    <link rel="apple-touch-icon" href="icons/Icon-192.png">
-    <link rel="icon" type="image/png" href="favicon.png"/>
-    <link rel="manifest" href="manifest.json">
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="manifest" href="manifest.json">
 
-    <!-- Google Sign-In -->
-    <meta name="google-signin-client_id"
-          content="599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google Sign-In -->
+  <meta name="google-signin-client_id"
+    content="599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- Google Maps -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBulbBRV3toC3XWR9TRVACFTmjgfcsD0TU&libraries=marker"></script>
+  <!-- Google Maps -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBulbBRV3toC3XWR9TRVACFTmjgfcsD0TU&libraries=marker"></script>
 
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="style/indexstyle.css?v1.0.31+51"/>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style/indexstyle.css?v1.0.31+51" />
 
-    <!-- Splash Screen Style -->
-    <style>
+  <!-- Splash Screen Style -->
+  <style>
     #splash {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: #fff;
       color: #007bff;
       display: flex;
@@ -83,30 +87,57 @@
       font-size: 1.5rem;
       z-index: 9999;
     }
-    #logo { display: block; margin: 0 auto; }
+
+    #logo {
+      display: block;
+      margin: 0 auto;
+    }
+
     @media (min-aspect-ratio: 1/1) {
-      #logo { width: min(calc(100vh / 2.1), 350px); height: min(calc(100vh / 2.1), 350px); }
+      #logo {
+        width: min(calc(100vh / 2.1), 350px);
+        height: min(calc(100vh / 2.1), 350px);
+      }
     }
+
     @media (max-aspect-ratio: 1/1) {
-      #logo { width: min(calc(100vw / 1.3), 350px); height: min(calc(100vw / 1.3), 350px); }
+      #logo {
+        width: min(calc(100vw / 1.3), 350px);
+        height: min(calc(100vw / 1.3), 350px);
+      }
     }
-    </style>
+  </style>
 </head>
 
 <body style="margin:0; padding:0; overflow:hidden; background-color:#ffffff;">
-<!-- Splash Screen -->
-<div id="splash">
-    <img id="logo" src="https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/splash.png" alt="PPC TODA Logo"/>
-</div>
+  <!-- Splash Screen -->
+  <div id="splash">
+    <img id="logo" src="https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/splash.png" alt="PPC TODA Logo" />
+  </div>
 
-<!-- End Splash -->
-<script>
-  window.addEventListener("flutter-first-frame", function () {
-    document.getElementById("splash").style.display = "none";
+  <!-- End Splash -->
+  <script>
+
+    if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('Service Worker registered:', registration);
+      })
+      .catch(error => {
+        console.log('Service Worker registration failed:', error);
+      });
   });
-</script>
+}
 
-<!-- Flutter Bootstrap -->
-<script src="flutter_bootstrap.js" async></script>
+
+    window.addEventListener("flutter-first-frame", function () {
+      document.getElementById("splash").style.display = "none";
+    });
+  </script>
+
+  <!-- Flutter Bootstrap -->
+  <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>

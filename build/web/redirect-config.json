@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "appName": "PPC TODA",
+  "primaryUrl": "https://ppctoda.vercel.app/",
+  "backupUrl": "https://ppc-toda.com/",
+  "autoRedirectMs": 2500,
+  "appBootTimeoutMs": 12000,
+  "statusMessage": "We're routing you to the current live service."
+}
