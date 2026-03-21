@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- <script src="redirect-guard.js"></script> -->
-    <script>
+    <script src="redirect-guard.js"></script>
+    <!-- <script>
     (function () {
       const NEW_DOMAIN = "https://ppc-toda.com";
       if (location.hostname !== "ppc-toda.com") {
@@ -24,7 +24,11 @@
         window.location.replace(target);
       }
     })();
-  </script>
+  </script> -->
+  <script>
+  window.__redirectGuard?.markAppReady();
+</script>
+
 
     <!-- Base & Charset -->
     <base href="/">
