@@ -38,7 +38,7 @@ class ProfileViewModel extends BaseViewModel {
         await AuthService.getUserFromStorage();
         Get.forceAppUpdate();
       }
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
       AlertService().showAppAlert(
         asset: apiResponse.allGood ? AppLotties.success : AppLotties.error,
         title: "Profile Update",
@@ -56,7 +56,7 @@ class ProfileViewModel extends BaseViewModel {
             : apiResponse.message,
       );
     } catch (e) {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(
         Get.context!,
