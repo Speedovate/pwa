@@ -31,7 +31,7 @@ class SettingsViewModel extends BaseViewModel {
     if (apiResponse.allGood) {
       await AuthService().logout();
     } else {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
       AlertService().showAppAlert(
         asset: AppLotties.error,
         title: "Logout Failed",

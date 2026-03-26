@@ -107,12 +107,15 @@ class ChangeViewModel extends BaseViewModel {
             asset: AppLotties.success,
             title: "Forgot Password",
             content: "Your password has been changed",
+            confirmAction: () {
+              Get.until((route) => route.isFirst);
+            },
           );
         } else {
           throw apiResponse.message;
         }
       } catch (e) {
-        AlertService().stopLoading();
+        AlertService().stopLoading(forceStop: true);
         ScaffoldMessenger.of(Get.context!).clearSnackBars();
         ScaffoldMessenger.of(
           Get.context!,
@@ -246,18 +249,21 @@ class ChangeViewModel extends BaseViewModel {
           cPassword: cPasswordTEC.text,
         );
         if (apiResponse.allGood) {
-          AlertService().stopLoading();
+          AlertService().stopLoading(forceStop: true);
           Get.back();
           AlertService().showAppAlert(
             asset: AppLotties.success,
             title: "Change Password",
             content: "Your password has been changed",
+            confirmAction: () {
+              Get.until((route) => route.isFirst);
+            },
           );
         } else {
           throw apiResponse.message;
         }
       } catch (e) {
-        AlertService().stopLoading();
+        AlertService().stopLoading(forceStop: true);
         ScaffoldMessenger.of(Get.context!).clearSnackBars();
         ScaffoldMessenger.of(
           Get.context!,

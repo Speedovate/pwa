@@ -50,7 +50,7 @@ class SendViewModel extends BaseViewModel {
         ApiResponse apiResponse = await authRequest.verifyPhoneAccount(
           phone: "+63${phoneTEC.text}",
         );
-        AlertService().stopLoading();
+        AlertService().stopLoading(forceStop: true);
         if (apiResponse.allGood) {
           processOTPVerification(purpose);
         } else {
@@ -138,7 +138,7 @@ class SendViewModel extends BaseViewModel {
         throw apiResponse.message;
       }
     } catch (e) {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(
         Get.context!,

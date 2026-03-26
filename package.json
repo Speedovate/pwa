@@ -1,0 +1,9 @@
+{
+  "name": "pwa",
+  "private": true,
+  "version": "1.0.31",
+  "scripts": {
+    "sync-version": "node scripts/sync-pubspec-version.cjs",
+    "release": "node scripts/release.cjs"
+  }
+}

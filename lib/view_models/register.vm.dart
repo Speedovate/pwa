@@ -286,11 +286,11 @@ class RegisterViewModel extends BaseViewModel {
             );
           }
         } else {
-          AlertService().stopLoading();
+          AlertService().stopLoading(forceStop: true);
           showError(apiResponse.message);
         }
       } catch (e) {
-        AlertService().stopLoading();
+        AlertService().stopLoading(forceStop: true);
         showError(
           "There was an error while processing your request. Please try again later",
         );
@@ -313,7 +313,7 @@ class RegisterViewModel extends BaseViewModel {
             resendSecs = int.parse(
               apiResponse.body!["data"]["countdown_remaining"].toString(),
             );
-            AlertService().stopLoading();
+            AlertService().stopLoading(forceStop: true);
             ScaffoldMessenger.of(Get.context!).clearSnackBars();
             ScaffoldMessenger.of(
               Get.context!,
@@ -330,7 +330,7 @@ class RegisterViewModel extends BaseViewModel {
             );
           }
         }
-        AlertService().stopLoading();
+        AlertService().stopLoading(forceStop: true);
         Navigator.push(
           Get.context!,
           PageRouteBuilder(
@@ -356,7 +356,7 @@ class RegisterViewModel extends BaseViewModel {
         throw apiResponse.message;
       }
     } catch (e) {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
       if (lowerCase(e.toString()).contains("otp")) {
         Navigator.push(
           Get.context!,
@@ -413,7 +413,7 @@ class RegisterViewModel extends BaseViewModel {
         idToken,
         email,
       );
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
     } on FirebaseAuthException catch (e) {
       showError(e.message ?? e.code);
     } on SocketException {
@@ -427,7 +427,7 @@ class RegisterViewModel extends BaseViewModel {
             : e.toString(),
       );
     } finally {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
     }
   }
 
@@ -449,7 +449,7 @@ class RegisterViewModel extends BaseViewModel {
         lng: double.parse("${initLatLng?.lng ?? 118.7473}"),
       );
       if (apiResponse.hasError()) {
-        AlertService().stopLoading();
+        AlertService().stopLoading(forceStop: true);
         AlertService().showAppAlert(
           asset: AppLotties.error,
           title: "Registration Failed",
@@ -489,7 +489,7 @@ class RegisterViewModel extends BaseViewModel {
         );
       }
     } catch (e) {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(
         Get.context!,

@@ -100,7 +100,7 @@ class LoginViewModel extends BaseViewModel {
         );
         await handleDeviceLogin(apiResponse);
       } catch (e) {
-        AlertService().stopLoading();
+        AlertService().stopLoading(forceStop: true);
         ScaffoldMessenger.of(Get.context!).clearSnackBars();
         ScaffoldMessenger.of(
           Get.context!,
@@ -173,13 +173,13 @@ class LoginViewModel extends BaseViewModel {
             : e.toString(),
       );
     } finally {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
     }
   }
 
   handleDeviceLogin(ApiResponse apiResponse) async {
     if (apiResponse.hasError()) {
-      AlertService().stopLoading();
+      AlertService().stopLoading(forceStop: true);
       AlertService().showAppAlert(
         asset: AppLotties.error,
         title: "Login Failed",
