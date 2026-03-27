@@ -757,9 +757,98 @@ class _HomeViewState extends State<HomeView> {
                                                   children: [
                                                     Row(
                                                       children: [
+                                                        const Text(
+                                                          "Payment Mode",
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: Color(
+                                                              0xFF030744,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const Expanded(
+                                                          child:
+                                                              SizedBox.shrink(),
+                                                        ),
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 6,
+                                                          ),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors.red
+                                                                .withOpacity(
+                                                              0.08,
+                                                            ),
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                999,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          child: const Text(
+                                                            "Locked",
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    Container(
+                                                      width: double.infinity,
+                                                      height: 56,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius:
+                                                            const BorderRadius
+                                                                .all(
+                                                          Radius.circular(8),
+                                                        ),
+                                                        border: Border.all(
+                                                          color: const Color(
+                                                            0xFF030744,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            vm.providerPaymentMode ==
+                                                                    "cash"
+                                                                ? "Cash: Pay Your Driver"
+                                                                : "Load: Auto Deduction",
+                                                            textAlign:
+                                                                TextAlign.center,
+                                                            style:
+                                                              const TextStyle(
+                                                            height: 1.05,
+                                                            fontSize: 15,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: Color(
+                                                              0xFF030744,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Row(
+                                                      children: [
                                                         Expanded(
                                                           child: Container(
-                                                            height: 72,
+                                                            height: 56,
                                                             decoration:
                                                                 BoxDecoration(
                                                               borderRadius:
@@ -850,7 +939,7 @@ class _HomeViewState extends State<HomeView> {
                                                         ),
                                                         Expanded(
                                                           child: Container(
-                                                            height: 72,
+                                                            height: 56,
                                                             decoration:
                                                                 BoxDecoration(
                                                               borderRadius:
@@ -948,7 +1037,7 @@ class _HomeViewState extends State<HomeView> {
                                                       children: [
                                                         Expanded(
                                                           child: Container(
-                                                            height: 72,
+                                                            height: 56,
                                                             decoration:
                                                                 BoxDecoration(
                                                               borderRadius:
@@ -1039,7 +1128,7 @@ class _HomeViewState extends State<HomeView> {
                                                         ),
                                                         Expanded(
                                                           child: Container(
-                                                            height: 72,
+                                                            height: 56,
                                                             decoration:
                                                                 BoxDecoration(
                                                               borderRadius:
@@ -1789,7 +1878,18 @@ class _HomeViewState extends State<HomeView> {
                                                                             Expanded(
                                                                               child: WidgetButton(
                                                                                 borderRadius: 8,
-                                                                                mainColor: vm.paymentId == 1
+                                                                                mainColor: isBool(
+                                                                                          AuthService
+                                                                                              .currentUser
+                                                                                              ?.isProvider,
+                                                                                        )
+                                                                                    ? vm.providerRiderTypeId ==
+                                                                                        1
+                                                                                        ? const Color(
+                                                                                            0xFF007BFF,
+                                                                                          )
+                                                                                        : Colors.white
+                                                                                    : vm.paymentId == 1
                                                                                     ? const Color(
                                                                                         0xFF007BFF,
                                                                                       )
@@ -1818,7 +1918,18 @@ class _HomeViewState extends State<HomeView> {
                                                                                       textAlign: TextAlign.center,
                                                                                       style: TextStyle(
                                                                                         fontWeight: FontWeight.bold,
-                                                                                        color: vm.paymentId == 1
+                                                                                        color: isBool(
+                                                                                                  AuthService
+                                                                                                      .currentUser
+                                                                                                      ?.isProvider,
+                                                                                                )
+                                                                                            ? vm.providerRiderTypeId ==
+                                                                                                1
+                                                                                                ? Colors.white
+                                                                                                : const Color(
+                                                                                                    0xFF007BFF,
+                                                                                                  )
+                                                                                            : vm.paymentId == 1
                                                                                             ? Colors.white
                                                                                             : const Color(
                                                                                                 0xFF007BFF,
@@ -1843,14 +1954,20 @@ class _HomeViewState extends State<HomeView> {
                                                                                       ),
                                                                                     );
                                                                                   } else {
-                                                                                    setState(() {
-                                                                                      vm.paymentId = 1;
-                                                                                    });
                                                                                     if (isBool(
                                                                                       AuthService.currentUser?.isProvider,
                                                                                     )) {
-                                                                                      vm.calculateTotalAmount();
+                                                                                      setState(() {
+                                                                                        vm.setProviderRiderType(
+                                                                                          1,
+                                                                                        );
+                                                                                      });
+                                                                                      return;
                                                                                     }
+                                                                                    setState(() {
+                                                                                      vm.paymentId = 1;
+                                                                                    });
+                                                                                    vm.calculateTotalAmount();
                                                                                   }
                                                                                 },
                                                                               ),
@@ -1861,7 +1978,18 @@ class _HomeViewState extends State<HomeView> {
                                                                             Expanded(
                                                                               child: WidgetButton(
                                                                                 borderRadius: 8,
-                                                                                mainColor: vm.paymentId != 1
+                                                                                mainColor: isBool(
+                                                                                          AuthService
+                                                                                              .currentUser
+                                                                                              ?.isProvider,
+                                                                                        )
+                                                                                    ? vm.providerRiderTypeId ==
+                                                                                        8
+                                                                                        ? const Color(
+                                                                                            0xFF007BFF,
+                                                                                          )
+                                                                                        : Colors.white
+                                                                                    : vm.paymentId != 1
                                                                                     ? const Color(
                                                                                         0xFF007BFF,
                                                                                       )
@@ -1890,7 +2018,18 @@ class _HomeViewState extends State<HomeView> {
                                                                                       textAlign: TextAlign.center,
                                                                                       style: TextStyle(
                                                                                         fontWeight: FontWeight.bold,
-                                                                                        color: vm.paymentId != 1
+                                                                                        color: isBool(
+                                                                                                  AuthService
+                                                                                                      .currentUser
+                                                                                                      ?.isProvider,
+                                                                                                )
+                                                                                            ? vm.providerRiderTypeId ==
+                                                                                                8
+                                                                                                ? Colors.white
+                                                                                                : const Color(
+                                                                                                    0xFF007BFF,
+                                                                                                  )
+                                                                                            : vm.paymentId != 1
                                                                                             ? Colors.white
                                                                                             : const Color(
                                                                                                 0xFF007BFF,
@@ -1915,14 +2054,20 @@ class _HomeViewState extends State<HomeView> {
                                                                                       ),
                                                                                     );
                                                                                   } else {
-                                                                                    setState(() {
-                                                                                      vm.paymentId = 8;
-                                                                                    });
                                                                                     if (isBool(
                                                                                       AuthService.currentUser?.isProvider,
                                                                                     )) {
-                                                                                      vm.calculateTotalAmount();
+                                                                                      setState(() {
+                                                                                        vm.setProviderRiderType(
+                                                                                          8,
+                                                                                        );
+                                                                                      });
+                                                                                      return;
                                                                                     }
+                                                                                    setState(() {
+                                                                                      vm.paymentId = 8;
+                                                                                    });
+                                                                                    vm.calculateTotalAmount();
                                                                                   }
                                                                                 },
                                                                               ),

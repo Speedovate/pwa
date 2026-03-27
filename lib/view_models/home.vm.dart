@@ -30,6 +30,7 @@ class HomeViewModel extends GMapViewModel {
   bool? userSeen;
   Timer? dbTimer;
   int paymentId = 1;
+  int providerRiderTypeId = 8;
   String? dvrMessage;
   String? lastStatus;
   Order? ongoingOrder;
@@ -57,6 +58,9 @@ class HomeViewModel extends GMapViewModel {
         !AuthService.isLoggedIn();
     isAd1Seen = StorageService.prefs?.getBool("is_ad_1_seen") ??
         !AuthService.isLoggedIn();
+    if (isBool(AuthService.currentUser?.isProvider)) {
+      paymentId = 8;
+    }
     notifyListeners();
     if (AuthService.isLoggedIn()) {
       if (ongoingOrder == null) {
@@ -86,20 +90,54 @@ class HomeViewModel extends GMapViewModel {
 
   calculateTotalAmount() {
     subTotal = selectedVehicle?.total ?? 0;
-    if (paymentId == 8 && isBool(AuthService.currentUser?.isProvider)) {
-      discount = (5 / 100) * subTotal!;
+    if (isBool(AuthService.currentUser?.isProvider)) {
+      if (providerRiderTypeId == 8) {
+        discount = (5 / 100) * subTotal!;
+      } else {
+        discount = 0;
+      }
     } else {
       discount = 0;
     }
     total = (subTotal ?? 0) - (discount ?? 0);
     if (isBool(AuthService.currentUser?.isProvider)) {
-      if (paymentId != 8) {
+      if (providerRiderTypeId != 8) {
         total = total! + (user?["markup_amount"] ?? 0) + 20;
       } else {
         total = total! + 20;
       }
     }
     notifyListeners();
+  }
+
+  String get providerPaymentMode {
+    final paymentMode = "${user?["payment_mode"] ?? ""}".toLowerCase();
+    return paymentMode == "cash" ? "cash" : "load";
+  }
+
+  int get providerPaymentId => providerPaymentMode == "cash" ? 1 : 8;
+
+  void syncProviderPaymentMode() {
+    if (!isBool(AuthService.currentUser?.isProvider)) {
+      return;
+    }
+    final nextPaymentId = providerPaymentId;
+    if (paymentId == nextPaymentId) {
+      return;
+    }
+    paymentId = nextPaymentId;
+    if (selectedVehicle != null) {
+      calculateTotalAmount();
+    }
+  }
+
+  void setProviderRiderType(int riderTypeId) {
+    if (!isBool(AuthService.currentUser?.isProvider) ||
+        providerRiderTypeId == riderTypeId) {
+      return;
+    }
+    providerRiderTypeId = riderTypeId;
+    calculateTotalAmount();
   }
 
   changeSelectedVehicle(VehicleType vehicleType) {
@@ -438,13 +476,13 @@ class HomeViewModel extends GMapViewModel {
             "discount": discount,
             "sub_total": subTotal,
             "payment_method": null,
-            "payment_method_id": 8,
+            "payment_method_id": providerPaymentId,
             "is_mov_reached": false,
             "includes_ride_cover": true,
             "includes_shower_cap": true,
             "vehicle_type_id": selectedVehicle?.id,
             "vehicle_type": selectedVehicle?.encrypted,
-            "coupon_code": paymentId != 8 ? null : "employee",
+            "coupon_code": providerRiderTypeId == 8 ? "employee" : null,
             "actual": {
               "lat": initLatLng?.lat,
               "lng": initLatLng?.lng,
@@ -1163,6 +1201,7 @@ class HomeViewModel extends GMapViewModel {
         .listen(
       (event) async {
         user = event.data();
+        syncProviderPaymentMode();
         if (isBool(AuthService.currentUser?.isProvider) &&
             user?["today"] !=
                 DateFormat("MMMM d, yyyy").format(DateTime.now())) {
