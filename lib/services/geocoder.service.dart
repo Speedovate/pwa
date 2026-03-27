@@ -18,14 +18,18 @@ class GeocoderService extends HttpService {
 
   Future<List<Address>> findAddressesFromCoordinates(
       Coordinates coordinates) async {
+    final useExternal = isBool(
+      AppStrings.appSettingsObject?["strings"][useExt] ?? true,
+    );
     final apiResult = await get(
-      !isBool(AppStrings.appSettingsObject?["strings"][useExt] ?? true)
+      !useExternal
           ? Api.geoCoordinates
           : "https://backrideph.online/api/geocoder/forward",
       queryParameters: {
         "lat": coordinates.latitude,
         "lng": coordinates.longitude,
       },
+      includeHeaders: !useExternal,
     ).timeout(const Duration(seconds: 30));
 
     final apiResponse = ApiResponse.fromResponse(apiResult);
@@ -60,6 +64,7 @@ class GeocoderService extends HttpService {
             "keyword": keyword,
             "location": latLng,
           },
+          includeHeaders: false,
         ).timeout(const Duration(seconds: 30));
         final apiResponse = ApiResponse.fromResponse(response);
         if (apiResponse.allGood) {
@@ -98,6 +103,7 @@ class GeocoderService extends HttpService {
           "keyword": keyword,
           "location": latLng,
         },
+        includeHeaders: false,
       ).timeout(const Duration(seconds: 30));
 
       final apiResponse = ApiResponse.fromResponse(backrideResponse);
@@ -115,13 +121,17 @@ class GeocoderService extends HttpService {
   }
 
   Future<Address> fetchPlaceDetails(Address address) async {
+    final useExternal = isBool(
+      AppStrings.appSettingsObject?["strings"][useExt] ?? true,
+    );
     final apiResult = await get(
-      !isBool(AppStrings.appSettingsObject?["strings"][useExt] ?? true)
+      !useExternal
           ? Api.baseUrl + Api.geoAddresses
           : "https://backrideph.online/api/geocoder/reserve",
       queryParameters: {
         "place_id": address.gMapPlaceId,
       },
+      includeHeaders: !useExternal,
     ).timeout(const Duration(seconds: 30));
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {
@@ -139,8 +149,11 @@ class GeocoderService extends HttpService {
     gmaps.LatLng pointB,
     String purpose,
   ) async {
+    final useExternal = isBool(
+      AppStrings.appSettingsObject?["strings"][useExt] ?? true,
+    );
     final apiResult = await get(
-      !isBool(AppStrings.appSettingsObject?["strings"][useExt] ?? true)
+      !useExternal
           ? Api.geoPolylines
           : "https://backrideph.online/api/polylines",
       queryParameters: {
@@ -149,6 +162,7 @@ class GeocoderService extends HttpService {
         "origin": "${pointA.lat},${pointA.lng}",
         "destination": "${pointB.lat},${pointB.lng}",
       },
+      includeHeaders: !useExternal,
     ).timeout(const Duration(seconds: 30));
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {

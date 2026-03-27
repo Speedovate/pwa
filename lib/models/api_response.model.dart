@@ -1,14 +1,21 @@
 class ApiResponse {
   int get totalDataCount =>
-      (body is Map<String, dynamic>) ? body["meta"]["total"] ?? 0 : 0;
+      (body is Map<String, dynamic> && body["meta"] is Map<String, dynamic>)
+          ? body["meta"]["total"] ?? 0
+          : 0;
 
-  int get totalPageCount => (body is Map<String, dynamic>)
+  int get totalPageCount => (body is Map<String, dynamic> &&
+          body["pagination"] is Map<String, dynamic>)
       ? body["pagination"]["total_pages"] ?? 0
       : 0;
 
-  List<dynamic> get data => (body is Map<String, dynamic>)
-      ? body["data"] ?? []
-      : (body as List<dynamic>);
+  List<dynamic> get data {
+    if (body is Map<String, dynamic>) {
+      final payload = body["data"];
+      return payload is List<dynamic> ? payload : [];
+    }
+    return body is List<dynamic> ? body as List<dynamic> : [];
+  }
 
   bool get allGood => errors.isEmpty;
 
@@ -33,13 +40,24 @@ class ApiResponse {
     final dynamic body = response.data;
     List<String> errors = [];
     String message = "";
+    final bool isHtmlString =
+        body is String && body.trimLeft().toLowerCase().startsWith("<!doctype");
 
     switch (code) {
       case 200:
-        if (body is Map<String, dynamic>) {
+        if (isHtmlString) {
+          message = "Received an HTML page instead of API JSON.";
+          errors.add(message);
+        } else if (body is Map<String, dynamic>) {
           message = body["message"] ?? "Success";
         } else if (body is List<dynamic>) {
           message = "List data fetched successfully";
+        } else if (body is String) {
+          message = body.isNotEmpty ? body : "Unexpected text response.";
+          errors.add(message);
+        } else {
+          message = "Unexpected response format.";
+          errors.add(message);
         }
         break;
       default:

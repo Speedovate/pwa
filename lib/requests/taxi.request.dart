@@ -77,10 +77,17 @@ class TaxiRequest extends HttpService {
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
-        return Order.fromJson(apiResponse.body["order"]);
-      } else {
-        throw apiResponse.message;
+        final order = apiResponse.body["order"];
+        if (order == null) {
+          return null;
+        }
+        return Order.fromJson(order);
       }
+      if (apiResponse.code == 500) {
+        debugPrint("ongoingOrderRequest failed with 500: ${apiResponse.message}");
+        return null;
+      }
+      throw apiResponse.message;
     } catch (e) {
       throw e.toString();
     }
@@ -303,8 +310,8 @@ class TaxiRequest extends HttpService {
           // if (availableVehicles.isEmpty) {
           //   otherVehicleOpen = false;
           // } else {
-            otherVehicleOpen = true;
-            return null;
+          otherVehicleOpen = true;
+          return null;
           // }
         }
       }
