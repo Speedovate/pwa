@@ -28,6 +28,9 @@ class SplashViewModel extends BaseViewModel {
     await getAppUser();
     await AppStrings.getAppSettingsFromStorage();
     await AuthService.ensureUserNameInFirestore();
+    await getMyLatLng(
+      forceFresh: true,
+    );
     subscribeToServer();
     startListeningToConfigs();
     startListeningToHotspots();
@@ -49,8 +52,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.31";
-      versionCode = "51";
+      version = "1.0.35";
+      versionCode = "55";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

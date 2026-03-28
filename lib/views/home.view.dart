@@ -48,7 +48,7 @@ class _HomeViewState extends State<HomeView> {
   ValueNotifier<int> itemsIndex = ValueNotifier(0);
   final HomeViewModel homeViewModel = HomeViewModel();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  late final Future<gmaps.LatLng?> _initialCenterFuture;
+  late Future<gmaps.LatLng?> _initialCenterFuture;
   gmaps.LatLng? _homeMapCenter;
 
   @override
@@ -58,18 +58,22 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<gmaps.LatLng?> _loadInitialCenter() async {
-    final firstAttempt = await getMyLatLng(
-      forceFresh: true,
-    );
-    if (hasRealLocationFix) {
-      return firstAttempt;
-    }
-    await Future.delayed(
-      const Duration(milliseconds: 1200),
-    );
     return await getMyLatLng(
       forceFresh: true,
     );
+  }
+
+  void _retryInitialCenter() {
+    setState(() {
+      _initialCenterFuture = _loadInitialCenter();
+    });
+  }
+
+  void _useDefaultInitialCenter() {
+    setState(() {
+      _homeMapCenter = defaultLatLng;
+      _initialCenterFuture = Future.value(defaultLatLng);
+    });
   }
 
   _navigateWithoutTransition(Widget page) {
@@ -499,43 +503,144 @@ class _HomeViewState extends State<HomeView> {
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: _initialCenterFuture,
-            initialData: lastKnownRealLatLng ?? initLatLng ?? defaultLatLng,
+            initialData: lastKnownRealLatLng,
             builder: (context, snapshot) {
-              if (!snapshot.hasData) {
+              if (snapshot.connectionState == ConnectionState.done &&
+                  !snapshot.hasData) {
                 return Center(
-                  child: SizedBox(
-                    width: 120,
-                    height: 120,
-                    child: Stack(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              top: 16,
-                              left: 16,
-                              right: 16,
-                              bottom: 18,
-                            ),
-                            child: Image.asset(
-                              AppImages.logo,
-                              fit: BoxFit.cover,
-                            ),
+                        SizedBox(
+                          width: 88,
+                          height: 88,
+                          child: Image.asset(
+                            AppImages.logo,
+                            fit: BoxFit.contain,
                           ),
                         ),
-                        Center(
-                          child: SizedBox(
-                            width: 150,
-                            height: 150,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 10,
-                              strokeCap: StrokeCap.round,
-                              color: const Color(
-                                0xFF007BFF,
-                              ),
-                              backgroundColor: const Color(
-                                0xFF007BFF,
-                              ).withOpacity(0.25),
+                        const SizedBox(height: 18),
+                        const Text(
+                          "Unable to get your current location yet.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF030744),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Please wait a moment, make sure location is turned on, then try again.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: const Color(0xFF030744).withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          height: 40,
+                          child: ActionButton(
+                            text: "Retry Location",
+                            onTap: _retryInitialCenter,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 40,
+                          child: ActionButton(
+                            text: "Use Default",
+                            mainColor: Colors.white,
+                            style: const TextStyle(
+                              color: Color(0xFF030744),
+                              fontWeight: FontWeight.w600,
                             ),
+                            onTap: _useDefaultInitialCenter,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              if (!snapshot.hasData) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 120,
+                          height: 120,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 16,
+                                    left: 16,
+                                    right: 16,
+                                    bottom: 18,
+                                  ),
+                                  child: Image.asset(
+                                    AppImages.logo,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              Center(
+                                child: SizedBox(
+                                  width: 150,
+                                  height: 150,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 10,
+                                    strokeCap: StrokeCap.round,
+                                    color: const Color(
+                                      0xFF007BFF,
+                                    ),
+                                    backgroundColor: const Color(
+                                      0xFF007BFF,
+                                    ).withOpacity(0.25),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        const Text(
+                          "Getting your current location",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF030744),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Please wait while we get your actual current location. If you want to continue more quickly, you can use the default location for now.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: const Color(0xFF030744).withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          height: 40,
+                          child: ActionButton(
+                            text: "Use Default Location",
+                            mainColor: Colors.white,
+                            style: const TextStyle(
+                              color: Color(0xFF030744),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            onTap: _useDefaultInitialCenter,
                           ),
                         ),
                       ],

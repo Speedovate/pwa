@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:html' as html;
+import 'dart:js_util' as js_util;
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/services.dart';
@@ -379,32 +380,121 @@ List<T>? parseList<T>(
 Future<gmaps.LatLng?> getMyLatLng({
   bool forceFresh = false,
 }) async {
+  final useFastTimeout =
+      !forceFresh && hasRealLocationFix && lastKnownRealLatLng != null;
   try {
-    final useFastTimeout =
-        !forceFresh && hasRealLocationFix && lastKnownRealLatLng != null;
-    final position = await geolocation.getCurrentPosition(
+    final position = await _requestCurrentPosition(
       enableHighAccuracy: true,
       timeout: useFastTimeout ? const Duration(seconds: 5) : null,
-      maximumAge: useFastTimeout ? const Duration(seconds: 30) : Duration.zero,
+      maximumAge:
+          useFastTimeout ? const Duration(seconds: 30) : Duration.zero,
     );
-    final lat = position.coords?.latitude;
-    final lng = position.coords?.longitude;
-    if (lat == null || lng == null) {
-      throw "Location coordinates are unavailable";
+    return _storeRealLatLng(position);
+  } catch (e, stackTrace) {
+    final permissionDenied = await _isGeolocationDenied();
+    if (!permissionDenied) {
+      try {
+        final relaxedPosition = await _requestCurrentPosition(
+          enableHighAccuracy: false,
+          timeout: const Duration(seconds: 10),
+          maximumAge: const Duration(seconds: 30),
+        );
+        return _storeRealLatLng(relaxedPosition);
+      } catch (retryError) {
+        debugPrint(
+          "Retry location fetch failed: ${_describeGeolocationError(retryError)}",
+        );
+      }
     }
-    final nextLatLng = gmaps.LatLng(
-      lat.toDouble(),
-      lng.toDouble(),
+    final existingLocation = _nonDefaultLatLng(lastKnownRealLatLng) ??
+        _nonDefaultLatLng(initLatLng);
+    initLatLng = existingLocation ?? (permissionDenied ? defaultLatLng : null);
+    debugPrint(
+      "Failed to fetch location: ${_describeGeolocationError(e)}\n$stackTrace\nusing fallback $initLatLng",
     );
-    initLatLng = nextLatLng;
-    lastKnownRealLatLng = nextLatLng;
-    hasRealLocationFix = true;
-    debugPrint("Location fetched: $initLatLng");
     return initLatLng;
-  } catch (e) {
-    initLatLng = lastKnownRealLatLng ?? initLatLng ?? defaultLatLng;
-    debugPrint("Failed to fetch location: $e, using fallback $initLatLng");
-    return initLatLng;
+  }
+}
+
+Future<html.Geoposition> _requestCurrentPosition({
+  required bool enableHighAccuracy,
+  required Duration? timeout,
+  required Duration maximumAge,
+}) {
+  return geolocation.getCurrentPosition(
+    enableHighAccuracy: enableHighAccuracy,
+    timeout: timeout,
+    maximumAge: maximumAge,
+  );
+}
+
+gmaps.LatLng _storeRealLatLng(html.Geoposition position) {
+  final lat = position.coords?.latitude;
+  final lng = position.coords?.longitude;
+  if (lat == null || lng == null) {
+    throw "Location coordinates are unavailable";
+  }
+  final nextLatLng = gmaps.LatLng(
+    lat.toDouble(),
+    lng.toDouble(),
+  );
+  initLatLng = nextLatLng;
+  lastKnownRealLatLng = nextLatLng;
+  hasRealLocationFix = true;
+  debugPrint("Location fetched: $initLatLng");
+  return nextLatLng;
+}
+
+gmaps.LatLng? _nonDefaultLatLng(gmaps.LatLng? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value.lat == defaultLatLng.lat && value.lng == defaultLatLng.lng) {
+    return null;
+  }
+  return value;
+}
+
+String _describeGeolocationError(Object error) {
+  try {
+    final code = js_util.getProperty(error, 'code');
+    final message = js_util.getProperty(error, 'message');
+    final normalizedCode = '$code';
+    final readableCode = switch (normalizedCode) {
+      '1' => 'PERMISSION_DENIED',
+      '2' => 'POSITION_UNAVAILABLE',
+      '3' => 'TIMEOUT',
+      _ => 'UNKNOWN_ERROR',
+    };
+    return '$readableCode: $message';
+  } catch (_) {
+    return '$error';
+  }
+}
+
+Future<bool> _isGeolocationDenied() async {
+  try {
+    final permissions = js_util.getProperty(
+      html.window.navigator,
+      'permissions',
+    );
+    if (permissions == null) {
+      return false;
+    }
+    final queryPromise = js_util.callMethod(
+      permissions,
+      'query',
+      [
+        js_util.jsify({
+          'name': 'geolocation',
+        }),
+      ],
+    );
+    final status = await js_util.promiseToFuture<Object?>(queryPromise);
+    final state = js_util.getProperty(status!, 'state');
+    return '$state' == 'denied';
+  } catch (_) {
+    return false;
   }
 }
 
