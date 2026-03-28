@@ -822,15 +822,15 @@ class _HomeViewState extends State<HomeView> {
                                                           ),
                                                         ),
                                                       ),
-                                                        child: Center(
-                                                          child: Text(
-                                                            vm.providerPaymentMode ==
-                                                                    "cash"
-                                                                ? "Cash: Pay Your Driver"
-                                                                : "Load: Auto Deduction",
-                                                            textAlign:
-                                                                TextAlign.center,
-                                                            style:
+                                                      child: Center(
+                                                        child: Text(
+                                                          vm.providerPaymentMode ==
+                                                                  "cash"
+                                                              ? "Cash: Pay Your Driver"
+                                                              : "Load: Auto Deduction",
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style:
                                                               const TextStyle(
                                                             height: 1.05,
                                                             fontSize: 15,
@@ -1879,21 +1879,18 @@ class _HomeViewState extends State<HomeView> {
                                                                               child: WidgetButton(
                                                                                 borderRadius: 8,
                                                                                 mainColor: isBool(
-                                                                                          AuthService
-                                                                                              .currentUser
-                                                                                              ?.isProvider,
-                                                                                        )
-                                                                                    ? vm.providerRiderTypeId ==
-                                                                                        1
+                                                                                  AuthService.currentUser?.isProvider,
+                                                                                )
+                                                                                    ? vm.providerRiderTypeId == 1
                                                                                         ? const Color(
                                                                                             0xFF007BFF,
                                                                                           )
                                                                                         : Colors.white
                                                                                     : vm.paymentId == 1
-                                                                                    ? const Color(
-                                                                                        0xFF007BFF,
-                                                                                      )
-                                                                                    : Colors.white,
+                                                                                        ? const Color(
+                                                                                            0xFF007BFF,
+                                                                                          )
+                                                                                        : Colors.white,
                                                                                 useDefaultHoverColor: false,
                                                                                 child: Container(
                                                                                   decoration: BoxDecoration(
@@ -1919,21 +1916,18 @@ class _HomeViewState extends State<HomeView> {
                                                                                       style: TextStyle(
                                                                                         fontWeight: FontWeight.bold,
                                                                                         color: isBool(
-                                                                                                  AuthService
-                                                                                                      .currentUser
-                                                                                                      ?.isProvider,
-                                                                                                )
-                                                                                            ? vm.providerRiderTypeId ==
-                                                                                                1
+                                                                                          AuthService.currentUser?.isProvider,
+                                                                                        )
+                                                                                            ? vm.providerRiderTypeId == 1
                                                                                                 ? Colors.white
                                                                                                 : const Color(
                                                                                                     0xFF007BFF,
                                                                                                   )
                                                                                             : vm.paymentId == 1
-                                                                                            ? Colors.white
-                                                                                            : const Color(
-                                                                                                0xFF007BFF,
-                                                                                              ),
+                                                                                                ? Colors.white
+                                                                                                : const Color(
+                                                                                                    0xFF007BFF,
+                                                                                                  ),
                                                                                       ),
                                                                                     ),
                                                                                   ),
@@ -1979,21 +1973,18 @@ class _HomeViewState extends State<HomeView> {
                                                                               child: WidgetButton(
                                                                                 borderRadius: 8,
                                                                                 mainColor: isBool(
-                                                                                          AuthService
-                                                                                              .currentUser
-                                                                                              ?.isProvider,
-                                                                                        )
-                                                                                    ? vm.providerRiderTypeId ==
-                                                                                        8
+                                                                                  AuthService.currentUser?.isProvider,
+                                                                                )
+                                                                                    ? vm.providerRiderTypeId == 8
                                                                                         ? const Color(
                                                                                             0xFF007BFF,
                                                                                           )
                                                                                         : Colors.white
                                                                                     : vm.paymentId != 1
-                                                                                    ? const Color(
-                                                                                        0xFF007BFF,
-                                                                                      )
-                                                                                    : Colors.white,
+                                                                                        ? const Color(
+                                                                                            0xFF007BFF,
+                                                                                          )
+                                                                                        : Colors.white,
                                                                                 useDefaultHoverColor: false,
                                                                                 child: Container(
                                                                                   decoration: BoxDecoration(
@@ -2019,21 +2010,18 @@ class _HomeViewState extends State<HomeView> {
                                                                                       style: TextStyle(
                                                                                         fontWeight: FontWeight.bold,
                                                                                         color: isBool(
-                                                                                                  AuthService
-                                                                                                      .currentUser
-                                                                                                      ?.isProvider,
-                                                                                                )
-                                                                                            ? vm.providerRiderTypeId ==
-                                                                                                8
+                                                                                          AuthService.currentUser?.isProvider,
+                                                                                        )
+                                                                                            ? vm.providerRiderTypeId == 8
                                                                                                 ? Colors.white
                                                                                                 : const Color(
                                                                                                     0xFF007BFF,
                                                                                                   )
                                                                                             : vm.paymentId != 1
-                                                                                            ? Colors.white
-                                                                                            : const Color(
-                                                                                                0xFF007BFF,
-                                                                                              ),
+                                                                                                ? Colors.white
+                                                                                                : const Color(
+                                                                                                    0xFF007BFF,
+                                                                                                  ),
                                                                                       ),
                                                                                     ),
                                                                                   ),
@@ -2800,7 +2788,7 @@ class _HomeViewState extends State<HomeView> {
                                                                     : vm
                                                                             .isPreparing
                                                                         ? "•••"
-                                                                        : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${((vm.ongoingOrder?.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && (vm.ongoingOrder?.discount ?? 0) == 0 ? (vm.user?["markup_amount"] ?? 0) : 0)).toStringAsFixed(0)}${isBool(AuthService.currentUser?.isProvider) ? "" : " "}${isBool(AuthService.currentUser?.isProvider) ? "" : vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
+                                                                        : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${((vm.ongoingOrder?.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && (vm.ongoingOrder?.discount ?? 0) == 0 ? (vm.user?["markup_amount"] ?? 0) : 0)).toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
                                                                 : vm.selectedVehicle ==
                                                                         null
                                                                     ? AuthService
@@ -2817,7 +2805,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             : "${vm.selectedVehicle?.kmDistance?.toStringAsFixed(1)} km"
                                                                         : vm.isPreparing
                                                                             ? "•••"
-                                                                            : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.total?.toStringAsFixed(0)}${isBool(AuthService.currentUser?.isProvider) ? "" : " "}${isBool(AuthService.currentUser?.isProvider) ? "" : vm.paymentId == 1 ? "Cash" : "Load"}",
+                                                                            : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.total?.toStringAsFixed(0)}${" "}${vm.paymentId == 1 ? "Cash" : "Load"}",
                                                             textAlign: TextAlign
                                                                 .center,
                                                             style:
