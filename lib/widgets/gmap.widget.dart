@@ -16,6 +16,7 @@ class GoogleMapWidget extends StatefulWidget {
   final List<MapMarkerData> markers;
   final List<MapPolylineData> polylines;
   final void Function(AppMapController map)? onMapCreated;
+  final VoidCallback? onCameraMoveStart;
   final void Function(app_maps.LatLng)? onCameraMove;
 
   const GoogleMapWidget({
@@ -25,6 +26,7 @@ class GoogleMapWidget extends StatefulWidget {
     this.markers = const [],
     this.polylines = const [],
     this.onMapCreated,
+    this.onCameraMoveStart,
     this.onCameraMove,
   });
 
@@ -38,6 +40,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   bool _leafletMapReady = false;
   bool? _useGoogleMaps;
   app_maps.LatLng? _pendingLeafletCameraMove;
+  bool _leafletGestureActive = false;
 
   @override
   void initState() {
@@ -107,6 +110,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           }
           final nextCenter = _pendingLeafletCameraMove!;
           _pendingLeafletCameraMove = null;
+          _leafletGestureActive = false;
           widget.onCameraMove?.call(nextCenter);
         });
       },
@@ -145,6 +149,15 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         onPositionChanged: (camera, hasGesture) {
           if (!hasGesture) {
             return;
+          }
+          if (!_leafletGestureActive) {
+            _leafletGestureActive = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) {
+                return;
+              }
+              widget.onCameraMoveStart?.call();
+            });
           }
           _dispatchLeafletCameraMove(
             camera.center.toAppLatLng(),
@@ -211,6 +224,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             GoogleMapController(map),
           );
         },
+        onCameraMoveStart: widget.onCameraMoveStart,
         onCameraMove: (center) {
           widget.onCameraMove?.call(
             center.toAppLatLng(),

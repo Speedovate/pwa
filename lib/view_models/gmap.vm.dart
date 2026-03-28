@@ -35,6 +35,16 @@ class GMapViewModel extends BaseViewModel {
   bool get isMapInteractionLocked => isLoading || _isResolvingCameraMove;
   bool get isCameraMovePending => _isCameraMovePending;
 
+  void beginCameraMove() {
+    if (_isResolvingCameraMove || _isCameraMovePending) {
+      return;
+    }
+    selectedAddress.value = null;
+    isInitializing = false;
+    _isCameraMovePending = true;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -115,10 +125,7 @@ class GMapViewModel extends BaseViewModel {
     debugPrint("Map move - $function");
     final previousAddress = selectedAddress.value;
     if (!skipSelectedAddress) {
-      selectedAddress.value = null;
-      isInitializing = false;
-      _isCameraMovePending = true;
-      notifyListeners();
+      beginCameraMove();
     }
     locUnavailable = false;
     _debounce?.cancel();

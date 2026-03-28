@@ -711,6 +711,10 @@ class _HomeViewState extends State<HomeView> {
               }
               final resolvedCenter = snapshot.data!;
               final currentCenter = _homeMapCenter;
+              final showBottomUi = vm.selectedAddress.value != null &&
+                  !vm.isCameraMovePending &&
+                  !vm.isLoading &&
+                  !vm.isInitializing;
               if (currentCenter == null ||
                   (_sameLatLng(currentCenter, defaultLatLng) &&
                       !_sameLatLng(resolvedCenter, defaultLatLng))) {
@@ -754,6 +758,20 @@ class _HomeViewState extends State<HomeView> {
                                       if (AuthService.isLoggedIn()) {
                                         await vm.getOngoingOrder();
                                         await LoadViewModel().getLoadBalance();
+                                      }
+                                    },
+                                    onCameraMoveStart: () {
+                                      try {
+                                        if (vm.ongoingOrder == null &&
+                                            !vm.blockCamera &&
+                                            !vm.isMapInteractionLocked &&
+                                            vm.markers.isEmpty) {
+                                          vm.beginCameraMove();
+                                        }
+                                      } catch (e) {
+                                        debugPrint(
+                                          "HomeView - onCameraMoveStart error: $e",
+                                        );
                                       }
                                     },
                                     onCameraMove: (center) {
@@ -968,9 +986,7 @@ class _HomeViewState extends State<HomeView> {
                                     : Positioned(
                                         left: 0,
                                         right: 0,
-                                        bottom: vm.selectedAddress.value == null
-                                            ? -500
-                                            : 20,
+                                        bottom: showBottomUi ? 20 : -500,
                                         child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
@@ -1539,11 +1555,11 @@ class _HomeViewState extends State<HomeView> {
                               RepaintBoundary(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: vm.selectedAddress.value == null
-                                        ? Colors.transparent
-                                        : Colors.white,
+                                    color: showBottomUi
+                                        ? Colors.white
+                                        : Colors.transparent,
                                   ),
-                                  child: vm.selectedAddress.value == null
+                                  child: !showBottomUi
                                       ? const SizedBox.shrink()
                                       : Column(
                                         children: [
@@ -3180,22 +3196,6 @@ class _HomeViewState extends State<HomeView> {
                         ],
                       ),
                       !vm.isLoading && !vm.isInitializing
-                          ? const SizedBox.shrink()
-                          : Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 20,
-                              child: SizedBox(
-                                width: 45,
-                                height: 45,
-                                child: Center(
-                                  child: _homeLoadingIndicator(),
-                                ),
-                              ),
-                            ),
-                      !vm.isCameraMovePending ||
-                              vm.isLoading ||
-                              vm.isInitializing
                           ? const SizedBox.shrink()
                           : Positioned(
                               left: 0,

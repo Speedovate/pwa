@@ -50,10 +50,10 @@ bool isIOSLikeBrowser() {
   return false;
 }
 
-bool isGoogleAuthLikelySupported() => !isHuaweiLikeBrowser();
+bool isGoogleAuthLikelySupported() => !isIOSLikeBrowser();
 
 bool isWebPushLikelySupported() =>
-    !isHuaweiLikeBrowser() && html.window.navigator.serviceWorker != null;
+    html.window.navigator.serviceWorker != null;
 
 String capitalizeWords(
   dynamic input, {

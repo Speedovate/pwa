@@ -11,6 +11,7 @@ class GoogleMapWidget extends StatefulWidget {
   final gmaps.LatLng center;
   final bool enableGestures;
   final void Function(gmaps.Map map)? onMapCreated;
+  final VoidCallback? onCameraMoveStart;
   final void Function(gmaps.LatLng)? onCameraMove;
 
   const GoogleMapWidget({
@@ -18,6 +19,7 @@ class GoogleMapWidget extends StatefulWidget {
     required this.center,
     this.enableGestures = true,
     this.onMapCreated,
+    this.onCameraMoveStart,
     this.onCameraMove,
   });
 
@@ -32,6 +34,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   Timer? _cameraMoveDebounce;
   bool _mapInitialized = false;
   gmaps.LatLng? _pendingCenter;
+  bool _gestureMoveActive = false;
 
   static const List<Map<String, dynamic>> _defaultStyles = [
     {
@@ -102,6 +105,15 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             if (center == null || !mounted) {
               return;
             }
+            if (!_gestureMoveActive) {
+              _gestureMoveActive = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) {
+                  return;
+                }
+                widget.onCameraMoveStart?.call();
+              });
+            }
             _pendingCenter = center;
             _cameraMoveDebounce?.cancel();
             _cameraMoveDebounce = Timer(
@@ -109,6 +121,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
               () {
                 final nextCenter = _pendingCenter;
                 _pendingCenter = null;
+                _gestureMoveActive = false;
                 if (nextCenter != null && mounted) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (!mounted) {
