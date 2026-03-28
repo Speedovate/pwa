@@ -118,6 +118,7 @@ class GMapViewModel extends BaseViewModel {
       selectedAddress.value = null;
       isInitializing = false;
       _isCameraMovePending = true;
+      notifyListeners();
     }
     locUnavailable = false;
     _debounce?.cancel();

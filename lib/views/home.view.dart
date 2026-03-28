@@ -3193,7 +3193,7 @@ class _HomeViewState extends State<HomeView> {
                                 ),
                               ),
                             ),
-                      vm.selectedAddress.value != null ||
+                      !vm.isCameraMovePending ||
                               vm.isLoading ||
                               vm.isInitializing
                           ? const SizedBox.shrink()
