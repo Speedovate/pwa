@@ -114,6 +114,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   }
 
   Widget _buildLeafletMap() {
+    final useRetinaTiles = MediaQuery.devicePixelRatioOf(context) > 1.25;
     final interactionFlags = widget.enableGestures
         ? (MapService.isLeafletFallbackPreferred
             ? fmap.InteractiveFlag.drag |
@@ -153,6 +154,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       children: [
         fmap.TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          retinaMode: useRetinaTiles,
           userAgentPackageName: 'com.ppctoda.pwa',
           tileProvider: CancellableNetworkTileProvider(),
         ),
@@ -184,7 +186,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                           width: marker.width,
                           height: marker.height,
                           fit: BoxFit.contain,
-                          filterQuality: FilterQuality.low,
+                          filterQuality: FilterQuality.medium,
                         ),
                       ),
                     ),

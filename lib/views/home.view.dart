@@ -552,7 +552,7 @@ class _HomeViewState extends State<HomeView> {
                                       !isBool(
                                         _scaffoldKey.currentState?.isDrawerOpen,
                                       ) &&
-                                      !vm.isLoading,
+                                      !vm.isMapInteractionLocked,
                                   markers: vm.markers,
                                   polylines: vm.polylines,
                                   onMapCreated: (map) async {
@@ -570,6 +570,7 @@ class _HomeViewState extends State<HomeView> {
                                       final b = vm.markers;
                                       if (vm.ongoingOrder == null) {
                                         if (!vm.blockCamera &&
+                                            !vm.isMapInteractionLocked &&
                                             vm.shouldProcessCameraMove(
                                               center,
                                             )) {

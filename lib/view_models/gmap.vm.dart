@@ -19,6 +19,7 @@ class GMapViewModel extends BaseViewModel {
   AppMapController? _map;
   Timer? _debounce;
   bool _isResolvingCameraMove = false;
+  bool _isCameraMovePending = false;
   DateTime? _ignoreCameraMoveUntil;
   double? total = 0.0;
   double? subTotal = 0.0;
@@ -31,6 +32,8 @@ class GMapViewModel extends BaseViewModel {
   gmaps.LatLng? lastCenter;
   GeocoderService geocoderService = GeocoderService();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
+  bool get isMapInteractionLocked => isLoading || _isResolvingCameraMove;
+  bool get isCameraMovePending => _isCameraMovePending;
 
   @override
   void dispose() {
@@ -57,7 +60,9 @@ class GMapViewModel extends BaseViewModel {
   gmaps.LatLng? get mapCenter => _map?.center;
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
-    final target = await getMyLatLng();
+    final target = await getMyLatLng(
+      forceFresh: true,
+    );
     if (_map != null && target != null) {
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
@@ -97,14 +102,14 @@ class GMapViewModel extends BaseViewModel {
     Duration debounceDuration = const Duration(milliseconds: 3000),
   }) async {
     if (target == null || _isResolvingCameraMove) {
-      isLoading = false;
-      isInitializing = false;
       return;
     }
     debugPrint("Map move - $function");
     final previousAddress = selectedAddress.value;
     if (!skipSelectedAddress) {
       selectedAddress.value = null;
+      isInitializing = false;
+      _isCameraMovePending = true;
       notifyListeners();
     }
     locUnavailable = false;
@@ -116,11 +121,14 @@ class GMapViewModel extends BaseViewModel {
           return;
         }
         _isResolvingCameraMove = true;
+        if (!skipSelectedAddress) {
+          isLoading = true;
+          _isCameraMovePending = false;
+        }
+        notifyListeners();
         try {
           if (!skipSelectedAddress) {
             selectedAddress.value = null;
-            isLoading = true;
-            notifyListeners();
           }
           setBusyForObject(selectedAddress, true);
           try {
@@ -217,8 +225,11 @@ class GMapViewModel extends BaseViewModel {
             }
           }
         } finally {
+          isLoading = false;
+          _isCameraMovePending = false;
           setBusyForObject(selectedAddress, false);
           _isResolvingCameraMove = false;
+          notifyListeners();
         }
       },
     );

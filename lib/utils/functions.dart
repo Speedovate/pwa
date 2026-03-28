@@ -376,9 +376,12 @@ List<T>? parseList<T>(
   }
 }
 
-Future<gmaps.LatLng?> getMyLatLng() async {
+Future<gmaps.LatLng?> getMyLatLng({
+  bool forceFresh = false,
+}) async {
   try {
-    final useFastTimeout = hasRealLocationFix && lastKnownRealLatLng != null;
+    final useFastTimeout =
+        !forceFresh && hasRealLocationFix && lastKnownRealLatLng != null;
     final position = await geolocation.getCurrentPosition(
       enableHighAccuracy: true,
       timeout: useFastTimeout ? const Duration(seconds: 5) : null,

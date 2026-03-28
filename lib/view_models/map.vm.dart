@@ -95,7 +95,9 @@ class MapViewModel extends BaseViewModel {
   gmaps.LatLng? get mapCenter => _map?.center;
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
-    final target = await getMyLatLng();
+    final target = await getMyLatLng(
+      forceFresh: true,
+    );
     if (_map != null && target != null) {
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
