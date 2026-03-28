@@ -106,10 +106,9 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
-  Widget _buildHomeDrawer(HomeViewModel vm) {
-    return Drawer(
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+  Widget _buildHomeDrawer(HomeViewModel vm, {bool useScaffoldDrawer = false}) {
+    final content = Container(
+      color: Colors.white,
       child: Column(
         children: [
           SizedBox(height: MediaQuery.of(context).padding.top),
@@ -484,6 +483,14 @@ class _HomeViewState extends State<HomeView> {
         ],
       ),
     );
+    if (!useScaffoldDrawer) {
+      return content;
+    }
+    return Drawer(
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: content,
+    );
   }
 
   _navigateWithoutTransition(Widget page) {
@@ -557,7 +564,12 @@ class _HomeViewState extends State<HomeView> {
             toolbarHeight: 0,
             backgroundColor: Colors.white,
           ),
-          drawer: isIOSLikeBrowser() ? null : _buildHomeDrawer(vm),
+          drawer: isIOSLikeBrowser()
+              ? null
+              : _buildHomeDrawer(
+                  vm,
+                  useScaffoldDrawer: true,
+                ),
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: _initialCenterFuture,
