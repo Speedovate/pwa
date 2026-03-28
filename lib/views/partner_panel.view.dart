@@ -1,5 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,6 +21,11 @@ class PartnerPanelView extends StatefulWidget {
 }
 
 class _PartnerPanelViewState extends State<PartnerPanelView> {
+  static const double _panelRadius = 8;
+  static const double _panelGap = 12;
+  static const double _panelOuterGap = 16;
+  static const double _panelInset = 14;
+
   final NumberFormat _currencyFormatter = NumberFormat.currency(
     locale: "en_PH",
     symbol: "P ",
@@ -27,11 +33,15 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   );
   final TextEditingController _userIdTEC = TextEditingController();
   final TextEditingController _markupTEC = TextEditingController();
+  final TextEditingController _partnerListSearchTEC = TextEditingController();
+  final TextEditingController _driverListSearchTEC = TextEditingController();
+  Timer? _quickPartnerSearchDebounce;
   bool _isSavingQuickSettings = false;
-  bool _isFetchingQuickPartner = false;
+  bool _isSearchingQuickPartner = false;
   Map<String, dynamic>? _quickPartnerUserData;
   String? _quickPartnerUserId;
-  String _quickPaymentMode = "cash";
+  String _quickPaymentMode = "load";
+  List<Map<String, dynamic>> _quickPartnerSearchResults = [];
   String _selectedSection = "partners";
   final Map<String, Map<String, dynamic>?> _partnerUserCache = {};
   final Set<String> _loadingPartnerUserIds = {};
@@ -40,8 +50,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
 
   @override
   void dispose() {
+    _quickPartnerSearchDebounce?.cancel();
     _userIdTEC.dispose();
     _markupTEC.dispose();
+    _partnerListSearchTEC.dispose();
+    _driverListSearchTEC.dispose();
     super.dispose();
   }
 
@@ -133,6 +146,148 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     return sorted;
   }
 
+  Map<String, dynamic> _defaultPartnerAggregate({
+    required String partnerId,
+    String partnerName = "",
+    dynamic updatedAt,
+  }) {
+    return {
+      "partner_id": partnerId,
+      "partner_name": partnerName,
+      "today_amount": 0,
+      "month_amount": 0,
+      "total_amount": 0,
+      "monthly_markup_history": {},
+      "claimable_cash_markup_amount": 0,
+      "claimable_cash_markup_month_amount": 0,
+      "monthly_cash_markup_history": {},
+      "claimed_cash_markup_amount": 0,
+      "monthly_claimed_cash_markup_history": {},
+      if (updatedAt != null) "updated_at": updatedAt,
+    };
+  }
+
+  List<Map<String, dynamic>> _buildPartnerEntries({
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> partnerDocs,
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> transactionDocs,
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> userSettingDocs,
+  }) {
+    final entries = <String, Map<String, dynamic>>{};
+
+    for (final doc in partnerDocs) {
+      final partnerData = Map<String, dynamic>.from(doc.data());
+      final partnerId = "${partnerData["partner_id"] ?? doc.id}".trim();
+      if (partnerId.isEmpty) {
+        continue;
+      }
+      entries[partnerId] = {
+        "partnerId": partnerId,
+        "partnerData": {
+          ..._defaultPartnerAggregate(
+            partnerId: partnerId,
+            partnerName: "${partnerData["partner_name"] ?? ""}",
+            updatedAt: partnerData["updated_at"] ?? partnerData["created_at"],
+          ),
+          ...partnerData,
+          "partner_id": partnerId,
+        },
+        "userData": null,
+      };
+    }
+
+    for (final doc in transactionDocs) {
+      final transactionData = doc.data();
+      final partnerId =
+          "${doc.reference.parent.parent?.id ?? transactionData["user_id"] ?? ""}"
+              .trim();
+      if (partnerId.isEmpty) {
+        continue;
+      }
+      entries.putIfAbsent(
+        partnerId,
+        () => {
+          "partnerId": partnerId,
+          "partnerData": _defaultPartnerAggregate(
+            partnerId: partnerId,
+            partnerName: "${transactionData["partner_name"] ?? ""}",
+            updatedAt: transactionData["created_at"],
+          ),
+          "userData": null,
+        },
+      );
+      final currentPartnerData =
+          Map<String, dynamic>.from(entries[partnerId]!["partnerData"] ?? {});
+      if ("${currentPartnerData["partner_name"] ?? ""}".trim().isEmpty) {
+        currentPartnerData["partner_name"] =
+            "${transactionData["partner_name"] ?? ""}";
+      }
+      currentPartnerData["partner_id"] = partnerId;
+      currentPartnerData["updated_at"] ??= transactionData["created_at"];
+      entries[partnerId]!["partnerData"] = currentPartnerData;
+    }
+
+    for (final doc in userSettingDocs) {
+      final userData = doc.data();
+      final partnerId = doc.id.trim();
+      if (partnerId.isEmpty) {
+        continue;
+      }
+      final partnerName =
+          "${userData["partner_name"] ?? userData["name"] ?? ""}".trim();
+      entries.putIfAbsent(
+        partnerId,
+        () => {
+          "partnerId": partnerId,
+          "partnerData": _defaultPartnerAggregate(
+            partnerId: partnerId,
+            partnerName: partnerName,
+            updatedAt: userData["updated_at"],
+          ),
+          "userData": null,
+        },
+      );
+      final currentPartnerData =
+          Map<String, dynamic>.from(entries[partnerId]!["partnerData"] ?? {});
+      if ("${currentPartnerData["partner_name"] ?? ""}".trim().isEmpty) {
+        currentPartnerData["partner_name"] = partnerName;
+      }
+      currentPartnerData["partner_id"] = partnerId;
+      currentPartnerData["updated_at"] ??= userData["updated_at"];
+      entries[partnerId]!["partnerData"] = currentPartnerData;
+      entries[partnerId]!["userData"] = {
+        ...?entries[partnerId]!["userData"] as Map<String, dynamic>?,
+        ...userData,
+      };
+    }
+
+    final merged = entries.values.toList();
+    merged.sort((a, b) {
+      final aData = a["partnerData"] as Map<String, dynamic>? ?? {};
+      final bData = b["partnerData"] as Map<String, dynamic>? ?? {};
+      final claimableDiff = _toDouble(
+        bData["claimable_cash_markup_amount"],
+      ).compareTo(
+        _toDouble(aData["claimable_cash_markup_amount"]),
+      );
+      if (claimableDiff != 0) {
+        return claimableDiff;
+      }
+      final aTs = aData["updated_at"];
+      final bTs = bData["updated_at"];
+      if (aTs is Timestamp && bTs is Timestamp) {
+        return bTs.compareTo(aTs);
+      }
+      if (aTs is Timestamp) {
+        return -1;
+      }
+      if (bTs is Timestamp) {
+        return 1;
+      }
+      return ("${a["partnerId"]}").compareTo("${b["partnerId"]}");
+    });
+    return merged;
+  }
+
   String _formatTimestamp(dynamic value) {
     if (value is Timestamp) {
       return DateFormat(
@@ -156,6 +311,20 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     } catch (_) {
       return key;
     }
+  }
+
+  String _partnerDisplayName({
+    required String partnerId,
+    Map<String, dynamic>? partnerData,
+    Map<String, dynamic>? userData,
+  }) {
+    final rawName =
+        "${partnerData?["partner_name"] ?? userData?["name"] ?? userData?["partner_name"] ?? ""}"
+            .trim();
+    if (rawName.isEmpty || rawName.toLowerCase() == "null") {
+      return "Unnamed Partner ($partnerId)";
+    }
+    return capitalizeWords(rawName);
   }
 
   Future<void> _ensurePartnerUsersLoaded(List<String> userIds) async {
@@ -241,13 +410,13 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         borderSide: const BorderSide(
           color: Color(0xFF030744),
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_panelRadius),
       ),
       focusedBorder: OutlineInputBorder(
         borderSide: const BorderSide(
           color: Color(0xFF007BFF),
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_panelRadius),
       ),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 18,
@@ -272,13 +441,79 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     if (!userSnapshot.exists) {
       throw "User ID not found.";
     }
-    await userRef.update(
+    final userData = userSnapshot.data() ?? {};
+    final partnerRef = fbStore.collection("partners").doc(trimmedId);
+    final partnerSnapshot = await partnerRef.get();
+    final timestamp = _timestampNow();
+    final normalizedPaymentMode =
+        paymentMode.toLowerCase() == "cash" ? "cash" : "load";
+    final rawPartnerName =
+        "${userData["name"] ?? userData["partner_name"] ?? ""}".trim();
+    final partnerName = rawPartnerName.isEmpty || rawPartnerName.toLowerCase() == "null"
+        ? null
+        : capitalizeWords(rawPartnerName, alt: rawPartnerName);
+
+    final batch = fbStore.batch();
+    batch.set(
+      userRef,
       {
         "markup_amount": markupAmount,
-        "payment_mode": paymentMode,
-        "updated_at": _timestampNow(),
+        "payment_mode": normalizedPaymentMode,
+        "partner_name": partnerName,
+        "updated_at": timestamp,
       },
+      SetOptions(
+        merge: true,
+      ),
     );
+
+    if (partnerSnapshot.exists) {
+      batch.set(
+        partnerRef,
+        {
+          "partner_id": trimmedId,
+          "partner_name": partnerName,
+          "updated_at": timestamp,
+          if ((partnerSnapshot.data()?["created_at"]) == null)
+            "created_at": timestamp,
+        },
+        SetOptions(
+          merge: true,
+        ),
+      );
+    } else {
+      batch.set(
+        partnerRef,
+        {
+          "partner_id": trimmedId,
+          "partner_name": partnerName,
+          "today_amount": 0,
+          "month_amount": 0,
+          "total_amount": 0,
+          "monthly_markup_history": {},
+          "claimable_cash_markup_amount": 0,
+          "claimable_cash_markup_month_amount": 0,
+          "monthly_cash_markup_history": {},
+          "claimed_cash_markup_amount": 0,
+          "created_at": timestamp,
+          "updated_at": timestamp,
+        },
+        SetOptions(
+          merge: true,
+        ),
+      );
+    }
+
+    await batch.commit();
+    _partnerUserCache[trimmedId] = {
+      ...userData,
+      "markup_amount": markupAmount,
+      "payment_mode": normalizedPaymentMode,
+      "partner_name": partnerName,
+      "name": userData["name"],
+      "updated_at": timestamp,
+    };
+    _loadingPartnerUserIds.remove(trimmedId);
   }
 
   Future<void> _saveQuickSettings() async {
@@ -299,6 +534,21 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       if (!mounted) {
         return;
       }
+      setState(() {
+        _quickPartnerUserData = {
+          ...?_quickPartnerUserData,
+          "markup_amount": markupAmount,
+          "payment_mode": _quickPaymentMode,
+          "partner_name":
+              "${_quickPartnerUserData?["name"] ?? _quickPartnerUserData?["partner_name"] ?? ""}"
+                          .trim()
+                          .isEmpty
+                  ? null
+                  : capitalizeWords(
+                      "${_quickPartnerUserData?["name"] ?? _quickPartnerUserData?["partner_name"] ?? ""}",
+                    ),
+        };
+      });
       _showSuccessSnack("Partner settings updated.");
     } catch (e) {
       if (!mounted) {
@@ -314,38 +564,150 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     }
   }
 
-  Future<void> _fetchQuickPartner() async {
-    if (_isFetchingQuickPartner) {
-      return;
-    }
-    FocusManager.instance.primaryFocus?.unfocus();
-    final trimmedId = _userIdTEC.text.trim();
-    if (trimmedId.isEmpty) {
-      _showErrorSnack("Enter a user ID.");
-      return;
-    }
-    setState(() {
-      _isFetchingQuickPartner = true;
-      _quickPartnerUserData = null;
-      _quickPartnerUserId = null;
-    });
-    try {
-      final userSnapshot = await fbStore.collection("users").doc(trimmedId).get();
-      if (!userSnapshot.exists) {
-        throw "User ID not found.";
-      }
-      final userData = userSnapshot.data() ?? {};
+  void _queueQuickPartnerSearch(String value) {
+    _quickPartnerSearchDebounce?.cancel();
+    _quickPartnerSearchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () {
+        _searchQuickPartners(value);
+      },
+    );
+  }
+
+  Future<void> _searchQuickPartners(String value) async {
+    final keyword = value.trim();
+    if (keyword.isEmpty) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _quickPartnerUserId = trimmedId;
-        _quickPartnerUserData = userData;
-        _markupTEC.text = "${_toDouble(userData["markup_amount"])}";
-        _quickPaymentMode =
-            "${userData["payment_mode"] ?? "cash"}".toLowerCase() == "load"
-                ? "load"
-                : "cash";
+        _isSearchingQuickPartner = false;
+        _quickPartnerSearchResults = [];
+      });
+      return;
+    }
+    setState(() {
+      _isSearchingQuickPartner = true;
+    });
+    try {
+      final trimmedKeyword = keyword.trim();
+      final seenIds = <String>{};
+      final results = <Map<String, dynamic>>[];
+      final lowerKeyword = trimmedKeyword.toLowerCase();
+
+      final idSnapshot = await fbStore.collection("users").doc(trimmedKeyword).get();
+      if (idSnapshot.exists) {
+        final data = idSnapshot.data() ?? {};
+        seenIds.add(idSnapshot.id);
+        results.add(
+          {
+            "id": idSnapshot.id,
+            ...data,
+          },
+        );
+      }
+
+      final idPrefixSnapshot = await fbStore
+          .collection("users")
+          .orderBy(FieldPath.documentId)
+          .startAt([trimmedKeyword])
+          .endAt(["$trimmedKeyword\uf8ff"])
+          .limit(8)
+          .get();
+      for (final doc in idPrefixSnapshot.docs) {
+        if (seenIds.contains(doc.id)) {
+          continue;
+        }
+        seenIds.add(doc.id);
+        results.add(
+          {
+            "id": doc.id,
+            ...doc.data(),
+          },
+        );
+      }
+
+      final namePrefixes = <String>{
+        trimmedKeyword,
+        capitalizeWords(trimmedKeyword, alt: trimmedKeyword),
+        titleCase(trimmedKeyword),
+      }.where((value) => value.trim().isNotEmpty).toList();
+
+      for (final prefix in namePrefixes) {
+        final nameSnapshot = await fbStore
+            .collection("users")
+            .orderBy("name")
+            .startAt([prefix])
+            .endAt(["$prefix\uf8ff"])
+            .limit(8)
+            .get();
+        for (final doc in nameSnapshot.docs) {
+          if (seenIds.contains(doc.id)) {
+            continue;
+          }
+          seenIds.add(doc.id);
+          results.add(
+            {
+              "id": doc.id,
+              ...doc.data(),
+            },
+          );
+        }
+      }
+
+      final broadNameSnapshot = await fbStore
+          .collection("users")
+          .orderBy("name")
+          .limit(50)
+          .get();
+      for (final doc in broadNameSnapshot.docs) {
+        if (seenIds.contains(doc.id)) {
+          continue;
+        }
+        final data = doc.data();
+        final candidateName = "${data["name"] ?? ""}".toLowerCase();
+        final candidateId = doc.id.toLowerCase();
+        if (candidateName.contains(lowerKeyword) ||
+            candidateId.contains(lowerKeyword)) {
+          seenIds.add(doc.id);
+          results.add(
+            {
+              "id": doc.id,
+              ...data,
+            },
+          );
+        }
+      }
+
+      results.sort((a, b) {
+        final aId = "${a["id"] ?? ""}".toLowerCase();
+        final bId = "${b["id"] ?? ""}".toLowerCase();
+        final aName = "${a["name"] ?? ""}".toLowerCase();
+        final bName = "${b["name"] ?? ""}".toLowerCase();
+
+        int score(String id, String name) {
+          if (id == lowerKeyword || name == lowerKeyword) return 0;
+          if (id.startsWith(lowerKeyword) || name.startsWith(lowerKeyword)) {
+            return 1;
+          }
+          if (id.contains(lowerKeyword) || name.contains(lowerKeyword)) {
+            return 2;
+          }
+          return 3;
+        }
+
+        final scoreDiff = score(aId, aName).compareTo(score(bId, bName));
+        if (scoreDiff != 0) {
+          return scoreDiff;
+        }
+        return aName.compareTo(bName);
+      });
+
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _quickPartnerSearchResults = results.take(12).toList();
       });
     } catch (e) {
       if (!mounted) {
@@ -355,10 +717,40 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     } finally {
       if (mounted) {
         setState(() {
-          _isFetchingQuickPartner = false;
+          _isSearchingQuickPartner = false;
         });
       }
     }
+  }
+
+  String titleCase(String value) {
+    return value
+        .split(" ")
+        .where((part) => part.trim().isNotEmpty)
+        .map(
+          (part) =>
+              part[0].toUpperCase() + part.substring(1).toLowerCase(),
+        )
+        .join(" ");
+  }
+
+  void _selectQuickPartner(Map<String, dynamic> userData) {
+    final userId = "${userData["id"] ?? ""}".trim();
+    if (userId.isEmpty) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _quickPartnerUserId = userId;
+      _quickPartnerUserData = userData;
+      _userIdTEC.text = userId;
+      _markupTEC.text = "${_toDouble(userData["markup_amount"])}";
+      _quickPaymentMode =
+          "${userData["payment_mode"] ?? "load"}".toLowerCase() == "cash"
+              ? "cash"
+              : "load";
+      _quickPartnerSearchResults = [];
+    });
   }
 
   Future<void> _showEditPartnerDialog({
@@ -369,9 +761,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       text: "${_toDouble(userData?["markup_amount"])}",
     );
     String paymentMode =
-        "${userData?["payment_mode"] ?? "cash"}".toLowerCase() == "load"
-            ? "load"
-            : "cash";
+        "${userData?["payment_mode"] ?? "load"}".toLowerCase() == "cash"
+            ? "cash"
+            : "load";
     bool isSaving = false;
     await showDialog(
       context: context,
@@ -405,7 +797,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       labelText: "User ID",
                       readOnly: true,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: _panelGap),
                     TextFieldWidget(
                       controller: markupTEC,
                       labelText: "Markup Amount",
@@ -413,7 +805,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                         decimal: true,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: _panelGap),
                     DropdownButtonFormField<String>(
                       value: paymentMode,
                       decoration: _dropdownDecoration(
@@ -931,7 +1323,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       height: 38,
       child: WidgetButton(
         onTap: onTap,
-        borderRadius: 8,
+        borderRadius: _panelRadius,
         mainColor: color,
         useDefaultHoverColor: false,
         child: Center(
@@ -958,8 +1350,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       borderRadius: 8,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+          horizontal: _panelOuterGap,
+          vertical: _panelGap,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -999,7 +1391,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
           color: const Color(0xFF030744).withOpacity(0.08),
         ),
@@ -1076,10 +1468,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       );
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(_panelInset),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
           color: const Color(0xFF030744).withOpacity(0.08),
         ),
@@ -1096,7 +1488,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
               color: Color(0xFF030744),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: _panelGap),
           if (entries.isEmpty)
             const Text(
               "No history yet.",
@@ -1108,7 +1500,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
             Column(
               children: entries.map((entry) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
@@ -1155,10 +1547,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(_panelInset),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
           color: const Color(0xFF030744).withOpacity(0.08),
         ),
@@ -1175,7 +1567,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
               color: Color(0xFF030744),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: _panelGap),
           StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: stream,
             builder: (context, snapshot) {
@@ -1205,7 +1597,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 children: docs.take(10).map((doc) {
                   final data = doc.data();
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(bottom: 8),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -1276,10 +1668,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(_panelOuterGap),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(_panelRadius),
             border: Border.all(
               color: const Color(0xFF030744).withOpacity(0.08),
             ),
@@ -1288,35 +1680,99 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
             children: [
               TextFieldWidget(
                 controller: _userIdTEC,
-                labelText: "User ID",
-                keyboardType: TextInputType.number,
-                onChanged: (_) {
-                  if (_quickPartnerUserData != null || _quickPartnerUserId != null) {
-                    setState(() {
-                      _quickPartnerUserData = null;
-                      _quickPartnerUserId = null;
-                    });
-                  }
+                labelText: "Search Name or User ID",
+                onChanged: (value) {
+                  setState(() {
+                    _quickPartnerUserData = null;
+                    _quickPartnerUserId = null;
+                    _markupTEC.clear();
+                    _quickPaymentMode = "load";
+                  });
+                  _queueQuickPartnerSearch(value);
                 },
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ActionButton(
-                  text: _isFetchingQuickPartner
-                      ? "Fetching..."
-                      : "Fetch Partner Details",
-                  onTap: _isFetchingQuickPartner ? () {} : _fetchQuickPartner,
+              if (_isSearchingQuickPartner) ...[
+                const SizedBox(height: _panelGap),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Color(0xFF007BFF),
+                    ),
+                  ),
                 ),
-              ),
-              if (_quickPartnerUserData != null && _quickPartnerUserId != null) ...[
-                const SizedBox(height: 14),
+              ],
+              if (_quickPartnerSearchResults.isNotEmpty) ...[
+                const SizedBox(height: _panelGap),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(_panelRadius),
+                    border: Border.all(
+                      color: const Color(0xFF030744).withOpacity(0.08),
+                    ),
+                  ),
+                  child: Column(
+                    children: _quickPartnerSearchResults.take(6).map((userData) {
+                      final userId = "${userData["id"] ?? ""}";
+                      final userName = capitalizeWords(
+                        "${userData["name"] ?? "Unnamed User"}",
+                        alt: "Unnamed User",
+                      );
+                      return InkWell(
+                        onTap: () => _selectQuickPartner(userData),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: const Color(0xFF030744).withOpacity(0.06),
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF030744),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "User ID: $userId",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6D7890),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+              if (_quickPartnerUserData != null && _quickPartnerUserId != null) ...[
+                const SizedBox(height: _panelGap),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(_panelGap),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF7F9FC),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(_panelRadius),
                     border: Border.all(
                       color: const Color(0xFF030744).withOpacity(0.08),
                     ),
@@ -1326,7 +1782,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     children: [
                       Text(
                         capitalizeWords(
-                          "${_quickPartnerUserData?["name"] ?? _quickPartnerUserData?["partner_name"] ?? "Partner"}",
+                          "${_quickPartnerUserData?["name"] ?? "Partner"}",
                         ),
                         style: const TextStyle(
                           fontSize: 14,
@@ -1345,7 +1801,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: _panelGap),
                 TextFieldWidget(
                   controller: _markupTEC,
                   labelText: "Markup Amount",
@@ -1353,7 +1809,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     decimal: true,
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: _panelGap),
                 DropdownButtonFormField<String>(
                   value: _quickPaymentMode,
                   decoration: _dropdownDecoration(
@@ -1378,7 +1834,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     });
                   },
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: _panelGap),
                 SizedBox(
                   width: double.infinity,
                   child: ActionButton(
@@ -1396,201 +1852,308 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
+  Widget _buildCompactListControls({
+    required TextEditingController controller,
+    required String hintText,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(_panelGap),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_panelRadius),
+        border: Border.all(
+          color: const Color(0xFF030744).withOpacity(0.08),
+        ),
+      ),
+      child: TextFieldWidget(
+        controller: controller,
+        labelText: hintText,
+        onChanged: (_) {
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+  bool _matchesSearch(String source, String query) {
+    return source.toLowerCase().contains(query.toLowerCase());
+  }
+
   Widget _buildPartnerList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildCompactListControls(
+          controller: _partnerListSearchTEC,
+          hintText: "Search partners",
+        ),
+        const SizedBox(height: _panelGap),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: fbStore.collection("partners").snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting &&
-                !snapshot.hasData) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF007BFF),
-                  ),
-                ),
-              );
-            }
-            final docs = snapshot.hasData
-                ? _sortDocsByUpdatedAt(snapshot.data!.docs)
-                : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-            if (docs.isEmpty) {
-              return const Text(
-                "No partners found.",
-                style: TextStyle(
-                  color: Color(0xFF6D7890),
-                ),
-              );
-            }
-            _ensurePartnerUsersLoaded(
-              docs.map((doc) => "${doc.data()["partner_id"] ?? doc.id}").toList(),
-            );
-            return Column(
-              children: docs.map((doc) {
-                final partnerData = doc.data();
-                final partnerId = "${partnerData["partner_id"] ?? doc.id}";
-                final userData = _partnerUserCache[partnerId];
-                final isExpanded = _expandedPartnerIds.contains(partnerId);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFF030744).withOpacity(0.08),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildExpandableRow(
-                          title: capitalizeWords(
-                            "${partnerData["partner_name"] ?? userData?["name"] ?? "Partner"}",
+          builder: (context, partnerSnapshot) {
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: fbStore.collectionGroup("transactions").snapshots(),
+              builder: (context, transactionSnapshot) {
+                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: fbStore
+                      .collection("users")
+                      .orderBy("partner_name")
+                      .startAt([""])
+                      .snapshots(),
+                  builder: (context, userSnapshot) {
+                    if ((partnerSnapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            !partnerSnapshot.hasData) ||
+                        (transactionSnapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            !transactionSnapshot.hasData) ||
+                        (userSnapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            !userSnapshot.hasData)) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF007BFF),
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "User ID: $partnerId",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Claimable: ${_formatMoney(partnerData["claimable_cash_markup_amount"])}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Claimed: ${_formatMoney(partnerData["claimed_cash_markup_amount"])}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
-                              ),
-                            ],
-                          ),
-                          isExpanded: isExpanded,
-                          onTap: () {
-                            setState(() {
-                              if (isExpanded) {
-                                _expandedPartnerIds.remove(partnerId);
-                              } else {
-                                _expandedPartnerIds.add(partnerId);
-                              }
-                            });
-                          },
                         ),
-                        if (isExpanded) ...[
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: const Color(0xFF030744).withOpacity(0.08),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                      );
+                    }
+
+                    var entries = _buildPartnerEntries(
+                      partnerDocs: partnerSnapshot.hasData
+                          ? partnerSnapshot.data!.docs
+                          : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+                      transactionDocs: transactionSnapshot.hasData
+                          ? transactionSnapshot.data!.docs
+                          : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+                      userSettingDocs: userSnapshot.hasData
+                          ? userSnapshot.data!.docs
+                          : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+                    );
+
+                    _ensurePartnerUsersLoaded(
+                      entries.map((entry) => "${entry["partnerId"]}").toList(),
+                    );
+
+                    final query = _partnerListSearchTEC.text.trim();
+                    entries = entries.where((entry) {
+                      final partnerId = "${entry["partnerId"]}";
+                      final partnerData =
+                          entry["partnerData"] as Map<String, dynamic>? ?? {};
+                      final inferredUserData =
+                          entry["userData"] as Map<String, dynamic>?;
+                      final userData =
+                          inferredUserData ?? _partnerUserCache[partnerId];
+                      final displayName = _partnerDisplayName(
+                        partnerId: partnerId,
+                        partnerData: partnerData,
+                        userData: userData,
+                      );
+                      if (query.isEmpty) {
+                        return true;
+                      }
+                      final haystack = [
+                        partnerId,
+                        "${partnerData["partner_name"] ?? ""}",
+                        "${userData?["name"] ?? ""}",
+                        "${userData?["partner_name"] ?? ""}",
+                        displayName,
+                      ].join(" ");
+                      return _matchesSearch(haystack, query);
+                    }).toList();
+
+                    if (entries.isEmpty) {
+                      return const Text(
+                        "No partners found.",
+                        style: TextStyle(
+                          color: Color(0xFF6D7890),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      children: entries.map((entry) {
+                        final partnerId = "${entry["partnerId"]}";
+                        final partnerData =
+                            entry["partnerData"] as Map<String, dynamic>? ?? {};
+                        final inferredUserData =
+                            entry["userData"] as Map<String, dynamic>?;
+                        final userData =
+                            inferredUserData ?? _partnerUserCache[partnerId];
+                        final isExpanded =
+                            _expandedPartnerIds.contains(partnerId);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: _panelOuterGap),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(_panelRadius),
+                              border: Border.all(
+                                color: const Color(0xFF030744).withOpacity(0.08),
+                              ),
+                            ),
                             child: Column(
                               children: [
-                                _buildSummaryRow(
-                                  "Payment Mode",
-                                  capitalizeWords(
-                                    "${userData?["payment_mode"] ?? "cash"}",
+                                _buildExpandableRow(
+                                  title: _partnerDisplayName(
+                                    partnerId: partnerId,
+                                    partnerData: partnerData,
+                                    userData: userData,
                                   ),
-                                ),
-                                _buildSummaryRow(
-                                  "Markup",
-                                  _loadingPartnerUserIds.contains(partnerId)
-                                      ? "Loading..."
-                                      : _formatMoney(userData?["markup_amount"]),
-                                ),
-                                _buildSummaryRow(
-                                  "Today",
-                                  _formatMoney(partnerData["today_amount"]),
-                                ),
-                                _buildSummaryRow(
-                                  "This Month",
-                                  _formatMoney(partnerData["month_amount"]),
-                                ),
-                                _buildSummaryRow(
-                                  "All Time",
-                                  _formatMoney(partnerData["total_amount"]),
-                                ),
-                                _buildSummaryRow(
-                                  "Claimed",
-                                  _formatMoney(
-                                    partnerData["claimed_cash_markup_amount"],
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "User ID: $partnerId",
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6D7890),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "Claimable: ${_formatMoney(partnerData["claimable_cash_markup_amount"])}",
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6D7890),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "Claimed: ${_formatMoney(partnerData["claimed_cash_markup_amount"])}",
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6D7890),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                _buildPrimaryButton(
-                                  text: "Edit Settings",
+                                  isExpanded: isExpanded,
                                   onTap: () {
-                                    _showEditPartnerDialog(
-                                      partnerId: partnerId,
-                                      userData: userData,
-                                    );
+                                    setState(() {
+                                      if (isExpanded) {
+                                        _expandedPartnerIds.remove(partnerId);
+                                      } else {
+                                        _expandedPartnerIds.add(partnerId);
+                                      }
+                                    });
                                   },
                                 ),
-                                const SizedBox(height: 8),
-                                _buildPrimaryButton(
-                                  text: "Record Claim",
-                                  onTap: () {
-                                    _showPartnerClaimDialog(
-                                      partnerId: partnerId,
-                                      partnerData: partnerData,
-                                    );
-                                  },
-                                  color: const Color(0xFF030744),
-                                ),
-                                const SizedBox(height: 14),
-                                _buildHistoryWrap(
-                                  "Monthly Markup History",
-                                  _toDoubleMap(
-                                    partnerData["monthly_markup_history"],
+                                if (isExpanded) ...[
+                                  Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: const Color(0xFF030744).withOpacity(0.08),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildHistoryWrap(
-                                  "Monthly Claimable Cash History",
-                                  _toDoubleMap(
-                                    partnerData["monthly_cash_markup_history"],
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      _panelOuterGap,
+                                      _panelGap,
+                                      _panelOuterGap,
+                                      _panelOuterGap,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        _buildSummaryRow(
+                                          "Payment Mode",
+                                          capitalizeWords(
+                                            "${userData?["payment_mode"] ?? "cash"}",
+                                          ),
+                                        ),
+                                        _buildSummaryRow(
+                                          "Markup",
+                                          userData != null
+                                              ? _formatMoney(userData["markup_amount"])
+                                              : _loadingPartnerUserIds.contains(partnerId)
+                                                  ? "Loading..."
+                                                  : _formatMoney(0),
+                                        ),
+                                        _buildSummaryRow(
+                                          "Today",
+                                          _formatMoney(partnerData["today_amount"]),
+                                        ),
+                                        _buildSummaryRow(
+                                          "This Month",
+                                          _formatMoney(partnerData["month_amount"]),
+                                        ),
+                                        _buildSummaryRow(
+                                          "All Time",
+                                          _formatMoney(partnerData["total_amount"]),
+                                        ),
+                                        _buildSummaryRow(
+                                          "Claimed",
+                                          _formatMoney(
+                                            partnerData["claimed_cash_markup_amount"],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _buildPrimaryButton(
+                                          text: "Edit Settings",
+                                          onTap: () {
+                                            _showEditPartnerDialog(
+                                              partnerId: partnerId,
+                                              userData: userData,
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _buildPrimaryButton(
+                                          text: "Record Claim",
+                                          onTap: () {
+                                            _showPartnerClaimDialog(
+                                              partnerId: partnerId,
+                                              partnerData: partnerData,
+                                            );
+                                          },
+                                          color: const Color(0xFF030744),
+                                        ),
+                                        const SizedBox(height: _panelGap),
+                                        _buildHistoryWrap(
+                                          "Monthly Markup History",
+                                          _toDoubleMap(
+                                            partnerData["monthly_markup_history"],
+                                          ),
+                                        ),
+                                        const SizedBox(height: _panelGap),
+                                        _buildHistoryWrap(
+                                          "Monthly Claimable Cash History",
+                                          _toDoubleMap(
+                                            partnerData["monthly_cash_markup_history"],
+                                          ),
+                                        ),
+                                        const SizedBox(height: _panelGap),
+                                        _buildHistoryWrap(
+                                          "Monthly Claimed History",
+                                          _toDoubleMap(
+                                            partnerData["monthly_claimed_cash_markup_history"],
+                                          ),
+                                        ),
+                                        const SizedBox(height: _panelGap),
+                                        _buildTransactionHistoryList(
+                                          title: "Claim History",
+                                          stream: fbStore
+                                              .collection("partners")
+                                              .doc(partnerId)
+                                              .collection("claimed_transactions")
+                                              .snapshots(),
+                                          amountKey: "amount",
+                                          actorLabel: "Partner",
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildHistoryWrap(
-                                  "Monthly Claimed History",
-                                  _toDoubleMap(
-                                    partnerData["monthly_claimed_cash_markup_history"],
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTransactionHistoryList(
-                                  title: "Claim History",
-                                  stream: fbStore
-                                      .collection("partners")
-                                      .doc(partnerId)
-                                      .collection("claimed_transactions")
-                                      .snapshots(),
-                                  amountKey: "amount",
-                                  actorLabel: "Partner",
-                                ),
+                                ],
                               ],
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
+                        );
+                      }).toList(),
+                    );
+                  },
                 );
-              }).toList(),
+              },
             );
           },
         ),
@@ -1602,6 +2165,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildCompactListControls(
+          controller: _driverListSearchTEC,
+          hintText: "Search drivers",
+        ),
+        const SizedBox(height: _panelGap),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: fbStore.collection("drivers").snapshots(),
         builder: (context, snapshot) {
@@ -1619,11 +2187,50 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           var docs = snapshot.hasData
               ? _sortDocsByUpdatedAt(snapshot.data!.docs)
               : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+          final query = _driverListSearchTEC.text.trim();
           docs = docs.where((doc) {
             final data = doc.data();
-            return _toDouble(data["received_cash_markup_amount"]) > 0 ||
-                _toDouble(data["deducted_cash_markup_amount"]) > 0;
+            final received = _toDouble(data["received_cash_markup_amount"]);
+            final deducted = _toDouble(data["deducted_cash_markup_amount"]);
+            final hasMarkup = received > 0 || deducted > 0;
+            if (!hasMarkup) {
+              return false;
+            }
+            if (query.isEmpty) {
+              return true;
+            }
+            final driverId = "${data["driver_id"] ?? doc.id}";
+            final haystack = [
+              driverId,
+              "${data["driver_name"] ?? ""}",
+              "${data["name"] ?? ""}",
+            ].join(" ");
+            return _matchesSearch(haystack, query);
           }).toList();
+          docs.sort((a, b) {
+            final aData = a.data();
+            final bData = b.data();
+            final aDeductible = max(
+              _toDouble(aData["received_cash_markup_amount"]) -
+                  _toDouble(aData["deducted_cash_markup_amount"]),
+              0,
+            );
+            final bDeductible = max(
+              _toDouble(bData["received_cash_markup_amount"]) -
+                  _toDouble(bData["deducted_cash_markup_amount"]),
+              0,
+            );
+            final deductibleDiff = bDeductible.compareTo(aDeductible);
+            if (deductibleDiff != 0) {
+              return deductibleDiff;
+            }
+            final aTs = aData["updated_at"];
+            final bTs = bData["updated_at"];
+            if (aTs is Timestamp && bTs is Timestamp) {
+              return bTs.compareTo(aTs);
+            }
+            return 0;
+          });
           if (docs.isEmpty) {
             return const Text(
               "No driver markup records found.",
@@ -1642,11 +2249,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 0,
               );
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.only(bottom: _panelOuterGap),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(_panelRadius),
                     border: Border.all(
                       color: const Color(0xFF030744).withOpacity(0.08),
                     ),
@@ -1703,7 +2310,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                           color: const Color(0xFF030744).withOpacity(0.08),
                         ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(
+                            _panelOuterGap,
+                            _panelGap,
+                            _panelOuterGap,
+                            _panelOuterGap,
+                          ),
                           child: Column(
                             children: [
                               _buildSummaryRow(
@@ -1732,21 +2344,21 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                   );
                                 },
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: _panelGap),
                               _buildHistoryWrap(
                                 "Monthly Received History",
                                 _toDoubleMap(
                                   data["monthly_received_cash_markup_history"],
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: _panelGap),
                               _buildHistoryWrap(
                                 "Monthly Deducted History",
                                 _toDoubleMap(
                                   data["monthly_deducted_cash_markup_history"],
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: _panelGap),
                               _buildTransactionHistoryList(
                                 title: "Deduction History",
                                 stream: fbStore
@@ -1820,16 +2432,16 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             _isNarrowScreen(context) ? 14 : 18,
-            18,
+            _panelOuterGap,
             _isNarrowScreen(context) ? 14 : 18,
-            28,
+            24,
           ),
           child: Column(
             children: [
               _buildQuickPartnerSettings(),
-              const SizedBox(height: 18),
+              const SizedBox(height: _panelOuterGap),
               _buildSectionSwitch(),
-              const SizedBox(height: 18),
+              const SizedBox(height: _panelOuterGap),
               if (_selectedSection == "partners") _buildPartnerList(),
               if (_selectedSection == "drivers") _buildDriverList(),
             ],
