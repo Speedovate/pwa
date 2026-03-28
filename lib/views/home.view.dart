@@ -331,6 +331,61 @@ class _HomeViewState extends State<HomeView> {
                   },
                 ),
                 ListTileWidget(
+                  contentPadding: const EdgeInsets.only(
+                    left: 18,
+                    right: 16,
+                    top: 16,
+                    bottom: 16,
+                  ),
+                  leading: Padding(
+                    padding: const EdgeInsets.only(right: 2),
+                    child: Container(
+                      width: 21,
+                      height: 21,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(
+                            0xFF030744,
+                          ),
+                          width: 2,
+                        ),
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(1000),
+                        ),
+                      ),
+                      child: const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 0.5),
+                          child: Text(
+                            "₱",
+                            style: TextStyle(
+                              height: 1,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Color(
+                                0xFF030744,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  title: const Text(
+                    "TODA Load",
+                    style: TextStyle(
+                      color: Color(
+                        0xFF030744,
+                      ),
+                    ),
+                  ),
+                  onTap: () {
+                    Get.to(
+                      () => const LoadView(),
+                    );
+                  },
+                ),
+                ListTileWidget(
                   leading: const Icon(
                     Icons.code,
                     color: Color(
