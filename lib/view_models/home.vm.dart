@@ -30,7 +30,7 @@ class HomeViewModel extends GMapViewModel {
   bool? userSeen;
   Timer? dbTimer;
   int paymentId = 1;
-  int providerRiderTypeId = 8;
+  int providerRiderTypeId = 1;
   String? dvrMessage;
   String? lastStatus;
   Order? ongoingOrder;
