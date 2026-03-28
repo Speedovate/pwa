@@ -402,7 +402,7 @@ Future<gmaps.LatLng?> getMyLatLng({
     debugPrint("Location fetched: $initLatLng");
     return initLatLng;
   } catch (e) {
-    initLatLng = lastKnownRealLatLng ?? defaultLatLng;
+    initLatLng = lastKnownRealLatLng ?? initLatLng ?? defaultLatLng;
     debugPrint("Failed to fetch location: $e, using fallback $initLatLng");
     return initLatLng;
   }

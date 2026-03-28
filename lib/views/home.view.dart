@@ -54,7 +54,22 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
-    _initialCenterFuture = getMyLatLng();
+    _initialCenterFuture = _loadInitialCenter();
+  }
+
+  Future<gmaps.LatLng?> _loadInitialCenter() async {
+    final firstAttempt = await getMyLatLng(
+      forceFresh: true,
+    );
+    if (hasRealLocationFix) {
+      return firstAttempt;
+    }
+    await Future.delayed(
+      const Duration(milliseconds: 1200),
+    );
+    return await getMyLatLng(
+      forceFresh: true,
+    );
   }
 
   _navigateWithoutTransition(Widget page) {
@@ -484,7 +499,7 @@ class _HomeViewState extends State<HomeView> {
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: _initialCenterFuture,
-            initialData: initLatLng ?? defaultLatLng,
+            initialData: lastKnownRealLatLng ?? initLatLng ?? defaultLatLng,
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return Center(
@@ -550,7 +565,7 @@ class _HomeViewState extends State<HomeView> {
                             child: Stack(
                               children: [
                                 GoogleMapWidget(
-                                  center: center,
+                                  center: vm.mapCenter ?? center,
                                   enableGestures: isAdSeen &&
                                       isAd1Seen &&
                                       !vm.showReport &&
