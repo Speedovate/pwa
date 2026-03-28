@@ -405,7 +405,7 @@ class _HomeViewState extends State<HomeView> {
                       }
                       return ListTileWidget(
                         leading: const Icon(
-                          Icons.handshake_outlined,
+                          Icons.people_outline,
                           color: Color(
                             0xFF030744,
                           ),
