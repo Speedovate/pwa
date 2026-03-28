@@ -58,6 +58,12 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<gmaps.LatLng?> _loadInitialCenter() async {
+    if (lastKnownRealLatLng != null) {
+      return lastKnownRealLatLng;
+    }
+    if (lastGeolocationErrorMessage != null) {
+      return null;
+    }
     return await getMyLatLng(
       forceFresh: true,
     );
