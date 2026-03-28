@@ -533,7 +533,7 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "Please wait a moment, make sure location is turned on, then try again.",
+                          "We could not get your current location yet. Please make sure Location is turned on, then try again or use the default location to continue more quickly.",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
@@ -542,6 +542,7 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 18),
                         SizedBox(
+                          width: double.infinity,
                           height: 40,
                           child: ActionButton(
                             text: "Retry Location",
@@ -550,9 +551,10 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 10),
                         SizedBox(
+                          width: double.infinity,
                           height: 40,
                           child: ActionButton(
-                            text: "Use Default",
+                            text: "Use Default Location",
                             mainColor: Colors.white,
                             style: const TextStyle(
                               color: Color(0xFF030744),
@@ -632,6 +634,7 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 18),
                         SizedBox(
+                          width: double.infinity,
                           height: 40,
                           child: ActionButton(
                             text: "Use Default Location",
