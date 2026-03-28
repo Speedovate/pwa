@@ -49,6 +49,7 @@ class _HomeViewState extends State<HomeView> {
   final HomeViewModel homeViewModel = HomeViewModel();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final Future<gmaps.LatLng?> _initialCenterFuture;
+  gmaps.LatLng? _homeMapCenter;
 
   @override
   void initState() {
@@ -83,6 +84,13 @@ class _HomeViewState extends State<HomeView> {
         ).withOpacity(0.25),
       ),
     );
+  }
+
+  bool _sameLatLng(gmaps.LatLng? a, gmaps.LatLng? b) {
+    if (a == null || b == null) {
+      return false;
+    }
+    return a.lat == b.lat && a.lng == b.lng;
   }
 
   @override
@@ -520,7 +528,14 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 );
               }
-              final center = snapshot.data!;
+              final resolvedCenter = snapshot.data!;
+              final currentCenter = _homeMapCenter;
+              if (currentCenter == null ||
+                  (_sameLatLng(currentCenter, defaultLatLng) &&
+                      !_sameLatLng(resolvedCenter, defaultLatLng))) {
+                _homeMapCenter = resolvedCenter;
+              }
+              final center = _homeMapCenter ?? resolvedCenter;
               return SingleChildScrollView(
                 physics: const NeverScrollableScrollPhysics(),
                 child: SizedBox(
