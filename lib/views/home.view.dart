@@ -3172,41 +3172,39 @@ class _HomeViewState extends State<HomeView> {
                               ),
                             ],
                           ),
-                          if (isIOSLikeBrowser() && _isIOSMenuOpen)
-                            Positioned.fill(
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: GestureDetector(
-                                      onTap: _closeIOSMenu,
-                                      child: Container(
-                                        color: Colors.black.withOpacity(0.18),
-                                      ),
-                                    ),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: SizedBox(
-                                      width: MediaQuery.of(context)
-                                                  .size
-                                                  .width *
-                                              0.84 >
-                                          320
-                                          ? 320
-                                          : MediaQuery.of(context).size.width *
-                                              0.84,
-                                      height: double.infinity,
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: _buildHomeDrawer(vm),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
+                      if (isIOSLikeBrowser() && _isIOSMenuOpen)
+                        Positioned.fill(
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: GestureDetector(
+                                  onTap: _closeIOSMenu,
+                                  child: Container(
+                                    color: Colors.black.withOpacity(0.18),
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: SizedBox(
+                                  width: MediaQuery.of(context).size.width *
+                                              0.84 >
+                                          320
+                                      ? 320
+                                      : MediaQuery.of(context).size.width *
+                                          0.84,
+                                  height: double.infinity,
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: _buildHomeDrawer(vm),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       !vm.isLoading && !vm.isInitializing
                           ? const SizedBox.shrink()
                           : Positioned(
