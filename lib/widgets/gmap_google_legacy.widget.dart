@@ -29,7 +29,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   late final String viewId;
   gmaps.Map? _map;
   StreamSubscription? _centerChangedSub;
+  Timer? _cameraMoveDebounce;
   bool _mapInitialized = false;
+  gmaps.LatLng? _pendingCenter;
 
   static const List<Map<String, dynamic>> _defaultStyles = [
     {
@@ -97,7 +99,21 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         _centerChangedSub = _map!.onCenterChanged.listen(
           (_) {
             final center = _map?.center;
-            if (center != null && mounted) widget.onCameraMove?.call(center);
+            if (center == null || !mounted) {
+              return;
+            }
+            _pendingCenter = center;
+            _cameraMoveDebounce?.cancel();
+            _cameraMoveDebounce = Timer(
+              const Duration(milliseconds: 120),
+              () {
+                final nextCenter = _pendingCenter;
+                _pendingCenter = null;
+                if (nextCenter != null && mounted) {
+                  widget.onCameraMove?.call(nextCenter);
+                }
+              },
+            );
           },
         );
         _mapInitialized = true;
@@ -126,6 +142,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   void dispose() {
+    _cameraMoveDebounce?.cancel();
     _centerChangedSub?.cancel();
     super.dispose();
   }

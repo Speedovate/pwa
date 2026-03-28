@@ -383,6 +383,7 @@ Future<gmaps.LatLng?> getMyLatLng({
   final useFastTimeout =
       !forceFresh && hasRealLocationFix && lastKnownRealLatLng != null;
   try {
+    lastGeolocationErrorMessage = null;
     final position = await _requestCurrentPosition(
       enableHighAccuracy: true,
       timeout: useFastTimeout ? const Duration(seconds: 5) : null,
@@ -399,16 +400,19 @@ Future<gmaps.LatLng?> getMyLatLng({
           timeout: const Duration(seconds: 10),
           maximumAge: const Duration(seconds: 30),
         );
+        lastGeolocationErrorMessage = null;
         return _storeRealLatLng(relaxedPosition);
       } catch (retryError) {
         debugPrint(
           "Retry location fetch failed: ${_describeGeolocationError(retryError)}",
         );
+        lastGeolocationErrorMessage = _describeGeolocationError(retryError);
       }
     }
     final existingLocation = _nonDefaultLatLng(lastKnownRealLatLng) ??
         _nonDefaultLatLng(initLatLng);
     initLatLng = existingLocation ?? (permissionDenied ? defaultLatLng : null);
+    lastGeolocationErrorMessage ??= _describeGeolocationError(e);
     debugPrint(
       "Failed to fetch location: ${_describeGeolocationError(e)}\n$stackTrace\nusing fallback $initLatLng",
     );

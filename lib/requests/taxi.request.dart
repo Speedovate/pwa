@@ -84,7 +84,6 @@ class TaxiRequest extends HttpService {
         return Order.fromJson(order);
       }
       if (apiResponse.code == 500) {
-        debugPrint("ongoingOrderRequest failed with 500: ${apiResponse.message}");
         return null;
       }
       throw apiResponse.message;

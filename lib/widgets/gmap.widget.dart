@@ -155,6 +155,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         fmap.TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           retinaMode: useRetinaTiles,
+          panBuffer: 1,
           userAgentPackageName: 'com.ppctoda.pwa',
           tileProvider: CancellableNetworkTileProvider(),
         ),

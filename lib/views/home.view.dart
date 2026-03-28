@@ -112,6 +112,28 @@ class _HomeViewState extends State<HomeView> {
     return a.lat == b.lat && a.lng == b.lng;
   }
 
+  String _locationErrorHint() {
+    final error = lastGeolocationErrorMessage ?? "";
+    if (error.contains("POSITION_UNAVAILABLE")) {
+      return "We could not get your current location yet. Please make sure Location Services are turned on and available for this browser, then try again. You can also use the default location to continue more quickly.";
+    }
+    if (error.contains("TIMEOUT")) {
+      return "Getting your current location is taking longer than expected. Please try again, or use the default location to continue more quickly.";
+    }
+    if (error.contains("PERMISSION_DENIED")) {
+      return "Location access is turned off for this browser. Please allow location access, then try again, or use the default location to continue more quickly.";
+    }
+    return "We could not get your current location yet. Please make sure Location is turned on, then try again or use the default location to continue more quickly.";
+  }
+
+  String _locationLoadingHint() {
+    final error = lastGeolocationErrorMessage ?? "";
+    if (error.contains("POSITION_UNAVAILABLE")) {
+      return "We are still trying to get your current location. Please keep Location Services turned on for this browser. If you want to continue more quickly, you can use the default location for now.";
+    }
+    return "Please wait while we get your actual current location. If you want to continue more quickly, you can use the default location for now.";
+  }
+
   @override
   Widget build(BuildContext context) {
     bool keyboardOpen = MediaQuery.of(context).viewInsets.bottom != 0;
@@ -533,7 +555,7 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "We could not get your current location yet. Please make sure Location is turned on, then try again or use the default location to continue more quickly.",
+                          _locationErrorHint(),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
@@ -625,7 +647,7 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "Please wait while we get your actual current location. If you want to continue more quickly, you can use the default location for now.",
+                          _locationLoadingHint(),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
@@ -670,64 +692,65 @@ class _HomeViewState extends State<HomeView> {
                       Column(
                         children: [
                           Expanded(
-                            child: Stack(
-                              children: [
-                                GoogleMapWidget(
-                                  center: vm.mapCenter ?? center,
-                                  enableGestures: isAdSeen &&
-                                      isAd1Seen &&
-                                      !vm.showReport &&
-                                      !vm.isDisabled &&
-                                      !vm.showAnalytics &&
-                                      (isBool(vm.userSeen) ||
-                                          vm.dvrMessage == null ||
-                                          vm.dvrMessage == "null" ||
-                                          vm.ongoingOrder == null ||
-                                          vm.ongoingOrder?.status ==
-                                              "cancelled" ||
-                                          vm.dvrMessage == "null" ||
-                                          vm.dvrMessage == "") &&
-                                      !isBool(
-                                        _scaffoldKey.currentState?.isDrawerOpen,
-                                      ) &&
-                                      !vm.isMapInteractionLocked,
-                                  markers: vm.markers,
-                                  polylines: vm.polylines,
-                                  onMapCreated: (map) async {
-                                    vm.setMap(map);
-                                    if (AuthService.isLoggedIn()) {
-                                      await vm.getOngoingOrder();
-                                      await LoadViewModel().getLoadBalance();
-                                    }
-                                  },
-                                  onCameraMove: (center) {
-                                    try {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      final a = vm.disposed;
-                                      final b = vm.markers;
-                                      if (vm.ongoingOrder == null) {
-                                        if (!vm.blockCamera &&
-                                            !vm.isMapInteractionLocked &&
-                                            vm.shouldProcessCameraMove(
-                                              center,
-                                            )) {
-                                          if (!a && b.isEmpty) {
-                                            vm.mapCameraMove(
-                                              "onCameraMove",
-                                              center,
-                                            );
+                            child: RepaintBoundary(
+                              child: Stack(
+                                children: [
+                                  GoogleMapWidget(
+                                    center: vm.mapCenter ?? center,
+                                    enableGestures: isAdSeen &&
+                                        isAd1Seen &&
+                                        !vm.showReport &&
+                                        !vm.isDisabled &&
+                                        !vm.showAnalytics &&
+                                        (isBool(vm.userSeen) ||
+                                            vm.dvrMessage == null ||
+                                            vm.dvrMessage == "null" ||
+                                            vm.ongoingOrder == null ||
+                                            vm.ongoingOrder?.status ==
+                                                "cancelled" ||
+                                            vm.dvrMessage == "null" ||
+                                            vm.dvrMessage == "") &&
+                                        !isBool(
+                                          _scaffoldKey.currentState?.isDrawerOpen,
+                                        ) &&
+                                        !vm.isMapInteractionLocked,
+                                    markers: vm.markers,
+                                    polylines: vm.polylines,
+                                    onMapCreated: (map) async {
+                                      vm.setMap(map);
+                                      if (AuthService.isLoggedIn()) {
+                                        await vm.getOngoingOrder();
+                                        await LoadViewModel().getLoadBalance();
+                                      }
+                                    },
+                                    onCameraMove: (center) {
+                                      try {
+                                        FocusManager.instance.primaryFocus
+                                            ?.unfocus();
+                                        final a = vm.disposed;
+                                        final b = vm.markers;
+                                        if (vm.ongoingOrder == null) {
+                                          if (!vm.blockCamera &&
+                                              !vm.isMapInteractionLocked &&
+                                              vm.shouldProcessCameraMove(
+                                                center,
+                                              )) {
+                                            if (!a && b.isEmpty) {
+                                              vm.mapCameraMove(
+                                                "onCameraMove",
+                                                center,
+                                              );
+                                            }
                                           }
                                         }
+                                      } catch (e) {
+                                        debugPrint(
+                                          "HomeView - onCameraMove error: $e",
+                                        );
                                       }
-                                    } catch (e) {
-                                      debugPrint(
-                                        "HomeView - onCameraMove error: $e",
-                                      );
-                                    }
-                                  },
-                                ),
-                                Positioned(
+                                    },
+                                  ),
+                                  Positioned(
                                   top: 20,
                                   left: 20,
                                   child: FloatingButton(
@@ -762,7 +785,7 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ),
                                       ),
-                                Positioned(
+                                  Positioned(
                                   top: 20,
                                   right: 20,
                                   child: FloatingButton(
@@ -781,7 +804,7 @@ class _HomeViewState extends State<HomeView> {
                                     },
                                   ),
                                 ),
-                                Positioned(
+                                  Positioned(
                                   left: 20,
                                   bottom: 20,
                                   child: Column(
@@ -861,7 +884,7 @@ class _HomeViewState extends State<HomeView> {
                                     ],
                                   ),
                                 ),
-                                Positioned(
+                                  Positioned(
                                   right: 20,
                                   bottom: 20,
                                   child: Column(
@@ -902,7 +925,7 @@ class _HomeViewState extends State<HomeView> {
                                     ],
                                   ),
                                 ),
-                                vm.ongoingOrder != null ||
+                                  vm.ongoingOrder != null ||
                                         !isBool(
                                           AppStrings.homeSettingsObject?[
                                                   "show_ad"] ??
@@ -953,7 +976,7 @@ class _HomeViewState extends State<HomeView> {
                                           ],
                                         ),
                                       ),
-                                vm.markers.isNotEmpty
+                                  vm.markers.isNotEmpty
                                     ? const SizedBox.shrink()
                                     : const Center(
                                         child: Padding(
@@ -967,7 +990,7 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ),
                                       ),
-                                !vm.showAnalytics ||
+                                  !vm.showAnalytics ||
                                         !isBool(
                                           AuthService.currentUser?.isProvider,
                                         )
@@ -1474,20 +1497,22 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ),
                                       ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                           Column(
                             children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: vm.selectedAddress.value == null
-                                      ? Colors.transparent
-                                      : Colors.white,
-                                ),
-                                child: vm.selectedAddress.value == null
-                                    ? const SizedBox.shrink()
-                                    : Column(
+                              RepaintBoundary(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: vm.selectedAddress.value == null
+                                        ? Colors.transparent
+                                        : Colors.white,
+                                  ),
+                                  child: vm.selectedAddress.value == null
+                                      ? const SizedBox.shrink()
+                                      : Column(
                                         children: [
                                           (gVehicleTypes.isEmpty ||
                                                       locUnavailable) &&
@@ -3082,6 +3107,7 @@ class _HomeViewState extends State<HomeView> {
                                           ),
                                         ],
                                       ),
+                                ),
                               ),
                             ],
                           ),

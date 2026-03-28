@@ -49,6 +49,7 @@ const gmaps.LatLng defaultLatLng = gmaps.LatLng(9.7638, 118.7473);
 gmaps.LatLng? initLatLng = defaultLatLng;
 gmaps.LatLng? lastKnownRealLatLng;
 bool hasRealLocationFix = false;
+String? lastGeolocationErrorMessage;
 
 RegExp phoneRegex = RegExp(
   r"^9\d{9}$",
