@@ -65,14 +65,29 @@
   <!-- Google Sign-In -->
   <meta name="google-signin-client_id"
     content="599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    (function () {
+      const userAgent = (navigator.userAgent || "").toLowerCase();
+      const isHuaweiBrowser =
+        userAgent.includes("huawei") ||
+        userAgent.includes("honor") ||
+        userAgent.includes("huaweibrowser") ||
+        userAgent.includes("hmscore");
 
-  <!-- Google Maps -->
-  <script async
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBulbBRV3toC3XWR9TRVACFTmjgfcsD0TU&libraries=marker&loading=async"></script>
+      if (isHuaweiBrowser) {
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.31+51" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.30+50" />
 
   <!-- Splash Screen Style -->
   <style>

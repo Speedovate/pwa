@@ -26,7 +26,7 @@ class LoginViewModel extends BaseViewModel {
 
   initialise() async {
     try {
-      await PushService.syncTokenWithServer(requestPermission: true);
+      await PushService.syncTokenWithServer(requestPermission: false);
     } catch (_) {}
   }
 
@@ -120,6 +120,12 @@ class LoginViewModel extends BaseViewModel {
   }
 
   processGoogleLogin() async {
+    if (!isGoogleAuthLikelySupported()) {
+      showError(
+        "Google sign-in is not supported on this browser. Please use phone login instead.",
+      );
+      return;
+    }
     try {
       String? emailAddress;
       GoogleSignInAccount? gsiAccount;
@@ -199,7 +205,7 @@ class LoginViewModel extends BaseViewModel {
       await AuthService.getUserFromStorage();
       await AuthService.getTokenFromStorage();
       await AuthService.ensureUserNameInFirestore();
-      await PushService.syncTokenWithServer(requestPermission: true);
+      await PushService.syncTokenWithServer(requestPermission: false);
       notifyListeners();
       try {
         Point earthCenterLocation = Point(

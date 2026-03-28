@@ -1,18 +1,19 @@
 import 'dart:async';
+import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
 
 class MapViewModel extends BaseViewModel {
-  gmaps.Map? _map;
+  fmap.MapController? _map;
   Timer? _debounce;
   bool _isResolvingCameraMove = false;
   DateTime? _ignoreCameraMoveUntil;
@@ -33,7 +34,6 @@ class MapViewModel extends BaseViewModel {
     searchFocusNode.dispose();
     searchTEC.dispose();
     selectedAddress.dispose();
-    _map?.controls.clear();
     _map = null;
     super.dispose();
   }
@@ -50,10 +50,13 @@ class MapViewModel extends BaseViewModel {
 
   void setMap({
     required bool isPickup,
-    required gmaps.Map map,
+    required fmap.MapController map,
   }) async {
     _map = map;
-    lastCenter = map.center;
+    lastCenter = gmaps.LatLng(
+      map.camera.center.latitude,
+      map.camera.center.longitude,
+    );
     debugPrint("Map set - MapViewModel");
     try {
       selectedAddress.value = isPickup
@@ -78,7 +81,10 @@ class MapViewModel extends BaseViewModel {
                       "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
                 ),
               );
-      map.center = selectedAddress.value!.latLng;
+      map.move(
+        selectedAddress.value!.latLng,
+        map.camera.zoom,
+      );
     } catch (e) {
       mapCameraMove(
         initLatLng,
@@ -87,7 +93,14 @@ class MapViewModel extends BaseViewModel {
     }
   }
 
-  gmaps.Map? get map => _map;
+  fmap.MapController? get map => _map;
+
+  gmaps.LatLng? get mapCenter => _map == null
+      ? null
+      : gmaps.LatLng(
+          _map!.camera.center.latitude,
+          _map!.camera.center.longitude,
+        );
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
     final target = await getMyLatLng();
@@ -95,23 +108,31 @@ class MapViewModel extends BaseViewModel {
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
       );
-      _map!.panTo(target);
-      _map!.zoom = zoom;
+      _map!.move(
+        target,
+        zoom,
+      );
     }
     return target;
   }
 
   zoomIn() async {
     if (_map != null) {
-      final currentZoom = _map!.zoom.toDouble();
-      _map!.zoom = (currentZoom + 1).clamp(2, 21);
+      final currentZoom = _map!.camera.zoom;
+      _map!.move(
+        _map!.camera.center,
+        (currentZoom + 1).clamp(2, 21),
+      );
     }
   }
 
   zoomOut() async {
     if (_map != null) {
-      final currentZoom = _map!.zoom.toDouble();
-      _map!.zoom = (currentZoom - 1).clamp(2, 21);
+      final currentZoom = _map!.camera.zoom;
+      _map!.move(
+        _map!.camera.center,
+        (currentZoom - 1).clamp(2, 21),
+      );
     }
   }
 
@@ -220,31 +241,36 @@ class MapViewModel extends BaseViewModel {
   }) async {
     setBusyForObject(selectedAddress.value, true);
     try {
+      var resolvedAddress = address;
       if (address.gMapPlaceId != null) {
-        address = await geocoderService.fetchPlaceDetails(address);
+        try {
+          resolvedAddress = await geocoderService.fetchPlaceDetails(address);
+        } catch (e) {
+          debugPrint("Error in fetchPlaceDetails: $e");
+        }
       }
-      selectedAddress.value = address;
+      selectedAddress.value = resolvedAddress;
       if (isPickup) {
-        pickupAddress = address;
+        pickupAddress = resolvedAddress;
       } else {
-        dropoffAddress = address;
+        dropoffAddress = resolvedAddress;
       }
       if (_map != null) {
-        num currentZoom = _map!.zoom;
+        final currentZoom = _map!.camera.zoom;
         final nextCenter = gmaps.LatLng(
-          address.coordinates.latitude,
-          address.coordinates.longitude,
+          resolvedAddress.coordinates.latitude,
+          resolvedAddress.coordinates.longitude,
         );
         lastCenter = nextCenter;
         if (animate) {
           _ignoreCameraMoveUntil = DateTime.now().add(
             const Duration(milliseconds: 800),
           );
-          _map!.panTo(nextCenter);
-        } else {
-          _map!.center = nextCenter;
         }
-        _map!.zoom = currentZoom;
+        _map!.move(
+          nextCenter,
+          currentZoom,
+        );
       }
     } catch (e) {
       debugPrint("Error in addressSelected: $e");

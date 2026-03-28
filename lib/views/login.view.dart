@@ -2,11 +2,13 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/send.view.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/views/register.view.dart';
 import 'package:pwa/view_models/login.vm.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/constants/strings.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
@@ -51,6 +53,9 @@ class _LoginViewState extends State<LoginView> {
         viewModelBuilder: () => loginViewModel,
         onViewModelReady: (vm) => vm.initialise(),
         builder: (context, vm, child) {
+          final canUseGoogleAuth =
+              AppStrings.googleLogin && isGoogleAuthLikelySupported();
+          final useGoogleFlow = isTourist && canUseGoogleAuth;
           return GestureDetector(
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
@@ -128,7 +133,7 @@ class _LoginViewState extends State<LoginView> {
                         child: SizedBox(
                           width: double.infinity.clamp(0, 800),
                           child: TextFieldWidget(
-                            readOnly: isTourist,
+                            readOnly: useGoogleFlow,
                             controller: vm.phoneTEC,
                             hintText: "XXXXXXXXX",
                             labelText: "Phone Number",
@@ -138,7 +143,7 @@ class _LoginViewState extends State<LoginView> {
                             obscureText: false,
                             showPrefix: true,
                             showSuffix: false,
-                            prefixText: isTourist ? null : "+63",
+                            prefixText: useGoogleFlow ? null : "+63",
                             suffixIcon: null,
                             onSuffixTap: null,
                             autoFocus: false,
@@ -155,7 +160,7 @@ class _LoginViewState extends State<LoginView> {
                         child: SizedBox(
                           width: double.infinity.clamp(0, 800),
                           child: TextFieldWidget(
-                            readOnly: isTourist,
+                            readOnly: useGoogleFlow,
                             controller: vm.passwordTEC,
                             hintText: "Enter your password",
                             labelText: "Password",
@@ -184,7 +189,7 @@ class _LoginViewState extends State<LoginView> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              AuthService.inReviewMode()
+                              AuthService.inReviewMode() || !canUseGoogleAuth
                                   ? const SizedBox.shrink()
                                   : SizedBox(
                                       width: 20,
@@ -196,7 +201,7 @@ class _LoginViewState extends State<LoginView> {
                                         ),
                                         activeColor: const Color(0xFF007BFF),
                                         checkColor: Colors.white,
-                                        value: !isTourist,
+                                        value: !useGoogleFlow,
                                         onChanged: (value) {
                                           FocusManager.instance.primaryFocus
                                               ?.unfocus();
@@ -204,16 +209,16 @@ class _LoginViewState extends State<LoginView> {
                                           vm.phoneTEC.clear();
                                           setState(
                                             () {
-                                              isTourist = !isTourist;
+                                              isTourist = !useGoogleFlow;
                                             },
                                           );
                                         },
                                       ),
                                     ),
-                              AuthService.inReviewMode()
+                              AuthService.inReviewMode() || !canUseGoogleAuth
                                   ? const SizedBox.shrink()
                                   : const SizedBox(width: 8),
-                              AuthService.inReviewMode()
+                              AuthService.inReviewMode() || !canUseGoogleAuth
                                   ? const SizedBox.shrink()
                                   : const Text(
                                       "Use 🇵🇭 Phone",
@@ -228,7 +233,7 @@ class _LoginViewState extends State<LoginView> {
                               const Expanded(child: SizedBox.shrink()),
                               GestureDetector(
                                 onTap: () {
-                                  if (!isTourist) {
+                                  if (!useGoogleFlow) {
                                     Navigator.push(
                                       context,
                                       PageRouteBuilder(
@@ -251,7 +256,7 @@ class _LoginViewState extends State<LoginView> {
                                   "Forgot password?",
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isTourist
+                                    color: useGoogleFlow
                                         ? Colors.grey
                                         : const Color(0xFF007BFF),
                                     fontWeight: FontWeight.bold,
@@ -263,7 +268,7 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      !isTourist
+                      !useGoogleFlow
                           ? Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -321,16 +326,17 @@ class _LoginViewState extends State<LoginView> {
                                 ),
                               ),
                             ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        "or",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF030744),
-                          fontWeight: FontWeight.bold,
+                      if (canUseGoogleAuth) const SizedBox(height: 12),
+                      if (canUseGoogleAuth)
+                        const Text(
+                          "or",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF030744),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
+                      if (canUseGoogleAuth) const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,

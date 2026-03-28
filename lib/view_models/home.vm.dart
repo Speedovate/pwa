@@ -1175,6 +1175,7 @@ class HomeViewModel extends GMapViewModel {
                 driverPositionRotation = apiResponse.body['rotation'] ?? 0;
                 updateDriverMarkerPosition(
                   ongoingOrder!.driver!.latLng,
+                  rotationDegrees: driverPositionRotation,
                 );
               } else {
                 globalTimer?.cancel();

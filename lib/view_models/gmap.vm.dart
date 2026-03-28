@@ -1,21 +1,22 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:async';
+import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:get/get.dart';
-import 'dart:js_util' as js_util;
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/models/address.model.dart';
+import 'package:pwa/utils/map_layers.dart';
+import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
 
 class GMapViewModel extends BaseViewModel {
-  gmaps.Map? _map;
+  fmap.MapController? _map;
   Timer? _debounce;
   bool _isResolvingCameraMove = false;
   DateTime? _ignoreCameraMoveUntil;
@@ -24,8 +25,8 @@ class GMapViewModel extends BaseViewModel {
   double? discount = 0.0;
   bool isLoading = false;
   bool isInitializing = false;
-  List<WebMarker> markers = [];
-  List<gmaps.Polyline>? polylines = [];
+  List<MapMarkerData> markers = [];
+  List<MapPolylineData> polylines = [];
   TaxiRequest taxiRequest = TaxiRequest();
   gmaps.LatLng? lastCenter;
   GeocoderService geocoderService = GeocoderService();
@@ -36,23 +37,32 @@ class GMapViewModel extends BaseViewModel {
     _debounce?.cancel();
     _debounce = null;
     selectedAddress.dispose();
-    _map?.controls.clear();
     _map = null;
     super.dispose();
   }
 
-  setMap(gmaps.Map map) {
+  setMap(fmap.MapController map) {
     _map = map;
-    lastCenter = map.center;
+    lastCenter = gmaps.LatLng(
+      map.camera.center.latitude,
+      map.camera.center.longitude,
+    );
     isInitializing = true;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
-        mapCameraMove("setMap", _map?.center);
+        mapCameraMove("setMap", mapCenter);
       },
     );
   }
 
-  gmaps.Map? get map => _map;
+  fmap.MapController? get map => _map;
+
+  gmaps.LatLng? get mapCenter => _map == null
+      ? null
+      : gmaps.LatLng(
+          _map!.camera.center.latitude,
+          _map!.camera.center.longitude,
+        );
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
     final target = await getMyLatLng();
@@ -60,8 +70,10 @@ class GMapViewModel extends BaseViewModel {
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
       );
-      _map!.panTo(target);
-      _map!.zoom = zoom;
+      _map!.move(
+        target,
+        zoom,
+      );
     }
     return target;
   }
@@ -71,22 +83,30 @@ class GMapViewModel extends BaseViewModel {
     double zoom = 16,
   }) async {
     if (_map != null) {
-      _map!.panTo(target);
-      _map!.zoom = zoom;
+      _map!.move(
+        target,
+        zoom,
+      );
     }
   }
 
   zoomIn() async {
     if (_map != null) {
-      final currentZoom = _map!.zoom.toDouble();
-      _map!.zoom = (currentZoom + 1).clamp(2, 21);
+      final currentZoom = _map!.camera.zoom;
+      _map!.move(
+        _map!.camera.center,
+        (currentZoom + 1).clamp(2, 21),
+      );
     }
   }
 
   zoomOut() async {
     if (_map != null) {
-      final currentZoom = _map!.zoom.toDouble();
-      _map!.zoom = (currentZoom - 1).clamp(2, 21);
+      final currentZoom = _map!.camera.zoom;
+      _map!.move(
+        _map!.camera.center,
+        (currentZoom - 1).clamp(2, 21),
+      );
     }
   }
 
@@ -131,6 +151,9 @@ class GMapViewModel extends BaseViewModel {
                 double.parse("${target.lng}"),
               ),
             );
+            if (addresses.isEmpty) {
+              throw Exception("No address found");
+            }
             final Address address = Address(
               addressLine: addresses.first.addressLine,
               countryName: addresses.first.countryName,
@@ -155,7 +178,16 @@ class GMapViewModel extends BaseViewModel {
           } catch (e) {
             isLoading = false;
             isInitializing = false;
-            selectedAddress.value = previousAddress;
+            final fallbackAddress = previousAddress ??
+                Address(
+                  addressLine: "Current location",
+                  coordinates: Coordinates(
+                    double.parse("${target.lat}"),
+                    double.parse("${target.lng}"),
+                  ),
+                );
+            selectedAddress.value = fallbackAddress;
+            pickupAddress = fallbackAddress;
             ApiResponse? apiResponse;
             try {
               apiResponse = await taxiRequest.locationAvailableRequest(
@@ -218,27 +250,32 @@ class GMapViewModel extends BaseViewModel {
   }) async {
     setBusyForObject(selectedAddress, true);
     try {
+      var resolvedAddress = address;
       if (address.gMapPlaceId != null) {
-        address = await geocoderService.fetchPlaceDetails(address);
+        try {
+          resolvedAddress = await geocoderService.fetchPlaceDetails(address);
+        } catch (e) {
+          debugPrint("Error in fetchPlaceDetails: $e");
+        }
       }
-      selectedAddress.value = address;
-      pickupAddress = address;
+      selectedAddress.value = resolvedAddress;
+      pickupAddress = resolvedAddress;
       if (_map != null) {
-        num currentZoom = _map!.zoom;
+        final currentZoom = _map!.camera.zoom;
         final nextCenter = gmaps.LatLng(
-          address.coordinates.latitude,
-          address.coordinates.longitude,
+          resolvedAddress.coordinates.latitude,
+          resolvedAddress.coordinates.longitude,
         );
         lastCenter = nextCenter;
         if (animate) {
           _ignoreCameraMoveUntil = DateTime.now().add(
             const Duration(milliseconds: 800),
           );
-          _map!.panTo(nextCenter);
-        } else {
-          _map!.center = nextCenter;
         }
-        _map!.zoom = currentZoom;
+        _map!.move(
+          nextCenter,
+          currentZoom,
+        );
       }
     } catch (e) {
       debugPrint("Error in addressSelected: $e");
@@ -253,36 +290,25 @@ class GMapViewModel extends BaseViewModel {
     gmaps.LatLng driverLatLng,
   ) async {
     if (_map == null) return;
-    for (var m in markers) {
-      m.marker.map = null;
-    }
-    markers.clear();
-    polylines?.forEach((p) => p.map = null);
-    polylines?.clear();
-    final pickupMarker = gmaps.Marker(
-      gmaps.MarkerOptions(
-        map: _map,
-        position: pickupLatLng,
-        title: "Pickup Location",
-      )..icon = gmaps.Icon(
-          url:
-              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/pickup.png',
-          scaledSize: gmaps.Size(50, 50),
-        ),
-    );
-    markers.add(WebMarker(id: "pickupMarker", marker: pickupMarker));
-    final driverMarker = gmaps.Marker(
-      gmaps.MarkerOptions(
-        map: _map,
-        position: driverLatLng,
-        title: "Driver Location",
-      )..icon = gmaps.Icon(
-          url:
-              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
-          scaledSize: gmaps.Size(35, 35),
-        ),
-    );
-    markers.add(WebMarker(id: "driverMarker", marker: driverMarker));
+    markers = [
+      const MapMarkerData(
+        id: "pickupMarker",
+        position: gmaps.LatLng(0, 0),
+        imageUrl:
+            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/pickup.png',
+        width: 50,
+        height: 50,
+      ).copyWith(position: pickupLatLng),
+      const MapMarkerData(
+        id: "driverMarker",
+        position: gmaps.LatLng(0, 0),
+        imageUrl:
+            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
+        width: 35,
+        height: 35,
+      ).copyWith(position: driverLatLng),
+    ];
+    polylines = [];
     try {
       final result = await geocoderService.getPolyline(
         driverLatLng,
@@ -291,47 +317,27 @@ class GMapViewModel extends BaseViewModel {
       );
       if (result.isNotEmpty) {
         final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
-        final pathJs = js_util.jsify(points);
-        final polyline = gmaps.Polyline(
-          gmaps.PolylineOptions()
-            ..path = pathJs
-            ..strokeColor = "#42A5F5"
-            ..strokeOpacity = 1
-            ..strokeWeight = 6
-            ..map = _map,
-        );
-        polylines?.add(polyline);
+        polylines = [
+          MapPolylineData(
+            points: points,
+            color: const Color(0xFF42A5F5),
+            strokeWidth: 6,
+          ),
+        ];
         final allPoints = [driverLatLng, ...points, pickupLatLng];
-        num minLat = allPoints.first.lat;
-        num minLng = allPoints.first.lng;
-        num maxLat = allPoints.last.lat;
-        num maxLng = allPoints.last.lng;
-        for (var point in allPoints) {
-          if (point.lat < minLat) minLat = point.lat;
-          if (point.lat > maxLat) maxLat = point.lat;
-          if (point.lng < minLng) minLng = point.lng;
-          if (point.lng > maxLng) maxLng = point.lng;
-        }
-        const offset = 0.002;
-        if ((maxLat - minLat).abs() < offset) {
-          maxLat += offset;
-          minLat -= offset;
-        }
-        if ((maxLng - minLng).abs() < offset) {
-          maxLng += offset;
-          minLng -= offset;
-        }
-        final bounds = gmaps.LatLngBounds(
-          gmaps.LatLng(minLat, minLng),
-          gmaps.LatLng(maxLat, maxLng),
+        _map!.fitCamera(
+          fmap.CameraFit.coordinates(
+            coordinates: allPoints,
+            padding: const EdgeInsets.all(48),
+          ),
         );
-        _map!.fitBounds(bounds);
       } else {
         debugPrint("No polyline points received from backend");
       }
     } catch (e) {
       debugPrint("Error drawing pick polyline: $e");
     }
+    notifyListeners();
   }
 
   drawDropPolyLines(
@@ -341,50 +347,37 @@ class GMapViewModel extends BaseViewModel {
     gmaps.LatLng? driverLatLng,
   ) async {
     if (_map == null) return;
-    for (var m in markers) {
-      m.marker.map = null;
-    }
-    markers.clear();
-    polylines?.forEach((p) => p.map = null);
-    polylines?.clear();
-    final pickupMarker = gmaps.Marker(
-      gmaps.MarkerOptions(
-        map: _map,
-        position: pickupLatLng,
-        title: "Pickup Location",
-      )..icon = gmaps.Icon(
-          url:
-              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/pickup.png',
-          scaledSize: gmaps.Size(50, 50),
-        ),
-    );
-    markers.add(WebMarker(id: "pickupMarker", marker: pickupMarker));
-    final dropoffMarker = gmaps.Marker(
-      gmaps.MarkerOptions(
-        map: _map,
-        position: dropoffLatLng,
-        title: "Dropoff Location",
-      )..icon = gmaps.Icon(
-          url:
-              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/dropoff.png',
-          scaledSize: gmaps.Size(50, 50),
-        ),
-    );
-    markers.add(WebMarker(id: "dropoffMarker", marker: dropoffMarker));
+    markers = [
+      const MapMarkerData(
+        id: "pickupMarker",
+        position: gmaps.LatLng(0, 0),
+        imageUrl:
+            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/pickup.png',
+        width: 50,
+        height: 50,
+      ).copyWith(position: pickupLatLng),
+      const MapMarkerData(
+        id: "dropoffMarker",
+        position: gmaps.LatLng(0, 0),
+        imageUrl:
+            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/dropoff.png',
+        width: 50,
+        height: 50,
+      ).copyWith(position: dropoffLatLng),
+    ];
     if (driverLatLng != null) {
-      final driverMarker = gmaps.Marker(
-        gmaps.MarkerOptions(
-          map: _map,
-          position: driverLatLng,
-          title: "Driver Location",
-        )..icon = gmaps.Icon(
-            url:
-                'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
-            scaledSize: gmaps.Size(35, 35),
-          ),
+      markers.add(
+        const MapMarkerData(
+          id: "driverMarker",
+          position: gmaps.LatLng(0, 0),
+          imageUrl:
+              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
+          width: 35,
+          height: 35,
+        ).copyWith(position: driverLatLng),
       );
-      markers.add(WebMarker(id: "driverMarker", marker: driverMarker));
     }
+    polylines = [];
     try {
       final result = await geocoderService.getPolyline(
         pickupLatLng,
@@ -393,82 +386,59 @@ class GMapViewModel extends BaseViewModel {
       );
       if (result.isNotEmpty) {
         final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
-        final pathJs = js_util.jsify(points);
-        final polyline = gmaps.Polyline(
-          gmaps.PolylineOptions()
-            ..path = pathJs
-            ..strokeColor = "#42A5F5"
-            ..strokeOpacity = 1
-            ..strokeWeight = 8
-            ..map = _map,
-        );
-        polylines?.add(polyline);
+        polylines = [
+          MapPolylineData(
+            points: points,
+            color: const Color(0xFF42A5F5),
+            strokeWidth: 8,
+          ),
+        ];
         final allPoints = [pickupLatLng, ...points, dropoffLatLng];
-        num minLat = allPoints.first.lat;
-        num minLng = allPoints.first.lng;
-        num maxLat = allPoints.last.lat;
-        num maxLng = allPoints.last.lng;
-        for (var point in allPoints) {
-          if (point.lat < minLat) minLat = point.lat;
-          if (point.lat > maxLat) maxLat = point.lat;
-          if (point.lng < minLng) minLng = point.lng;
-          if (point.lng > maxLng) maxLng = point.lng;
-        }
-        const offset = 0.002;
-        if ((maxLat - minLat).abs() < offset) {
-          maxLat += offset;
-          minLat -= offset;
-        }
-        if ((maxLng - minLng).abs() < offset) {
-          maxLng += offset;
-          minLng -= offset;
-        }
-        final bounds = gmaps.LatLngBounds(
-          gmaps.LatLng(minLat, minLng),
-          gmaps.LatLng(maxLat, maxLng),
+        _map!.fitCamera(
+          fmap.CameraFit.coordinates(
+            coordinates: allPoints,
+            padding: const EdgeInsets.all(48),
+          ),
         );
-        _map!.fitBounds(bounds);
       } else {
         debugPrint("No polyline points received from backend");
       }
     } catch (e) {
       debugPrint("Error drawing drop polyline: $e");
     }
+    notifyListeners();
   }
 
   clearGMapDetails() {
-    for (var m in markers) {
-      m.marker.map = null;
-    }
-    markers.clear();
-    polylines?.forEach((p) => p.map = null);
+    markers = [];
     polylines = [];
+    notifyListeners();
   }
 
-  updateDriverMarkerPosition(gmaps.LatLng position) {
-    if (_map == null) return;
-    WebMarker? existing;
-    try {
-      existing = markers.firstWhere((m) => m.id == 'driverMarker');
-    } catch (e) {
-      existing = null;
-    }
-    if (existing == null) {
-      final marker = gmaps.Marker(
-        gmaps.MarkerOptions(
-          map: _map,
+  updateDriverMarkerPosition(
+    gmaps.LatLng position, {
+    double rotationDegrees = 0,
+  }) {
+    final index = markers.indexWhere((m) => m.id == 'driverMarker');
+    if (index == -1) {
+      markers.add(
+        MapMarkerData(
+          id: 'driverMarker',
           position: position,
-          title: "Driver Location",
-        )..icon = gmaps.Icon(
-            url:
-                'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
-            scaledSize: gmaps.Size(35, 35),
-          ),
+          imageUrl:
+              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
+          width: 35,
+          height: 35,
+          rotationDegrees: rotationDegrees,
+        ),
       );
-      markers.add(WebMarker(id: 'driverMarker', marker: marker));
     } else {
-      existing.marker.position = position;
+      markers[index] = markers[index].copyWith(
+        position: position,
+        rotationDegrees: rotationDegrees,
+      );
     }
+    notifyListeners();
   }
 
   bool shouldProcessCameraMove(gmaps.LatLng center) {
@@ -488,11 +458,4 @@ class GMapViewModel extends BaseViewModel {
     if (a == null || b == null) return false;
     return a.lat == b.lat && a.lng == b.lng;
   }
-}
-
-class WebMarker {
-  final String id;
-  final gmaps.Marker marker;
-
-  WebMarker({required this.id, required this.marker});
 }

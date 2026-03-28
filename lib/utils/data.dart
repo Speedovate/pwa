@@ -10,7 +10,7 @@ import 'package:pwa/models/address.model.dart';
 import 'package:pwa/models/chat_media.model.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/available_driver.model.dart';
 
 Load? gLoad;
@@ -45,7 +45,7 @@ AvailableDriver? availableDriver;
 List<VehicleType> availableVehicles = [];
 String useExt = "enableFatchByLocation";
 String itexmo = "enableParcelVendorByLocation";
-final gmaps.LatLng defaultLatLng = gmaps.LatLng(9.7638, 118.7473);
+const gmaps.LatLng defaultLatLng = gmaps.LatLng(9.7638, 118.7473);
 gmaps.LatLng? initLatLng = defaultLatLng;
 gmaps.LatLng? lastKnownRealLatLng;
 bool hasRealLocationFix = false;

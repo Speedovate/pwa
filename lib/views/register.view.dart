@@ -6,6 +6,7 @@ import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/api.dart';
+import 'package:pwa/constants/strings.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/date_picker.dart';
@@ -71,6 +72,9 @@ class _RegisterViewState extends State<RegisterView> {
         viewModelBuilder: () => registerViewModel,
         onViewModelReady: (vm) => vm.initialise(),
         builder: (context, vm, child) {
+          final canUseGoogleAuth =
+              AppStrings.googleLogin && isGoogleAuthLikelySupported();
+          final useGoogleFlow = isTourist && canUseGoogleAuth;
           return GestureDetector(
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
@@ -439,7 +443,7 @@ class _RegisterViewState extends State<RegisterView> {
                               ],
                             ),
                       const SizedBox(height: 16),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : Padding(
                               padding: const EdgeInsets.symmetric(
@@ -476,10 +480,10 @@ class _RegisterViewState extends State<RegisterView> {
                                 ),
                               ),
                             ),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : const SizedBox(height: 16),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : Padding(
                               padding: const EdgeInsets.symmetric(
@@ -516,10 +520,10 @@ class _RegisterViewState extends State<RegisterView> {
                                 ),
                               ),
                             ),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : const SizedBox(height: 16),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : Padding(
                               padding: const EdgeInsets.symmetric(
@@ -556,10 +560,10 @@ class _RegisterViewState extends State<RegisterView> {
                                 ),
                               ),
                             ),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : const SizedBox(height: 16),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : Padding(
                               padding: const EdgeInsets.symmetric(
@@ -596,7 +600,7 @@ class _RegisterViewState extends State<RegisterView> {
                                 ),
                               ),
                             ),
-                      isTourist
+                      useGoogleFlow
                           ? const SizedBox.shrink()
                           : const SizedBox(height: 16),
                       Padding(
@@ -642,37 +646,39 @@ class _RegisterViewState extends State<RegisterView> {
                           width: double.infinity.clamp(0, 800),
                           child: Row(
                             children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: Checkbox(
-                                  side: const BorderSide(
-                                    color: Color(0xFF030744),
-                                    width: 2,
+                              if (canUseGoogleAuth)
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: Checkbox(
+                                    side: const BorderSide(
+                                      color: Color(0xFF030744),
+                                      width: 2,
+                                    ),
+                                    activeColor: const Color(0xFF007BFF),
+                                    checkColor: Colors.white,
+                                    value: !useGoogleFlow,
+                                    onChanged: (value) {
+                                      setState(
+                                        () {
+                                          isTourist = !useGoogleFlow;
+                                        },
+                                      );
+                                    },
                                   ),
-                                  activeColor: const Color(0xFF007BFF),
-                                  checkColor: Colors.white,
-                                  value: !isTourist,
-                                  onChanged: (value) {
-                                    setState(
-                                      () {
-                                        isTourist = !isTourist;
-                                      },
-                                    );
-                                  },
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                "I have a PH 🇵🇭 Phone Number",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  height: 1,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  color: Color(0xFF030744),
+                              if (canUseGoogleAuth) const SizedBox(width: 8),
+                              if (canUseGoogleAuth)
+                                const Text(
+                                  "I have a PH 🇵🇭 Phone Number",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    height: 1,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: Color(0xFF030744),
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
@@ -742,7 +748,7 @@ class _RegisterViewState extends State<RegisterView> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      !isTourist
+                      !useGoogleFlow
                           ? Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -804,16 +810,17 @@ class _RegisterViewState extends State<RegisterView> {
                                 ),
                               ),
                             ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        "or",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF030744),
-                          fontWeight: FontWeight.bold,
+                      if (canUseGoogleAuth) const SizedBox(height: 12),
+                      if (canUseGoogleAuth)
+                        const Text(
+                          "or",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF030744),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
+                      if (canUseGoogleAuth) const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,

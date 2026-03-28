@@ -4,7 +4,7 @@ import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 import "package:pwa/models/trip_details.model.dart";
 import "package:pwa/models/vehicle_type.model.dart";
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
 
 TaxiOrder taxiOrderFromJson(String str) => TaxiOrder.fromJson(json.decode(str));
 

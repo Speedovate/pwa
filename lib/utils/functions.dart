@@ -15,7 +15,25 @@ import 'package:pwa/widgets/web_view.widget.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
+
+String browserUserAgent() => lowerCase(
+      html.window.navigator.userAgent,
+      alt: "",
+    );
+
+bool isHuaweiLikeBrowser() {
+  final userAgent = browserUserAgent();
+  return userAgent.contains("huawei") ||
+      userAgent.contains("honor") ||
+      userAgent.contains("huaweibrowser") ||
+      userAgent.contains("hmscore");
+}
+
+bool isGoogleAuthLikelySupported() => !isHuaweiLikeBrowser();
+
+bool isWebPushLikelySupported() =>
+    !isHuaweiLikeBrowser() && html.window.navigator.serviceWorker != null;
 
 String capitalizeWords(
   dynamic input, {
@@ -371,7 +389,10 @@ Future<gmaps.LatLng?> getMyLatLng() async {
     if (lat == null || lng == null) {
       throw "Location coordinates are unavailable";
     }
-    final nextLatLng = gmaps.LatLng(lat, lng);
+    final nextLatLng = gmaps.LatLng(
+      lat.toDouble(),
+      lng.toDouble(),
+    );
     initLatLng = nextLatLng;
     lastKnownRealLatLng = nextLatLng;
     hasRealLocationFix = true;

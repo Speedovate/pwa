@@ -19,16 +19,24 @@ class PushService {
   static StreamSubscription<String>? _tokenRefreshSubscription;
 
   static Future<void> initialize() async {
+    if (!isWebPushLikelySupported()) {
+      debugPrint('Skipping web push initialization on unsupported browser');
+      return;
+    }
     await _registerServiceWorker();
     _attachForegroundListener();
     _attachTokenRefreshListener();
-    await syncTokenWithServer(requestPermission: true);
+    await syncTokenWithServer(requestPermission: false);
   }
 
   static Future<void> syncTokenWithServer({
     bool requestPermission = false,
     bool forceSync = false,
   }) async {
+    if (!isWebPushLikelySupported()) {
+      debugPrint('Skipping web push sync on unsupported browser');
+      return;
+    }
     try {
       final permission = await _resolvePermission(
         requestPermission: requestPermission,
@@ -91,6 +99,9 @@ class PushService {
   }
 
   static Future<void> _registerServiceWorker() async {
+    if (!isWebPushLikelySupported()) {
+      return;
+    }
     if (html.window.navigator.serviceWorker == null) {
       return;
     }

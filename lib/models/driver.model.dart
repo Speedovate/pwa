@@ -3,7 +3,7 @@ import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 import "package:pwa/models/user.model.dart";
 import "package:pwa/models/vehicle.model.dart";
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
 
 class Driver extends User {
   Vehicle? vehicle;

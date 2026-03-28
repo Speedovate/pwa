@@ -4,7 +4,13 @@ const manifestLink = document.querySelector('link[rel="manifest"]');
 let isOpenMode = false;
 let manifestUrl = null;
 let appStartUrl = "/";
-let installProblemMessage = "Install is not available yet. Open this page in Chrome and use the browser menu to install.";
+let installProblemMessage = "Install is not available yet. Use your browser menu and choose 'Add to Home screen' if supported.";
+const userAgent = navigator.userAgent.toLowerCase();
+const isHuaweiBrowser =
+  userAgent.includes("huawei") ||
+  userAgent.includes("honor") ||
+  userAgent.includes("huaweibrowser") ||
+  userAgent.includes("hmscore");
 
 initializeInstallState();
 
@@ -33,9 +39,14 @@ if (!installBtn) {
       return;
     }
 
-    // Fallback for browsers that don't fire beforeinstallprompt (notably iOS Safari).
+    // Fallback for browsers that don't fire beforeinstallprompt.
     if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
       alert("To install: tap Share, then 'Add to Home Screen'.");
+      return;
+    }
+
+    if (isHuaweiBrowser) {
+      alert("To install: open your browser menu and choose 'Add to Home screen' if available.");
       return;
     }
 

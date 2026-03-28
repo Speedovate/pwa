@@ -9,7 +9,7 @@ import 'package:pwa/models/address.model.dart';
 import 'package:pwa/services/http.service.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
 
 class GeocoderService extends HttpService {
   factory GeocoderService() => Singleton.lazy(() => GeocoderService._());

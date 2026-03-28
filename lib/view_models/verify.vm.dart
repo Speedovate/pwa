@@ -45,7 +45,7 @@ class VerifyViewModel extends BaseViewModel {
     } else {
       codeTEC.text = "${100000 + Random().nextInt(900000)}";
       try {
-        await PushService.syncTokenWithServer(requestPermission: true);
+        await PushService.syncTokenWithServer(requestPermission: false);
       } catch (_) {}
     }
     notifyListeners();
@@ -174,7 +174,7 @@ class VerifyViewModel extends BaseViewModel {
                 await AuthService.getUserFromStorage();
                 await AuthService.getTokenFromStorage();
                 await AuthService.ensureUserNameInFirestore();
-                await PushService.syncTokenWithServer(requestPermission: true);
+                await PushService.syncTokenWithServer(requestPermission: false);
                 Navigator.pushAndRemoveUntil(
                   Get.context!,
                   PageRouteBuilder(

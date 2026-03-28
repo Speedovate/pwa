@@ -22,6 +22,7 @@ import 'package:pwa/view_models/Load.vm.dart';
 import 'package:pwa/views/settings.view.dart';
 import 'package:pwa/widgets/gmap.widget.dart';
 import 'package:pwa/view_models/home.vm.dart';
+import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
@@ -35,7 +36,6 @@ import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -65,6 +65,22 @@ class _HomeViewState extends State<HomeView> {
         },
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
+  Widget _homeLoadingIndicator() {
+    return SizedBox(
+      width: 30,
+      height: 30,
+      child: CircularProgressIndicator(
+        strokeCap: StrokeCap.round,
+        color: const Color(
+          0xFF007BFF,
+        ),
+        backgroundColor: const Color(
+          0xFF007BFF,
+        ).withOpacity(0.25),
       ),
     );
   }
@@ -460,6 +476,7 @@ class _HomeViewState extends State<HomeView> {
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: _initialCenterFuture,
+            initialData: initLatLng ?? defaultLatLng,
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return Center(
@@ -536,14 +553,13 @@ class _HomeViewState extends State<HomeView> {
                                         _scaffoldKey.currentState?.isDrawerOpen,
                                       ) &&
                                       !vm.isLoading,
+                                  markers: vm.markers,
+                                  polylines: vm.polylines,
                                   onMapCreated: (map) async {
                                     vm.setMap(map);
                                     if (AuthService.isLoggedIn()) {
-                                      await Future.delayed(
-                                        const Duration(seconds: 5),
-                                      );
-                                      vm.getOngoingOrder();
-                                      LoadViewModel().getLoadBalance();
+                                      await vm.getOngoingOrder();
+                                      await LoadViewModel().getLoadBalance();
                                     }
                                   },
                                   onCameraMove: (center) {
@@ -721,7 +737,7 @@ class _HomeViewState extends State<HomeView> {
                                           if (!a && b.isEmpty && c == null) {
                                             vm.mapCameraMove(
                                               "zoomIn",
-                                              vm.map?.center,
+                                              vm.mapCenter,
                                             );
                                           }
                                         },
@@ -739,7 +755,7 @@ class _HomeViewState extends State<HomeView> {
                                           if (!a && b.isEmpty && c == null) {
                                             vm.mapCameraMove(
                                               "zoomOut",
-                                              vm.map?.center,
+                                              vm.mapCenter,
                                             );
                                           }
                                         },
@@ -1325,8 +1341,10 @@ class _HomeViewState extends State<HomeView> {
                           Column(
                             children: [
                               Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
+                                decoration: BoxDecoration(
+                                  color: vm.selectedAddress.value == null
+                                      ? Colors.transparent
+                                      : Colors.white,
                                 ),
                                 child: vm.selectedAddress.value == null
                                     ? const SizedBox.shrink()
@@ -2386,9 +2404,9 @@ class _HomeViewState extends State<HomeView> {
                                                       } else {
                                                         vm.blockCamera = true;
                                                         vm.notifyListeners();
-                                                        vm.map?.center =
-                                                            pickupAddress!
-                                                                .latLng;
+                                                        vm.zoomToLocation(
+                                                          pickupAddress!.latLng,
+                                                        );
                                                         await Future.delayed(
                                                           const Duration(
                                                             milliseconds: 500,
@@ -2940,19 +2958,23 @@ class _HomeViewState extends State<HomeView> {
                                 width: 45,
                                 height: 45,
                                 child: Center(
-                                  child: SizedBox(
-                                    width: 30,
-                                    height: 30,
-                                    child: CircularProgressIndicator(
-                                      strokeCap: StrokeCap.round,
-                                      color: const Color(
-                                        0xFF007BFF,
-                                      ),
-                                      backgroundColor: const Color(
-                                        0xFF007BFF,
-                                      ).withOpacity(0.25),
-                                    ),
-                                  ),
+                                  child: _homeLoadingIndicator(),
+                                ),
+                              ),
+                            ),
+                      vm.selectedAddress.value != null ||
+                              vm.isLoading ||
+                              vm.isInitializing
+                          ? const SizedBox.shrink()
+                          : Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 20,
+                              child: SizedBox(
+                                width: 45,
+                                height: 45,
+                                child: Center(
+                                  child: _homeLoadingIndicator(),
                                 ),
                               ),
                             ),
@@ -4674,7 +4696,7 @@ class _HomeViewState extends State<HomeView> {
                               Branch(
                                 id: 1,
                                 name: "SM Branch",
-                                latLng: gmaps.LatLng(
+                                latLng: const gmaps.LatLng(
                                   9.743318345512021,
                                   118.7390989745996,
                                 ),
@@ -4682,7 +4704,7 @@ class _HomeViewState extends State<HomeView> {
                               Branch(
                                 id: 2,
                                 name: "San Pedro Branch",
-                                latLng: gmaps.LatLng(
+                                latLng: const gmaps.LatLng(
                                   9.762115888944837,
                                   118.75241723828879,
                                 ),
@@ -4744,7 +4766,7 @@ class _HomeViewState extends State<HomeView> {
                               Branch(
                                 id: 1,
                                 name: "SM Branch",
-                                latLng: gmaps.LatLng(
+                                latLng: const gmaps.LatLng(
                                   9.74394439548003,
                                   118.7398234327833,
                                 ),
@@ -4752,7 +4774,7 @@ class _HomeViewState extends State<HomeView> {
                               Branch(
                                 id: 2,
                                 name: "BM Road Branch",
-                                latLng: gmaps.LatLng(
+                                latLng: const gmaps.LatLng(
                                   9.765574270055104,
                                   118.76115291309709,
                                 ),

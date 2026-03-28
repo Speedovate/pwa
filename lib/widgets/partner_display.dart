@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pwa/views/login.view.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
 
 class PartnerDisplayWidget extends StatefulWidget {
   final bool show;

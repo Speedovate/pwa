@@ -415,7 +415,7 @@ class _MapViewState extends State<MapView> {
                                         if (vm.selectedAddress.value == null) {
                                           if (!vm.disposed) {
                                             vm.mapCameraMove(
-                                              vm.map?.center,
+                                              vm.mapCenter,
                                               isPickup: widget.isPickup,
                                             );
                                             debugPrint("MapView - Map move");
@@ -431,7 +431,7 @@ class _MapViewState extends State<MapView> {
                                         if (vm.selectedAddress.value == null) {
                                           if (!vm.disposed) {
                                             vm.mapCameraMove(
-                                              vm.map?.center,
+                                              vm.mapCenter,
                                               isPickup: widget.isPickup,
                                             );
                                             debugPrint("MapView - Map move");

@@ -31,13 +31,19 @@ class RegisterViewModel extends BaseViewModel {
 
   initialise() async {
     try {
-      await PushService.syncTokenWithServer(requestPermission: true);
+      await PushService.syncTokenWithServer(requestPermission: false);
     } catch (_) {}
   }
 
   processRegister({
     String provider = "custom",
   }) async {
+    if (provider == "google" && !isGoogleAuthLikelySupported()) {
+      showError(
+        "Google sign-up is not supported on this browser. Please register with a phone number instead.",
+      );
+      return;
+    }
     if (selfieFile == null && !AuthService.inReviewMode()) {
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(
@@ -473,7 +479,7 @@ class RegisterViewModel extends BaseViewModel {
         await AuthService.getUserFromStorage();
         await AuthService.getTokenFromStorage();
         await AuthService.ensureUserNameInFirestore();
-        await PushService.syncTokenWithServer(requestPermission: true);
+        await PushService.syncTokenWithServer(requestPermission: false);
         Navigator.pushAndRemoveUntil(
           Get.context!,
           PageRouteBuilder(

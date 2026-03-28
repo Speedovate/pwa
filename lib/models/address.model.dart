@@ -1,5 +1,5 @@
 import 'package:pwa/models/coordinates.model.dart';
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
 
 class Address {
   final Coordinates coordinates;

@@ -5,7 +5,7 @@ import "package:pwa/utils/functions.dart";
 import "package:pwa/models/user.model.dart";
 import "package:pwa/models/driver.model.dart";
 import "package:pwa/models/taxi_order.model.dart";
-import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/utils/map_types.dart' as gmaps;
 
 Order orderFromJson(String str) => Order.fromJson(json.decode(str));
 
