@@ -1,5 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
@@ -15,6 +16,7 @@ import 'package:pwa/views/login.view.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pwa/views/history.view.dart';
+import 'package:pwa/views/partner_panel.view.dart';
 import 'package:pwa/views/profile.view.dart';
 import 'package:pwa/view_models/Load.vm.dart';
 import 'package:pwa/views/settings.view.dart';
@@ -385,6 +387,45 @@ class _HomeViewState extends State<HomeView> {
                     );
                   },
                 ),
+                if (AuthService.isLoggedIn())
+                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    stream: fbStore
+                        .collection("access")
+                        .doc("pwa_partners")
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      final allowedUserIds =
+                          snapshot.data?.data()?["users"] ?? [];
+                      final currentUserId = "${AuthService.currentUser?.id}";
+                      final hasAccess = allowedUserIds.any(
+                        (id) => "$id" == currentUserId,
+                      );
+                      if (!hasAccess) {
+                        return const SizedBox.shrink();
+                      }
+                      return ListTileWidget(
+                        leading: const Icon(
+                          Icons.handshake_outlined,
+                          color: Color(
+                            0xFF030744,
+                          ),
+                        ),
+                        title: const Text(
+                          "Partner Panel",
+                          style: TextStyle(
+                            color: Color(
+                              0xFF030744,
+                            ),
+                          ),
+                        ),
+                        onTap: () {
+                          _navigateWithoutTransition(
+                            const PartnerPanelView(),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ListTileWidget(
                   leading: const Icon(
                     Icons.code,

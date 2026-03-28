@@ -173,6 +173,7 @@ class VerifyViewModel extends BaseViewModel {
                 );
                 await AuthService.getUserFromStorage();
                 await AuthService.getTokenFromStorage();
+                await AuthService.ensureUserNameInFirestore();
                 await PushService.syncTokenWithServer(requestPermission: true);
                 Navigator.pushAndRemoveUntil(
                   Get.context!,

@@ -198,6 +198,7 @@ class LoginViewModel extends BaseViewModel {
       );
       await AuthService.getUserFromStorage();
       await AuthService.getTokenFromStorage();
+      await AuthService.ensureUserNameInFirestore();
       await PushService.syncTokenWithServer(requestPermission: true);
       notifyListeners();
       try {

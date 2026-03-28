@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
@@ -80,6 +81,35 @@ class AuthService {
       );
     }
     return currentUser;
+  }
+
+  static Future<void> ensureUserNameInFirestore() async {
+    if (!isLoggedIn() ||
+        currentUser?.id == null ||
+        "${currentUser?.name}".trim().isEmpty ||
+        "${currentUser?.name}" == "null") {
+      return;
+    }
+    try {
+      final userRef = fbStore.collection("users").doc("${currentUser?.id}");
+      final userSnapshot = await userRef.get();
+      final userData = userSnapshot.data();
+      final currentName = "${userData?["name"] ?? ""}".trim();
+      if (!userSnapshot.exists || currentName.isEmpty || currentName == "null") {
+        await userRef.set(
+          {
+            "id": currentUser?.id,
+            "name": currentUser?.name,
+            "updated_at": Timestamp.now(),
+          },
+          SetOptions(
+            merge: true,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("ensureUserNameInFirestore error: $e");
+    }
   }
 
   logout() async {
