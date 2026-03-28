@@ -102,7 +102,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     _pendingLeafletCameraMove = center;
     _leafletCameraMoveDebounce?.cancel();
     _leafletCameraMoveDebounce = Timer(
-      Duration(milliseconds: MapService.isLeafletFallbackPreferred ? 220 : 120),
+      const Duration(milliseconds: 16),
       () {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || _pendingLeafletCameraMove == null) {
@@ -124,8 +124,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             ? fmap.InteractiveFlag.drag |
                 fmap.InteractiveFlag.pinchZoom |
                 fmap.InteractiveFlag.doubleTapZoom |
-                fmap.InteractiveFlag.pinchMove |
-                fmap.InteractiveFlag.flingAnimation
+                fmap.InteractiveFlag.pinchMove
             : fmap.InteractiveFlag.all)
         : fmap.InteractiveFlag.none;
 

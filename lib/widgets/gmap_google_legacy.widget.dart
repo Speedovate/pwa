@@ -117,7 +117,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             _pendingCenter = center;
             _cameraMoveDebounce?.cancel();
             _cameraMoveDebounce = Timer(
-              const Duration(milliseconds: 120),
+              const Duration(milliseconds: 16),
               () {
                 final nextCenter = _pendingCenter;
                 _pendingCenter = null;
