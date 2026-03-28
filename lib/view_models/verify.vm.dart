@@ -11,6 +11,7 @@ import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/views/change.view.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/map.service.dart';
 import 'package:pwa/services/push.service.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -173,8 +174,11 @@ class VerifyViewModel extends BaseViewModel {
                 );
                 await AuthService.getUserFromStorage();
                 await AuthService.getTokenFromStorage();
+                await AppStrings.getAppSettingsFromStorage();
                 await AuthService.ensureUserNameInFirestore();
                 await PushService.syncTokenWithServer(requestPermission: false);
+                await MapService.warmUpPreferredMapEngine();
+                AlertService().stopLoading(forceStop: true);
                 Navigator.pushAndRemoveUntil(
                   Get.context!,
                   PageRouteBuilder(

@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/utils/map_controller.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/requests/taxi.request.dart';
@@ -13,7 +13,7 @@ import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
 
 class MapViewModel extends BaseViewModel {
-  fmap.MapController? _map;
+  AppMapController? _map;
   Timer? _debounce;
   bool _isResolvingCameraMove = false;
   DateTime? _ignoreCameraMoveUntil;
@@ -50,13 +50,10 @@ class MapViewModel extends BaseViewModel {
 
   void setMap({
     required bool isPickup,
-    required fmap.MapController map,
+    required AppMapController map,
   }) async {
     _map = map;
-    lastCenter = gmaps.LatLng(
-      map.camera.center.latitude,
-      map.camera.center.longitude,
-    );
+    lastCenter = map.center;
     debugPrint("Map set - MapViewModel");
     try {
       selectedAddress.value = isPickup
@@ -83,7 +80,7 @@ class MapViewModel extends BaseViewModel {
               );
       map.move(
         selectedAddress.value!.latLng,
-        map.camera.zoom,
+        map.zoom,
       );
     } catch (e) {
       mapCameraMove(
@@ -93,14 +90,9 @@ class MapViewModel extends BaseViewModel {
     }
   }
 
-  fmap.MapController? get map => _map;
+  AppMapController? get map => _map;
 
-  gmaps.LatLng? get mapCenter => _map == null
-      ? null
-      : gmaps.LatLng(
-          _map!.camera.center.latitude,
-          _map!.camera.center.longitude,
-        );
+  gmaps.LatLng? get mapCenter => _map?.center;
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
     final target = await getMyLatLng();
@@ -108,31 +100,22 @@ class MapViewModel extends BaseViewModel {
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
       );
-      _map!.move(
-        target,
-        zoom,
-      );
+      _map!.move(target, zoom);
     }
     return target;
   }
 
   zoomIn() async {
     if (_map != null) {
-      final currentZoom = _map!.camera.zoom;
-      _map!.move(
-        _map!.camera.center,
-        (currentZoom + 1).clamp(2, 21),
-      );
+      final currentZoom = _map!.zoom;
+      _map!.move(_map!.center, (currentZoom + 1).clamp(2, 21));
     }
   }
 
   zoomOut() async {
     if (_map != null) {
-      final currentZoom = _map!.camera.zoom;
-      _map!.move(
-        _map!.camera.center,
-        (currentZoom - 1).clamp(2, 21),
-      );
+      final currentZoom = _map!.zoom;
+      _map!.move(_map!.center, (currentZoom - 1).clamp(2, 21));
     }
   }
 
@@ -256,7 +239,7 @@ class MapViewModel extends BaseViewModel {
         dropoffAddress = resolvedAddress;
       }
       if (_map != null) {
-        final currentZoom = _map!.camera.zoom;
+        final currentZoom = _map!.zoom;
         final nextCenter = gmaps.LatLng(
           resolvedAddress.coordinates.latitude,
           resolvedAddress.coordinates.longitude,
@@ -267,10 +250,7 @@ class MapViewModel extends BaseViewModel {
             const Duration(milliseconds: 800),
           );
         }
-        _map!.move(
-          nextCenter,
-          currentZoom,
-        );
+        _map!.move(nextCenter, currentZoom);
       }
     } catch (e) {
       debugPrint("Error in addressSelected: $e");

@@ -9,8 +9,10 @@ import 'package:georange/georange.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/constants/lotties.dart';
+import 'package:pwa/constants/strings.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/map.service.dart';
 import 'package:pwa/services/push.service.dart';
 import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -204,8 +206,10 @@ class LoginViewModel extends BaseViewModel {
       );
       await AuthService.getUserFromStorage();
       await AuthService.getTokenFromStorage();
+      await AppStrings.getAppSettingsFromStorage();
       await AuthService.ensureUserNameInFirestore();
       await PushService.syncTokenWithServer(requestPermission: false);
+      await MapService.warmUpPreferredMapEngine();
       notifyListeners();
       try {
         Point earthCenterLocation = Point(
@@ -237,6 +241,7 @@ class LoginViewModel extends BaseViewModel {
           "login syncLocationRequest error: $e",
         );
       }
+      AlertService().stopLoading(forceStop: true);
       Navigator.pushAndRemoveUntil(
         Get.context!,
         PageRouteBuilder(

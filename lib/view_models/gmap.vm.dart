@@ -1,13 +1,13 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:async';
-import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/models/address.model.dart';
+import 'package:pwa/utils/map_controller.dart';
 import 'package:pwa/utils/map_layers.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/requests/taxi.request.dart';
@@ -16,7 +16,7 @@ import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
 
 class GMapViewModel extends BaseViewModel {
-  fmap.MapController? _map;
+  AppMapController? _map;
   Timer? _debounce;
   bool _isResolvingCameraMove = false;
   DateTime? _ignoreCameraMoveUntil;
@@ -41,12 +41,9 @@ class GMapViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  setMap(fmap.MapController map) {
+  setMap(AppMapController map) {
     _map = map;
-    lastCenter = gmaps.LatLng(
-      map.camera.center.latitude,
-      map.camera.center.longitude,
-    );
+    lastCenter = map.center;
     isInitializing = true;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
@@ -55,14 +52,9 @@ class GMapViewModel extends BaseViewModel {
     );
   }
 
-  fmap.MapController? get map => _map;
+  AppMapController? get map => _map;
 
-  gmaps.LatLng? get mapCenter => _map == null
-      ? null
-      : gmaps.LatLng(
-          _map!.camera.center.latitude,
-          _map!.camera.center.longitude,
-        );
+  gmaps.LatLng? get mapCenter => _map?.center;
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
     final target = await getMyLatLng();
@@ -70,10 +62,7 @@ class GMapViewModel extends BaseViewModel {
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
       );
-      _map!.move(
-        target,
-        zoom,
-      );
+      _map!.move(target, zoom);
     }
     return target;
   }
@@ -83,30 +72,21 @@ class GMapViewModel extends BaseViewModel {
     double zoom = 16,
   }) async {
     if (_map != null) {
-      _map!.move(
-        target,
-        zoom,
-      );
+      _map!.move(target, zoom);
     }
   }
 
   zoomIn() async {
     if (_map != null) {
-      final currentZoom = _map!.camera.zoom;
-      _map!.move(
-        _map!.camera.center,
-        (currentZoom + 1).clamp(2, 21),
-      );
+      final currentZoom = _map!.zoom;
+      _map!.move(_map!.center, (currentZoom + 1).clamp(2, 21));
     }
   }
 
   zoomOut() async {
     if (_map != null) {
-      final currentZoom = _map!.camera.zoom;
-      _map!.move(
-        _map!.camera.center,
-        (currentZoom - 1).clamp(2, 21),
-      );
+      final currentZoom = _map!.zoom;
+      _map!.move(_map!.center, (currentZoom - 1).clamp(2, 21));
     }
   }
 
@@ -261,7 +241,7 @@ class GMapViewModel extends BaseViewModel {
       selectedAddress.value = resolvedAddress;
       pickupAddress = resolvedAddress;
       if (_map != null) {
-        final currentZoom = _map!.camera.zoom;
+        final currentZoom = _map!.zoom;
         final nextCenter = gmaps.LatLng(
           resolvedAddress.coordinates.latitude,
           resolvedAddress.coordinates.longitude,
@@ -272,10 +252,7 @@ class GMapViewModel extends BaseViewModel {
             const Duration(milliseconds: 800),
           );
         }
-        _map!.move(
-          nextCenter,
-          currentZoom,
-        );
+        _map!.move(nextCenter, currentZoom);
       }
     } catch (e) {
       debugPrint("Error in addressSelected: $e");
@@ -325,11 +302,9 @@ class GMapViewModel extends BaseViewModel {
           ),
         ];
         final allPoints = [driverLatLng, ...points, pickupLatLng];
-        _map!.fitCamera(
-          fmap.CameraFit.coordinates(
-            coordinates: allPoints,
-            padding: const EdgeInsets.all(48),
-          ),
+        _map!.fitToCoordinates(
+          allPoints,
+          padding: const EdgeInsets.all(48),
         );
       } else {
         debugPrint("No polyline points received from backend");
@@ -394,11 +369,9 @@ class GMapViewModel extends BaseViewModel {
           ),
         ];
         final allPoints = [pickupLatLng, ...points, dropoffLatLng];
-        _map!.fitCamera(
-          fmap.CameraFit.coordinates(
-            coordinates: allPoints,
-            padding: const EdgeInsets.all(48),
-          ),
+        _map!.fitToCoordinates(
+          allPoints,
+          padding: const EdgeInsets.all(48),
         );
       } else {
         debugPrint("No polyline points received from backend");

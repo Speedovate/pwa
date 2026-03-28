@@ -8,8 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/constants/lotties.dart';
+import 'package:pwa/constants/strings.dart';
 import 'package:pwa/views/verify.view.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/map.service.dart';
 import 'package:pwa/services/push.service.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -478,8 +480,11 @@ class RegisterViewModel extends BaseViewModel {
         );
         await AuthService.getUserFromStorage();
         await AuthService.getTokenFromStorage();
+        await AppStrings.getAppSettingsFromStorage();
         await AuthService.ensureUserNameInFirestore();
         await PushService.syncTokenWithServer(requestPermission: false);
+        await MapService.warmUpPreferredMapEngine();
+        AlertService().stopLoading(forceStop: true);
         Navigator.pushAndRemoveUntil(
           Get.context!,
           PageRouteBuilder(
