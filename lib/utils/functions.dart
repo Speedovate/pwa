@@ -31,6 +31,25 @@ bool isHuaweiLikeBrowser() {
       userAgent.contains("hmscore");
 }
 
+bool isIOSLikeBrowser() {
+  final userAgent = browserUserAgent();
+  if (userAgent.contains("iphone") ||
+      userAgent.contains("ipad") ||
+      userAgent.contains("ipod")) {
+    return true;
+  }
+  if (userAgent.contains("macintosh")) {
+    try {
+      final touchPoints =
+          js_util.getProperty(html.window.navigator, 'maxTouchPoints');
+      return (touchPoints is num && touchPoints > 1);
+    } catch (_) {
+      return false;
+    }
+  }
+  return false;
+}
+
 bool isGoogleAuthLikelySupported() => !isHuaweiLikeBrowser();
 
 bool isWebPushLikelySupported() =>

@@ -58,6 +58,10 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<gmaps.LatLng?> _loadInitialCenter() async {
+    if (isIOSLikeBrowser()) {
+      _homeMapCenter = defaultLatLng;
+      return defaultLatLng;
+    }
     if (lastKnownRealLatLng != null) {
       return lastKnownRealLatLng;
     }
@@ -525,9 +529,6 @@ class _HomeViewState extends State<HomeView> {
               ],
             ),
           ),
-          onDrawerChanged: (isOpened) {
-            setState(() {});
-          },
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: _initialCenterFuture,
@@ -716,9 +717,6 @@ class _HomeViewState extends State<HomeView> {
                                                 "cancelled" ||
                                             vm.dvrMessage == "null" ||
                                             vm.dvrMessage == "") &&
-                                        !isBool(
-                                          _scaffoldKey.currentState?.isDrawerOpen,
-                                        ) &&
                                         !vm.isMapInteractionLocked,
                                     markers: vm.markers,
                                     polylines: vm.polylines,
