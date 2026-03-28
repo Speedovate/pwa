@@ -50,6 +50,7 @@ class _HomeViewState extends State<HomeView> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late Future<gmaps.LatLng?> _initialCenterFuture;
   gmaps.LatLng? _homeMapCenter;
+  bool _isIOSMenuOpen = false;
 
   @override
   void initState() {
@@ -84,6 +85,405 @@ class _HomeViewState extends State<HomeView> {
       _homeMapCenter = defaultLatLng;
       _initialCenterFuture = Future.value(defaultLatLng);
     });
+  }
+
+  void _toggleHomeMenu() {
+    if (isIOSLikeBrowser()) {
+      setState(() {
+        _isIOSMenuOpen = !_isIOSMenuOpen;
+      });
+      return;
+    }
+    _scaffoldKey.currentState?.openDrawer();
+  }
+
+  void _closeIOSMenu() {
+    if (!isIOSLikeBrowser() || !_isIOSMenuOpen) {
+      return;
+    }
+    setState(() {
+      _isIOSMenuOpen = false;
+    });
+  }
+
+  Widget _buildHomeDrawer(HomeViewModel vm) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: Column(
+        children: [
+          SizedBox(height: MediaQuery.of(context).padding.top),
+          WidgetButton(
+            borderRadius: 0,
+            onTap: () {
+              _closeIOSMenu();
+              if (!AuthService.isLoggedIn()) {
+                setState(() {
+                  isTourist = false;
+                });
+                _navigateWithoutTransition(
+                  const LoginView(),
+                );
+              } else {
+                agreed = false;
+                selfieFile = null;
+                _navigateWithoutTransition(
+                  const ProfileView(),
+                );
+              }
+            },
+            onLongPress: () {
+              if (AuthService.isLoggedIn()) {
+                copyToClipboardWeb(
+                  lowerCase(
+                    AuthService.currentUser?.code,
+                  ),
+                );
+                if (isIOSLikeBrowser()) {
+                  _closeIOSMenu();
+                } else {
+                  Get.back();
+                }
+                ScaffoldMessenger.of(
+                  Get.context!,
+                ).clearSnackBars();
+                ScaffoldMessenger.of(
+                  Get.context!,
+                ).showSnackBar(
+                  SnackBar(
+                    margin: const EdgeInsets.all(
+                      20,
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: Colors.grey.shade700,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    content: const Text(
+                      "Copied to clipboard.",
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: 18,
+                left: 18,
+                right: 12,
+                bottom: 18,
+              ),
+              child: Row(
+                children: [
+                  ClipOval(
+                    child: SizedBox(
+                      width: 50,
+                      height: 50,
+                      child: NetworkImageWidget(
+                        fit: BoxFit.cover,
+                        memCacheWidth: 600,
+                        imageUrl: AuthService.currentUser?.cPhoto ?? "",
+                        progressIndicatorBuilder: (
+                          context,
+                          imageUrl,
+                          progress,
+                        ) {
+                          return CircularProgressIndicator(
+                            strokeCap: StrokeCap.round,
+                            color: const Color(
+                              0xFF007BFF,
+                            ),
+                            backgroundColor: const Color(
+                              0xFF007BFF,
+                            ).withOpacity(0.25),
+                          );
+                        },
+                        errorWidget: (context, imageUrl, progress) {
+                          return Container(
+                            color: const Color(
+                              0xFF030744,
+                            ),
+                            child: const Icon(
+                              Icons.person_outline_outlined,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          !AuthService.isLoggedIn()
+                              ? "Login Account"
+                              : capitalizeWords(
+                                  "${AuthService.currentUser!.name}",
+                                ),
+                          style: const TextStyle(
+                            height: 1.05,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(
+                              0xFF030744,
+                            ),
+                          ),
+                        ),
+                        !AuthService.isLoggedIn()
+                            ? const SizedBox()
+                            : const SizedBox(height: 4),
+                        !AuthService.isLoggedIn()
+                            ? const SizedBox()
+                            : Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFF030744,
+                                    ),
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                    horizontal: 8,
+                                  ),
+                                  child: Text(
+                                    lowerCase(
+                                      AuthService.currentUser?.code,
+                                    ),
+                                    style: const TextStyle(
+                                      height: 1.05,
+                                      fontSize: 12,
+                                      color: Color(
+                                        0xFF030744,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Color(
+                      0xFF030744,
+                    ),
+                    size: 25,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: const Color(
+              0xFF030744,
+            ).withOpacity(0.1),
+          ),
+          if (AuthService.isLoggedIn())
+            ListTileWidget(
+              leading: const Icon(
+                Icons.history,
+                color: Color(
+                  0xFF030744,
+                ),
+              ),
+              title: const Text(
+                "History",
+                style: TextStyle(
+                    color: Color(
+                      0xFF030744,
+                    ),
+                    fontSize: 15),
+              ),
+              onTap: () {
+                _closeIOSMenu();
+                _navigateWithoutTransition(
+                  HistoryView(vm),
+                );
+              },
+            ),
+          if (AuthService.isLoggedIn())
+            ListTileWidget(
+              leading: const Icon(
+                Icons.settings_outlined,
+                color: Color(
+                  0xFF030744,
+                ),
+              ),
+              title: const Text(
+                "Settings",
+                style: TextStyle(
+                  color: Color(
+                    0xFF030744,
+                  ),
+                ),
+              ),
+              onTap: () {
+                _closeIOSMenu();
+                if (!AuthService.isLoggedIn()) {
+                  _navigateWithoutTransition(
+                    const LoginView(),
+                  );
+                } else {
+                  _navigateWithoutTransition(
+                    const SettingsView(),
+                  );
+                }
+              },
+            ),
+          ListTileWidget(
+            leading: const Icon(
+              Icons.headset_outlined,
+              color: Color(
+                0xFF030744,
+              ),
+            ),
+            title: const Text(
+              "Assistance",
+              style: TextStyle(
+                color: Color(
+                  0xFF030744,
+                ),
+              ),
+            ),
+            onTap: () {
+              _closeIOSMenu();
+              launchUrlString(
+                "sms://+639686410532",
+              );
+            },
+          ),
+          ListTileWidget(
+            contentPadding: const EdgeInsets.only(
+              left: 18,
+              right: 16,
+              top: 16,
+              bottom: 16,
+            ),
+            leading: Padding(
+              padding: const EdgeInsets.only(right: 2),
+              child: Container(
+                width: 21,
+                height: 21,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color(
+                      0xFF030744,
+                    ),
+                    width: 2,
+                  ),
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(1000),
+                  ),
+                ),
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 0.5),
+                    child: Text(
+                      "₱",
+                      style: TextStyle(
+                        height: 1,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(
+                          0xFF030744,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            title: const Text(
+              "TODA Load",
+              style: TextStyle(
+                color: Color(
+                  0xFF030744,
+                ),
+              ),
+            ),
+            onTap: () {
+              _closeIOSMenu();
+              Get.to(
+                () => const LoadView(),
+              );
+            },
+          ),
+          if (AuthService.isLoggedIn())
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: fbStore.collection("access").doc("pwa_partners").snapshots(),
+              builder: (context, snapshot) {
+                final allowedUserIds = snapshot.data?.data()?["users"] ?? [];
+                final currentUserId = "${AuthService.currentUser?.id}";
+                final hasAccess = allowedUserIds.any(
+                  (id) => "$id" == currentUserId,
+                );
+                if (!hasAccess) {
+                  return const SizedBox.shrink();
+                }
+                return ListTileWidget(
+                  leading: const Icon(
+                    Icons.people_outline,
+                    color: Color(
+                      0xFF030744,
+                    ),
+                  ),
+                  title: const Text(
+                    "Partner Panel",
+                    style: TextStyle(
+                      color: Color(
+                        0xFF030744,
+                      ),
+                    ),
+                  ),
+                  onTap: () {
+                    _closeIOSMenu();
+                    _navigateWithoutTransition(
+                      const PartnerPanelView(),
+                    );
+                  },
+                );
+              },
+            ),
+          ListTileWidget(
+            leading: const Icon(
+              Icons.code,
+              color: Color(
+                0xFF030744,
+              ),
+            ),
+            title: Text(
+              "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
+              style: const TextStyle(
+                color: Color(
+                  0xFF030744,
+                ),
+              ),
+            ),
+            onTap: () {
+              if (!AuthService.inReviewMode()) {
+                Clipboard.setData(
+                  ClipboardData(
+                    text: "$fcmToken",
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   _navigateWithoutTransition(Widget page) {
@@ -157,378 +557,7 @@ class _HomeViewState extends State<HomeView> {
             toolbarHeight: 0,
             backgroundColor: Colors.white,
           ),
-          drawer: Drawer(
-            backgroundColor: Colors.white,
-            shape:
-                const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-            child: Column(
-              children: [
-                SizedBox(height: MediaQuery.of(context).padding.top),
-                WidgetButton(
-                  borderRadius: 0,
-                  onTap: () {
-                    if (!AuthService.isLoggedIn()) {
-                      setState(() {
-                        isTourist = false;
-                      });
-                      _navigateWithoutTransition(
-                        const LoginView(),
-                      );
-                    } else {
-                      agreed = false;
-                      selfieFile = null;
-                      _navigateWithoutTransition(
-                        const ProfileView(),
-                      );
-                    }
-                  },
-                  onLongPress: () {
-                    if (AuthService.isLoggedIn()) {
-                      copyToClipboardWeb(
-                        lowerCase(
-                          AuthService.currentUser?.code,
-                        ),
-                      );
-                      Get.back();
-                      ScaffoldMessenger.of(
-                        Get.context!,
-                      ).clearSnackBars();
-                      ScaffoldMessenger.of(
-                        Get.context!,
-                      ).showSnackBar(
-                        SnackBar(
-                          margin: const EdgeInsets.all(
-                            20,
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.grey.shade700,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          content: const Text(
-                            "Copied to clipboard.",
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      top: 18,
-                      left: 18,
-                      right: 12,
-                      bottom: 18,
-                    ),
-                    child: Row(
-                      children: [
-                        ClipOval(
-                          child: SizedBox(
-                            width: 50,
-                            height: 50,
-                            child: NetworkImageWidget(
-                              fit: BoxFit.cover,
-                              memCacheWidth: 600,
-                              imageUrl: AuthService.currentUser?.cPhoto ?? "",
-                              progressIndicatorBuilder: (
-                                context,
-                                imageUrl,
-                                progress,
-                              ) {
-                                return CircularProgressIndicator(
-                                  strokeCap: StrokeCap.round,
-                                  color: const Color(
-                                    0xFF007BFF,
-                                  ),
-                                  backgroundColor: const Color(
-                                    0xFF007BFF,
-                                  ).withOpacity(0.25),
-                                );
-                              },
-                              errorWidget: (context, imageUrl, progress) {
-                                return Container(
-                                  color: const Color(
-                                    0xFF030744,
-                                  ),
-                                  child: const Icon(
-                                    Icons.person_outline_outlined,
-                                    color: Colors.white,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                !AuthService.isLoggedIn()
-                                    ? "Login Account"
-                                    : capitalizeWords(
-                                        "${AuthService.currentUser!.name}",
-                                      ),
-                                style: const TextStyle(
-                                  height: 1.05,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(
-                                    0xFF030744,
-                                  ),
-                                ),
-                              ),
-                              !AuthService.isLoggedIn()
-                                  ? const SizedBox()
-                                  : const SizedBox(height: 4),
-                              !AuthService.isLoggedIn()
-                                  ? const SizedBox()
-                                  : Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: const Color(
-                                            0xFF030744,
-                                          ),
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 2,
-                                          horizontal: 8,
-                                        ),
-                                        child: Text(
-                                          lowerCase(
-                                            AuthService.currentUser?.code,
-                                          ),
-                                          style: const TextStyle(
-                                            height: 1.05,
-                                            fontSize: 12,
-                                            color: Color(
-                                              0xFF030744,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        const Icon(
-                          Icons.chevron_right,
-                          color: Color(
-                            0xFF030744,
-                          ),
-                          size: 25,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: const Color(
-                    0xFF030744,
-                  ).withOpacity(0.1),
-                ),
-                if (AuthService.isLoggedIn())
-                  ListTileWidget(
-                    leading: const Icon(
-                      Icons.history,
-                      color: Color(
-                        0xFF030744,
-                      ),
-                    ),
-                    title: const Text(
-                      "History",
-                      style: TextStyle(
-                          color: Color(
-                            0xFF030744,
-                          ),
-                          fontSize: 15),
-                    ),
-                    onTap: () {
-                      _navigateWithoutTransition(
-                        HistoryView(vm),
-                      );
-                    },
-                  ),
-                if (AuthService.isLoggedIn())
-                  ListTileWidget(
-                    leading: const Icon(
-                      Icons.settings_outlined,
-                      color: Color(
-                        0xFF030744,
-                      ),
-                    ),
-                    title: const Text(
-                      "Settings",
-                      style: TextStyle(
-                        color: Color(
-                          0xFF030744,
-                        ),
-                      ),
-                    ),
-                    onTap: () {
-                      if (!AuthService.isLoggedIn()) {
-                        _navigateWithoutTransition(
-                          const LoginView(),
-                        );
-                      } else {
-                        _navigateWithoutTransition(
-                          const SettingsView(),
-                        );
-                      }
-                    },
-                  ),
-                ListTileWidget(
-                  leading: const Icon(
-                    Icons.headset_outlined,
-                    color: Color(
-                      0xFF030744,
-                    ),
-                  ),
-                  title: const Text(
-                    "Assistance",
-                    style: TextStyle(
-                      color: Color(
-                        0xFF030744,
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    launchUrlString(
-                      "sms://+639686410532",
-                    );
-                  },
-                ),
-                ListTileWidget(
-                  contentPadding: const EdgeInsets.only(
-                    left: 18,
-                    right: 16,
-                    top: 16,
-                    bottom: 16,
-                  ),
-                  leading: Padding(
-                    padding: const EdgeInsets.only(right: 2),
-                    child: Container(
-                      width: 21,
-                      height: 21,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(
-                            0xFF030744,
-                          ),
-                          width: 2,
-                        ),
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(1000),
-                        ),
-                      ),
-                      child: const Center(
-                        child: Padding(
-                          padding: EdgeInsets.only(left: 0.5),
-                          child: Text(
-                            "₱",
-                            style: TextStyle(
-                              height: 1,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Color(
-                                0xFF030744,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  title: const Text(
-                    "TODA Load",
-                    style: TextStyle(
-                      color: Color(
-                        0xFF030744,
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    Get.to(
-                      () => const LoadView(),
-                    );
-                  },
-                ),
-                if (AuthService.isLoggedIn())
-                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    stream: fbStore
-                        .collection("access")
-                        .doc("pwa_partners")
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      final allowedUserIds =
-                          snapshot.data?.data()?["users"] ?? [];
-                      final currentUserId = "${AuthService.currentUser?.id}";
-                      final hasAccess = allowedUserIds.any(
-                        (id) => "$id" == currentUserId,
-                      );
-                      if (!hasAccess) {
-                        return const SizedBox.shrink();
-                      }
-                      return ListTileWidget(
-                        leading: const Icon(
-                          Icons.people_outline,
-                          color: Color(
-                            0xFF030744,
-                          ),
-                        ),
-                        title: const Text(
-                          "Partner Panel",
-                          style: TextStyle(
-                            color: Color(
-                              0xFF030744,
-                            ),
-                          ),
-                        ),
-                        onTap: () {
-                          _navigateWithoutTransition(
-                            const PartnerPanelView(),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ListTileWidget(
-                  leading: const Icon(
-                    Icons.code,
-                    color: Color(
-                      0xFF030744,
-                    ),
-                  ),
-                  title: Text(
-                    "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
-                    style: const TextStyle(
-                      color: Color(
-                        0xFF030744,
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    if (!AuthService.inReviewMode()) {
-                      Clipboard.setData(
-                        ClipboardData(
-                          text: "$fcmToken",
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
+          drawer: isIOSLikeBrowser() ? null : _buildHomeDrawer(vm),
           backgroundColor: Colors.white,
           body: FutureBuilder<gmaps.LatLng?>(
             future: _initialCenterFuture,
@@ -760,7 +789,7 @@ class _HomeViewState extends State<HomeView> {
                                   child: FloatingButton(
                                     icon: Icons.menu,
                                     onTap: () {
-                                      _scaffoldKey.currentState?.openDrawer();
+                                      _toggleHomeMenu();
                                     },
                                   ),
                                 ),
@@ -3115,6 +3144,39 @@ class _HomeViewState extends State<HomeView> {
                               ),
                             ],
                           ),
+                          if (isIOSLikeBrowser() && _isIOSMenuOpen)
+                            Positioned.fill(
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: GestureDetector(
+                                      onTap: _closeIOSMenu,
+                                      child: Container(
+                                        color: Colors.black.withOpacity(0.18),
+                                      ),
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: SizedBox(
+                                      width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.84 >
+                                          320
+                                          ? 320
+                                          : MediaQuery.of(context).size.width *
+                                              0.84,
+                                      height: double.infinity,
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: _buildHomeDrawer(vm),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                       !vm.isLoading && !vm.isInitializing

@@ -110,7 +110,12 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                 final nextCenter = _pendingCenter;
                 _pendingCenter = null;
                 if (nextCenter != null && mounted) {
-                  widget.onCameraMove?.call(nextCenter);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) {
+                      return;
+                    }
+                    widget.onCameraMove?.call(nextCenter);
+                  });
                 }
               },
             );
