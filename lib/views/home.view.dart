@@ -1835,87 +1835,88 @@ class _HomeViewState extends State<HomeView> {
                                                                               0,
                                                                               120),
                                                                       child:
-                                                                          ConstrainedBox(
-                                                                        constraints:
-                                                                            const BoxConstraints(
-                                                                          maxWidth:
-                                                                              200,
-                                                                        ),
-                                                                        child:
-                                                                            Container(
-                                                                          height:
-                                                                              50,
-                                                                          decoration:
-                                                                              BoxDecoration(
-                                                                            borderRadius:
-                                                                                const BorderRadius.all(
-                                                                              Radius.circular(
-                                                                                8,
-                                                                              ),
+                                                                          Builder(
+                                                                        builder:
+                                                                            (context) {
+                                                                          final previewVehicle = gVehicleTypes.firstWhere(
+                                                                            (v) => v.slug == "tricycle",
+                                                                            orElse: () => gVehicleTypes.first,
+                                                                          );
+                                                                          return ConstrainedBox(
+                                                                            constraints:
+                                                                                const BoxConstraints(
+                                                                              maxWidth:
+                                                                                  200,
                                                                             ),
-                                                                            border:
-                                                                                Border.all(
-                                                                              color: const Color(
-                                                                                0xFF007BFF,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                          child:
-                                                                              Column(
-                                                                            children: [
-                                                                              const SizedBox(
-                                                                                height: 12,
-                                                                              ),
-                                                                              Expanded(
-                                                                                child: Padding(
-                                                                                  padding: const EdgeInsets.symmetric(
-                                                                                    horizontal: 8,
-                                                                                  ),
-                                                                                  child: Image.asset(
-                                                                                    "assets/images/${lowerCase(gVehicleTypes.firstWhere(
-                                                                                          (v) => v.slug == "tricycle",
-                                                                                        ).name!)}.png",
+                                                                            child:
+                                                                                Container(
+                                                                              height:
+                                                                                  50,
+                                                                              decoration:
+                                                                                  BoxDecoration(
+                                                                                borderRadius:
+                                                                                    const BorderRadius.all(
+                                                                                  Radius.circular(
+                                                                                    8,
                                                                                   ),
                                                                                 ),
-                                                                              ),
-                                                                              const SizedBox(
-                                                                                height: 8,
-                                                                              ),
-                                                                              Text(
-                                                                                capitalizeWords(
-                                                                                  gVehicleTypes
-                                                                                      .firstWhere(
-                                                                                        (v) => v.slug == "tricycle",
-                                                                                      )
-                                                                                      .name!,
-                                                                                ),
-                                                                                style: const TextStyle(
-                                                                                  height: 1.05,
-                                                                                  fontSize: 14,
-                                                                                  color: Color(
-                                                                                    0xFF007BFF,
-                                                                                  ),
-                                                                                  fontWeight: FontWeight.w500,
-                                                                                ),
-                                                                              ),
-                                                                              Text(
-                                                                                "${gVehicleTypes.firstWhere(
-                                                                                      (v) => v.slug == "tricycle",
-                                                                                    ).maxSeat!} Seater",
-                                                                                style: const TextStyle(
-                                                                                  height: 1.05,
-                                                                                  fontSize: 12,
-                                                                                  color: Color(
+                                                                                border:
+                                                                                    Border.all(
+                                                                                  color: const Color(
                                                                                     0xFF007BFF,
                                                                                   ),
                                                                                 ),
                                                                               ),
-                                                                              const SizedBox(
-                                                                                height: 12,
+                                                                              child:
+                                                                                  Column(
+                                                                                children: [
+                                                                                  const SizedBox(
+                                                                                    height: 12,
+                                                                                  ),
+                                                                                  Expanded(
+                                                                                    child: Padding(
+                                                                                      padding: const EdgeInsets.symmetric(
+                                                                                        horizontal: 8,
+                                                                                      ),
+                                                                                      child: Image.asset(
+                                                                                        "assets/images/${lowerCase(previewVehicle.name!)}.png",
+                                                                                      ),
+                                                                                    ),
+                                                                                  ),
+                                                                                  const SizedBox(
+                                                                                    height: 8,
+                                                                                  ),
+                                                                                  Text(
+                                                                                    capitalizeWords(
+                                                                                      previewVehicle.name!,
+                                                                                    ),
+                                                                                    style: const TextStyle(
+                                                                                      height: 1.05,
+                                                                                      fontSize: 14,
+                                                                                      color: Color(
+                                                                                        0xFF007BFF,
+                                                                                      ),
+                                                                                      fontWeight: FontWeight.w500,
+                                                                                    ),
+                                                                                  ),
+                                                                                  Text(
+                                                                                    "${previewVehicle.maxSeat!} Seater",
+                                                                                    style: const TextStyle(
+                                                                                      height: 1.05,
+                                                                                      fontSize: 12,
+                                                                                      color: Color(
+                                                                                        0xFF007BFF,
+                                                                                      ),
+                                                                                    ),
+                                                                                  ),
+                                                                                  const SizedBox(
+                                                                                    height: 12,
+                                                                                  ),
+                                                                                ],
                                                                               ),
-                                                                            ],
-                                                                          ),
-                                                                        ),
+                                                                            ),
+                                                                          );
+                                                                        },
                                                                       ),
                                                                     ),
                                                                     const SizedBox(

@@ -23,10 +23,8 @@ class SplashViewModel extends BaseViewModel {
   TaxiRequest taxiRequest = TaxiRequest();
   SettingsRequest settingsRequest = SettingsRequest();
 
-  initialise() async {
+  Future<void> initialise() async {
     await getAppUser();
-    await getBanners();
-    await getVehicles();
     subscribeToServer();
     startListeningToConfigs();
     startListeningToHotspots();
@@ -34,15 +32,21 @@ class SplashViewModel extends BaseViewModel {
         !AuthService.isLoggedIn();
     isAd1Seen = StorageService.prefs?.getBool("is_ad_1_seen") ??
         !AuthService.isLoggedIn();
+    await Future.wait<void>(
+      <Future<void>>[
+        getBanners(),
+        getVehicles(),
+      ],
+    );
     await goToNextPage();
   }
 
-  getAppUser() async {
+  Future<void> getAppUser() async {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.30";
-      versionCode = "50";
+      version = "1.0.31";
+      versionCode = "51";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -50,7 +54,7 @@ class SplashViewModel extends BaseViewModel {
     }
   }
 
-  getSettings() async {
+  Future<void> getSettings() async {
     try {
       ApiResponse hResponse = await settingsRequest.homeSettingsRequest();
       await AppStrings.saveHomeSettingsToStorage(
@@ -100,7 +104,7 @@ class SplashViewModel extends BaseViewModel {
     startListeningToHotspots();
   }
 
-  getBanners() async {
+  Future<void> getBanners() async {
     try {
       gBanners = await settingsRequest.bannersRequest();
       debugPrint(
@@ -113,7 +117,7 @@ class SplashViewModel extends BaseViewModel {
     }
   }
 
-  getVehicles() async {
+  Future<void> getVehicles() async {
     try {
       gVehicleTypes = await taxiRequest.vehicleTypesRequest();
       debugPrint(
@@ -126,7 +130,7 @@ class SplashViewModel extends BaseViewModel {
     }
   }
 
-  goToNextPage() {
+  Future<void> goToNextPage() async {
     if (!AuthService.isLoggedIn()) {
       if (!AuthService.inReviewMode()) {
         Navigator.pushAndRemoveUntil(

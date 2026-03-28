@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -21,10 +23,12 @@ void main() async {
     ),
   );
   await StorageService.getPrefs();
-  await PushService.initialize();
   GestureBinding.instance.pointerRouter.addGlobalRoute((event) {});
   runApp(
     const MyApp(),
+  );
+  unawaited(
+    PushService.initialize(),
   );
 }
 
