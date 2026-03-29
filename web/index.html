@@ -69,8 +69,6 @@
     (function () {
       const userAgent = (navigator.userAgent || "").toLowerCase();
       const isHuaweiBrowser =
-        userAgent.includes("huawei") ||
-        userAgent.includes("honor") ||
         userAgent.includes("huaweibrowser") ||
         userAgent.includes("hmscore");
 
@@ -86,8 +84,29 @@
     })();
   </script>
 
+  <!-- Google Maps -->
+  <script>
+    (function () {
+      const userAgent = (navigator.userAgent || "").toLowerCase();
+      const isHuaweiBrowser =
+        userAgent.includes("huaweibrowser") ||
+        userAgent.includes("hmscore");
+
+      if (isHuaweiBrowser) {
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = "google-maps-js";
+      script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyBulbBRV3toC3XWR9TRVACFTmjgfcsD0TU&libraries=marker&loading=async";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  </script>
+
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.32+52" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.31+51" />
 
   <!-- Splash Screen Style -->
   <style>

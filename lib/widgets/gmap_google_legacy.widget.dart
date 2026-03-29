@@ -32,13 +32,24 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
+  static const Duration _centerChangeIdleDuration =
+      Duration(milliseconds: 180);
   late final String viewId;
   gmaps.Map? _map;
   StreamSubscription? _dragStartSub;
+  StreamSubscription? _centerChangedSub;
   StreamSubscription? _idleSub;
+  StreamSubscription<html.Event>? _mouseDownSub;
+  StreamSubscription<html.Event>? _touchStartSub;
+  StreamSubscription<html.Event>? _mouseUpSub;
+  StreamSubscription<html.Event>? _touchEndSub;
+  Timer? _centerIdleTimer;
   bool _mapInitialized = false;
   bool _isViewRegistered = false;
   bool _hasLoadError = false;
+  bool _cameraMoveStartSent = false;
+  bool _suppressCameraCallbacks = false;
+  gmaps.LatLng? _latestCenter;
 
   static const List<Map<String, dynamic>> _defaultStyles = [
     {
@@ -84,73 +95,126 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void initState() {
     super.initState();
     viewId = 'map-div-${DateTime.now().microsecondsSinceEpoch}';
+    MapService.debugLog('Legacy Google widget init: viewId=$viewId');
     _ensureHideGmapUiStyle();
     _initializeMap();
   }
 
-  Future<void> _initializeMap() async {
-    try {
-      final ready = await MapService.ensureGoogleMapsReady();
-      if (!ready) {
+  void _initializeMap() {
+    () async {
+      try {
+        MapService.debugLog('Legacy Google widget waiting for Google Maps readiness');
+        final ready = await MapService.ensureGoogleMapsReady();
+        MapService.debugLog('Legacy Google widget readiness returned $ready');
+        if (!ready) {
+          _handleLoadError();
+          return;
+        }
+        if (!mounted) {
+          return;
+        }
+        MapService.debugLog('Legacy Google widget registering platform view');
+        ui.platformViewRegistry.registerViewFactory(
+          viewId,
+          (int _) {
+            final mapDiv = html.DivElement()
+              ..id = viewId
+              ..style.width = '100%'
+              ..style.height = '100%';
+            _mouseDownSub = mapDiv.onMouseDown.listen((_) {
+              _cameraMoveStartSent = false;
+            });
+            _touchStartSub = mapDiv.onTouchStart.listen((_) {
+              _cameraMoveStartSent = false;
+            });
+            _mouseUpSub = mapDiv.onMouseUp.listen((_) {
+              if (_cameraMoveStartSent) {
+                _scheduleCenterIdleCallback();
+              }
+            });
+            _touchEndSub = mapDiv.onTouchEnd.listen((_) {
+              if (_cameraMoveStartSent) {
+                _scheduleCenterIdleCallback();
+              }
+            });
+            try {
+              final mapOptions = gmaps.MapOptions()
+                ..zoom = 16
+                ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
+                ..clickableIcons = false
+                ..disableDefaultUI = true
+                ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
+                ..disableDoubleClickZoom = true
+                ..mapTypeId = gmaps.MapTypeId.ROADMAP;
+              _map = gmaps.Map(mapDiv as dynamic, mapOptions);
+              MapService.debugLog('Legacy Google widget created gmaps.Map instance');
+              js_util.setProperty(_map!, 'styles', _defaultStyles);
+              widget.onMapCreated?.call(_map!);
+              _dragStartSub = _map!.onDragstart.listen(
+                (_) {
+                  _emitCameraMoveStart();
+                },
+              );
+              _centerChangedSub = _map!.onCenterChanged.listen(
+                (_) {
+                  _latestCenter = _map?.center;
+                  if (_suppressCameraCallbacks) {
+                    return;
+                  }
+                  _emitCameraMoveStart();
+                  _scheduleCenterIdleCallback();
+                },
+              );
+              _idleSub = _map!.onIdle.listen(
+                (_) {
+                  _emitCameraMoveEnd(_map?.center);
+                },
+              );
+              _mapInitialized = true;
+            } catch (error) {
+              MapService.debugLog('Legacy Google widget map creation error: $error');
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _handleLoadError();
+              });
+            }
+            return mapDiv;
+          },
+        );
+        _isViewRegistered = true;
+        MapService.debugLog('Legacy Google widget platform view registered');
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (error) {
+        MapService.debugLog('Legacy Google widget initialize error: $error');
         _handleLoadError();
-        return;
       }
-      ui.platformViewRegistry.registerViewFactory(
-        viewId,
-        (int _) {
-          final mapDiv = html.DivElement()
-            ..id = viewId
-            ..style.width = '100%'
-            ..style.height = '100%';
-          final mapOptions = gmaps.MapOptions()
-            ..zoom = 16
-            ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
-            ..clickableIcons = false
-            ..disableDefaultUI = true
-            ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
-            ..disableDoubleClickZoom = true
-            ..mapTypeId = gmaps.MapTypeId.ROADMAP;
-          _map = gmaps.Map(mapDiv as dynamic, mapOptions);
-          js_util.setProperty(_map!, 'styles', _defaultStyles);
-          widget.onMapCreated?.call(_map!);
-          _dragStartSub = _map!.onDragstart.listen(
-            (_) {
-              if (!mounted) {
-                return;
-              }
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) {
-                  return;
-                }
-                widget.onCameraMoveStart?.call();
-              });
-            },
-          );
-          _idleSub = _map!.onIdle.listen(
-            (_) {
-              final center = _map?.center;
-              if (center == null || !mounted) {
-                return;
-              }
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) {
-                  return;
-                }
-                widget.onCameraMove?.call(center);
-              });
-            },
-          );
-          _mapInitialized = true;
-          return mapDiv;
-        },
-      );
-      _isViewRegistered = true;
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (_) {
-      _handleLoadError();
+    }();
+  }
+
+  void _emitCameraMoveStart() {
+    if (_cameraMoveStartSent || !mounted) {
+      return;
     }
+    _cameraMoveStartSent = true;
+    widget.onCameraMoveStart?.call();
+  }
+
+  void _scheduleCenterIdleCallback() {
+    _centerIdleTimer?.cancel();
+    _centerIdleTimer = Timer(_centerChangeIdleDuration, () {
+      _emitCameraMoveEnd(_latestCenter ?? _map?.center);
+    });
+  }
+
+  void _emitCameraMoveEnd(gmaps.LatLng? center) {
+    _centerIdleTimer?.cancel();
+    _centerIdleTimer = null;
+    _cameraMoveStartSent = false;
+    if (center == null || !mounted) {
+      return;
+    }
+    widget.onCameraMove?.call(center);
   }
 
   void _handleLoadError() {
@@ -158,6 +222,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       return;
     }
     _hasLoadError = true;
+    MapService.debugLog('Legacy Google widget handling load error');
     widget.onLoadError?.call();
   }
 
@@ -170,7 +235,11 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             widget.enableGestures ? 'greedy' : 'none');
       }
       if (!_latLngEquals(oldWidget.center, widget.center)) {
+        _suppressCameraCallbacks = true;
         _map!.panTo(gmaps.LatLng(widget.center.lat, widget.center.lng));
+        Future<void>.delayed(const Duration(milliseconds: 300), () {
+          _suppressCameraCallbacks = false;
+        });
       }
     }
   }
@@ -181,8 +250,14 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   void dispose() {
+    _centerIdleTimer?.cancel();
     _dragStartSub?.cancel();
+    _centerChangedSub?.cancel();
     _idleSub?.cancel();
+    _mouseDownSub?.cancel();
+    _touchStartSub?.cancel();
+    _mouseUpSub?.cancel();
+    _touchEndSub?.cancel();
     super.dispose();
   }
 

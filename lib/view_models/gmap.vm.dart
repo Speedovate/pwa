@@ -16,6 +16,8 @@ import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
 
 class GMapViewModel extends BaseViewModel {
+  static const Duration _minimumLoadingIndicatorDuration =
+      Duration(milliseconds: 350);
   AppMapController? _map;
   Timer? _debounce;
   bool _isResolvingCameraMove = false;
@@ -32,6 +34,7 @@ class GMapViewModel extends BaseViewModel {
   gmaps.LatLng? lastCenter;
   GeocoderService geocoderService = GeocoderService();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
+  ValueNotifier<bool> clearPickupDisplay = ValueNotifier(false);
   ValueNotifier<bool> showBottomUi = ValueNotifier(false);
   ValueNotifier<bool> showMapLoadingIndicator = ValueNotifier(false);
   ValueNotifier<bool> showPartnerButtons = ValueNotifier(false);
@@ -60,8 +63,17 @@ class GMapViewModel extends BaseViewModel {
   }
 
   void beginCameraMove() {
-    if (_isResolvingCameraMove || _isCameraMovePending) {
+    if (_isResolvingCameraMove) {
       return;
+    }
+    _debounce?.cancel();
+    _debounce = null;
+    isLoading = false;
+    if (showPartnerButtons.value != false) {
+      showPartnerButtons.value = false;
+    }
+    if (clearPickupDisplay.value != true) {
+      clearPickupDisplay.value = true;
     }
     selectedAddress.value = null;
     pickupAddress = null;
@@ -75,6 +87,7 @@ class GMapViewModel extends BaseViewModel {
     _debounce?.cancel();
     _debounce = null;
     selectedAddress.dispose();
+    clearPickupDisplay.dispose();
     showBottomUi.dispose();
     showMapLoadingIndicator.dispose();
     showPartnerButtons.dispose();
@@ -86,9 +99,9 @@ class GMapViewModel extends BaseViewModel {
     _map = map;
     lastCenter = map.center;
     isInitializing = true;
-    _syncMapUiNotifiers();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
+        _syncMapUiNotifiers();
         mapCameraMove("setMap", mapCenter);
       },
     );
@@ -162,6 +175,7 @@ class GMapViewModel extends BaseViewModel {
       debounceDuration,
       () async {
         var shouldNotify = false;
+        DateTime? loadingStartedAt;
         if (_isResolvingCameraMove) {
           return;
         }
@@ -169,6 +183,10 @@ class GMapViewModel extends BaseViewModel {
         if (!skipSelectedAddress) {
           isLoading = true;
           _isCameraMovePending = false;
+          loadingStartedAt = DateTime.now();
+          if (showMapLoadingIndicator.value != true) {
+            showMapLoadingIndicator.value = true;
+          }
         }
         _syncMapUiNotifiers();
         try {
@@ -212,6 +230,9 @@ class GMapViewModel extends BaseViewModel {
                     double.parse("${target.lng}"),
                   ),
                 );
+            if (clearPickupDisplay.value != false) {
+              clearPickupDisplay.value = false;
+            }
             selectedAddress.value = fallbackAddress;
             pickupAddress = fallbackAddress;
             _hasActivatedBottomUi = true;
@@ -265,9 +286,20 @@ class GMapViewModel extends BaseViewModel {
             }
           }
         } finally {
+          if (loadingStartedAt != null) {
+            final elapsed = DateTime.now().difference(loadingStartedAt);
+            if (elapsed < _minimumLoadingIndicatorDuration) {
+              await Future.delayed(
+                _minimumLoadingIndicatorDuration - elapsed,
+              );
+            }
+          }
           isLoading = false;
           _isCameraMovePending = false;
           _isResolvingCameraMove = false;
+          if (showMapLoadingIndicator.value != false) {
+            showMapLoadingIndicator.value = false;
+          }
           _syncMapUiNotifiers();
           if (shouldNotify) {
             notifyListeners();
@@ -291,6 +323,9 @@ class GMapViewModel extends BaseViewModel {
         }
       }
       selectedAddress.value = resolvedAddress;
+      if (clearPickupDisplay.value != false) {
+        clearPickupDisplay.value = false;
+      }
       pickupAddress = resolvedAddress;
       _hasActivatedBottomUi = true;
       if (_map != null) {

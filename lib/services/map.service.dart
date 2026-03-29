@@ -4,21 +4,17 @@ import 'dart:async';
 import 'dart:html' as html;
 import 'dart:js_util' as js_util;
 import 'package:flutter/foundation.dart';
-import 'package:pwa/constants/strings.dart';
 import 'package:pwa/utils/functions.dart';
 
 class MapService {
   static Future<bool>? _googleMapsReadyFuture;
   static bool get _isHuaweiBrowser => isHuaweiLikeBrowser();
   static bool get shouldAttemptGoogleMaps => !_isHuaweiBrowser;
-  static bool get hasGoogleMapsApiKey =>
-      AppStrings.googleMapApiKey.trim().isNotEmpty;
-  static bool get hasLoadedAppSettings => AppStrings.appSettingsObject != null;
+  static bool get isLeafletFallbackPreferred => !shouldAttemptGoogleMaps;
 
-  static bool get shouldUseGoogleMapsByDefault =>
-      shouldAttemptGoogleMaps && hasGoogleMapsApiKey;
-
-  static bool get isLeafletFallbackPreferred => !shouldUseGoogleMapsByDefault;
+  static void debugLog(String message) {
+    debugPrint('[MapService] $message');
+  }
 
   static bool? get initialEngineDecision {
     if (isGoogleMapsLoaded) {
@@ -40,64 +36,66 @@ class MapService {
   }
 
   static Future<bool> ensureGoogleMapsReady() async {
-    await AppStrings.getAppSettingsFromStorage();
     if (_googleMapsReadyFuture != null) {
+      debugLog('Reusing existing Google Maps readiness future');
       return _googleMapsReadyFuture!;
     }
-    if (!shouldUseGoogleMapsByDefault) {
+    if (!shouldAttemptGoogleMaps) {
+      debugLog('Skipping Google Maps readiness because browser is Huawei-like');
       return Future<bool>.value(false);
     }
     if (isGoogleMapsLoaded) {
+      debugLog('Google Maps JS already loaded');
       return Future<bool>.value(true);
     }
 
+    final existing = html.document.getElementById('google-maps-js');
+    if (existing is! html.ScriptElement) {
+      debugLog('Google Maps script tag missing in index.html');
+      return Future<bool>.value(false);
+    }
+
+    debugLog('Waiting for preloaded Google Maps script');
     final completer = Completer<bool>();
     _googleMapsReadyFuture = completer.future;
 
-    final existing = html.document.getElementById('google-maps-js');
-    if (existing is html.ScriptElement) {
-      if (isGoogleMapsLoaded) {
-        completer.complete(true);
-      } else {
-        existing.onLoad.first.then((_) {
-          completer.complete(isGoogleMapsLoaded);
-        }).catchError((_) {
-          completer.complete(false);
-        });
-        existing.onError.first.then((_) {
-          if (!completer.isCompleted) {
-            completer.complete(false);
-          }
-        });
+    existing.onLoad.first.then((_) {
+      debugLog('Preloaded Google Maps script loaded');
+      if (!completer.isCompleted) {
+        completer.complete(isGoogleMapsLoaded);
       }
-      return _googleMapsReadyFuture!;
-    }
-
-    final script = html.ScriptElement()
-      ..id = 'google-maps-js'
-      ..async = true
-      ..defer = true
-      ..src =
-          'https://maps.googleapis.com/maps/api/js?key=${Uri.encodeQueryComponent(AppStrings.googleMapApiKey)}';
-
-    script.onLoad.first.then((_) {
-      completer.complete(isGoogleMapsLoaded);
     }).catchError((Object error) {
-      debugPrint('Google Maps script load error: $error');
-      completer.complete(false);
-    });
-    script.onError.first.then((_) {
+      debugLog('Preloaded Google Maps script load future error: $error');
       if (!completer.isCompleted) {
         completer.complete(false);
       }
     });
+    existing.onError.first.then((_) {
+      if (!completer.isCompleted) {
+        debugLog('Preloaded Google Maps script emitted error');
+        completer.complete(false);
+      }
+    });
 
-    html.document.head?.append(script);
+    Future<void>(() async {
+      for (var attempt = 0; attempt < 60 && !completer.isCompleted; attempt++) {
+        if (isGoogleMapsLoaded) {
+          debugLog('Google Maps JS became ready while waiting');
+          completer.complete(true);
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+      if (!completer.isCompleted) {
+        debugLog('Timed out waiting for preloaded Google Maps script');
+        completer.complete(false);
+      }
+    });
+
     return _googleMapsReadyFuture!;
   }
 
   static Future<void> warmUpPreferredMapEngine() async {
-    await AppStrings.getAppSettingsFromStorage();
     await ensureGoogleMapsReady();
   }
 }

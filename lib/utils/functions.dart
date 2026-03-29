@@ -25,9 +25,7 @@ String browserUserAgent() => lowerCase(
 
 bool isHuaweiLikeBrowser() {
   final userAgent = browserUserAgent();
-  return userAgent.contains("huawei") ||
-      userAgent.contains("honor") ||
-      userAgent.contains("huaweibrowser") ||
+  return userAgent.contains("huaweibrowser") ||
       userAgent.contains("hmscore");
 }
 

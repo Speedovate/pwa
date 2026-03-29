@@ -771,8 +771,7 @@ class _HomeViewState extends State<HomeView> {
                                       try {
                                         if (vm.ongoingOrder == null &&
                                             !vm.blockCamera &&
-                                            !vm.isMapInteractionLocked &&
-                                            vm.markers.isEmpty) {
+                                            !vm.isMapInteractionLocked) {
                                           vm.beginCameraMove();
                                         }
                                       } catch (e) {
@@ -786,14 +785,13 @@ class _HomeViewState extends State<HomeView> {
                                         FocusManager.instance.primaryFocus
                                             ?.unfocus();
                                         final a = vm.disposed;
-                                        final b = vm.markers;
                                         if (vm.ongoingOrder == null) {
                                           if (!vm.blockCamera &&
                                               !vm.isMapInteractionLocked &&
                                               vm.shouldProcessCameraMove(
                                                 center,
                                               )) {
-                                            if (!a && b.isEmpty) {
+                                            if (!a) {
                                               vm.mapCameraMove(
                                                 "onCameraMove",
                                                 center,
@@ -2682,15 +2680,21 @@ class _HomeViewState extends State<HomeView> {
                                                           width: 8,
                                                         ),
                                                         Expanded(
-                                                          child:
-                                                              ValueListenableBuilder<
-                                                                  Address?>(
-                                                            valueListenable:
+                                                          child: AnimatedBuilder(
+                                                            animation:
+                                                                Listenable.merge(
+                                                              [
                                                                 vm.selectedAddress,
-                                                            builder:
-                                                                (_,
-                                                                    selectedAddress,
-                                                                    __) {
+                                                                vm.clearPickupDisplay,
+                                                              ],
+                                                            ),
+                                                            builder: (_, __) {
+                                                              final selectedAddress =
+                                                                  vm.clearPickupDisplay
+                                                                          .value
+                                                                      ? null
+                                                                      : vm.selectedAddress
+                                                                          .value;
                                                               return Text(
                                                                 capitalizeWords(
                                                                   selectedAddress
