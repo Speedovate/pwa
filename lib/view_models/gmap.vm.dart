@@ -32,6 +32,7 @@ class GMapViewModel extends BaseViewModel {
   gmaps.LatLng? lastCenter;
   GeocoderService geocoderService = GeocoderService();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
+  ValueNotifier<bool> showBottomUi = ValueNotifier(false);
   ValueNotifier<bool> showMapLoadingIndicator = ValueNotifier(false);
   ValueNotifier<bool> showPartnerButtons = ValueNotifier(false);
   bool get isMapInteractionLocked => isLoading || _isResolvingCameraMove;
@@ -40,6 +41,9 @@ class GMapViewModel extends BaseViewModel {
   bool get hasActivatedBottomUi => _hasActivatedBottomUi;
 
   void _syncMapUiNotifiers() {
+    if (showBottomUi.value != _hasActivatedBottomUi) {
+      showBottomUi.value = _hasActivatedBottomUi;
+    }
     final nextLoading = isLoading ||
         isInitializing ||
         (!_hasActivatedBottomUi && _isCameraMovePending);
@@ -71,6 +75,7 @@ class GMapViewModel extends BaseViewModel {
     _debounce?.cancel();
     _debounce = null;
     selectedAddress.dispose();
+    showBottomUi.dispose();
     showMapLoadingIndicator.dispose();
     showPartnerButtons.dispose();
     _map = null;
@@ -156,6 +161,7 @@ class GMapViewModel extends BaseViewModel {
     _debounce = Timer(
       debounceDuration,
       () async {
+        var shouldNotify = false;
         if (_isResolvingCameraMove) {
           return;
         }
@@ -197,7 +203,7 @@ class GMapViewModel extends BaseViewModel {
             isLoading = false;
             isInitializing = false;
             await addressSelected(address, animate: true);
-          } catch (e) {
+            } catch (e) {
             isLoading = false;
             isInitializing = false;
             final fallbackAddress = previousAddress ??
@@ -219,6 +225,7 @@ class GMapViewModel extends BaseViewModel {
               );
               if (!apiResponse.allGood) {
                 locUnavailable = true;
+                shouldNotify = true;
               }
             } catch (_) {
               apiResponse = null;
@@ -249,6 +256,7 @@ class GMapViewModel extends BaseViewModel {
           if (gVehicleTypes.isEmpty) {
             try {
               gVehicleTypes = await taxiRequest.vehicleTypesRequest();
+              shouldNotify = true;
               debugPrint(
                 "gmap vehicleTypesRequest success",
               );
@@ -263,7 +271,9 @@ class GMapViewModel extends BaseViewModel {
           _isCameraMovePending = false;
           _isResolvingCameraMove = false;
           _syncMapUiNotifiers();
-          notifyListeners();
+          if (shouldNotify) {
+            notifyListeners();
+          }
         }
       },
     );

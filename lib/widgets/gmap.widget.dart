@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' as fmap;
@@ -35,13 +34,9 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
-  static const Duration _cameraIdleDebounce = Duration(milliseconds: 120);
   final fmap.MapController _leafletMapController = fmap.MapController();
-  Timer? _leafletCameraMoveDebounce;
   bool _leafletMapReady = false;
   bool? _useGoogleMaps;
-  app_maps.LatLng? _pendingLeafletCameraMove;
-  bool _leafletGestureActive = false;
 
   @override
   void initState() {
@@ -71,10 +66,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   }
 
   @override
-  void dispose() {
-    _leafletCameraMoveDebounce?.cancel();
-    super.dispose();
-  }
+  void dispose() => super.dispose();
 
   Future<void> _resolveEngine() async {
     if (!MapService.shouldUseGoogleMapsByDefault) {
@@ -99,23 +91,35 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     return a.lat == b.lat && a.lng == b.lng;
   }
 
-  void _dispatchLeafletCameraMove(app_maps.LatLng center) {
-    _pendingLeafletCameraMove = center;
-    _leafletCameraMoveDebounce?.cancel();
-    _leafletCameraMoveDebounce = Timer(
-      _cameraIdleDebounce,
-      () {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _pendingLeafletCameraMove == null) {
-            return;
-          }
-          final nextCenter = _pendingLeafletCameraMove!;
-          _pendingLeafletCameraMove = null;
-          _leafletGestureActive = false;
-          widget.onCameraMove?.call(nextCenter);
-        });
-      },
-    );
+  bool _isLeafletUserMoveSource(fmap.MapEventSource source) {
+    return source != fmap.MapEventSource.mapController;
+  }
+
+  void _handleLeafletMapEvent(fmap.MapEvent event) {
+    if (!_leafletMapReady || !widget.enableGestures) {
+      return;
+    }
+
+    if (event is fmap.MapEventMoveStart &&
+        _isLeafletUserMoveSource(event.source)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        widget.onCameraMoveStart?.call();
+      });
+      return;
+    }
+
+    if (event is fmap.MapEventMoveEnd && _isLeafletUserMoveSource(event.source)) {
+      final center = event.camera.center.toAppLatLng();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        widget.onCameraMove?.call(center);
+      });
+    }
   }
 
   Widget _buildLeafletMap() {
@@ -146,23 +150,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             LeafletMapController(_leafletMapController),
           );
         },
-        onPositionChanged: (camera, hasGesture) {
-          if (!hasGesture) {
-            return;
-          }
-          if (!_leafletGestureActive) {
-            _leafletGestureActive = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) {
-                return;
-              }
-              widget.onCameraMoveStart?.call();
-            });
-          }
-          _dispatchLeafletCameraMove(
-            camera.center.toAppLatLng(),
-          );
-        },
+        onMapEvent: _handleLeafletMapEvent,
       ),
       children: [
         fmap.TileLayer(

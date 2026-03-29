@@ -724,7 +724,6 @@ class _HomeViewState extends State<HomeView> {
               }
               final resolvedCenter = snapshot.data!;
               final currentCenter = _homeMapCenter;
-              final showBottomUi = vm.hasActivatedBottomUi;
               if (currentCenter == null ||
                   (_sameLatLng(currentCenter, defaultLatLng) &&
                       !_sameLatLng(resolvedCenter, defaultLatLng))) {
@@ -1603,17 +1602,20 @@ class _HomeViewState extends State<HomeView> {
                           ),
                           Column(
                             children: [
-                              RepaintBoundary(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: showBottomUi
-                                        ? Colors.white
-                                        : Colors.transparent,
-                                  ),
-                                  child: !showBottomUi
-                                      ? const SizedBox.shrink()
-                                      : Column(
-                                          children: [
+                              ValueListenableBuilder<bool>(
+                                valueListenable: vm.showBottomUi,
+                                builder: (_, showBottomUi, __) {
+                                  return RepaintBoundary(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: showBottomUi
+                                            ? Colors.white
+                                            : Colors.transparent,
+                                      ),
+                                      child: !showBottomUi
+                                          ? const SizedBox.shrink()
+                                          : Column(
+                                              children: [
                                             (gVehicleTypes.isEmpty ||
                                                         locUnavailable) &&
                                                     vm.ongoingOrder == null
@@ -3200,9 +3202,11 @@ class _HomeViewState extends State<HomeView> {
                                             const SizedBox(
                                               height: 20,
                                             ),
-                                          ],
-                                        ),
-                                ),
+                                              ],
+                                            ),
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),

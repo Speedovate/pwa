@@ -28,14 +28,11 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
-  static const Duration _cameraIdleDebounce = Duration(milliseconds: 120);
   late final String viewId;
   gmaps.Map? _map;
-  StreamSubscription? _centerChangedSub;
-  Timer? _cameraMoveDebounce;
+  StreamSubscription? _dragStartSub;
+  StreamSubscription? _idleSub;
   bool _mapInitialized = false;
-  gmaps.LatLng? _pendingCenter;
-  bool _gestureMoveActive = false;
 
   static const List<Map<String, dynamic>> _defaultStyles = [
     {
@@ -100,39 +97,31 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         _map = gmaps.Map(mapDiv as dynamic, mapOptions);
         js_util.setProperty(_map!, 'styles', _defaultStyles);
         widget.onMapCreated?.call(_map!);
-        _centerChangedSub = _map!.onCenterChanged.listen(
+        _dragStartSub = _map!.onDragstart.listen(
+          (_) {
+            if (!mounted) {
+              return;
+            }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) {
+                return;
+              }
+              widget.onCameraMoveStart?.call();
+            });
+          },
+        );
+        _idleSub = _map!.onIdle.listen(
           (_) {
             final center = _map?.center;
             if (center == null || !mounted) {
               return;
             }
-            if (!_gestureMoveActive) {
-              _gestureMoveActive = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) {
-                  return;
-                }
-                widget.onCameraMoveStart?.call();
-              });
-            }
-            _pendingCenter = center;
-            _cameraMoveDebounce?.cancel();
-            _cameraMoveDebounce = Timer(
-              _cameraIdleDebounce,
-              () {
-                final nextCenter = _pendingCenter;
-                _pendingCenter = null;
-                _gestureMoveActive = false;
-                if (nextCenter != null && mounted) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!mounted) {
-                      return;
-                    }
-                    widget.onCameraMove?.call(nextCenter);
-                  });
-                }
-              },
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) {
+                return;
+              }
+              widget.onCameraMove?.call(center);
+            });
           },
         );
         _mapInitialized = true;
@@ -161,8 +150,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   void dispose() {
-    _cameraMoveDebounce?.cancel();
-    _centerChangedSub?.cancel();
+    _dragStartSub?.cancel();
+    _idleSub?.cancel();
     super.dispose();
   }
 
