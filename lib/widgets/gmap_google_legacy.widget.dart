@@ -57,6 +57,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   gmaps.LatLng? _latestCenter;
   final Map<String, gmaps.Marker> _renderedMarkers = {};
   final List<gmaps.Polyline> _renderedPolylines = [];
+  List<MapPolylineData> _renderedPolylineData = [];
 
   static const List<Map<String, dynamic>> _defaultStyles = [
     {
@@ -261,39 +262,96 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     if (_map == null) {
       return;
     }
-    _clearRenderedPolylines();
-    _clearRenderedMarkers();
+    final nextMarkerIds = widget.markers.map((marker) => marker.id).toSet();
+    final removedMarkerIds = _renderedMarkers.keys
+        .where((markerId) => !nextMarkerIds.contains(markerId))
+        .toList();
+    for (final markerId in removedMarkerIds) {
+      _renderedMarkers.remove(markerId)?.map = null;
+    }
 
     for (final marker in widget.markers) {
-      final markerOptions = gmaps.MarkerOptions()
-        ..map = _map
-        ..position = gmaps.LatLng(
-          marker.position.lat,
-          marker.position.lng,
-        )
-        ..title = marker.id;
-      markerOptions.icon = gmaps.Icon(
+      final nextPosition = gmaps.LatLng(
+        marker.position.lat,
+        marker.position.lng,
+      );
+      final nextIcon = gmaps.Icon(
         url: marker.imageUrl,
         scaledSize: gmaps.Size(marker.width, marker.height),
       );
-      _renderedMarkers[marker.id] = gmaps.Marker(markerOptions);
+      final renderedMarker = _renderedMarkers[marker.id];
+      if (renderedMarker == null) {
+        final markerOptions = gmaps.MarkerOptions()
+          ..map = _map
+          ..position = nextPosition
+          ..title = marker.id;
+        markerOptions.icon = nextIcon;
+        _renderedMarkers[marker.id] = gmaps.Marker(markerOptions);
+      } else {
+        renderedMarker.position = nextPosition;
+        renderedMarker.icon = nextIcon;
+        renderedMarker.title = marker.id;
+        renderedMarker.map = _map;
+      }
     }
 
-    for (final polyline in widget.polylines) {
-      final polylineOptions = gmaps.PolylineOptions()
-        ..path = js_util.jsify(
-          polyline.points
-              .map((point) => gmaps.LatLng(point.lat, point.lng))
-              .toList(),
-        )
-        ..strokeColor = _colorToGoogleHex(polyline.color)
-        ..strokeOpacity = polyline.color.opacity
-        ..strokeWeight = polyline.strokeWidth
-        ..map = _map;
-      _renderedPolylines.add(
-        gmaps.Polyline(polylineOptions),
-      );
+    final shouldRebuildPolylines =
+        _renderedPolylines.length != widget.polylines.length ||
+            !_samePolylines(_renderedPolylineData, widget.polylines);
+    if (shouldRebuildPolylines) {
+      _clearRenderedPolylines();
+      for (final polyline in widget.polylines) {
+        final polylineOptions = gmaps.PolylineOptions()
+          ..path = js_util.jsify(
+            polyline.points
+                .map((point) => gmaps.LatLng(point.lat, point.lng))
+                .toList(),
+          )
+          ..strokeColor = _colorToGoogleHex(polyline.color)
+          ..strokeOpacity = polyline.color.opacity
+          ..strokeWeight = polyline.strokeWidth
+          ..map = _map;
+        _renderedPolylines.add(
+          gmaps.Polyline(polylineOptions),
+        );
+      }
+      _renderedPolylineData = widget.polylines
+          .map(
+            (polyline) => MapPolylineData(
+              points: List<app_maps.LatLng>.from(polyline.points),
+              color: polyline.color,
+              strokeWidth: polyline.strokeWidth,
+            ),
+          )
+          .toList();
     }
+  }
+
+  bool _samePolylines(
+    List<MapPolylineData> currentPolylines,
+    List<MapPolylineData> nextPolylines,
+  ) {
+    if (currentPolylines.length != nextPolylines.length) {
+      return false;
+    }
+    for (var i = 0; i < nextPolylines.length; i++) {
+      final current = currentPolylines[i];
+      final next = nextPolylines[i];
+      if (current.points.length != next.points.length) {
+        return false;
+      }
+      for (var j = 0; j < next.points.length; j++) {
+        if (current.points[j].lat != next.points[j].lat ||
+            current.points[j].lng != next.points[j].lng) {
+          return false;
+        }
+      }
+      if (current.color != next.color ||
+          current.strokeWidth != next.strokeWidth) {
+        return false;
+      }
+    }
+    return true;
   }
 
   String _colorToGoogleHex(Color color) {
@@ -313,6 +371,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       polyline.map = null;
     }
     _renderedPolylines.clear();
+    _renderedPolylineData = [];
   }
 
   @override

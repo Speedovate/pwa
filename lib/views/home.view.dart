@@ -59,7 +59,12 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<gmaps.LatLng?> _loadInitialCenter() async {
+    await homeViewModel.ensureInitialOngoingOrderLoaded();
     if (isIOSLikeBrowser()) {
+      _homeMapCenter = defaultLatLng;
+      return defaultLatLng;
+    }
+    if (homeViewModel.ongoingOrder != null) {
       _homeMapCenter = defaultLatLng;
       return defaultLatLng;
     }
@@ -363,62 +368,63 @@ class _HomeViewState extends State<HomeView> {
               );
             },
           ),
-          ListTileWidget(
-            contentPadding: const EdgeInsets.only(
-              left: 18,
-              right: 16,
-              top: 16,
-              bottom: 16,
-            ),
-            leading: Padding(
-              padding: const EdgeInsets.only(right: 2),
-              child: Container(
-                width: 21,
-                height: 21,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: const Color(
-                      0xFF030744,
+          if (AuthService.isLoggedIn())
+            ListTileWidget(
+              contentPadding: const EdgeInsets.only(
+                left: 18,
+                right: 16,
+                top: 16,
+                bottom: 16,
+              ),
+              leading: Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Container(
+                  width: 21,
+                  height: 21,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: const Color(
+                        0xFF030744,
+                      ),
+                      width: 2,
                     ),
-                    width: 2,
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(1000),
+                    ),
                   ),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(1000),
-                  ),
-                ),
-                child: const Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 0.5),
-                    child: Text(
-                      "₱",
-                      style: TextStyle(
-                        height: 1,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Color(
-                          0xFF030744,
+                  child: const Center(
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 0.5),
+                      child: Text(
+                        "₱",
+                        style: TextStyle(
+                          height: 1,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(
+                            0xFF030744,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            title: const Text(
-              "TODA Load",
-              style: TextStyle(
-                color: Color(
-                  0xFF030744,
+              title: const Text(
+                "TODA Load",
+                style: TextStyle(
+                  color: Color(
+                    0xFF030744,
+                  ),
                 ),
               ),
+              onTap: () {
+                _closeIOSMenu();
+                Get.to(
+                  () => const LoadView(),
+                );
+              },
             ),
-            onTap: () {
-              _closeIOSMenu();
-              Get.to(
-                () => const LoadView(),
-              );
-            },
-          ),
           if (AuthService.isLoggedIn())
             StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream:
@@ -978,7 +984,10 @@ class _HomeViewState extends State<HomeView> {
                                             final b = vm.markers;
                                             final c = vm.selectedAddress.value;
                                             await vm.zoomIn();
-                                            if (!a && b.isEmpty && c == null) {
+                                            if (!a &&
+                                                b.isEmpty &&
+                                                c == null &&
+                                                pickupAddress == null) {
                                               vm.mapCameraMove(
                                                 "zoomIn",
                                                 vm.mapCenter,
@@ -996,7 +1005,10 @@ class _HomeViewState extends State<HomeView> {
                                             final b = vm.markers;
                                             final c = vm.selectedAddress.value;
                                             await vm.zoomOut();
-                                            if (!a && b.isEmpty && c == null) {
+                                            if (!a &&
+                                                b.isEmpty &&
+                                                c == null &&
+                                                pickupAddress == null) {
                                               vm.mapCameraMove(
                                                 "zoomOut",
                                                 vm.mapCenter,
@@ -1731,7 +1743,11 @@ class _HomeViewState extends State<HomeView> {
                                                                 ),
                                                                 ActionButton(
                                                                   onTap: () {
-                                                                    vm.closeOrder();
+                                                                    if (locUnavailable) {
+                                                                      vm.resetUnavailableLocationState();
+                                                                    } else {
+                                                                      vm.closeOrder();
+                                                                    }
                                                                   },
                                                                   height: ((MediaQuery.of(context).size.width - 64) /
                                                                               3)

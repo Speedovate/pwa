@@ -52,6 +52,31 @@ class HomeViewModel extends GMapViewModel {
   StreamSubscription? orderUpdateStream;
   AuthRequest authRequest = AuthRequest();
   TextEditingController reviewTEC = TextEditingController();
+  Future<void>? _initialOngoingOrderFuture;
+  bool isResolvingInitialOngoingOrder = false;
+
+  @override
+  bool get shouldSkipInitialMapCameraMove =>
+      isResolvingInitialOngoingOrder || ongoingOrder != null;
+
+  Future<void> ensureInitialOngoingOrderLoaded() async {
+    if (!AuthService.isLoggedIn()) {
+      return;
+    }
+    _initialOngoingOrderFuture ??= _resolveInitialOngoingOrder();
+    await _initialOngoingOrderFuture;
+  }
+
+  Future<void> _resolveInitialOngoingOrder() async {
+    isResolvingInitialOngoingOrder = true;
+    notifyListeners();
+    try {
+      await getOngoingOrder();
+    } finally {
+      isResolvingInitialOngoingOrder = false;
+      notifyListeners();
+    }
+  }
 
   initialise() async {
     isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
@@ -64,7 +89,7 @@ class HomeViewModel extends GMapViewModel {
     notifyListeners();
     if (AuthService.isLoggedIn()) {
       if (ongoingOrder == null) {
-        getOngoingOrder();
+        ensureInitialOngoingOrderLoaded();
       }
       LoadViewModel().getLoadBalance();
       startListeningToUser();
@@ -91,6 +116,24 @@ class HomeViewModel extends GMapViewModel {
   @override
   Future<void> recenterHomeMap() async {
     cancelPendingCameraMove();
+    if (ongoingOrder != null &&
+        ongoingOrder?.status != "cancelled" &&
+        ongoingOrder?.status != "delivered" &&
+        ongoingOrder?.taxiOrder?.pickupLatLng != null &&
+        ongoingOrder?.taxiOrder?.dropoffLatLng != null) {
+      isPreparing = true;
+      notifyListeners();
+      await drawDropPolyLines(
+        "pickup-dropoff",
+        ongoingOrder!.taxiOrder!.pickupLatLng,
+        ongoingOrder!.taxiOrder!.dropoffLatLng,
+        ongoingOrder?.driverLatLng,
+      );
+      isPreparing = false;
+      notifyListeners();
+      return;
+    }
+
     if (pickupAddress != null &&
         dropoffAddress != null &&
         (ongoingOrder == null || ongoingOrder?.status == "cancelled")) {
@@ -122,6 +165,21 @@ class HomeViewModel extends GMapViewModel {
       completion: completion,
     );
     await completion.future;
+  }
+
+  void resetUnavailableLocationState() {
+    clearGMapDetails();
+    pickupAddress = null;
+    dropoffAddress = null;
+    selectedVehicle = null;
+    vehicleTypes = [];
+    total = 0;
+    subTotal = 0;
+    discount = 0;
+    locUnavailable = false;
+    clearPickupDisplayState();
+    restorePickupDisplay();
+    notifyListeners();
   }
 
   calculateTotalAmount() {

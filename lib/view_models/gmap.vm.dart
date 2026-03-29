@@ -43,6 +43,7 @@ class GMapViewModel extends BaseViewModel {
   bool get isCameraMovePending => _isCameraMovePending;
   bool _hasActivatedBottomUi = false;
   bool get hasActivatedBottomUi => _hasActivatedBottomUi;
+  bool get shouldSkipInitialMapCameraMove => false;
 
   void _syncMapUiNotifiers() {
     if (showBottomUi.value != _hasActivatedBottomUi) {
@@ -141,6 +142,11 @@ class GMapViewModel extends BaseViewModel {
     isInitializing = true;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
+        if (shouldSkipInitialMapCameraMove) {
+          isInitializing = false;
+          _syncMapUiNotifiers();
+          return;
+        }
         _syncMapUiNotifiers();
         mapCameraMove("setMap", mapCenter);
       },
@@ -219,6 +225,9 @@ class GMapViewModel extends BaseViewModel {
 
   zoomIn() async {
     if (_map != null) {
+      ignoreCameraMovesFor(
+        const Duration(milliseconds: 800),
+      );
       final currentZoom = _map!.zoom;
       _map!.move(_map!.center, (currentZoom + 1).clamp(2, 21));
     }
@@ -226,6 +235,9 @@ class GMapViewModel extends BaseViewModel {
 
   zoomOut() async {
     if (_map != null) {
+      ignoreCameraMovesFor(
+        const Duration(milliseconds: 800),
+      );
       final currentZoom = _map!.zoom;
       _map!.move(_map!.center, (currentZoom - 1).clamp(2, 21));
     }
