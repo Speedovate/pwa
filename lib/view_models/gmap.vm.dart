@@ -200,11 +200,9 @@ class GMapViewModel extends BaseViewModel {
                 double.parse("${target.lng}"),
               ),
             );
-            isLoading = false;
             isInitializing = false;
             await addressSelected(address, animate: true);
             } catch (e) {
-            isLoading = false;
             isInitializing = false;
             final fallbackAddress = previousAddress ??
                 Address(

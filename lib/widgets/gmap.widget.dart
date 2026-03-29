@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' as fmap;
-import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:pwa/services/map.service.dart';
 import 'package:pwa/utils/map_controller.dart';
 import 'package:pwa/utils/map_layers.dart';
@@ -123,23 +122,15 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   }
 
   Widget _buildLeafletMap() {
-    final useRetinaTiles = MediaQuery.devicePixelRatioOf(context) > 1.25;
-    final interactionFlags = widget.enableGestures
-        ? (MapService.isLeafletFallbackPreferred
-            ? fmap.InteractiveFlag.drag |
-                fmap.InteractiveFlag.pinchZoom |
-                fmap.InteractiveFlag.doubleTapZoom |
-                fmap.InteractiveFlag.pinchMove
-            : fmap.InteractiveFlag.all)
-        : fmap.InteractiveFlag.none;
-
     return fmap.FlutterMap(
       mapController: _leafletMapController,
       options: fmap.MapOptions(
         initialCenter: widget.center.toLeafletLatLng(),
         initialZoom: 16,
         interactionOptions: fmap.InteractionOptions(
-          flags: interactionFlags,
+          flags: widget.enableGestures
+              ? fmap.InteractiveFlag.all
+              : fmap.InteractiveFlag.none,
         ),
         onMapReady: () {
           if (_leafletMapReady) {
@@ -155,10 +146,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       children: [
         fmap.TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          retinaMode: useRetinaTiles,
-          panBuffer: 1,
           userAgentPackageName: 'com.ppctoda.pwa',
-          tileProvider: CancellableNetworkTileProvider(),
         ),
         if (widget.polylines.isNotEmpty)
           fmap.PolylineLayer(

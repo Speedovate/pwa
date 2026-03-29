@@ -730,16 +730,14 @@ class _HomeViewState extends State<HomeView> {
                 _homeMapCenter = resolvedCenter;
               }
               final center = _homeMapCenter ?? resolvedCenter;
-              return SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height -
-                      MediaQuery.of(context).padding.top -
-                      MediaQuery.of(context).padding.bottom,
-                  child: Stack(
-                    children: [
-                      Column(
-                        children: [
+              return SizedBox(
+                height: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom,
+                child: Stack(
+                  children: [
+                    Column(
+                      children: [
                           Expanded(
                             child: RepaintBoundary(
                               child: Stack(
@@ -5051,7 +5049,6 @@ class _HomeViewState extends State<HomeView> {
                         }
                       }(),
                     ],
-                  ),
                 ),
               );
             },
