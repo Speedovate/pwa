@@ -879,14 +879,8 @@ class _HomeViewState extends State<HomeView> {
                                       icon: Icons.my_location_outlined,
                                       onTap: () async {
                                         final a = vm.disposed;
-                                        final target =
-                                            await vm.zoomToCurrentLocation();
-                                        if (!a && target != null) {
-                                          vm.mapCameraMove(
-                                            "myLocation",
-                                            target,
-                                            debounceDuration: Duration.zero,
-                                          );
+                                        if (!a) {
+                                          await vm.recenterHomeMap();
                                         }
                                       },
                                     ),

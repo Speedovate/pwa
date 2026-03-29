@@ -88,6 +88,42 @@ class HomeViewModel extends GMapViewModel {
     notifyListeners();
   }
 
+  @override
+  Future<void> recenterHomeMap() async {
+    cancelPendingCameraMove();
+    if (pickupAddress != null &&
+        dropoffAddress != null &&
+        (ongoingOrder == null || ongoingOrder?.status == "cancelled")) {
+      isPreparing = true;
+      notifyListeners();
+      await drawDropPolyLines(
+        "pickup-dropoff",
+        ongoingOrder?.taxiOrder?.pickupLatLng ?? pickupAddress!.latLng,
+        ongoingOrder?.taxiOrder?.dropoffLatLng ?? dropoffAddress!.latLng,
+        ongoingOrder?.driverLatLng,
+      );
+      await fetchVehicleTypesPricing();
+      isPreparing = false;
+      notifyListeners();
+      return;
+    }
+
+    final target = await zoomToCurrentLocation();
+    if (disposed || target == null) {
+      return;
+    }
+
+    final completion = Completer<void>();
+    await mapCameraMove(
+      "myLocation",
+      target,
+      animateSelectedAddress: false,
+      debounceDuration: Duration.zero,
+      completion: completion,
+    );
+    await completion.future;
+  }
+
   calculateTotalAmount() {
     subTotal = selectedVehicle?.total ?? 0;
     if (isBool(AuthService.currentUser?.isProvider)) {

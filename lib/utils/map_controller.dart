@@ -10,6 +10,11 @@ abstract class AppMapController {
 
   void move(app_maps.LatLng target, double zoom);
 
+  void recenter(
+    app_maps.LatLng target, {
+    double? zoom,
+  });
+
   void fitToCoordinates(
     List<app_maps.LatLng> coordinates, {
     EdgeInsets padding = const EdgeInsets.all(48),
@@ -30,6 +35,14 @@ class LeafletMapController implements AppMapController {
   @override
   void move(app_maps.LatLng target, double zoom) {
     raw.move(target.toLeafletLatLng(), zoom);
+  }
+
+  @override
+  void recenter(
+    app_maps.LatLng target, {
+    double? zoom,
+  }) {
+    raw.move(target.toLeafletLatLng(), zoom ?? raw.camera.zoom);
   }
 
   @override
@@ -61,6 +74,17 @@ class GoogleMapController implements AppMapController {
   void move(app_maps.LatLng target, double zoom) {
     raw.center = target.toGoogleLatLng();
     raw.zoom = zoom;
+  }
+
+  @override
+  void recenter(
+    app_maps.LatLng target, {
+    double? zoom,
+  }) {
+    raw.panTo(target.toGoogleLatLng());
+    if (zoom != null) {
+      raw.zoom = zoom;
+    }
   }
 
   @override

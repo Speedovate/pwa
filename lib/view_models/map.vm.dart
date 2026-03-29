@@ -56,7 +56,7 @@ class MapViewModel extends BaseViewModel {
     lastCenter = map.center;
     debugPrint("Map set - MapViewModel");
     try {
-      selectedAddress.value = isPickup
+      final initialAddress = isPickup
           ? pickupAddress ??
               Address(
                 addressLine: pickupAddress!.addressLine,
@@ -78,8 +78,15 @@ class MapViewModel extends BaseViewModel {
                       "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
                 ),
               );
+      selectedAddress.value = initialAddress;
+      searchTEC.text = initialAddress.addressLine ?? "";
+      final initialCenter = initialAddress.latLng;
+      lastCenter = initialCenter;
+      _ignoreCameraMoveUntil = DateTime.now().add(
+        const Duration(milliseconds: 800),
+      );
       map.move(
-        selectedAddress.value!.latLng,
+        initialCenter,
         map.zoom,
       );
     } catch (e) {

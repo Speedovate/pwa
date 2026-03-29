@@ -20,6 +20,7 @@ class GMapViewModel extends BaseViewModel {
       Duration(milliseconds: 350);
   AppMapController? _map;
   Timer? _debounce;
+  int _cameraMoveGeneration = 0;
   bool _isResolvingCameraMove = false;
   bool _isCameraMovePending = false;
   DateTime? _ignoreCameraMoveUntil;
@@ -72,11 +73,14 @@ class GMapViewModel extends BaseViewModel {
     if (showPartnerButtons.value != false) {
       showPartnerButtons.value = false;
     }
-    if (clearPickupDisplay.value != true) {
-      clearPickupDisplay.value = true;
+    final shouldPreservePickup = dropoffAddress != null;
+    if (clearPickupDisplay.value != !shouldPreservePickup) {
+      clearPickupDisplay.value = !shouldPreservePickup;
     }
     selectedAddress.value = null;
-    pickupAddress = null;
+    if (!shouldPreservePickup) {
+      pickupAddress = null;
+    }
     isInitializing = false;
     _isCameraMovePending = true;
     _syncMapUiNotifiers();
@@ -102,6 +106,18 @@ class GMapViewModel extends BaseViewModel {
     selectedAddress.value = null;
     if (clearPickupDisplay.value != false) {
       clearPickupDisplay.value = false;
+    }
+    _syncMapUiNotifiers();
+  }
+
+  void cancelPendingCameraMove() {
+    _cameraMoveGeneration++;
+    _debounce?.cancel();
+    _debounce = null;
+    _isCameraMovePending = false;
+    isLoading = false;
+    if (showMapLoadingIndicator.value != false) {
+      showMapLoadingIndicator.value = false;
     }
     _syncMapUiNotifiers();
   }
@@ -145,24 +161,48 @@ class GMapViewModel extends BaseViewModel {
   }
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
-    var target = await getMyLatLng(
-      forceFresh: true,
-    );
-    if (target == null) {
-      await Future.delayed(
-        const Duration(milliseconds: 1200),
-      );
-      target = await getMyLatLng(
-        forceFresh: true,
-      );
-    }
+    final target = await getMyLatLng();
     if (_map != null && target != null) {
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
       );
-      _map!.move(target, zoom);
+      _map!.recenter(
+        target,
+        zoom: zoom,
+      );
     }
     return target;
+  }
+
+  Future<void> recenterHomeMap() async {
+    if (_map == null) {
+      return;
+    }
+
+    if (pickupAddress != null && dropoffAddress != null) {
+      final routePoints = <gmaps.LatLng>[
+        pickupAddress!.latLng,
+        ...polylines.expand((polyline) => polyline.points),
+        dropoffAddress!.latLng,
+      ];
+      ignoreCameraMovesFor(
+        const Duration(milliseconds: 1200),
+      );
+      _map!.fitToCoordinates(
+        routePoints,
+        padding: const EdgeInsets.all(48),
+      );
+      return;
+    }
+
+    final target = await zoomToCurrentLocation();
+    if (target != null) {
+      await mapCameraMove(
+        "myLocation",
+        target,
+        debounceDuration: Duration.zero,
+      );
+    }
   }
 
   zoomToLocation(
@@ -170,7 +210,10 @@ class GMapViewModel extends BaseViewModel {
     double zoom = 16,
   }) async {
     if (_map != null) {
-      _map!.move(target, zoom);
+      _map!.recenter(
+        target,
+        zoom: zoom,
+      );
     }
   }
 
@@ -192,11 +235,15 @@ class GMapViewModel extends BaseViewModel {
     String function,
     gmaps.LatLng? target, {
     bool skipSelectedAddress = false,
+    bool animateSelectedAddress = true,
     Duration debounceDuration = const Duration(milliseconds: 3000),
+    Completer<void>? completion,
   }) async {
     if (target == null || _isResolvingCameraMove) {
+      completion?.complete();
       return;
     }
+    final generation = ++_cameraMoveGeneration;
     debugPrint("Map move - $function");
     final previousAddress = selectedAddress.value;
     if (!skipSelectedAddress) {
@@ -209,7 +256,12 @@ class GMapViewModel extends BaseViewModel {
       () async {
         var shouldNotify = false;
         DateTime? loadingStartedAt;
+        if (generation != _cameraMoveGeneration) {
+          completion?.complete();
+          return;
+        }
         if (_isResolvingCameraMove) {
+          completion?.complete();
           return;
         }
         _isResolvingCameraMove = true;
@@ -251,9 +303,18 @@ class GMapViewModel extends BaseViewModel {
                 double.parse("${target.lng}"),
               ),
             );
+            if (generation != _cameraMoveGeneration) {
+              return;
+            }
             isInitializing = false;
-            await addressSelected(address, animate: true);
+            await addressSelected(
+              address,
+              animate: animateSelectedAddress,
+            );
             } catch (e) {
+            if (generation != _cameraMoveGeneration) {
+              return;
+            }
             isInitializing = false;
             final fallbackAddress = previousAddress ??
                 Address(
@@ -308,6 +369,9 @@ class GMapViewModel extends BaseViewModel {
           if (gVehicleTypes.isEmpty) {
             try {
               gVehicleTypes = await taxiRequest.vehicleTypesRequest();
+              if (generation != _cameraMoveGeneration) {
+                return;
+              }
               shouldNotify = true;
               debugPrint(
                 "gmap vehicleTypesRequest success",
@@ -319,24 +383,27 @@ class GMapViewModel extends BaseViewModel {
             }
           }
         } finally {
-          if (loadingStartedAt != null) {
-            final elapsed = DateTime.now().difference(loadingStartedAt);
-            if (elapsed < _minimumLoadingIndicatorDuration) {
-              await Future.delayed(
-                _minimumLoadingIndicatorDuration - elapsed,
-              );
+          if (generation == _cameraMoveGeneration) {
+            if (loadingStartedAt != null) {
+              final elapsed = DateTime.now().difference(loadingStartedAt);
+              if (elapsed < _minimumLoadingIndicatorDuration) {
+                await Future.delayed(
+                  _minimumLoadingIndicatorDuration - elapsed,
+                );
+              }
+            }
+            isLoading = false;
+            _isCameraMovePending = false;
+            _isResolvingCameraMove = false;
+            if (showMapLoadingIndicator.value != false) {
+              showMapLoadingIndicator.value = false;
+            }
+            _syncMapUiNotifiers();
+            if (shouldNotify) {
+              notifyListeners();
             }
           }
-          isLoading = false;
-          _isCameraMovePending = false;
-          _isResolvingCameraMove = false;
-          if (showMapLoadingIndicator.value != false) {
-            showMapLoadingIndicator.value = false;
-          }
-          _syncMapUiNotifiers();
-          if (shouldNotify) {
-            notifyListeners();
-          }
+          completion?.complete();
         }
       },
     );
@@ -426,7 +493,7 @@ class GMapViewModel extends BaseViewModel {
         );
         _map!.fitToCoordinates(
           allPoints,
-          padding: const EdgeInsets.all(48),
+          padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
         );
       } else {
         debugPrint("No polyline points received from backend");
@@ -496,7 +563,7 @@ class GMapViewModel extends BaseViewModel {
         );
         _map!.fitToCoordinates(
           allPoints,
-          padding: const EdgeInsets.all(48),
+          padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
         );
       } else {
         debugPrint("No polyline points received from backend");
