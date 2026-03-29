@@ -16,6 +16,7 @@ import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/requests/settings.request.dart';
+import 'package:pwa/services/map.service.dart';
 
 class SplashViewModel extends BaseViewModel {
   StreamSubscription? configStream;
@@ -27,9 +28,8 @@ class SplashViewModel extends BaseViewModel {
     await getAppUser();
     await AppStrings.getAppSettingsFromStorage();
     await AppStrings.getHomeSettingsFromStorage();
-    if (AppStrings.appSettingsObject == null ||
-        AppStrings.googleMapApiKey.trim().isEmpty) {
-      await getSettings();
+    if (AppStrings.appSettingsObject == null) {
+      unawaited(getSettings());
     }
     await AuthService.ensureUserNameInFirestore();
     if (isIOSLikeBrowser()) {
@@ -47,12 +47,11 @@ class SplashViewModel extends BaseViewModel {
         !AuthService.isLoggedIn();
     isAd1Seen = StorageService.prefs?.getBool("is_ad_1_seen") ??
         !AuthService.isLoggedIn();
-    await Future.wait<void>(
-      <Future<void>>[
-        getBanners(),
-        getVehicles(),
-      ],
-    );
+    unawaited(getBanners());
+    unawaited(getVehicles());
+    if (MapService.shouldAttemptGoogleMaps) {
+      unawaited(MapService.ensureGoogleMapsReady());
+    }
     await goToNextPage();
   }
 
@@ -60,8 +59,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.40";
-      versionCode = "60";
+      version = "1.0.32";
+      versionCode = "52";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

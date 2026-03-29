@@ -3,6 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:pwa/services/storage.service.dart';
 
 class AppStrings {
+  static bool _boolValue(dynamic value, {bool fallback = false}) {
+    if (value == null) {
+      return fallback;
+    }
+    final normalized = value.toString().toLowerCase();
+    return normalized == '1' || normalized == 'true';
+  }
+
   static String get appName => env('app_name') ?? '';
 
   static String get companyName => env('company_name') ?? '';
@@ -91,13 +99,17 @@ class AppStrings {
 
   static String get emergencyContact => env('emergencyContact') ?? '911';
 
-  static bool get googleLogin => env('auth')?['googleLogin'] ?? true;
+  static bool get googleLogin =>
+      _boolValue(env('auth')?['googleLogin'], fallback: true);
 
-  static bool get appleLogin => env('auth')?['appleLogin'] ?? false;
+  static bool get appleLogin =>
+      _boolValue(env('auth')?['appleLogin']);
 
-  static bool get facebookLogin => env('auth')?['facebookLogin'] ?? false;
+  static bool get facebookLogin =>
+      _boolValue(env('auth')?['facebookLogin']);
 
-  static bool get qrcodeLogin => env('auth')?['qrcodeLogin'] ?? false;
+  static bool get qrcodeLogin =>
+      _boolValue(env('auth')?['qrcodeLogin']);
 
   static dynamic get uiConfig => env('ui');
 

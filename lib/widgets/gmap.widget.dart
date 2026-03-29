@@ -8,6 +8,12 @@ import 'package:pwa/utils/map_types.dart' as app_maps;
 import 'package:pwa/widgets/gmap_google_legacy.widget.dart'
     as legacy_google;
 
+enum _MapEngineState {
+  googlePending,
+  googleReady,
+  leaflet,
+}
+
 class GoogleMapWidget extends StatefulWidget {
   final app_maps.LatLng center;
   final bool enableGestures;
@@ -33,20 +39,29 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
+  static const Duration _googleResolveRetryDelay = Duration(milliseconds: 700);
+  static const int _maxGoogleResolveAttempts = 10;
   final fmap.MapController _leafletMapController = fmap.MapController();
   bool _leafletMapReady = false;
-  late bool _useGoogleMaps;
+  late _MapEngineState _engineState;
+  bool _isResolvingGoogleEngine = false;
+  int _googleResolveAttempts = 0;
 
   @override
   void initState() {
     super.initState();
-    _useGoogleMaps = MapService.shouldAttemptGoogleMaps;
+    _engineState = MapService.shouldAttemptGoogleMaps
+        ? _MapEngineState.googlePending
+        : _MapEngineState.leaflet;
+    if (_engineState == _MapEngineState.googlePending) {
+      _resolveGoogleEngine();
+    }
   }
 
   @override
   void didUpdateWidget(covariant GoogleMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_useGoogleMaps == false && _leafletMapReady) {
+    if (_engineState == _MapEngineState.leaflet && _leafletMapReady) {
       if (!_latLngEquals(oldWidget.center, widget.center)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) {
@@ -63,6 +78,35 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   void dispose() => super.dispose();
+
+  Future<void> _resolveGoogleEngine() async {
+    if (_isResolvingGoogleEngine || !MapService.shouldAttemptGoogleMaps) {
+      return;
+    }
+    _isResolvingGoogleEngine = true;
+    while (mounted && _googleResolveAttempts < _maxGoogleResolveAttempts) {
+      _googleResolveAttempts++;
+      final ready = await MapService.ensureGoogleMapsReady();
+      if (!mounted) {
+        _isResolvingGoogleEngine = false;
+        return;
+      }
+      if (ready) {
+        setState(() {
+          _engineState = _MapEngineState.googleReady;
+        });
+        _isResolvingGoogleEngine = false;
+        return;
+      }
+      await Future.delayed(_googleResolveRetryDelay);
+    }
+    if (mounted) {
+      setState(() {
+        _engineState = _MapEngineState.leaflet;
+      });
+    }
+    _isResolvingGoogleEngine = false;
+  }
 
   bool _latLngEquals(app_maps.LatLng a, app_maps.LatLng b) {
     return a.lat == b.lat && a.lng == b.lng;
@@ -168,10 +212,13 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_useGoogleMaps) {
+    if (_engineState == _MapEngineState.googlePending) {
+      return const SizedBox.expand();
+    }
+    if (_engineState == _MapEngineState.googleReady) {
       return legacy_google.GoogleMapWidget(
         key: const ValueKey('legacy-google-map'),
-        center: widget.center.toGoogleLatLng(),
+        center: widget.center,
         enableGestures: widget.enableGestures,
         onMapCreated: (map) {
           widget.onMapCreated?.call(
@@ -189,7 +236,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             return;
           }
           setState(() {
-            _useGoogleMaps = false;
+            _engineState = _MapEngineState.leaflet;
           });
         },
       );

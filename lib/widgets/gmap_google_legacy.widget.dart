@@ -7,9 +7,10 @@ import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 import 'package:pwa/services/map.service.dart';
+import 'package:pwa/utils/map_types.dart' as app_maps;
 
 class GoogleMapWidget extends StatefulWidget {
-  final gmaps.LatLng center;
+  final app_maps.LatLng center;
   final bool enableGestures;
   final void Function(gmaps.Map map)? onMapCreated;
   final VoidCallback? onCameraMoveStart;
@@ -103,7 +104,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             ..style.height = '100%';
           final mapOptions = gmaps.MapOptions()
             ..zoom = 16
-            ..center = widget.center
+            ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
             ..clickableIcons = false
             ..disableDefaultUI = true
             ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
@@ -169,12 +170,12 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             widget.enableGestures ? 'greedy' : 'none');
       }
       if (!_latLngEquals(oldWidget.center, widget.center)) {
-        _map!.panTo(widget.center);
+        _map!.panTo(gmaps.LatLng(widget.center.lat, widget.center.lng));
       }
     }
   }
 
-  bool _latLngEquals(gmaps.LatLng a, gmaps.LatLng b) {
+  bool _latLngEquals(app_maps.LatLng a, app_maps.LatLng b) {
     return a.lat == b.lat && a.lng == b.lng;
   }
 
