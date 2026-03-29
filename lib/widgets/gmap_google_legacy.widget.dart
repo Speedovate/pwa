@@ -7,11 +7,14 @@ import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 import 'package:pwa/services/map.service.dart';
+import 'package:pwa/utils/map_layers.dart';
 import 'package:pwa/utils/map_types.dart' as app_maps;
 
 class GoogleMapWidget extends StatefulWidget {
   final app_maps.LatLng center;
   final bool enableGestures;
+  final List<MapMarkerData> markers;
+  final List<MapPolylineData> polylines;
   final void Function(gmaps.Map map)? onMapCreated;
   final VoidCallback? onCameraMoveStart;
   final void Function(gmaps.LatLng)? onCameraMove;
@@ -21,6 +24,8 @@ class GoogleMapWidget extends StatefulWidget {
     super.key,
     required this.center,
     this.enableGestures = true,
+    this.markers = const [],
+    this.polylines = const [],
     this.onMapCreated,
     this.onCameraMoveStart,
     this.onCameraMove,
@@ -50,6 +55,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   bool _cameraMoveStartSent = false;
   bool _suppressCameraCallbacks = false;
   gmaps.LatLng? _latestCenter;
+  final Map<String, gmaps.Marker> _renderedMarkers = {};
+  final List<gmaps.Polyline> _renderedPolylines = [];
 
   static const List<Map<String, dynamic>> _defaultStyles = [
     {
@@ -149,6 +156,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
               _map = gmaps.Map(mapDiv as dynamic, mapOptions);
               MapService.debugLog('Legacy Google widget created gmaps.Map instance');
               js_util.setProperty(_map!, 'styles', _defaultStyles);
+              _syncOverlays();
               widget.onMapCreated?.call(_map!);
               _dragStartSub = _map!.onDragstart.listen(
                 (_) {
@@ -230,6 +238,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void didUpdateWidget(covariant GoogleMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_mapInitialized && _map != null) {
+      _syncOverlays();
       if (oldWidget.enableGestures != widget.enableGestures) {
         js_util.setProperty(_map!, 'gestureHandling',
             widget.enableGestures ? 'greedy' : 'none');
@@ -248,8 +257,68 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     return a.lat == b.lat && a.lng == b.lng;
   }
 
+  void _syncOverlays() {
+    if (_map == null) {
+      return;
+    }
+    _clearRenderedPolylines();
+    _clearRenderedMarkers();
+
+    for (final marker in widget.markers) {
+      final markerOptions = gmaps.MarkerOptions()
+        ..map = _map
+        ..position = gmaps.LatLng(
+          marker.position.lat,
+          marker.position.lng,
+        )
+        ..title = marker.id;
+      markerOptions.icon = gmaps.Icon(
+        url: marker.imageUrl,
+        scaledSize: gmaps.Size(marker.width, marker.height),
+      );
+      _renderedMarkers[marker.id] = gmaps.Marker(markerOptions);
+    }
+
+    for (final polyline in widget.polylines) {
+      final polylineOptions = gmaps.PolylineOptions()
+        ..path = js_util.jsify(
+          polyline.points
+              .map((point) => gmaps.LatLng(point.lat, point.lng))
+              .toList(),
+        )
+        ..strokeColor = _colorToGoogleHex(polyline.color)
+        ..strokeOpacity = polyline.color.opacity
+        ..strokeWeight = polyline.strokeWidth
+        ..map = _map;
+      _renderedPolylines.add(
+        gmaps.Polyline(polylineOptions),
+      );
+    }
+  }
+
+  String _colorToGoogleHex(Color color) {
+    final value = color.value & 0x00FFFFFF;
+    return '#${value.toRadixString(16).padLeft(6, '0').toUpperCase()}';
+  }
+
+  void _clearRenderedMarkers() {
+    for (final marker in _renderedMarkers.values) {
+      marker.map = null;
+    }
+    _renderedMarkers.clear();
+  }
+
+  void _clearRenderedPolylines() {
+    for (final polyline in _renderedPolylines) {
+      polyline.map = null;
+    }
+    _renderedPolylines.clear();
+  }
+
   @override
   void dispose() {
+    _clearRenderedPolylines();
+    _clearRenderedMarkers();
     _centerIdleTimer?.cancel();
     _dragStartSub?.cancel();
     _centerChangedSub?.cancel();

@@ -824,6 +824,7 @@ class HomeViewModel extends GMapViewModel {
     reviewTEC.clear();
     getOngoingOrder();
     clearGMapDetails();
+    clearPickupDisplayState();
     Get.forceAppUpdate();
     zoomToCurrentLocation();
   }
@@ -926,6 +927,7 @@ class HomeViewModel extends GMapViewModel {
             ongoingOrder?.taxiOrder?.dropoffLongitude ?? 0.0,
           ),
         );
+        syncPickupDisplayFromAddress();
         switch (ongoingOrder?.status) {
           case "pending":
             if (lastStatus != ongoingOrder?.status) {

@@ -530,6 +530,30 @@ class _HomeViewState extends State<HomeView> {
     return a.lat == b.lat && a.lng == b.lng;
   }
 
+  Address? _cloneAddress(Address? address) {
+    if (address == null) {
+      return null;
+    }
+    return Address(
+      addressLine: address.addressLine,
+      countryName: address.countryName,
+      countryCode: address.countryCode,
+      featureName: address.featureName,
+      postalCode: address.postalCode,
+      adminArea: address.adminArea,
+      subAdminArea: address.subAdminArea,
+      locality: address.locality,
+      subLocality: address.subLocality,
+      thoroughfare: address.thoroughfare,
+      subThoroughfare: address.subThoroughfare,
+      gMapPlaceId: address.gMapPlaceId,
+      coordinates: Coordinates(
+        address.coordinates.latitude,
+        address.coordinates.longitude,
+      ),
+    );
+  }
+
   String _locationErrorHint() {
     final error = lastGeolocationErrorMessage ?? "";
     if (error.contains("POSITION_UNAVAILABLE")) {
@@ -760,16 +784,23 @@ class _HomeViewState extends State<HomeView> {
                                         !vm.isMapInteractionLocked,
                                     markers: vm.markers,
                                     polylines: vm.polylines,
-                                    onMapCreated: (map) async {
+                                    onMapCreated: (map) {
                                       vm.setMap(map);
-                                      if (AuthService.isLoggedIn()) {
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) async {
+                                        if (!mounted ||
+                                            !AuthService.isLoggedIn()) {
+                                          return;
+                                        }
                                         await vm.getOngoingOrder();
-                                        await LoadViewModel().getLoadBalance();
-                                      }
+                                        await LoadViewModel()
+                                            .getLoadBalance();
+                                      });
                                     },
                                     onCameraMoveStart: () {
                                       try {
                                         if (vm.ongoingOrder == null &&
+                                            !vm.isIgnoringCameraMove &&
                                             !vm.blockCamera &&
                                             !vm.isMapInteractionLocked) {
                                           vm.beginCameraMove();
@@ -2597,6 +2628,7 @@ class _HomeViewState extends State<HomeView> {
                                                         );
                                                         if (mounted &&
                                                             rebuild == true) {
+                                                          vm.syncPickupDisplayFromAddress();
                                                           setState(() {});
                                                         }
                                                         if (pickupAddress !=
@@ -2680,24 +2712,22 @@ class _HomeViewState extends State<HomeView> {
                                                           width: 8,
                                                         ),
                                                         Expanded(
-                                                          child: AnimatedBuilder(
-                                                            animation:
-                                                                Listenable.merge(
-                                                              [
-                                                                vm.selectedAddress,
+                                                          child:
+                                                              ValueListenableBuilder<
+                                                                  bool>(
+                                                            valueListenable:
                                                                 vm.clearPickupDisplay,
-                                                              ],
-                                                            ),
-                                                            builder: (_, __) {
-                                                              final selectedAddress =
-                                                                  vm.clearPickupDisplay
-                                                                          .value
+                                                            builder:
+                                                                (_,
+                                                                    clearPickupDisplay,
+                                                                    __) {
+                                                              final address =
+                                                                  clearPickupDisplay
                                                                       ? null
-                                                                      : vm.selectedAddress
-                                                                          .value;
+                                                                      : pickupAddress;
                                                               return Text(
                                                                 capitalizeWords(
-                                                                  selectedAddress
+                                                                  address
                                                                       ?.addressLine,
                                                                   alt:
                                                                       "Where from?",
@@ -2763,6 +2793,10 @@ class _HomeViewState extends State<HomeView> {
                                                           vm.ongoingOrder
                                                                   ?.status ==
                                                               "cancelled") {
+                                                        final preservedPickup =
+                                                            _cloneAddress(
+                                                          pickupAddress,
+                                                        );
                                                         var rebuild =
                                                             await Navigator
                                                                 .push(
@@ -2784,6 +2818,9 @@ class _HomeViewState extends State<HomeView> {
                                                         );
                                                         if (mounted &&
                                                             rebuild == true) {
+                                                          pickupAddress =
+                                                              preservedPickup;
+                                                          vm.restorePickupDisplay();
                                                           setState(() {});
                                                         }
                                                         if (pickupAddress !=

@@ -177,6 +177,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         key: const ValueKey('legacy-google-map'),
         center: widget.center,
         enableGestures: widget.enableGestures,
+        markers: widget.markers,
+        polylines: widget.polylines,
         onMapCreated: (map) {
           widget.onMapCreated?.call(
             GoogleMapController(map),

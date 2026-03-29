@@ -82,6 +82,30 @@ class GMapViewModel extends BaseViewModel {
     _syncMapUiNotifiers();
   }
 
+  void syncPickupDisplayFromAddress() {
+    if (pickupAddress == null) {
+      return;
+    }
+    selectedAddress.value = pickupAddress;
+    restorePickupDisplay();
+  }
+
+  void restorePickupDisplay() {
+    if (clearPickupDisplay.value != false) {
+      clearPickupDisplay.value = false;
+    }
+    _hasActivatedBottomUi = true;
+    _syncMapUiNotifiers();
+  }
+
+  void clearPickupDisplayState() {
+    selectedAddress.value = null;
+    if (clearPickupDisplay.value != false) {
+      clearPickupDisplay.value = false;
+    }
+    _syncMapUiNotifiers();
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -110,6 +134,15 @@ class GMapViewModel extends BaseViewModel {
   AppMapController? get map => _map;
 
   gmaps.LatLng? get mapCenter => _map?.center;
+
+  bool get isIgnoringCameraMove {
+    final ignoreUntil = _ignoreCameraMoveUntil;
+    return ignoreUntil != null && DateTime.now().isBefore(ignoreUntil);
+  }
+
+  void ignoreCameraMovesFor(Duration duration) {
+    _ignoreCameraMoveUntil = DateTime.now().add(duration);
+  }
 
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
     var target = await getMyLatLng(
@@ -388,6 +421,9 @@ class GMapViewModel extends BaseViewModel {
           ),
         ];
         final allPoints = [driverLatLng, ...points, pickupLatLng];
+        ignoreCameraMovesFor(
+          const Duration(milliseconds: 1200),
+        );
         _map!.fitToCoordinates(
           allPoints,
           padding: const EdgeInsets.all(48),
@@ -455,6 +491,9 @@ class GMapViewModel extends BaseViewModel {
           ),
         ];
         final allPoints = [pickupLatLng, ...points, dropoffLatLng];
+        ignoreCameraMovesFor(
+          const Duration(milliseconds: 1200),
+        );
         _map!.fitToCoordinates(
           allPoints,
           padding: const EdgeInsets.all(48),
