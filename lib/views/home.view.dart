@@ -798,7 +798,8 @@ class _HomeViewState extends State<HomeView> {
                                             !AuthService.isLoggedIn()) {
                                           return;
                                         }
-                                        await vm.getOngoingOrder();
+                                        await vm
+                                            .ensureInitialOngoingOrderLoaded();
                                         await LoadViewModel()
                                             .getLoadBalance();
                                       });

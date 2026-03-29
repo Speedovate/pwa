@@ -157,6 +157,15 @@ class GMapViewModel extends BaseViewModel {
 
   gmaps.LatLng? get mapCenter => _map?.center;
 
+  void startInitialMapCameraMoveIfNeeded() {
+    if (_map == null) {
+      return;
+    }
+    isInitializing = true;
+    _syncMapUiNotifiers();
+    mapCameraMove("setMap", mapCenter);
+  }
+
   bool get isIgnoringCameraMove {
     final ignoreUntil = _ignoreCameraMoveUntil;
     return ignoreUntil != null && DateTime.now().isBefore(ignoreUntil);

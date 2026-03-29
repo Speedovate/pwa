@@ -74,6 +74,9 @@ class HomeViewModel extends GMapViewModel {
       await getOngoingOrder();
     } finally {
       isResolvingInitialOngoingOrder = false;
+      if (ongoingOrder == null) {
+        startInitialMapCameraMoveIfNeeded();
+      }
       notifyListeners();
     }
   }
