@@ -16,7 +16,6 @@ import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/requests/settings.request.dart';
-import 'package:pwa/services/map.service.dart';
 
 class SplashViewModel extends BaseViewModel {
   StreamSubscription? configStream;
@@ -52,7 +51,6 @@ class SplashViewModel extends BaseViewModel {
       <Future<void>>[
         getBanners(),
         getVehicles(),
-        MapService.ensureGoogleMapsReady(),
       ],
     );
     await goToNextPage();
@@ -62,8 +60,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.39";
-      versionCode = "59";
+      version = "1.0.40";
+      versionCode = "60";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

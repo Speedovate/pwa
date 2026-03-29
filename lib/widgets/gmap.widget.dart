@@ -35,15 +35,12 @@ class GoogleMapWidget extends StatefulWidget {
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   final fmap.MapController _leafletMapController = fmap.MapController();
   bool _leafletMapReady = false;
-  bool? _useGoogleMaps;
+  late bool _useGoogleMaps;
 
   @override
   void initState() {
     super.initState();
-    _useGoogleMaps = MapService.initialEngineDecision;
-    if (_useGoogleMaps == null) {
-      _resolveEngine();
-    }
+    _useGoogleMaps = MapService.shouldAttemptGoogleMaps;
   }
 
   @override
@@ -66,25 +63,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   void dispose() => super.dispose();
-
-  Future<void> _resolveEngine() async {
-    if (!MapService.shouldAttemptGoogleMaps) {
-      if (mounted) {
-        setState(() {
-          _useGoogleMaps = false;
-        });
-      }
-      return;
-    }
-
-    final ready = await MapService.ensureGoogleMapsReady();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _useGoogleMaps = ready;
-    });
-  }
 
   bool _latLngEquals(app_maps.LatLng a, app_maps.LatLng b) {
     return a.lat == b.lat && a.lng == b.lng;
@@ -190,7 +168,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_useGoogleMaps == true) {
+    if (_useGoogleMaps) {
       return legacy_google.GoogleMapWidget(
         key: const ValueKey('legacy-google-map'),
         center: widget.center.toGoogleLatLng(),
@@ -206,10 +184,15 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             center.toAppLatLng(),
           );
         },
+        onLoadError: () {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _useGoogleMaps = false;
+          });
+        },
       );
-    }
-    if (_useGoogleMaps == null) {
-      return const SizedBox.expand();
     }
     return _buildLeafletMap();
   }

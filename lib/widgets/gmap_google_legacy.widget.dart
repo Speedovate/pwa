@@ -6,6 +6,7 @@ import 'dart:ui_web' as ui;
 import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
+import 'package:pwa/services/map.service.dart';
 
 class GoogleMapWidget extends StatefulWidget {
   final gmaps.LatLng center;
@@ -13,6 +14,7 @@ class GoogleMapWidget extends StatefulWidget {
   final void Function(gmaps.Map map)? onMapCreated;
   final VoidCallback? onCameraMoveStart;
   final void Function(gmaps.LatLng)? onCameraMove;
+  final VoidCallback? onLoadError;
 
   const GoogleMapWidget({
     super.key,
@@ -21,6 +23,7 @@ class GoogleMapWidget extends StatefulWidget {
     this.onMapCreated,
     this.onCameraMoveStart,
     this.onCameraMove,
+    this.onLoadError,
   });
 
   @override
@@ -33,6 +36,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   StreamSubscription? _dragStartSub;
   StreamSubscription? _idleSub;
   bool _mapInitialized = false;
+  bool _isViewRegistered = false;
+  bool _hasLoadError = false;
 
   static const List<Map<String, dynamic>> _defaultStyles = [
     {
@@ -79,55 +84,80 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     super.initState();
     viewId = 'map-div-${DateTime.now().microsecondsSinceEpoch}';
     _ensureHideGmapUiStyle();
-    ui.platformViewRegistry.registerViewFactory(
-      viewId,
-      (int _) {
-        final mapDiv = html.DivElement()
-          ..id = viewId
-          ..style.width = '100%'
-          ..style.height = '100%';
-        final mapOptions = gmaps.MapOptions()
-          ..zoom = 16
-          ..center = widget.center
-          ..clickableIcons = false
-          ..disableDefaultUI = true
-          ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
-          ..disableDoubleClickZoom = true
-          ..mapTypeId = gmaps.MapTypeId.ROADMAP;
-        _map = gmaps.Map(mapDiv as dynamic, mapOptions);
-        js_util.setProperty(_map!, 'styles', _defaultStyles);
-        widget.onMapCreated?.call(_map!);
-        _dragStartSub = _map!.onDragstart.listen(
-          (_) {
-            if (!mounted) {
-              return;
-            }
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+    _initializeMap();
+  }
+
+  Future<void> _initializeMap() async {
+    try {
+      final ready = await MapService.ensureGoogleMapsReady();
+      if (!ready) {
+        _handleLoadError();
+        return;
+      }
+      ui.platformViewRegistry.registerViewFactory(
+        viewId,
+        (int _) {
+          final mapDiv = html.DivElement()
+            ..id = viewId
+            ..style.width = '100%'
+            ..style.height = '100%';
+          final mapOptions = gmaps.MapOptions()
+            ..zoom = 16
+            ..center = widget.center
+            ..clickableIcons = false
+            ..disableDefaultUI = true
+            ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
+            ..disableDoubleClickZoom = true
+            ..mapTypeId = gmaps.MapTypeId.ROADMAP;
+          _map = gmaps.Map(mapDiv as dynamic, mapOptions);
+          js_util.setProperty(_map!, 'styles', _defaultStyles);
+          widget.onMapCreated?.call(_map!);
+          _dragStartSub = _map!.onDragstart.listen(
+            (_) {
               if (!mounted) {
                 return;
               }
-              widget.onCameraMoveStart?.call();
-            });
-          },
-        );
-        _idleSub = _map!.onIdle.listen(
-          (_) {
-            final center = _map?.center;
-            if (center == null || !mounted) {
-              return;
-            }
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) {
+                  return;
+                }
+                widget.onCameraMoveStart?.call();
+              });
+            },
+          );
+          _idleSub = _map!.onIdle.listen(
+            (_) {
+              final center = _map?.center;
+              if (center == null || !mounted) {
                 return;
               }
-              widget.onCameraMove?.call(center);
-            });
-          },
-        );
-        _mapInitialized = true;
-        return mapDiv;
-      },
-    );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) {
+                  return;
+                }
+                widget.onCameraMove?.call(center);
+              });
+            },
+          );
+          _mapInitialized = true;
+          return mapDiv;
+        },
+      );
+      _isViewRegistered = true;
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {
+      _handleLoadError();
+    }
+  }
+
+  void _handleLoadError() {
+    if (_hasLoadError) {
+      return;
+    }
+    _hasLoadError = true;
+    widget.onLoadError?.call();
   }
 
   @override
@@ -177,6 +207,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (_hasLoadError || !_isViewRegistered) {
+      return const SizedBox.expand();
+    }
     return HtmlElementView(viewType: viewId);
   }
 }

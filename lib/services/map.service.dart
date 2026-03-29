@@ -11,11 +11,12 @@ class MapService {
   static Future<bool>? _googleMapsReadyFuture;
   static bool get _isHuaweiBrowser => isHuaweiLikeBrowser();
   static bool get shouldAttemptGoogleMaps => !_isHuaweiBrowser;
-  static bool get _hasGoogleMapsApiKey =>
+  static bool get hasGoogleMapsApiKey =>
       AppStrings.googleMapApiKey.trim().isNotEmpty;
+  static bool get hasLoadedAppSettings => AppStrings.appSettingsObject != null;
 
   static bool get shouldUseGoogleMapsByDefault =>
-      shouldAttemptGoogleMaps && _hasGoogleMapsApiKey;
+      shouldAttemptGoogleMaps && hasGoogleMapsApiKey;
 
   static bool get isLeafletFallbackPreferred => !shouldUseGoogleMapsByDefault;
 
