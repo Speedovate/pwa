@@ -28,7 +28,8 @@ class SplashViewModel extends BaseViewModel {
     await getAppUser();
     await AppStrings.getAppSettingsFromStorage();
     await AppStrings.getHomeSettingsFromStorage();
-    if (AppStrings.appSettingsObject == null) {
+    if (AppStrings.appSettingsObject == null ||
+        AppStrings.googleMapApiKey.trim().isEmpty) {
       await getSettings();
     }
     await AuthService.ensureUserNameInFirestore();
@@ -61,8 +62,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.38";
-      versionCode = "58";
+      version = "1.0.39";
+      versionCode = "59";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
