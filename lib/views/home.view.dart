@@ -421,7 +421,8 @@ class _HomeViewState extends State<HomeView> {
           ),
           if (AuthService.isLoggedIn())
             StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-              stream: fbStore.collection("access").doc("pwa_partners").snapshots(),
+              stream:
+                  fbStore.collection("access").doc("pwa_partners").snapshots(),
               builder: (context, snapshot) {
                 final allowedUserIds = snapshot.data?.data()?["users"] ?? [];
                 final currentUserId = "${AuthService.currentUser?.id}";
@@ -723,7 +724,8 @@ class _HomeViewState extends State<HomeView> {
               }
               final resolvedCenter = snapshot.data!;
               final currentCenter = _homeMapCenter;
-              final showBottomUi = vm.selectedAddress.value != null &&
+              final showBottomUi = vm.selectedAddress.value != null;
+              final showPartnerButtons = showBottomUi &&
                   !vm.isCameraMovePending &&
                   !vm.isLoading &&
                   !vm.isInitializing;
@@ -814,750 +816,760 @@ class _HomeViewState extends State<HomeView> {
                                     },
                                   ),
                                   Positioned(
-                                  top: 20,
-                                  left: 20,
-                                  child: FloatingButton(
-                                    icon: Icons.menu,
-                                    onTap: () {
-                                      _toggleHomeMenu();
-                                    },
+                                    top: 20,
+                                    left: 20,
+                                    child: FloatingButton(
+                                      icon: Icons.menu,
+                                      onTap: () {
+                                        _toggleHomeMenu();
+                                      },
+                                    ),
                                   ),
-                                ),
-                                !isBool(
-                                  AuthService.currentUser?.isProvider,
-                                )
-                                    ? const SizedBox()
-                                    : Positioned(
-                                        top: 20,
-                                        left: 20,
-                                        right: 20,
-                                        child: Center(
-                                          child: FloatingButton(
-                                            icon: vm.showAnalytics
-                                                ? Icons.close
-                                                : Icons.analytics_outlined,
-                                            iconColor: vm.showAnalytics
-                                                ? Colors.red
-                                                : const Color(0xFF007BFF),
-                                            onTap: () {
-                                              setState(() {
-                                                vm.showAnalytics =
-                                                    !vm.showAnalytics;
-                                              });
-                                            },
+                                  !isBool(
+                                    AuthService.currentUser?.isProvider,
+                                  )
+                                      ? const SizedBox()
+                                      : Positioned(
+                                          top: 20,
+                                          left: 20,
+                                          right: 20,
+                                          child: Center(
+                                            child: FloatingButton(
+                                              icon: vm.showAnalytics
+                                                  ? Icons.close
+                                                  : Icons.analytics_outlined,
+                                              iconColor: vm.showAnalytics
+                                                  ? Colors.red
+                                                  : const Color(0xFF007BFF),
+                                              onTap: () {
+                                                setState(() {
+                                                  vm.showAnalytics =
+                                                      !vm.showAnalytics;
+                                                });
+                                              },
+                                            ),
                                           ),
                                         ),
-                                      ),
                                   Positioned(
-                                  top: 20,
-                                  right: 20,
-                                  child: FloatingButton(
-                                    icon: Icons.my_location_outlined,
-                                    onTap: () async {
-                                      final a = vm.disposed;
-                                      final target =
-                                          await vm.zoomToCurrentLocation();
-                                      if (!a && target != null) {
-                                        vm.mapCameraMove(
-                                          "myLocation",
-                                          target,
-                                          debounceDuration: Duration.zero,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                                  Positioned(
-                                  left: 20,
-                                  bottom: 20,
-                                  child: Column(
-                                    children: [
-                                      FloatingButton(
-                                        icon: Icons.cached_outlined,
-                                        onTap: () async {
-                                          if (!AuthService.isLoggedIn()) {
-                                            Navigator.push(
-                                              context,
-                                              PageRouteBuilder(
-                                                reverseTransitionDuration:
-                                                    Duration.zero,
-                                                transitionDuration:
-                                                    Duration.zero,
-                                                pageBuilder: (
-                                                  context,
-                                                  a,
-                                                  b,
-                                                ) =>
-                                                    const LoginView(),
-                                              ),
-                                            );
-                                          } else {
-                                            AlertService().showLoading();
-                                            vm.lastStatus = null;
-                                            await vm.getOngoingOrder(
-                                              forceStop: true,
-                                            );
-                                            if (vm.ongoingOrder == null) {
-                                              await LoadViewModel()
-                                                  .getLoadBalance();
-                                            }
-                                            if (pickupAddress != null &&
-                                                    dropoffAddress != null &&
-                                                    vm.ongoingOrder == null ||
-                                                vm.ongoingOrder?.status ==
-                                                    "cancelled") {
-                                              setState(() {
-                                                vm.isPreparing = true;
-                                              });
-                                              if (vm.ongoingOrder == null) {
-                                                vm.drawDropPolyLines(
-                                                  "pickup-dropoff",
-                                                  vm.ongoingOrder?.taxiOrder
-                                                          ?.pickupLatLng ??
-                                                      pickupAddress!.latLng,
-                                                  vm.ongoingOrder?.taxiOrder
-                                                          ?.dropoffLatLng ??
-                                                      dropoffAddress!.latLng,
-                                                  vm.ongoingOrder?.driverLatLng,
-                                                );
-                                                await vm
-                                                    .fetchVehicleTypesPricing();
-                                                setState(() {
-                                                  vm.isPreparing = false;
-                                                });
-                                              }
-                                            }
-                                            AlertService().stopLoading(
-                                              forceStop: true,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                      const SizedBox(
-                                        height: 8,
-                                      ),
-                                      FloatingButton(
-                                        icon: Icons.share,
-                                        onTap: () {
-                                          share(
-                                            "Hey there, you can now book tricycles on the PPC TODA (Beta) app! Here is the download link.",
+                                    top: 20,
+                                    right: 20,
+                                    child: FloatingButton(
+                                      icon: Icons.my_location_outlined,
+                                      onTap: () async {
+                                        final a = vm.disposed;
+                                        final target =
+                                            await vm.zoomToCurrentLocation();
+                                        if (!a && target != null) {
+                                          vm.mapCameraMove(
+                                            "myLocation",
+                                            target,
+                                            debounceDuration: Duration.zero,
                                           );
-                                        },
-                                      ),
-                                    ],
+                                        }
+                                      },
+                                    ),
                                   ),
-                                ),
                                   Positioned(
-                                  right: 20,
-                                  bottom: 20,
-                                  child: Column(
-                                    children: [
-                                      FloatingButton(
-                                        icon: Icons.add,
-                                        onTap: () async {
-                                          final a = vm.disposed;
-                                          final b = vm.markers;
-                                          final c = vm.selectedAddress.value;
-                                          await vm.zoomIn();
-                                          if (!a && b.isEmpty && c == null) {
-                                            vm.mapCameraMove(
-                                              "zoomIn",
-                                              vm.mapCenter,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                      const SizedBox(
-                                        height: 8,
-                                      ),
-                                      FloatingButton(
-                                        icon: Icons.remove,
-                                        onTap: () async {
-                                          final a = vm.disposed;
-                                          final b = vm.markers;
-                                          final c = vm.selectedAddress.value;
-                                          await vm.zoomOut();
-                                          if (!a && b.isEmpty && c == null) {
-                                            vm.mapCameraMove(
-                                              "zoomOut",
-                                              vm.mapCenter,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                  vm.ongoingOrder != null ||
-                                        !isBool(
-                                          AppStrings.homeSettingsObject?[
-                                                  "show_ad"] ??
-                                              true,
-                                        )
-                                    ? const SizedBox.shrink()
-                                    : Positioned(
-                                        left: 0,
-                                        right: 0,
-                                        bottom: showBottomUi ? 20 : -500,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            PartnerButtonWidget(
-                                              image: AppImages.mnb,
-                                              show: true,
-                                              onTap: () async {
-                                                if (gBanners.isEmpty) {
-                                                  await SplashViewModel()
-                                                      .getBanners();
-                                                }
+                                    left: 20,
+                                    bottom: 20,
+                                    child: Column(
+                                      children: [
+                                        FloatingButton(
+                                          icon: Icons.cached_outlined,
+                                          onTap: () async {
+                                            if (!AuthService.isLoggedIn()) {
+                                              Navigator.push(
+                                                context,
+                                                PageRouteBuilder(
+                                                  reverseTransitionDuration:
+                                                      Duration.zero,
+                                                  transitionDuration:
+                                                      Duration.zero,
+                                                  pageBuilder: (
+                                                    context,
+                                                    a,
+                                                    b,
+                                                  ) =>
+                                                      const LoginView(),
+                                                ),
+                                              );
+                                            } else {
+                                              AlertService().showLoading();
+                                              vm.lastStatus = null;
+                                              await vm.getOngoingOrder(
+                                                forceStop: true,
+                                              );
+                                              if (vm.ongoingOrder == null) {
+                                                await LoadViewModel()
+                                                    .getLoadBalance();
+                                              }
+                                              if (pickupAddress != null &&
+                                                      dropoffAddress != null &&
+                                                      vm.ongoingOrder == null ||
+                                                  vm.ongoingOrder?.status ==
+                                                      "cancelled") {
                                                 setState(() {
-                                                  isAdSeen = false;
-                                                  showBranch = false;
+                                                  vm.isPreparing = true;
                                                 });
-                                              },
-                                            ),
-                                            const SizedBox(
-                                              width: 12,
-                                            ),
-                                            PartnerButtonWidget(
-                                              image: AppImages.sbb,
-                                              show: true,
-                                              onTap: () async {
-                                                if (gBanners.isEmpty) {
-                                                  await SplashViewModel()
-                                                      .getBanners();
+                                                if (vm.ongoingOrder == null) {
+                                                  vm.drawDropPolyLines(
+                                                    "pickup-dropoff",
+                                                    vm.ongoingOrder?.taxiOrder
+                                                            ?.pickupLatLng ??
+                                                        pickupAddress!.latLng,
+                                                    vm.ongoingOrder?.taxiOrder
+                                                            ?.dropoffLatLng ??
+                                                        dropoffAddress!.latLng,
+                                                    vm.ongoingOrder
+                                                        ?.driverLatLng,
+                                                  );
+                                                  await vm
+                                                      .fetchVehicleTypesPricing();
+                                                  setState(() {
+                                                    vm.isPreparing = false;
+                                                  });
                                                 }
-                                                setState(() {
-                                                  isAd1Seen = false;
-                                                  showBranch = false;
-                                                });
-                                              },
-                                            ),
-                                          ],
+                                              }
+                                              AlertService().stopLoading(
+                                                forceStop: true,
+                                              );
+                                            }
+                                          },
                                         ),
-                                      ),
-                                  vm.markers.isNotEmpty
-                                    ? const SizedBox.shrink()
-                                    : const Center(
-                                        child: Padding(
-                                          padding: EdgeInsets.only(bottom: 40),
-                                          child: Icon(
-                                            Icons.location_on,
-                                            color: Color(
-                                              0xFF007BFF,
-                                            ),
-                                            size: 50,
+                                        const SizedBox(
+                                          height: 8,
+                                        ),
+                                        FloatingButton(
+                                          icon: Icons.share,
+                                          onTap: () {
+                                            share(
+                                              "Hey there, you can now book tricycles on the PPC TODA (Beta) app! Here is the download link.",
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 20,
+                                    bottom: 20,
+                                    child: Column(
+                                      children: [
+                                        FloatingButton(
+                                          icon: Icons.add,
+                                          onTap: () async {
+                                            final a = vm.disposed;
+                                            final b = vm.markers;
+                                            final c = vm.selectedAddress.value;
+                                            await vm.zoomIn();
+                                            if (!a && b.isEmpty && c == null) {
+                                              vm.mapCameraMove(
+                                                "zoomIn",
+                                                vm.mapCenter,
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        const SizedBox(
+                                          height: 8,
+                                        ),
+                                        FloatingButton(
+                                          icon: Icons.remove,
+                                          onTap: () async {
+                                            final a = vm.disposed;
+                                            final b = vm.markers;
+                                            final c = vm.selectedAddress.value;
+                                            await vm.zoomOut();
+                                            if (!a && b.isEmpty && c == null) {
+                                              vm.mapCameraMove(
+                                                "zoomOut",
+                                                vm.mapCenter,
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  vm.ongoingOrder != null ||
+                                          !isBool(
+                                            AppStrings.homeSettingsObject?[
+                                                    "show_ad"] ??
+                                                true,
+                                          )
+                                      ? const SizedBox.shrink()
+                                      : Positioned(
+                                          left: 0,
+                                          right: 0,
+                                          bottom:
+                                              showPartnerButtons ? 20 : -500,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              PartnerButtonWidget(
+                                                image: AppImages.mnb,
+                                                show: true,
+                                                onTap: () async {
+                                                  if (gBanners.isEmpty) {
+                                                    await SplashViewModel()
+                                                        .getBanners();
+                                                  }
+                                                  setState(() {
+                                                    isAdSeen = false;
+                                                    showBranch = false;
+                                                  });
+                                                },
+                                              ),
+                                              const SizedBox(
+                                                width: 12,
+                                              ),
+                                              PartnerButtonWidget(
+                                                image: AppImages.sbb,
+                                                show: true,
+                                                onTap: () async {
+                                                  if (gBanners.isEmpty) {
+                                                    await SplashViewModel()
+                                                        .getBanners();
+                                                  }
+                                                  setState(() {
+                                                    isAd1Seen = false;
+                                                    showBranch = false;
+                                                  });
+                                                },
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ),
-                                  !vm.showAnalytics ||
-                                        !isBool(
-                                          AuthService.currentUser?.isProvider,
-                                        )
-                                    ? const SizedBox()
-                                    : Positioned(
-                                        top: 80,
-                                        left: 16,
-                                        right: 16,
-                                        child: Center(
-                                          child: Container(
-                                            width: (MediaQuery.of(context)
-                                                        .size
-                                                        .width -
-                                                    32)
-                                                .clamp(0, 800),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  const BorderRadius.all(
-                                                Radius.circular(8),
+                                  vm.markers.isNotEmpty
+                                      ? const SizedBox.shrink()
+                                      : const Center(
+                                          child: Padding(
+                                            padding:
+                                                EdgeInsets.only(bottom: 40),
+                                            child: Icon(
+                                              Icons.location_on,
+                                              color: Color(
+                                                0xFF007BFF,
                                               ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: const Color(
-                                                    0xFF030744,
-                                                  ).withOpacity(0.25),
-                                                  blurRadius: 2,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ],
+                                              size: 50,
                                             ),
-                                            child: SingleChildScrollView(
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(
-                                                  16,
+                                          ),
+                                        ),
+                                  !vm.showAnalytics ||
+                                          !isBool(
+                                            AuthService.currentUser?.isProvider,
+                                          )
+                                      ? const SizedBox()
+                                      : Positioned(
+                                          top: 80,
+                                          left: 16,
+                                          right: 16,
+                                          child: Center(
+                                            child: Container(
+                                              width: (MediaQuery.of(context)
+                                                          .size
+                                                          .width -
+                                                      32)
+                                                  .clamp(0, 800),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(8),
                                                 ),
-                                                child: Column(
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        const Text(
-                                                          "Payment Mode",
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: Color(
-                                                              0xFF030744,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        const Expanded(
-                                                          child:
-                                                              SizedBox.shrink(),
-                                                        ),
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                            horizontal: 10,
-                                                            vertical: 6,
-                                                          ),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: Colors.red
-                                                                .withOpacity(
-                                                              0.08,
-                                                            ),
-                                                            borderRadius:
-                                                                const BorderRadius
-                                                                    .all(
-                                                              Radius.circular(
-                                                                999,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          child: const Text(
-                                                            "Locked",
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color(
+                                                      0xFF030744,
+                                                    ).withOpacity(0.25),
+                                                    blurRadius: 2,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: SingleChildScrollView(
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(
+                                                    16,
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          const Text(
+                                                            "Payment Mode",
                                                             style: TextStyle(
-                                                              fontSize: 11,
                                                               fontWeight:
                                                                   FontWeight
                                                                       .w600,
-                                                              color: Colors.red,
+                                                              color: Color(
+                                                                0xFF030744,
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    const SizedBox(height: 12),
-                                                    Container(
-                                                      width: double.infinity,
-                                                      height: 56,
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius:
-                                                            const BorderRadius
-                                                                .all(
-                                                          Radius.circular(8),
-                                                        ),
-                                                        border: Border.all(
-                                                          color: const Color(
-                                                            0xFF030744,
+                                                          const Expanded(
+                                                            child: SizedBox
+                                                                .shrink(),
                                                           ),
-                                                        ),
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 10,
+                                                              vertical: 6,
+                                                            ),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Colors.red
+                                                                  .withOpacity(
+                                                                0.08,
+                                                              ),
+                                                              borderRadius:
+                                                                  const BorderRadius
+                                                                      .all(
+                                                                Radius.circular(
+                                                                  999,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            child: const Text(
+                                                              "Locked",
+                                                              style: TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                color:
+                                                                    Colors.red,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                      child: Center(
-                                                        child: Text(
-                                                          vm.providerPaymentMode ==
-                                                                  "cash"
-                                                              ? "Cash: Pay Your Driver"
-                                                              : "Load: Auto Deduction",
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style:
-                                                              const TextStyle(
-                                                            height: 1.05,
-                                                            fontSize: 15,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                            color: Color(
+                                                      const SizedBox(
+                                                          height: 12),
+                                                      Container(
+                                                        width: double.infinity,
+                                                        height: 56,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius:
+                                                              const BorderRadius
+                                                                  .all(
+                                                            Radius.circular(8),
+                                                          ),
+                                                          border: Border.all(
+                                                            color: const Color(
                                                               0xFF030744,
                                                             ),
                                                           ),
                                                         ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            vm.providerPaymentMode ==
+                                                                    "cash"
+                                                                ? "Cash: Pay Your Driver"
+                                                                : "Load: Auto Deduction",
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            style:
+                                                                const TextStyle(
+                                                              height: 1.05,
+                                                              fontSize: 15,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                              color: Color(
+                                                                0xFF030744,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
                                                       ),
-                                                    ),
-                                                    const SizedBox(height: 16),
-                                                    Row(
-                                                      children: [
-                                                        Expanded(
-                                                          child: Container(
-                                                            height: 56,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Container(
+                                                              height: 56,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                borderRadius:
+                                                                    const BorderRadius
+                                                                        .all(
+                                                                  Radius
+                                                                      .circular(
+                                                                    8,
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF030744,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .today_outlined,
-                                                                  size: 32,
-                                                                  color: Color(
+                                                                border:
+                                                                    Border.all(
+                                                                  color:
+                                                                      const Color(
                                                                     0xFF030744,
                                                                   ),
                                                                 ),
-                                                                const SizedBox(
-                                                                  width: 2,
-                                                                ),
-                                                                Column(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                      "₱${vm.user?["today_amount"] ?? 0}",
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  const Icon(
+                                                                    Icons
+                                                                        .today_outlined,
+                                                                    size: 32,
+                                                                    color:
+                                                                        Color(
+                                                                      0xFF030744,
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 2,
+                                                                  ),
+                                                                  Column(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Text(
+                                                                        "₱${vm.user?["today_amount"] ?? 0}",
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                    const Text(
-                                                                      "Today",
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                                      const Text(
+                                                                        "Today",
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              11,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 16,
-                                                        ),
-                                                        Expanded(
-                                                          child: Container(
-                                                            height: 56,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
+                                                          const SizedBox(
+                                                            width: 16,
+                                                          ),
+                                                          Expanded(
+                                                            child: Container(
+                                                              height: 56,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                borderRadius:
+                                                                    const BorderRadius
+                                                                        .all(
+                                                                  Radius
+                                                                      .circular(
+                                                                    8,
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF030744,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .calendar_month_outlined,
-                                                                  size: 32,
-                                                                  color: Color(
+                                                                border:
+                                                                    Border.all(
+                                                                  color:
+                                                                      const Color(
                                                                     0xFF030744,
                                                                   ),
                                                                 ),
-                                                                const SizedBox(
-                                                                  width: 2,
-                                                                ),
-                                                                Column(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                      "₱${vm.user?["month_amount"] ?? 0}",
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  const Icon(
+                                                                    Icons
+                                                                        .calendar_month_outlined,
+                                                                    size: 32,
+                                                                    color:
+                                                                        Color(
+                                                                      0xFF030744,
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 2,
+                                                                  ),
+                                                                  Column(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Text(
+                                                                        "₱${vm.user?["month_amount"] ?? 0}",
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                    Text(
-                                                                      DateFormat(
-                                                                        "MMMM",
-                                                                      ).format(
-                                                                        DateTime
-                                                                            .now(),
-                                                                      ),
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                                      Text(
+                                                                        DateFormat(
+                                                                          "MMMM",
+                                                                        ).format(
+                                                                          DateTime
+                                                                              .now(),
+                                                                        ),
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              11,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    const SizedBox(height: 16),
-                                                    Row(
-                                                      children: [
-                                                        Expanded(
-                                                          child: Container(
-                                                            height: 56,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
+                                                        ],
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Container(
+                                                              height: 56,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                borderRadius:
+                                                                    const BorderRadius
+                                                                        .all(
+                                                                  Radius
+                                                                      .circular(
+                                                                    8,
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF030744,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .list_alt,
-                                                                  size: 32,
-                                                                  color: Color(
+                                                                border:
+                                                                    Border.all(
+                                                                  color:
+                                                                      const Color(
                                                                     0xFF030744,
                                                                   ),
                                                                 ),
-                                                                const SizedBox(
-                                                                  width: 2,
-                                                                ),
-                                                                Column(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                      "₱${vm.user?["total_amount"] ?? 0}",
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  const Icon(
+                                                                    Icons
+                                                                        .list_alt,
+                                                                    size: 32,
+                                                                    color:
+                                                                        Color(
+                                                                      0xFF030744,
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 2,
+                                                                  ),
+                                                                  Column(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Text(
+                                                                        "₱${vm.user?["total_amount"] ?? 0}",
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                    const Text(
-                                                                      "Total",
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                                      const Text(
+                                                                        "Total",
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              11,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 16,
-                                                        ),
-                                                        Expanded(
-                                                          child: Container(
-                                                            height: 56,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  8,
+                                                          const SizedBox(
+                                                            width: 16,
+                                                          ),
+                                                          Expanded(
+                                                            child: Container(
+                                                              height: 56,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                borderRadius:
+                                                                    const BorderRadius
+                                                                        .all(
+                                                                  Radius
+                                                                      .circular(
+                                                                    8,
+                                                                  ),
                                                                 ),
-                                                              ),
-                                                              border:
-                                                                  Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                  0xFF030744,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .add_chart_outlined,
-                                                                  size: 32,
-                                                                  color: Color(
+                                                                border:
+                                                                    Border.all(
+                                                                  color:
+                                                                      const Color(
                                                                     0xFF030744,
                                                                   ),
                                                                 ),
-                                                                const SizedBox(
-                                                                  width: 2,
-                                                                ),
-                                                                Column(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                      "₱${vm.user?["markup_amount"] ?? 0}",
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  const Icon(
+                                                                    Icons
+                                                                        .add_chart_outlined,
+                                                                    size: 32,
+                                                                    color:
+                                                                        Color(
+                                                                      0xFF030744,
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 2,
+                                                                  ),
+                                                                  Column(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Text(
+                                                                        "₱${vm.user?["markup_amount"] ?? 0}",
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                    const Text(
-                                                                      "Markup",
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        height:
-                                                                            1.05,
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color:
-                                                                            Color(
-                                                                          0xFF030744,
+                                                                      const Text(
+                                                                        "Markup",
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style:
+                                                                            TextStyle(
+                                                                          height:
+                                                                              1.05,
+                                                                          fontSize:
+                                                                              11,
+                                                                          fontWeight:
+                                                                              FontWeight.w500,
+                                                                          color:
+                                                                              Color(
+                                                                            0xFF030744,
+                                                                          ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
                                 ],
                               ),
                             ),
@@ -1574,309 +1586,481 @@ class _HomeViewState extends State<HomeView> {
                                   child: !showBottomUi
                                       ? const SizedBox.shrink()
                                       : Column(
-                                        children: [
-                                          (gVehicleTypes.isEmpty ||
-                                                      locUnavailable) &&
-                                                  vm.ongoingOrder == null
-                                              ? Column(
-                                                  children: [
-                                                    Divider(
-                                                      height: 1,
-                                                      thickness: 1,
-                                                      color: const Color(
-                                                        0xFF030744,
-                                                      ).withOpacity(0.1),
-                                                    ),
-                                                    const SizedBox(
-                                                      height: 20,
-                                                    ),
-                                                    Padding(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                        horizontal: 20,
+                                          children: [
+                                            (gVehicleTypes.isEmpty ||
+                                                        locUnavailable) &&
+                                                    vm.ongoingOrder == null
+                                                ? Column(
+                                                    children: [
+                                                      Divider(
+                                                        height: 1,
+                                                        thickness: 1,
+                                                        color: const Color(
+                                                          0xFF030744,
+                                                        ).withOpacity(0.1),
                                                       ),
-                                                      child: Container(
-                                                        width: double.infinity
-                                                            .clamp(
-                                                          0,
-                                                          800,
-                                                        ),
-                                                        height: ((MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: Colors
-                                                              .red.shade50,
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(
-                                                            Radius.circular(
-                                                              8,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                            horizontal: 12,
-                                                          ),
-                                                          child: Column(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              Row(
-                                                                children: [
-                                                                  const Icon(
-                                                                    Icons
-                                                                        .warning,
-                                                                    color: Colors
-                                                                        .red,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    width: 8,
-                                                                  ),
-                                                                  Text(
-                                                                    locUnavailable
-                                                                        ? "Service location is not available"
-                                                                        : "An error occurred. Please try again",
-                                                                    maxLines: 1,
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
-                                                                      color:
-                                                                          Color(
-                                                                        0xFF030744,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              const SizedBox(
-                                                                height: 12,
-                                                              ),
-                                                              ActionButton(
-                                                                onTap: () {
-                                                                  vm.closeOrder();
-                                                                },
-                                                                height: ((MediaQuery.of(context).size.width -
-                                                                                64) /
-                                                                            3)
-                                                                        .clamp(
-                                                                            0,
-                                                                            120) /
-                                                                    3,
-                                                                mainColor:
-                                                                    Colors.red,
-                                                                text: locUnavailable
-                                                                    ? "Try another location"
-                                                                    : "Retry",
-                                                                style:
-                                                                    const TextStyle(
-                                                                  height: 1.05,
-                                                                  color: Colors
-                                                                      .white,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
+                                                      const SizedBox(
+                                                        height: 20,
                                                       ),
-                                                    ),
-                                                  ],
-                                                )
-                                              : vm.ongoingOrder != null &&
-                                                      vm.ongoingOrder?.status !=
-                                                          "cancelled"
-                                                  ? SizedBox(
-                                                      height: ((MediaQuery.of(context)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 20,
+                                                        ),
+                                                        child: Container(
+                                                          width: double.infinity
+                                                              .clamp(
+                                                            0,
+                                                            800,
+                                                          ),
+                                                          height: ((MediaQuery.of(
+                                                                              context)
                                                                           .size
                                                                           .width -
                                                                       64) /
                                                                   3)
-                                                              .clamp(0, 120) +
-                                                          20,
-                                                      child: Column(
-                                                        children: [
-                                                          Expanded(
-                                                            child: Container(
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: vm.ongoingOrder
-                                                                            ?.status !=
-                                                                        "pending"
-                                                                    ? vm.ongoingOrder?.status ==
-                                                                            "cancelled"
-                                                                        ? Colors
-                                                                            .red
-                                                                        : Colors
-                                                                            .green
-                                                                    : const Color(
-                                                                        0xFF007BFF,
-                                                                      ),
-                                                              ),
-                                                              child: Row(
-                                                                children: [
-                                                                  Expanded(
-                                                                    child:
-                                                                        Center(
-                                                                      child:
-                                                                          Padding(
-                                                                        padding:
-                                                                            const EdgeInsets.symmetric(
-                                                                          horizontal:
-                                                                              20,
-                                                                        ),
-                                                                        child:
-                                                                            SizedBox(
-                                                                          width: double
-                                                                              .infinity
-                                                                              .clamp(
-                                                                            0,
-                                                                            800,
-                                                                          ),
-                                                                          child:
-                                                                              Text(
-                                                                            "Ride #${vm.ongoingOrder!.id} - ${() {
-                                                                              if (vm.ongoingOrder?.status == "pending") {
-                                                                                if (vm.ongoingOrder!.driver == null) {
-                                                                                  return "Finding a driver";
-                                                                                } else {
-                                                                                  return "Waiting for driver";
-                                                                                }
-                                                                              } else if (vm.ongoingOrder?.status == "preparing") {
-                                                                                return "Going to pickup";
-                                                                              } else if (vm.ongoingOrder?.status == "ready") {
-                                                                                return "Arrived at pickup";
-                                                                              } else if (vm.ongoingOrder?.status == "enroute") {
-                                                                                return "Going to dropoff";
-                                                                              } else if (vm.ongoingOrder?.status == "delivered") {
-                                                                                return "Completed";
-                                                                              } else if (vm.ongoingOrder?.status == "cancelled") {
-                                                                                return "Cancelled";
-                                                                              } else {
-                                                                                return "Connecting";
-                                                                              }
-                                                                            }()}",
-                                                                            style:
-                                                                                const TextStyle(
-                                                                              height: 1.05,
-                                                                              color: Colors.white,
-                                                                              fontWeight: FontWeight.bold,
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
+                                                              .clamp(0, 120),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .red.shade50,
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                8,
                                                               ),
                                                             ),
                                                           ),
-                                                          vm.ongoingOrder!
-                                                                      .status !=
-                                                                  "pending"
-                                                              ? Container(
-                                                                  height: 4,
-                                                                  color: vm.ongoingOrder
-                                                                              ?.status ==
-                                                                          "cancelled"
-                                                                      ? Colors
-                                                                          .red
-                                                                          .shade100
-                                                                      : Colors
-                                                                          .green
-                                                                          .shade100,
-                                                                )
-                                                              : Container(
-                                                                  height: 4,
-                                                                  color:
-                                                                      const Color(
-                                                                    0xFF007BFF,
-                                                                  ).withOpacity(
-                                                                    0.25,
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 12,
+                                                            ),
+                                                            child: Column(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .center,
+                                                              children: [
+                                                                Row(
+                                                                  children: [
+                                                                    const Icon(
+                                                                      Icons
+                                                                          .warning,
+                                                                      color: Colors
+                                                                          .red,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      width: 8,
+                                                                    ),
+                                                                    Text(
+                                                                      locUnavailable
+                                                                          ? "Service location is not available"
+                                                                          : "An error occurred. Please try again",
+                                                                      maxLines:
+                                                                          1,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style:
+                                                                          const TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.w500,
+                                                                        color:
+                                                                            Color(
+                                                                          0xFF030744,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                const SizedBox(
+                                                                  height: 12,
+                                                                ),
+                                                                ActionButton(
+                                                                  onTap: () {
+                                                                    vm.closeOrder();
+                                                                  },
+                                                                  height: ((MediaQuery.of(context).size.width - 64) /
+                                                                              3)
+                                                                          .clamp(
+                                                                              0,
+                                                                              120) /
+                                                                      3,
+                                                                  mainColor:
+                                                                      Colors
+                                                                          .red,
+                                                                  text: locUnavailable
+                                                                      ? "Try another location"
+                                                                      : "Retry",
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    height:
+                                                                        1.05,
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
                                                                   ),
                                                                 ),
-                                                          const SizedBox(
-                                                            height: 15,
+                                                              ],
+                                                            ),
                                                           ),
-                                                          vm.ongoingOrder!
-                                                                      .driver ==
-                                                                  null
-                                                              ? Padding(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .symmetric(
-                                                                    horizontal:
-                                                                        20,
-                                                                  ),
-                                                                  child:
-                                                                      SizedBox(
-                                                                    width: double
-                                                                        .infinity
-                                                                        .clamp(
-                                                                      0,
-                                                                      800,
-                                                                    ),
-                                                                    child:
-                                                                        Container(
-                                                                      height:
-                                                                          50,
-                                                                      decoration:
-                                                                          BoxDecoration(
-                                                                        color:
-                                                                            const Color(
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : vm.ongoingOrder != null &&
+                                                        vm.ongoingOrder
+                                                                ?.status !=
+                                                            "cancelled"
+                                                    ? SizedBox(
+                                                        height: ((MediaQuery.of(context)
+                                                                            .size
+                                                                            .width -
+                                                                        64) /
+                                                                    3)
+                                                                .clamp(0, 120) +
+                                                            20,
+                                                        child: Column(
+                                                          children: [
+                                                            Expanded(
+                                                              child: Container(
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: vm.ongoingOrder
+                                                                              ?.status !=
+                                                                          "pending"
+                                                                      ? vm.ongoingOrder?.status ==
+                                                                              "cancelled"
+                                                                          ? Colors
+                                                                              .red
+                                                                          : Colors
+                                                                              .green
+                                                                      : const Color(
                                                                           0xFF007BFF,
-                                                                        ).withOpacity(0.1),
-                                                                        borderRadius:
-                                                                            const BorderRadius.all(
-                                                                          Radius
-                                                                              .circular(
-                                                                            8,
+                                                                        ),
+                                                                ),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child:
+                                                                          Center(
+                                                                        child:
+                                                                            Padding(
+                                                                          padding:
+                                                                              const EdgeInsets.symmetric(
+                                                                            horizontal:
+                                                                                20,
+                                                                          ),
+                                                                          child:
+                                                                              SizedBox(
+                                                                            width:
+                                                                                double.infinity.clamp(
+                                                                              0,
+                                                                              800,
+                                                                            ),
+                                                                            child:
+                                                                                Text(
+                                                                              "Ride #${vm.ongoingOrder!.id} - ${() {
+                                                                                if (vm.ongoingOrder?.status == "pending") {
+                                                                                  if (vm.ongoingOrder!.driver == null) {
+                                                                                    return "Finding a driver";
+                                                                                  } else {
+                                                                                    return "Waiting for driver";
+                                                                                  }
+                                                                                } else if (vm.ongoingOrder?.status == "preparing") {
+                                                                                  return "Going to pickup";
+                                                                                } else if (vm.ongoingOrder?.status == "ready") {
+                                                                                  return "Arrived at pickup";
+                                                                                } else if (vm.ongoingOrder?.status == "enroute") {
+                                                                                  return "Going to dropoff";
+                                                                                } else if (vm.ongoingOrder?.status == "delivered") {
+                                                                                  return "Completed";
+                                                                                } else if (vm.ongoingOrder?.status == "cancelled") {
+                                                                                  return "Cancelled";
+                                                                                } else {
+                                                                                  return "Connecting";
+                                                                                }
+                                                                              }()}",
+                                                                              style: const TextStyle(
+                                                                                height: 1.05,
+                                                                                color: Colors.white,
+                                                                                fontWeight: FontWeight.bold,
+                                                                              ),
+                                                                            ),
                                                                           ),
                                                                         ),
                                                                       ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            vm.ongoingOrder!
+                                                                        .status !=
+                                                                    "pending"
+                                                                ? Container(
+                                                                    height: 4,
+                                                                    color: vm.ongoingOrder?.status ==
+                                                                            "cancelled"
+                                                                        ? Colors
+                                                                            .red
+                                                                            .shade100
+                                                                        : Colors
+                                                                            .green
+                                                                            .shade100,
+                                                                  )
+                                                                : Container(
+                                                                    height: 4,
+                                                                    color:
+                                                                        const Color(
+                                                                      0xFF007BFF,
+                                                                    ).withOpacity(
+                                                                      0.25,
+                                                                    ),
+                                                                  ),
+                                                            const SizedBox(
+                                                              height: 15,
+                                                            ),
+                                                            vm.ongoingOrder!
+                                                                        .driver ==
+                                                                    null
+                                                                ? Padding(
+                                                                    padding:
+                                                                        const EdgeInsets
+                                                                            .symmetric(
+                                                                      horizontal:
+                                                                          20,
+                                                                    ),
+                                                                    child:
+                                                                        SizedBox(
+                                                                      width: double
+                                                                          .infinity
+                                                                          .clamp(
+                                                                        0,
+                                                                        800,
+                                                                      ),
                                                                       child:
-                                                                          const Row(
+                                                                          Container(
+                                                                        height:
+                                                                            50,
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          color:
+                                                                              const Color(
+                                                                            0xFF007BFF,
+                                                                          ).withOpacity(0.1),
+                                                                          borderRadius:
+                                                                              const BorderRadius.all(
+                                                                            Radius.circular(
+                                                                              8,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        child:
+                                                                            const Row(
+                                                                          children: [
+                                                                            SizedBox(
+                                                                              width: 12,
+                                                                            ),
+                                                                            Icon(
+                                                                              Icons.search,
+                                                                              color: Color(
+                                                                                0xFF007BFF,
+                                                                              ),
+                                                                            ),
+                                                                            SizedBox(
+                                                                              width: 8,
+                                                                            ),
+                                                                            Text(
+                                                                              "We are doing our best to find a driver",
+                                                                              style: TextStyle(
+                                                                                height: 1.05,
+                                                                                fontSize: 13,
+                                                                                fontWeight: FontWeight.w500,
+                                                                                color: Color(
+                                                                                  0xFF007BFF,
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  )
+                                                                : Padding(
+                                                                    padding:
+                                                                        const EdgeInsets
+                                                                            .symmetric(
+                                                                      horizontal:
+                                                                          20,
+                                                                    ),
+                                                                    child:
+                                                                        SizedBox(
+                                                                      width: double
+                                                                          .infinity
+                                                                          .clamp(
+                                                                        0,
+                                                                        800,
+                                                                      ),
+                                                                      child:
+                                                                          Row(
                                                                         children: [
-                                                                          SizedBox(
+                                                                          GestureDetector(
+                                                                            onTap:
+                                                                                () {
+                                                                              AlertService().showAppAlert(
+                                                                                isCustom: true,
+                                                                                customWidget: PinchZoom(
+                                                                                  child: SizedBox(
+                                                                                    height: MediaQuery.of(context).size.width - 70,
+                                                                                    child: Image.network(
+                                                                                      vm.ongoingOrder?.driver?.cPhoto ?? "",
+                                                                                      fit: BoxFit.cover,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              );
+                                                                            },
+                                                                            child:
+                                                                                ClipOval(
+                                                                              child: SizedBox(
+                                                                                width: 48,
+                                                                                height: 48,
+                                                                                child: NetworkImageWidget(
+                                                                                  fit: BoxFit.cover,
+                                                                                  memCacheWidth: 600,
+                                                                                  imageUrl: vm.ongoingOrder?.driver?.cPhoto ?? "",
+                                                                                  progressIndicatorBuilder: (
+                                                                                    context,
+                                                                                    imageUrl,
+                                                                                    progress,
+                                                                                  ) {
+                                                                                    return const CircularProgressIndicator(
+                                                                                      color: Color(
+                                                                                        0xFF007BFF,
+                                                                                      ),
+                                                                                      strokeWidth: 2,
+                                                                                    );
+                                                                                  },
+                                                                                  errorWidget: (
+                                                                                    context,
+                                                                                    imageUrl,
+                                                                                    progress,
+                                                                                  ) {
+                                                                                    return Container(
+                                                                                      color: const Color(
+                                                                                        0xFF030744,
+                                                                                      ),
+                                                                                      child: const Icon(
+                                                                                        Icons.person_outline_outlined,
+                                                                                        color: Colors.white,
+                                                                                      ),
+                                                                                    );
+                                                                                  },
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          const SizedBox(
                                                                             width:
                                                                                 12,
                                                                           ),
-                                                                          Icon(
-                                                                            Icons.search,
-                                                                            color:
-                                                                                Color(
-                                                                              0xFF007BFF,
+                                                                          Expanded(
+                                                                            child:
+                                                                                Column(
+                                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                                              children: [
+                                                                                Padding(
+                                                                                  padding: const EdgeInsets.only(
+                                                                                    right: 12,
+                                                                                  ),
+                                                                                  child: Text(
+                                                                                    capitalizeWords(
+                                                                                      vm.ongoingOrder?.driver?.name,
+                                                                                      alt: "Driver",
+                                                                                    ),
+                                                                                    maxLines: 1,
+                                                                                    overflow: TextOverflow.ellipsis,
+                                                                                    style: const TextStyle(
+                                                                                      height: 1.15,
+                                                                                      fontWeight: FontWeight.w500,
+                                                                                      color: Color(
+                                                                                        0xFF030744,
+                                                                                      ),
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                                Text(
+                                                                                  capitalizeWords(
+                                                                                    "${vm.ongoingOrder?.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.driver?.franchiseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.franchiseNumber}"}${vm.ongoingOrder?.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.licenseNumber}"}",
+                                                                                    alt: "Driver Info",
+                                                                                  ),
+                                                                                  style: const TextStyle(
+                                                                                    height: 1.15,
+                                                                                    fontSize: 12,
+                                                                                    fontWeight: FontWeight.w400,
+                                                                                    color: Color(
+                                                                                      0xFF030744,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ],
                                                                             ),
                                                                           ),
                                                                           SizedBox(
                                                                             width:
-                                                                                8,
-                                                                          ),
-                                                                          Text(
-                                                                            "We are doing our best to find a driver",
-                                                                            style:
-                                                                                TextStyle(
-                                                                              height: 1.05,
-                                                                              fontSize: 13,
-                                                                              fontWeight: FontWeight.w500,
-                                                                              color: Color(
+                                                                                44,
+                                                                            height:
+                                                                                44,
+                                                                            child:
+                                                                                WidgetButton(
+                                                                              onTap: () {
+                                                                                launchUrlString(
+                                                                                  "tel://${vm.ongoingOrder?.driver?.phone}",
+                                                                                );
+                                                                              },
+                                                                              mainColor: const Color(
                                                                                 0xFF007BFF,
+                                                                              ),
+                                                                              borderRadius: 8,
+                                                                              useDefaultHoverColor: false,
+                                                                              child: const Center(
+                                                                                child: Icon(
+                                                                                  Icons.call,
+                                                                                  color: Colors.white,
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            width:
+                                                                                12,
+                                                                          ),
+                                                                          SizedBox(
+                                                                            width:
+                                                                                44,
+                                                                            height:
+                                                                                44,
+                                                                            child:
+                                                                                WidgetButton(
+                                                                              onTap: () {
+                                                                                vm.chatDriver();
+                                                                              },
+                                                                              mainColor: const Color(
+                                                                                0xFF007BFF,
+                                                                              ),
+                                                                              borderRadius: 8,
+                                                                              useDefaultHoverColor: false,
+                                                                              child: const Center(
+                                                                                child: Icon(
+                                                                                  Icons.chat,
+                                                                                  color: Colors.white,
+                                                                                ),
                                                                               ),
                                                                             ),
                                                                           ),
@@ -1884,275 +2068,398 @@ class _HomeViewState extends State<HomeView> {
                                                                       ),
                                                                     ),
                                                                   ),
-                                                                )
-                                                              : Padding(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .symmetric(
-                                                                    horizontal:
-                                                                        20,
-                                                                  ),
-                                                                  child:
+                                                          ],
+                                                        ),
+                                                      )
+                                                    : Column(
+                                                        children: [
+                                                          Divider(
+                                                            height: 1,
+                                                            thickness: 1,
+                                                            color: const Color(
+                                                              0xFF030744,
+                                                            ).withOpacity(0.1),
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 20,
+                                                          ),
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 20,
+                                                            ),
+                                                            child: SizedBox(
+                                                              width: double
+                                                                  .infinity
+                                                                  .clamp(
+                                                                0,
+                                                                800,
+                                                              ),
+                                                              child: Column(
+                                                                children: [
+                                                                  Row(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    children: [
                                                                       SizedBox(
-                                                                    width: double
-                                                                        .infinity
-                                                                        .clamp(
-                                                                      0,
-                                                                      800,
-                                                                    ),
-                                                                    child: Row(
-                                                                      children: [
-                                                                        GestureDetector(
-                                                                          onTap:
-                                                                              () {
-                                                                            AlertService().showAppAlert(
-                                                                              isCustom: true,
-                                                                              customWidget: PinchZoom(
-                                                                                child: SizedBox(
-                                                                                  height: MediaQuery.of(context).size.width - 70,
-                                                                                  child: Image.network(
-                                                                                    vm.ongoingOrder?.driver?.cPhoto ?? "",
-                                                                                    fit: BoxFit.cover,
+                                                                        width: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
+                                                                            0,
+                                                                            120),
+                                                                        height: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
+                                                                            0,
+                                                                            120),
+                                                                        child:
+                                                                            Builder(
+                                                                          builder:
+                                                                              (context) {
+                                                                            final previewVehicle =
+                                                                                gVehicleTypes.firstWhere(
+                                                                              (v) => v.slug == "tricycle",
+                                                                              orElse: () => gVehicleTypes.first,
+                                                                            );
+                                                                            return ConstrainedBox(
+                                                                              constraints: const BoxConstraints(
+                                                                                maxWidth: 200,
+                                                                              ),
+                                                                              child: Container(
+                                                                                height: 50,
+                                                                                decoration: BoxDecoration(
+                                                                                  borderRadius: const BorderRadius.all(
+                                                                                    Radius.circular(
+                                                                                      8,
+                                                                                    ),
                                                                                   ),
+                                                                                  border: Border.all(
+                                                                                    color: const Color(
+                                                                                      0xFF007BFF,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                                child: Column(
+                                                                                  children: [
+                                                                                    const SizedBox(
+                                                                                      height: 12,
+                                                                                    ),
+                                                                                    Expanded(
+                                                                                      child: Padding(
+                                                                                        padding: const EdgeInsets.symmetric(
+                                                                                          horizontal: 8,
+                                                                                        ),
+                                                                                        child: Image.asset(
+                                                                                          "assets/images/${lowerCase(previewVehicle.name!)}.png",
+                                                                                        ),
+                                                                                      ),
+                                                                                    ),
+                                                                                    const SizedBox(
+                                                                                      height: 8,
+                                                                                    ),
+                                                                                    Text(
+                                                                                      capitalizeWords(
+                                                                                        previewVehicle.name!,
+                                                                                      ),
+                                                                                      style: const TextStyle(
+                                                                                        height: 1.05,
+                                                                                        fontSize: 14,
+                                                                                        color: Color(
+                                                                                          0xFF007BFF,
+                                                                                        ),
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      "${previewVehicle.maxSeat!} Seater",
+                                                                                      style: const TextStyle(
+                                                                                        height: 1.05,
+                                                                                        fontSize: 12,
+                                                                                        color: Color(
+                                                                                          0xFF007BFF,
+                                                                                        ),
+                                                                                      ),
+                                                                                    ),
+                                                                                    const SizedBox(
+                                                                                      height: 12,
+                                                                                    ),
+                                                                                  ],
                                                                                 ),
                                                                               ),
                                                                             );
                                                                           },
-                                                                          child:
-                                                                              ClipOval(
-                                                                            child:
-                                                                                SizedBox(
-                                                                              width: 48,
-                                                                              height: 48,
-                                                                              child: NetworkImageWidget(
-                                                                                fit: BoxFit.cover,
-                                                                                memCacheWidth: 600,
-                                                                                imageUrl: vm.ongoingOrder?.driver?.cPhoto ?? "",
-                                                                                progressIndicatorBuilder: (
-                                                                                  context,
-                                                                                  imageUrl,
-                                                                                  progress,
-                                                                                ) {
-                                                                                  return const CircularProgressIndicator(
-                                                                                    color: Color(
-                                                                                      0xFF007BFF,
-                                                                                    ),
-                                                                                    strokeWidth: 2,
-                                                                                  );
-                                                                                },
-                                                                                errorWidget: (
-                                                                                  context,
-                                                                                  imageUrl,
-                                                                                  progress,
-                                                                                ) {
-                                                                                  return Container(
-                                                                                    color: const Color(
-                                                                                      0xFF030744,
-                                                                                    ),
-                                                                                    child: const Icon(
-                                                                                      Icons.person_outline_outlined,
-                                                                                      color: Colors.white,
-                                                                                    ),
-                                                                                  );
-                                                                                },
-                                                                              ),
-                                                                            ),
-                                                                          ),
                                                                         ),
-                                                                        const SizedBox(
-                                                                          width:
-                                                                              12,
-                                                                        ),
-                                                                        Expanded(
+                                                                      ),
+                                                                      const SizedBox(
+                                                                        width:
+                                                                            15,
+                                                                      ),
+                                                                      Expanded(
+                                                                        child:
+                                                                            SizedBox(
+                                                                          height: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
+                                                                              0,
+                                                                              120),
                                                                           child:
                                                                               Column(
-                                                                            crossAxisAlignment:
-                                                                                CrossAxisAlignment.start,
                                                                             children: [
-                                                                              Padding(
-                                                                                padding: const EdgeInsets.only(
-                                                                                  right: 12,
-                                                                                ),
-                                                                                child: Text(
-                                                                                  capitalizeWords(
-                                                                                    vm.ongoingOrder?.driver?.name,
-                                                                                    alt: "Driver",
-                                                                                  ),
-                                                                                  maxLines: 1,
-                                                                                  overflow: TextOverflow.ellipsis,
-                                                                                  style: const TextStyle(
-                                                                                    height: 1.15,
-                                                                                    fontWeight: FontWeight.w500,
-                                                                                    color: Color(
-                                                                                      0xFF030744,
+                                                                              Expanded(
+                                                                                child: WidgetButton(
+                                                                                  borderRadius: 8,
+                                                                                  mainColor: isBool(
+                                                                                    AuthService.currentUser?.isProvider,
+                                                                                  )
+                                                                                      ? vm.providerRiderTypeId == 1
+                                                                                          ? const Color(
+                                                                                              0xFF007BFF,
+                                                                                            )
+                                                                                          : Colors.white
+                                                                                      : vm.paymentId == 1
+                                                                                          ? const Color(
+                                                                                              0xFF007BFF,
+                                                                                            )
+                                                                                          : Colors.white,
+                                                                                  useDefaultHoverColor: false,
+                                                                                  child: Container(
+                                                                                    decoration: BoxDecoration(
+                                                                                      borderRadius: const BorderRadius.all(
+                                                                                        Radius.circular(
+                                                                                          8,
+                                                                                        ),
+                                                                                      ),
+                                                                                      border: Border.all(
+                                                                                        color: const Color(
+                                                                                          0xFF007BFF,
+                                                                                        ),
+                                                                                      ),
+                                                                                    ),
+                                                                                    child: Center(
+                                                                                      child: Text(
+                                                                                        isBool(
+                                                                                          AuthService.currentUser?.isProvider,
+                                                                                        )
+                                                                                            ? "Guest"
+                                                                                            : "Cash",
+                                                                                        textAlign: TextAlign.center,
+                                                                                        style: TextStyle(
+                                                                                          fontWeight: FontWeight.bold,
+                                                                                          color: isBool(
+                                                                                            AuthService.currentUser?.isProvider,
+                                                                                          )
+                                                                                              ? vm.providerRiderTypeId == 1
+                                                                                                  ? Colors.white
+                                                                                                  : const Color(
+                                                                                                      0xFF007BFF,
+                                                                                                    )
+                                                                                              : vm.paymentId == 1
+                                                                                                  ? Colors.white
+                                                                                                  : const Color(
+                                                                                                      0xFF007BFF,
+                                                                                                    ),
+                                                                                        ),
+                                                                                      ),
                                                                                     ),
                                                                                   ),
+                                                                                  onTap: () {
+                                                                                    if (!AuthService.isLoggedIn()) {
+                                                                                      Navigator.push(
+                                                                                        Get.context!,
+                                                                                        PageRouteBuilder(
+                                                                                          reverseTransitionDuration: Duration.zero,
+                                                                                          transitionDuration: Duration.zero,
+                                                                                          pageBuilder: (
+                                                                                            context,
+                                                                                            a,
+                                                                                            b,
+                                                                                          ) =>
+                                                                                              const LoginView(),
+                                                                                        ),
+                                                                                      );
+                                                                                    } else {
+                                                                                      if (isBool(
+                                                                                        AuthService.currentUser?.isProvider,
+                                                                                      )) {
+                                                                                        setState(() {
+                                                                                          vm.setProviderRiderType(
+                                                                                            1,
+                                                                                          );
+                                                                                        });
+                                                                                        return;
+                                                                                      }
+                                                                                      setState(() {
+                                                                                        vm.paymentId = 1;
+                                                                                      });
+                                                                                      vm.calculateTotalAmount();
+                                                                                    }
+                                                                                  },
                                                                                 ),
                                                                               ),
-                                                                              Text(
-                                                                                capitalizeWords(
-                                                                                  "${vm.ongoingOrder?.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.driver?.franchiseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.franchiseNumber}"}${vm.ongoingOrder?.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.licenseNumber}"}",
-                                                                                  alt: "Driver Info",
-                                                                                ),
-                                                                                style: const TextStyle(
-                                                                                  height: 1.15,
-                                                                                  fontSize: 12,
-                                                                                  fontWeight: FontWeight.w400,
-                                                                                  color: Color(
-                                                                                    0xFF030744,
+                                                                              const SizedBox(
+                                                                                height: 15,
+                                                                              ),
+                                                                              Expanded(
+                                                                                child: WidgetButton(
+                                                                                  borderRadius: 8,
+                                                                                  mainColor: isBool(
+                                                                                    AuthService.currentUser?.isProvider,
+                                                                                  )
+                                                                                      ? vm.providerRiderTypeId == 8
+                                                                                          ? const Color(
+                                                                                              0xFF007BFF,
+                                                                                            )
+                                                                                          : Colors.white
+                                                                                      : vm.paymentId != 1
+                                                                                          ? const Color(
+                                                                                              0xFF007BFF,
+                                                                                            )
+                                                                                          : Colors.white,
+                                                                                  useDefaultHoverColor: false,
+                                                                                  child: Container(
+                                                                                    decoration: BoxDecoration(
+                                                                                      borderRadius: const BorderRadius.all(
+                                                                                        Radius.circular(
+                                                                                          8,
+                                                                                        ),
+                                                                                      ),
+                                                                                      border: Border.all(
+                                                                                        color: const Color(
+                                                                                          0xFF007BFF,
+                                                                                        ),
+                                                                                      ),
+                                                                                    ),
+                                                                                    child: Center(
+                                                                                      child: Text(
+                                                                                        isBool(
+                                                                                          AuthService.currentUser?.isProvider,
+                                                                                        )
+                                                                                            ? "Staff"
+                                                                                            : "Load",
+                                                                                        textAlign: TextAlign.center,
+                                                                                        style: TextStyle(
+                                                                                          fontWeight: FontWeight.bold,
+                                                                                          color: isBool(
+                                                                                            AuthService.currentUser?.isProvider,
+                                                                                          )
+                                                                                              ? vm.providerRiderTypeId == 8
+                                                                                                  ? Colors.white
+                                                                                                  : const Color(
+                                                                                                      0xFF007BFF,
+                                                                                                    )
+                                                                                              : vm.paymentId != 1
+                                                                                                  ? Colors.white
+                                                                                                  : const Color(
+                                                                                                      0xFF007BFF,
+                                                                                                    ),
+                                                                                        ),
+                                                                                      ),
+                                                                                    ),
                                                                                   ),
+                                                                                  onTap: () {
+                                                                                    if (!AuthService.isLoggedIn()) {
+                                                                                      Navigator.push(
+                                                                                        Get.context!,
+                                                                                        PageRouteBuilder(
+                                                                                          reverseTransitionDuration: Duration.zero,
+                                                                                          transitionDuration: Duration.zero,
+                                                                                          pageBuilder: (
+                                                                                            context,
+                                                                                            a,
+                                                                                            b,
+                                                                                          ) =>
+                                                                                              const LoginView(),
+                                                                                        ),
+                                                                                      );
+                                                                                    } else {
+                                                                                      if (isBool(
+                                                                                        AuthService.currentUser?.isProvider,
+                                                                                      )) {
+                                                                                        setState(() {
+                                                                                          vm.setProviderRiderType(
+                                                                                            8,
+                                                                                          );
+                                                                                        });
+                                                                                        return;
+                                                                                      }
+                                                                                      setState(() {
+                                                                                        vm.paymentId = 8;
+                                                                                      });
+                                                                                      vm.calculateTotalAmount();
+                                                                                    }
+                                                                                  },
                                                                                 ),
                                                                               ),
                                                                             ],
                                                                           ),
                                                                         ),
-                                                                        SizedBox(
-                                                                          width:
-                                                                              44,
-                                                                          height:
-                                                                              44,
-                                                                          child:
-                                                                              WidgetButton(
-                                                                            onTap:
-                                                                                () {
-                                                                              launchUrlString(
-                                                                                "tel://${vm.ongoingOrder?.driver?.phone}",
-                                                                              );
-                                                                            },
-                                                                            mainColor:
-                                                                                const Color(
-                                                                              0xFF007BFF,
-                                                                            ),
-                                                                            borderRadius:
-                                                                                8,
-                                                                            useDefaultHoverColor:
-                                                                                false,
-                                                                            child:
-                                                                                const Center(
-                                                                              child: Icon(
-                                                                                Icons.call,
-                                                                                color: Colors.white,
+                                                                      ),
+                                                                      const SizedBox(
+                                                                        width:
+                                                                            15,
+                                                                      ),
+                                                                      WidgetButton(
+                                                                        onTap:
+                                                                            () {
+                                                                          if (!AuthService
+                                                                              .isLoggedIn()) {
+                                                                            Navigator.push(
+                                                                              context,
+                                                                              PageRouteBuilder(
+                                                                                reverseTransitionDuration: Duration.zero,
+                                                                                transitionDuration: Duration.zero,
+                                                                                pageBuilder: (
+                                                                                  context,
+                                                                                  a,
+                                                                                  b,
+                                                                                ) =>
+                                                                                    const LoginView(),
                                                                               ),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          width:
-                                                                              12,
-                                                                        ),
-                                                                        SizedBox(
-                                                                          width:
-                                                                              44,
-                                                                          height:
-                                                                              44,
-                                                                          child:
-                                                                              WidgetButton(
-                                                                            onTap:
-                                                                                () {
-                                                                              vm.chatDriver();
-                                                                            },
-                                                                            mainColor:
-                                                                                const Color(
-                                                                              0xFF007BFF,
-                                                                            ),
-                                                                            borderRadius:
-                                                                                8,
-                                                                            useDefaultHoverColor:
-                                                                                false,
-                                                                            child:
-                                                                                const Center(
-                                                                              child: Icon(
-                                                                                Icons.chat,
-                                                                                color: Colors.white,
+                                                                            );
+                                                                          } else {
+                                                                            Navigator.push(
+                                                                              context,
+                                                                              PageRouteBuilder(
+                                                                                reverseTransitionDuration: Duration.zero,
+                                                                                transitionDuration: Duration.zero,
+                                                                                pageBuilder: (
+                                                                                  context,
+                                                                                  a,
+                                                                                  b,
+                                                                                ) =>
+                                                                                    const LoadView(),
                                                                               ),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                        ],
-                                                      ),
-                                                    )
-                                                  : Column(
-                                                      children: [
-                                                        Divider(
-                                                          height: 1,
-                                                          thickness: 1,
-                                                          color: const Color(
-                                                            0xFF030744,
-                                                          ).withOpacity(0.1),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 20,
-                                                        ),
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                            horizontal: 20,
-                                                          ),
-                                                          child: SizedBox(
-                                                            width: double
-                                                                .infinity
-                                                                .clamp(
-                                                              0,
-                                                              800,
-                                                            ),
-                                                            child: Column(
-                                                              children: [
-                                                                Row(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
-                                                                  children: [
-                                                                    SizedBox(
-                                                                      width: ((MediaQuery.of(context).size.width - 64) /
-                                                                              3)
-                                                                          .clamp(
+                                                                            );
+                                                                          }
+                                                                        },
+                                                                        borderRadius:
+                                                                            8,
+                                                                        child:
+                                                                            SizedBox(
+                                                                          width: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
                                                                               0,
                                                                               120),
-                                                                      height: ((MediaQuery.of(context).size.width - 64) /
-                                                                              3)
-                                                                          .clamp(
+                                                                          height: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
                                                                               0,
                                                                               120),
-                                                                      child:
-                                                                          Builder(
-                                                                        builder:
-                                                                            (context) {
-                                                                          final previewVehicle = gVehicleTypes.firstWhere(
-                                                                            (v) => v.slug == "tricycle",
-                                                                            orElse: () => gVehicleTypes.first,
-                                                                          );
-                                                                          return ConstrainedBox(
+                                                                          child:
+                                                                              ConstrainedBox(
                                                                             constraints:
                                                                                 const BoxConstraints(
-                                                                              maxWidth:
-                                                                                  200,
+                                                                              maxWidth: 200,
                                                                             ),
                                                                             child:
                                                                                 Container(
-                                                                              height:
-                                                                                  50,
-                                                                              decoration:
-                                                                                  BoxDecoration(
-                                                                                borderRadius:
-                                                                                    const BorderRadius.all(
+                                                                              height: 50,
+                                                                              decoration: BoxDecoration(
+                                                                                borderRadius: const BorderRadius.all(
                                                                                   Radius.circular(
                                                                                     8,
                                                                                   ),
                                                                                 ),
-                                                                                border:
-                                                                                    Border.all(
+                                                                                border: Border.all(
                                                                                   color: const Color(
                                                                                     0xFF007BFF,
                                                                                   ),
                                                                                 ),
                                                                               ),
-                                                                              child:
-                                                                                  Column(
+                                                                              child: Column(
                                                                                 children: [
                                                                                   const SizedBox(
                                                                                     height: 12,
@@ -2163,7 +2470,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                         horizontal: 8,
                                                                                       ),
                                                                                       child: Image.asset(
-                                                                                        "assets/images/${lowerCase(previewVehicle.name!)}.png",
+                                                                                        "assets/images/load.png",
                                                                                       ),
                                                                                     ),
                                                                                   ),
@@ -2171,9 +2478,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                     height: 8,
                                                                                   ),
                                                                                   Text(
-                                                                                    capitalizeWords(
-                                                                                      previewVehicle.name!,
-                                                                                    ),
+                                                                                    "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
                                                                                     style: const TextStyle(
                                                                                       height: 1.05,
                                                                                       fontSize: 14,
@@ -2183,9 +2488,10 @@ class _HomeViewState extends State<HomeView> {
                                                                                       fontWeight: FontWeight.w500,
                                                                                     ),
                                                                                   ),
-                                                                                  Text(
-                                                                                    "${previewVehicle.maxSeat!} Seater",
-                                                                                    style: const TextStyle(
+                                                                                  const Text(
+                                                                                    "TODA Load",
+                                                                                    textAlign: TextAlign.center,
+                                                                                    style: TextStyle(
                                                                                       height: 1.05,
                                                                                       fontSize: 12,
                                                                                       color: Color(
@@ -2199,378 +2505,32 @@ class _HomeViewState extends State<HomeView> {
                                                                                 ],
                                                                               ),
                                                                             ),
-                                                                          );
-                                                                        },
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                      width: 15,
-                                                                    ),
-                                                                    Expanded(
-                                                                      child:
-                                                                          SizedBox(
-                                                                        height: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
-                                                                            0,
-                                                                            120),
-                                                                        child:
-                                                                            Column(
-                                                                          children: [
-                                                                            Expanded(
-                                                                              child: WidgetButton(
-                                                                                borderRadius: 8,
-                                                                                mainColor: isBool(
-                                                                                  AuthService.currentUser?.isProvider,
-                                                                                )
-                                                                                    ? vm.providerRiderTypeId == 1
-                                                                                        ? const Color(
-                                                                                            0xFF007BFF,
-                                                                                          )
-                                                                                        : Colors.white
-                                                                                    : vm.paymentId == 1
-                                                                                        ? const Color(
-                                                                                            0xFF007BFF,
-                                                                                          )
-                                                                                        : Colors.white,
-                                                                                useDefaultHoverColor: false,
-                                                                                child: Container(
-                                                                                  decoration: BoxDecoration(
-                                                                                    borderRadius: const BorderRadius.all(
-                                                                                      Radius.circular(
-                                                                                        8,
-                                                                                      ),
-                                                                                    ),
-                                                                                    border: Border.all(
-                                                                                      color: const Color(
-                                                                                        0xFF007BFF,
-                                                                                      ),
-                                                                                    ),
-                                                                                  ),
-                                                                                  child: Center(
-                                                                                    child: Text(
-                                                                                      isBool(
-                                                                                        AuthService.currentUser?.isProvider,
-                                                                                      )
-                                                                                          ? "Guest"
-                                                                                          : "Cash",
-                                                                                      textAlign: TextAlign.center,
-                                                                                      style: TextStyle(
-                                                                                        fontWeight: FontWeight.bold,
-                                                                                        color: isBool(
-                                                                                          AuthService.currentUser?.isProvider,
-                                                                                        )
-                                                                                            ? vm.providerRiderTypeId == 1
-                                                                                                ? Colors.white
-                                                                                                : const Color(
-                                                                                                    0xFF007BFF,
-                                                                                                  )
-                                                                                            : vm.paymentId == 1
-                                                                                                ? Colors.white
-                                                                                                : const Color(
-                                                                                                    0xFF007BFF,
-                                                                                                  ),
-                                                                                      ),
-                                                                                    ),
-                                                                                  ),
-                                                                                ),
-                                                                                onTap: () {
-                                                                                  if (!AuthService.isLoggedIn()) {
-                                                                                    Navigator.push(
-                                                                                      Get.context!,
-                                                                                      PageRouteBuilder(
-                                                                                        reverseTransitionDuration: Duration.zero,
-                                                                                        transitionDuration: Duration.zero,
-                                                                                        pageBuilder: (
-                                                                                          context,
-                                                                                          a,
-                                                                                          b,
-                                                                                        ) =>
-                                                                                            const LoginView(),
-                                                                                      ),
-                                                                                    );
-                                                                                  } else {
-                                                                                    if (isBool(
-                                                                                      AuthService.currentUser?.isProvider,
-                                                                                    )) {
-                                                                                      setState(() {
-                                                                                        vm.setProviderRiderType(
-                                                                                          1,
-                                                                                        );
-                                                                                      });
-                                                                                      return;
-                                                                                    }
-                                                                                    setState(() {
-                                                                                      vm.paymentId = 1;
-                                                                                    });
-                                                                                    vm.calculateTotalAmount();
-                                                                                  }
-                                                                                },
-                                                                              ),
-                                                                            ),
-                                                                            const SizedBox(
-                                                                              height: 15,
-                                                                            ),
-                                                                            Expanded(
-                                                                              child: WidgetButton(
-                                                                                borderRadius: 8,
-                                                                                mainColor: isBool(
-                                                                                  AuthService.currentUser?.isProvider,
-                                                                                )
-                                                                                    ? vm.providerRiderTypeId == 8
-                                                                                        ? const Color(
-                                                                                            0xFF007BFF,
-                                                                                          )
-                                                                                        : Colors.white
-                                                                                    : vm.paymentId != 1
-                                                                                        ? const Color(
-                                                                                            0xFF007BFF,
-                                                                                          )
-                                                                                        : Colors.white,
-                                                                                useDefaultHoverColor: false,
-                                                                                child: Container(
-                                                                                  decoration: BoxDecoration(
-                                                                                    borderRadius: const BorderRadius.all(
-                                                                                      Radius.circular(
-                                                                                        8,
-                                                                                      ),
-                                                                                    ),
-                                                                                    border: Border.all(
-                                                                                      color: const Color(
-                                                                                        0xFF007BFF,
-                                                                                      ),
-                                                                                    ),
-                                                                                  ),
-                                                                                  child: Center(
-                                                                                    child: Text(
-                                                                                      isBool(
-                                                                                        AuthService.currentUser?.isProvider,
-                                                                                      )
-                                                                                          ? "Staff"
-                                                                                          : "Load",
-                                                                                      textAlign: TextAlign.center,
-                                                                                      style: TextStyle(
-                                                                                        fontWeight: FontWeight.bold,
-                                                                                        color: isBool(
-                                                                                          AuthService.currentUser?.isProvider,
-                                                                                        )
-                                                                                            ? vm.providerRiderTypeId == 8
-                                                                                                ? Colors.white
-                                                                                                : const Color(
-                                                                                                    0xFF007BFF,
-                                                                                                  )
-                                                                                            : vm.paymentId != 1
-                                                                                                ? Colors.white
-                                                                                                : const Color(
-                                                                                                    0xFF007BFF,
-                                                                                                  ),
-                                                                                      ),
-                                                                                    ),
-                                                                                  ),
-                                                                                ),
-                                                                                onTap: () {
-                                                                                  if (!AuthService.isLoggedIn()) {
-                                                                                    Navigator.push(
-                                                                                      Get.context!,
-                                                                                      PageRouteBuilder(
-                                                                                        reverseTransitionDuration: Duration.zero,
-                                                                                        transitionDuration: Duration.zero,
-                                                                                        pageBuilder: (
-                                                                                          context,
-                                                                                          a,
-                                                                                          b,
-                                                                                        ) =>
-                                                                                            const LoginView(),
-                                                                                      ),
-                                                                                    );
-                                                                                  } else {
-                                                                                    if (isBool(
-                                                                                      AuthService.currentUser?.isProvider,
-                                                                                    )) {
-                                                                                      setState(() {
-                                                                                        vm.setProviderRiderType(
-                                                                                          8,
-                                                                                        );
-                                                                                      });
-                                                                                      return;
-                                                                                    }
-                                                                                    setState(() {
-                                                                                      vm.paymentId = 8;
-                                                                                    });
-                                                                                    vm.calculateTotalAmount();
-                                                                                  }
-                                                                                },
-                                                                              ),
-                                                                            ),
-                                                                          ],
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                      width: 15,
-                                                                    ),
-                                                                    WidgetButton(
-                                                                      onTap:
-                                                                          () {
-                                                                        if (!AuthService
-                                                                            .isLoggedIn()) {
-                                                                          Navigator
-                                                                              .push(
-                                                                            context,
-                                                                            PageRouteBuilder(
-                                                                              reverseTransitionDuration: Duration.zero,
-                                                                              transitionDuration: Duration.zero,
-                                                                              pageBuilder: (
-                                                                                context,
-                                                                                a,
-                                                                                b,
-                                                                              ) =>
-                                                                                  const LoginView(),
-                                                                            ),
-                                                                          );
-                                                                        } else {
-                                                                          Navigator
-                                                                              .push(
-                                                                            context,
-                                                                            PageRouteBuilder(
-                                                                              reverseTransitionDuration: Duration.zero,
-                                                                              transitionDuration: Duration.zero,
-                                                                              pageBuilder: (
-                                                                                context,
-                                                                                a,
-                                                                                b,
-                                                                              ) =>
-                                                                                  const LoadView(),
-                                                                            ),
-                                                                          );
-                                                                        }
-                                                                      },
-                                                                      borderRadius:
-                                                                          8,
-                                                                      child:
-                                                                          SizedBox(
-                                                                        width: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
-                                                                            0,
-                                                                            120),
-                                                                        height: ((MediaQuery.of(context).size.width - 64) / 3).clamp(
-                                                                            0,
-                                                                            120),
-                                                                        child:
-                                                                            ConstrainedBox(
-                                                                          constraints:
-                                                                              const BoxConstraints(
-                                                                            maxWidth:
-                                                                                200,
-                                                                          ),
-                                                                          child:
-                                                                              Container(
-                                                                            height:
-                                                                                50,
-                                                                            decoration:
-                                                                                BoxDecoration(
-                                                                              borderRadius: const BorderRadius.all(
-                                                                                Radius.circular(
-                                                                                  8,
-                                                                                ),
-                                                                              ),
-                                                                              border: Border.all(
-                                                                                color: const Color(
-                                                                                  0xFF007BFF,
-                                                                                ),
-                                                                              ),
-                                                                            ),
-                                                                            child:
-                                                                                Column(
-                                                                              children: [
-                                                                                const SizedBox(
-                                                                                  height: 12,
-                                                                                ),
-                                                                                Expanded(
-                                                                                  child: Padding(
-                                                                                    padding: const EdgeInsets.symmetric(
-                                                                                      horizontal: 8,
-                                                                                    ),
-                                                                                    child: Image.asset(
-                                                                                      "assets/images/load.png",
-                                                                                    ),
-                                                                                  ),
-                                                                                ),
-                                                                                const SizedBox(
-                                                                                  height: 8,
-                                                                                ),
-                                                                                Text(
-                                                                                  "₱${gLoad == null ? AuthService.isLoggedIn() ? "•••" : "0" : gLoad?.balance?.toStringAsFixed(0)}",
-                                                                                  style: const TextStyle(
-                                                                                    height: 1.05,
-                                                                                    fontSize: 14,
-                                                                                    color: Color(
-                                                                                      0xFF007BFF,
-                                                                                    ),
-                                                                                    fontWeight: FontWeight.w500,
-                                                                                  ),
-                                                                                ),
-                                                                                const Text(
-                                                                                  "TODA Load",
-                                                                                  textAlign: TextAlign.center,
-                                                                                  style: TextStyle(
-                                                                                    height: 1.05,
-                                                                                    fontSize: 12,
-                                                                                    color: Color(
-                                                                                      0xFF007BFF,
-                                                                                    ),
-                                                                                  ),
-                                                                                ),
-                                                                                const SizedBox(
-                                                                                  height: 12,
-                                                                                ),
-                                                                              ],
-                                                                            ),
                                                                           ),
                                                                         ),
                                                                       ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 20,
-                                            ),
-                                            child: SizedBox(
-                                              width: double.infinity.clamp(
-                                                0,
-                                                800,
-                                              ),
-                                              child: GestureDetector(
-                                                onTap: () async {
-                                                  if (!AuthService
-                                                      .isLoggedIn()) {
-                                                    Navigator.push(
-                                                      context,
-                                                      PageRouteBuilder(
-                                                        reverseTransitionDuration:
-                                                            Duration.zero,
-                                                        transitionDuration:
-                                                            Duration.zero,
-                                                        pageBuilder: (
-                                                          context,
-                                                          a,
-                                                          b,
-                                                        ) =>
-                                                            const LoginView(),
+                                                        ],
                                                       ),
-                                                    );
-                                                  } else {
-                                                    if (vm.ongoingOrder ==
-                                                            null ||
-                                                        vm.ongoingOrder
-                                                                ?.status ==
-                                                            "cancelled") {
-                                                      var rebuild =
-                                                          await Navigator.push(
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 20,
+                                              ),
+                                              child: SizedBox(
+                                                width: double.infinity.clamp(
+                                                  0,
+                                                  800,
+                                                ),
+                                                child: GestureDetector(
+                                                  onTap: () async {
+                                                    if (!AuthService
+                                                        .isLoggedIn()) {
+                                                      Navigator.push(
                                                         context,
                                                         PageRouteBuilder(
                                                           reverseTransitionDuration:
@@ -2582,592 +2542,628 @@ class _HomeViewState extends State<HomeView> {
                                                             a,
                                                             b,
                                                           ) =>
-                                                              const MapView(
-                                                            isPickup: true,
-                                                          ),
+                                                              const LoginView(),
                                                         ),
                                                       );
-                                                      if (mounted &&
-                                                          rebuild == true) {
-                                                        setState(() {});
-                                                      }
-                                                      if (pickupAddress !=
-                                                                  null &&
-                                                              dropoffAddress !=
-                                                                  null &&
-                                                              vm.ongoingOrder ==
-                                                                  null ||
+                                                    } else {
+                                                      if (vm.ongoingOrder ==
+                                                              null ||
                                                           vm.ongoingOrder
                                                                   ?.status ==
                                                               "cancelled") {
-                                                        setState(() {
-                                                          vm.isPreparing = true;
-                                                        });
-                                                        vm.drawDropPolyLines(
-                                                          "pickup-dropoff",
-                                                          vm
-                                                                  .ongoingOrder
-                                                                  ?.taxiOrder
-                                                                  ?.pickupLatLng ??
-                                                              pickupAddress!
-                                                                  .latLng,
-                                                          vm
-                                                                  .ongoingOrder
-                                                                  ?.taxiOrder
-                                                                  ?.dropoffLatLng ??
-                                                              dropoffAddress!
-                                                                  .latLng,
-                                                          vm.ongoingOrder
-                                                              ?.driverLatLng,
-                                                        );
-                                                        await vm
-                                                            .fetchVehicleTypesPricing();
-                                                        setState(() {
-                                                          vm.isPreparing =
-                                                              false;
-                                                        });
-                                                      } else {
-                                                        vm.blockCamera = true;
-                                                        vm.notifyListeners();
-                                                        vm.zoomToLocation(
-                                                          pickupAddress!.latLng,
-                                                        );
-                                                        await Future.delayed(
-                                                          const Duration(
-                                                            milliseconds: 500,
+                                                        var rebuild =
+                                                            await Navigator
+                                                                .push(
+                                                          context,
+                                                          PageRouteBuilder(
+                                                            reverseTransitionDuration:
+                                                                Duration.zero,
+                                                            transitionDuration:
+                                                                Duration.zero,
+                                                            pageBuilder: (
+                                                              context,
+                                                              a,
+                                                              b,
+                                                            ) =>
+                                                                const MapView(
+                                                              isPickup: true,
+                                                            ),
                                                           ),
                                                         );
-                                                        vm.blockCamera = false;
-                                                        vm.notifyListeners();
+                                                        if (mounted &&
+                                                            rebuild == true) {
+                                                          setState(() {});
+                                                        }
+                                                        if (pickupAddress !=
+                                                                    null &&
+                                                                dropoffAddress !=
+                                                                    null &&
+                                                                vm.ongoingOrder ==
+                                                                    null ||
+                                                            vm.ongoingOrder
+                                                                    ?.status ==
+                                                                "cancelled") {
+                                                          setState(() {
+                                                            vm.isPreparing =
+                                                                true;
+                                                          });
+                                                          vm.drawDropPolyLines(
+                                                            "pickup-dropoff",
+                                                            vm
+                                                                    .ongoingOrder
+                                                                    ?.taxiOrder
+                                                                    ?.pickupLatLng ??
+                                                                pickupAddress!
+                                                                    .latLng,
+                                                            vm
+                                                                    .ongoingOrder
+                                                                    ?.taxiOrder
+                                                                    ?.dropoffLatLng ??
+                                                                dropoffAddress!
+                                                                    .latLng,
+                                                            vm.ongoingOrder
+                                                                ?.driverLatLng,
+                                                          );
+                                                          await vm
+                                                              .fetchVehicleTypesPricing();
+                                                          setState(() {
+                                                            vm.isPreparing =
+                                                                false;
+                                                          });
+                                                        } else {
+                                                          vm.blockCamera = true;
+                                                          vm.notifyListeners();
+                                                          vm.zoomToLocation(
+                                                            pickupAddress!
+                                                                .latLng,
+                                                          );
+                                                          await Future.delayed(
+                                                            const Duration(
+                                                              milliseconds: 500,
+                                                            ),
+                                                          );
+                                                          vm.blockCamera =
+                                                              false;
+                                                          vm.notifyListeners();
+                                                        }
                                                       }
                                                     }
-                                                  }
-                                                },
-                                                child: Container(
-                                                  height: 50,
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(
-                                                        8,
+                                                  },
+                                                  child: Container(
+                                                    height: 50,
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(
+                                                          8,
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      const SizedBox(
-                                                        width: 12,
-                                                      ),
-                                                      const Icon(
-                                                        Icons.trip_origin,
-                                                        color: Color(
-                                                          0xFF007BFF,
+                                                    child: Row(
+                                                      children: [
+                                                        const SizedBox(
+                                                          width: 12,
                                                         ),
-                                                      ),
-                                                      const SizedBox(
-                                                        width: 8,
-                                                      ),
-                                                      Expanded(
-                                                        child: Text(
-                                                          capitalizeWords(
-                                                            pickupAddress
-                                                                ?.addressLine,
-                                                            alt: "Where from?",
-                                                          ),
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style:
-                                                              const TextStyle(
-                                                            color: Color(
-                                                              0xFF030744,
-                                                            ),
+                                                        const Icon(
+                                                          Icons.trip_origin,
+                                                          color: Color(
+                                                            0xFF007BFF,
                                                           ),
                                                         ),
-                                                      ),
-                                                      const SizedBox(
-                                                        width: 12,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 20,
-                                            ),
-                                            child: SizedBox(
-                                              height: vm.ongoingOrder != null
-                                                  ? 30
-                                                  : null,
-                                              width: double.infinity.clamp(
-                                                0,
-                                                800,
-                                              ),
-                                              child: WidgetButton(
-                                                onTap: () async {
-                                                  if (!AuthService
-                                                      .isLoggedIn()) {
-                                                    Navigator.push(
-                                                      context,
-                                                      PageRouteBuilder(
-                                                        reverseTransitionDuration:
-                                                            Duration.zero,
-                                                        transitionDuration:
-                                                            Duration.zero,
-                                                        pageBuilder: (
-                                                          context,
-                                                          a,
-                                                          b,
-                                                        ) =>
-                                                            const LoginView(),
-                                                      ),
-                                                    );
-                                                  } else {
-                                                    if (vm.ongoingOrder ==
-                                                            null ||
-                                                        vm.ongoingOrder
-                                                                ?.status ==
-                                                            "cancelled") {
-                                                      var rebuild =
-                                                          await Navigator.push(
-                                                        context,
-                                                        PageRouteBuilder(
-                                                          reverseTransitionDuration:
-                                                              Duration.zero,
-                                                          transitionDuration:
-                                                              Duration.zero,
-                                                          pageBuilder: (
-                                                            context,
-                                                            a,
-                                                            b,
-                                                          ) =>
-                                                              const MapView(
-                                                            isPickup: false,
-                                                          ),
+                                                        const SizedBox(
+                                                          width: 8,
                                                         ),
-                                                      );
-                                                      if (mounted &&
-                                                          rebuild == true) {
-                                                        setState(() {});
-                                                      }
-                                                      if (pickupAddress !=
-                                                                  null &&
-                                                              dropoffAddress !=
-                                                                  null &&
-                                                              vm.ongoingOrder ==
-                                                                  null ||
-                                                          vm.ongoingOrder
-                                                                  ?.status ==
-                                                              "cancelled") {
-                                                        setState(() {
-                                                          vm.isPreparing = true;
-                                                        });
-                                                        vm.drawDropPolyLines(
-                                                          "pickup-dropoff",
-                                                          vm
-                                                                  .ongoingOrder
-                                                                  ?.taxiOrder
-                                                                  ?.pickupLatLng ??
-                                                              pickupAddress!
-                                                                  .latLng,
-                                                          vm
-                                                                  .ongoingOrder
-                                                                  ?.taxiOrder
-                                                                  ?.dropoffLatLng ??
-                                                              dropoffAddress!
-                                                                  .latLng,
-                                                          vm.ongoingOrder
-                                                              ?.driverLatLng,
-                                                        );
-                                                        await vm
-                                                            .fetchVehicleTypesPricing();
-                                                        setState(() {
-                                                          vm.isPreparing =
-                                                              false;
-                                                        });
-                                                      }
-                                                    }
-                                                  }
-                                                },
-                                                borderRadius: 8,
-                                                useDefaultHoverColor: false,
-                                                disableGestureDetection:
-                                                    vm.ongoingOrder != null,
-                                                mainColor: vm.ongoingOrder !=
-                                                        null
-                                                    ? Colors.white
-                                                    : const Color(0xFFEAF1FE),
-                                                child: SizedBox(
-                                                  height: 50,
-                                                  child: Row(
-                                                    children: [
-                                                      const SizedBox(
-                                                        width: 12,
-                                                      ),
-                                                      const Icon(
-                                                        Icons.trip_origin,
-                                                        color: Colors.red,
-                                                      ),
-                                                      const SizedBox(
-                                                        width: 8,
-                                                      ),
-                                                      Expanded(
-                                                        child: Text(
-                                                          capitalizeWords(
-                                                            dropoffAddress
-                                                                ?.addressLine,
-                                                            alt: "Where to go?",
-                                                          ),
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style:
-                                                              const TextStyle(
-                                                            color: Color(
-                                                              0xFF030744,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(
-                                                        width: 12,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 15),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 20,
-                                            ),
-                                            child: SizedBox(
-                                              width: double.infinity.clamp(
-                                                0,
-                                                800,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width:
-                                                        ((MediaQuery.of(context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                    child: ConstrainedBox(
-                                                      constraints:
-                                                          const BoxConstraints(
-                                                        maxWidth: 200,
-                                                      ),
-                                                      child: Container(
-                                                        height: 50,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: Colors.white,
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(
-                                                            Radius.circular(
-                                                              8,
-                                                            ),
-                                                          ),
-                                                          border: Border.all(
-                                                            color: const Color(
-                                                              0xFF007BFF,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        child: Center(
+                                                        Expanded(
                                                           child: Text(
-                                                            vm.ongoingOrder !=
-                                                                        null &&
-                                                                    vm.ongoingOrder!
-                                                                            .status !=
-                                                                        "cancelled"
-                                                                ? () {
-                                                                    if (vm.ongoingOrder
-                                                                            ?.status ==
-                                                                        "pending") {
-                                                                      return "Waiting";
-                                                                    } else if (vm
-                                                                            .ongoingOrder
-                                                                            ?.status ==
-                                                                        "preparing") {
-                                                                      return capitalizeWords(
-                                                                        (vm.ongoingOrder!.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("any") ||
-                                                                                (vm.ongoingOrder!.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("unknown")
-                                                                            ? "Any Second"
-                                                                            : formatEtaText(vm.ongoingOrder!.taxiOrder!.tripDetails!.eta!),
-                                                                      );
-                                                                    } else {
-                                                                      return travelTime(
-                                                                        vm.ongoingOrder!.taxiOrder?.tripDetails?.kmDistance ??
-                                                                            0,
-                                                                      );
-                                                                    }
-                                                                  }()
-                                                                : vm.selectedVehicle ==
-                                                                        null
-                                                                    ? vm.isPreparing
-                                                                        ? "•••"
-                                                                        : "Time"
-                                                                    : vm.isPreparing
-                                                                        ? "•••"
-                                                                        : travelTime(
-                                                                            vm.selectedVehicle?.kmDistance ??
-                                                                                0,
-                                                                          ),
-                                                            textAlign: TextAlign
-                                                                .center,
+                                                            capitalizeWords(
+                                                              pickupAddress
+                                                                  ?.addressLine,
+                                                              alt:
+                                                                  "Where from?",
+                                                            ),
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
                                                             style:
                                                                 const TextStyle(
                                                               color: Color(
+                                                                0xFF030744,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 12,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 20,
+                                              ),
+                                              child: SizedBox(
+                                                height: vm.ongoingOrder != null
+                                                    ? 30
+                                                    : null,
+                                                width: double.infinity.clamp(
+                                                  0,
+                                                  800,
+                                                ),
+                                                child: WidgetButton(
+                                                  onTap: () async {
+                                                    if (!AuthService
+                                                        .isLoggedIn()) {
+                                                      Navigator.push(
+                                                        context,
+                                                        PageRouteBuilder(
+                                                          reverseTransitionDuration:
+                                                              Duration.zero,
+                                                          transitionDuration:
+                                                              Duration.zero,
+                                                          pageBuilder: (
+                                                            context,
+                                                            a,
+                                                            b,
+                                                          ) =>
+                                                              const LoginView(),
+                                                        ),
+                                                      );
+                                                    } else {
+                                                      if (vm.ongoingOrder ==
+                                                              null ||
+                                                          vm.ongoingOrder
+                                                                  ?.status ==
+                                                              "cancelled") {
+                                                        var rebuild =
+                                                            await Navigator
+                                                                .push(
+                                                          context,
+                                                          PageRouteBuilder(
+                                                            reverseTransitionDuration:
+                                                                Duration.zero,
+                                                            transitionDuration:
+                                                                Duration.zero,
+                                                            pageBuilder: (
+                                                              context,
+                                                              a,
+                                                              b,
+                                                            ) =>
+                                                                const MapView(
+                                                              isPickup: false,
+                                                            ),
+                                                          ),
+                                                        );
+                                                        if (mounted &&
+                                                            rebuild == true) {
+                                                          setState(() {});
+                                                        }
+                                                        if (pickupAddress !=
+                                                                    null &&
+                                                                dropoffAddress !=
+                                                                    null &&
+                                                                vm.ongoingOrder ==
+                                                                    null ||
+                                                            vm.ongoingOrder
+                                                                    ?.status ==
+                                                                "cancelled") {
+                                                          setState(() {
+                                                            vm.isPreparing =
+                                                                true;
+                                                          });
+                                                          vm.drawDropPolyLines(
+                                                            "pickup-dropoff",
+                                                            vm
+                                                                    .ongoingOrder
+                                                                    ?.taxiOrder
+                                                                    ?.pickupLatLng ??
+                                                                pickupAddress!
+                                                                    .latLng,
+                                                            vm
+                                                                    .ongoingOrder
+                                                                    ?.taxiOrder
+                                                                    ?.dropoffLatLng ??
+                                                                dropoffAddress!
+                                                                    .latLng,
+                                                            vm.ongoingOrder
+                                                                ?.driverLatLng,
+                                                          );
+                                                          await vm
+                                                              .fetchVehicleTypesPricing();
+                                                          setState(() {
+                                                            vm.isPreparing =
+                                                                false;
+                                                          });
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  borderRadius: 8,
+                                                  useDefaultHoverColor: false,
+                                                  disableGestureDetection:
+                                                      vm.ongoingOrder != null,
+                                                  mainColor: vm.ongoingOrder !=
+                                                          null
+                                                      ? Colors.white
+                                                      : const Color(0xFFEAF1FE),
+                                                  child: SizedBox(
+                                                    height: 50,
+                                                    child: Row(
+                                                      children: [
+                                                        const SizedBox(
+                                                          width: 12,
+                                                        ),
+                                                        const Icon(
+                                                          Icons.trip_origin,
+                                                          color: Colors.red,
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 8,
+                                                        ),
+                                                        Expanded(
+                                                          child: Text(
+                                                            capitalizeWords(
+                                                              dropoffAddress
+                                                                  ?.addressLine,
+                                                              alt:
+                                                                  "Where to go?",
+                                                            ),
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style:
+                                                                const TextStyle(
+                                                              color: Color(
+                                                                0xFF030744,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 12,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 15),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 20,
+                                              ),
+                                              child: SizedBox(
+                                                width: double.infinity.clamp(
+                                                  0,
+                                                  800,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    SizedBox(
+                                                      width: ((MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width -
+                                                                  64) /
+                                                              3)
+                                                          .clamp(0, 120),
+                                                      child: ConstrainedBox(
+                                                        constraints:
+                                                            const BoxConstraints(
+                                                          maxWidth: 200,
+                                                        ),
+                                                        child: Container(
+                                                          height: 50,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors.white,
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                8,
+                                                              ),
+                                                            ),
+                                                            border: Border.all(
+                                                              color:
+                                                                  const Color(
                                                                 0xFF007BFF,
                                                               ),
                                                             ),
                                                           ),
+                                                          child: Center(
+                                                            child: Text(
+                                                              vm.ongoingOrder !=
+                                                                          null &&
+                                                                      vm.ongoingOrder!
+                                                                              .status !=
+                                                                          "cancelled"
+                                                                  ? () {
+                                                                      if (vm.ongoingOrder
+                                                                              ?.status ==
+                                                                          "pending") {
+                                                                        return "Waiting";
+                                                                      } else if (vm
+                                                                              .ongoingOrder
+                                                                              ?.status ==
+                                                                          "preparing") {
+                                                                        return capitalizeWords(
+                                                                          (vm.ongoingOrder!.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("any") || (vm.ongoingOrder!.taxiOrder?.tripDetails?.eta ?? "").toLowerCase().contains("unknown")
+                                                                              ? "Any Second"
+                                                                              : formatEtaText(vm.ongoingOrder!.taxiOrder!.tripDetails!.eta!),
+                                                                        );
+                                                                      } else {
+                                                                        return travelTime(
+                                                                          vm.ongoingOrder!.taxiOrder?.tripDetails?.kmDistance ??
+                                                                              0,
+                                                                        );
+                                                                      }
+                                                                    }()
+                                                                  : vm.selectedVehicle ==
+                                                                          null
+                                                                      ? vm.isPreparing
+                                                                          ? "•••"
+                                                                          : "Time"
+                                                                      : vm.isPreparing
+                                                                          ? "•••"
+                                                                          : travelTime(
+                                                                              vm.selectedVehicle?.kmDistance ?? 0,
+                                                                            ),
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Color(
+                                                                  0xFF007BFF,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
-                                                  const SizedBox(width: 15),
-                                                  Expanded(
-                                                    child: ActionButton(
-                                                      text: (() {
-                                                        final order =
-                                                            vm.ongoingOrder;
-                                                        final status =
-                                                            order?.status;
-                                                        if (order == null ||
-                                                            status ==
-                                                                "cancelled") {
-                                                          return "BOOK";
-                                                        } else if (vm
-                                                                    .dvrMessage ==
-                                                                null ||
-                                                            vm.dvrMessage ==
-                                                                "null") {
-                                                          return "CANCEL";
-                                                        } else if (status ==
-                                                                "enroute" ||
-                                                            status ==
-                                                                "preparing" ||
-                                                            status ==
-                                                                "delivered") {
-                                                          return "REPORT";
-                                                        }
-                                                        return "CANCEL";
-                                                      })(),
-                                                      mainColor: vm.isPreparing
-                                                          ? const Color(
-                                                              0xFF030744,
-                                                            ).withOpacity(0.2)
-                                                          : vm.ongoingOrder !=
-                                                                      null &&
-                                                                  vm.ongoingOrder!
-                                                                          .status !=
-                                                                      "cancelled"
-                                                              ? Colors
-                                                                  .red.shade100
-                                                              : const Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                      onTap: () async {
-                                                        if (!AuthService
-                                                            .isLoggedIn()) {
-                                                          Navigator.push(
-                                                            context,
-                                                            PageRouteBuilder(
-                                                              reverseTransitionDuration:
-                                                                  Duration.zero,
-                                                              transitionDuration:
-                                                                  Duration.zero,
-                                                              pageBuilder: (
-                                                                context,
-                                                                a,
-                                                                b,
-                                                              ) =>
-                                                                  const LoginView(),
-                                                            ),
-                                                          );
-                                                        } else {
-                                                          FocusManager.instance
-                                                              .primaryFocus
-                                                              ?.unfocus();
-                                                          if (vm.isPreparing ||
-                                                              vm.ongoingOrder
-                                                                      ?.status ==
+                                                    const SizedBox(width: 15),
+                                                    Expanded(
+                                                      child: ActionButton(
+                                                        text: (() {
+                                                          final order =
+                                                              vm.ongoingOrder;
+                                                          final status =
+                                                              order?.status;
+                                                          if (order == null ||
+                                                              status ==
                                                                   "cancelled") {
-                                                            ScaffoldMessenger
-                                                                .of(
-                                                              Get.context!,
-                                                            ).clearSnackBars();
-                                                            ScaffoldMessenger
-                                                                .of(
-                                                              Get.context!,
-                                                            ).showSnackBar(
-                                                              const SnackBar(
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .green,
-                                                                content: Text(
-                                                                  "Finalizing your details, please wait ...",
-                                                                  style:
-                                                                      TextStyle(
-                                                                    color: Colors
-                                                                        .white,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            );
-                                                          } else if (vm
-                                                                  .ongoingOrder ==
-                                                              null) {
-                                                            if (!vm.busy(vm
-                                                                .vehicleTypes)) {
-                                                              vm.processNewOrder();
-                                                            }
+                                                            return "BOOK";
                                                           } else if (vm
                                                                       .dvrMessage ==
                                                                   null ||
                                                               vm.dvrMessage ==
                                                                   "null") {
-                                                            vm.cancelOrder();
-                                                          } else {
-                                                            if (vm.ongoingOrder?.status == "enroute" ||
-                                                                vm.ongoingOrder
-                                                                        ?.status ==
-                                                                    "preparing" ||
-                                                                vm.ongoingOrder
-                                                                        ?.status ==
-                                                                    "delivered") {
-                                                              setState(() {
-                                                                vm.showReport =
-                                                                    true;
-                                                              });
-                                                            } else {
-                                                              vm.cancelOrder();
-                                                            }
+                                                            return "CANCEL";
+                                                          } else if (status ==
+                                                                  "enroute" ||
+                                                              status ==
+                                                                  "preparing" ||
+                                                              status ==
+                                                                  "delivered") {
+                                                            return "REPORT";
                                                           }
-                                                        }
-                                                      },
-                                                      style: TextStyle(
-                                                        height: 1.05,
-                                                        fontSize: vm.ongoingOrder !=
-                                                                    null &&
-                                                                vm.ongoingOrder!
-                                                                        .status !=
-                                                                    "cancelled"
-                                                            ? null
-                                                            : 16,
-                                                        color: vm.ongoingOrder !=
-                                                                    null &&
-                                                                vm.ongoingOrder!
-                                                                        .status !=
-                                                                    "cancelled"
-                                                            ? Colors.red
-                                                            : Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 15),
-                                                  SizedBox(
-                                                    width:
-                                                        ((MediaQuery.of(context)
-                                                                        .size
-                                                                        .width -
-                                                                    64) /
-                                                                3)
-                                                            .clamp(0, 120),
-                                                    child: ConstrainedBox(
-                                                      constraints:
-                                                          const BoxConstraints(
-                                                        maxWidth: 200,
-                                                      ),
-                                                      child: Container(
-                                                        height: 50,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: Colors.white,
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(
-                                                            Radius.circular(
-                                                              8,
-                                                            ),
-                                                          ),
-                                                          border: Border.all(
-                                                            color: const Color(
-                                                              0xFF007BFF,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        child: Center(
-                                                          child: Text(
-                                                            vm.ongoingOrder !=
+                                                          return "CANCEL";
+                                                        })(),
+                                                        mainColor: vm
+                                                                .isPreparing
+                                                            ? const Color(
+                                                                0xFF030744,
+                                                              ).withOpacity(0.2)
+                                                            : vm.ongoingOrder !=
                                                                         null &&
                                                                     vm.ongoingOrder!
                                                                             .status !=
                                                                         "cancelled"
-                                                                ? AuthService
-                                                                        .inReviewMode()
-                                                                    ? vm
-                                                                            .isPreparing
-                                                                        ? "•••"
-                                                                        : "${vm.ongoingOrder!.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(1)} km"
-                                                                    : vm
-                                                                            .isPreparing
-                                                                        ? "•••"
-                                                                        : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${((vm.ongoingOrder?.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && (vm.ongoingOrder?.discount ?? 0) == 0 ? (vm.user?["markup_amount"] ?? 0) : 0)).toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
-                                                                : vm.selectedVehicle ==
-                                                                        null
-                                                                    ? AuthService
-                                                                            .inReviewMode()
-                                                                        ? vm.isPreparing
-                                                                            ? "•••"
-                                                                            : "Dist"
-                                                                        : vm.isPreparing
-                                                                            ? "•••"
-                                                                            : "Fare"
-                                                                    : AuthService.inReviewMode()
-                                                                        ? vm.isPreparing
-                                                                            ? "•••"
-                                                                            : "${vm.selectedVehicle?.kmDistance?.toStringAsFixed(1)} km"
-                                                                        : vm.isPreparing
-                                                                            ? "•••"
-                                                                            : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.total?.toStringAsFixed(0)}${" "}${vm.paymentId == 1 ? "Cash" : "Load"}",
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                            style:
-                                                                const TextStyle(
-                                                              color: Color(
+                                                                ? Colors.red
+                                                                    .shade100
+                                                                : const Color(
+                                                                    0xFF007BFF,
+                                                                  ),
+                                                        onTap: () async {
+                                                          if (!AuthService
+                                                              .isLoggedIn()) {
+                                                            Navigator.push(
+                                                              context,
+                                                              PageRouteBuilder(
+                                                                reverseTransitionDuration:
+                                                                    Duration
+                                                                        .zero,
+                                                                transitionDuration:
+                                                                    Duration
+                                                                        .zero,
+                                                                pageBuilder: (
+                                                                  context,
+                                                                  a,
+                                                                  b,
+                                                                ) =>
+                                                                    const LoginView(),
+                                                              ),
+                                                            );
+                                                          } else {
+                                                            FocusManager
+                                                                .instance
+                                                                .primaryFocus
+                                                                ?.unfocus();
+                                                            if (vm.isPreparing ||
+                                                                vm.ongoingOrder
+                                                                        ?.status ==
+                                                                    "cancelled") {
+                                                              ScaffoldMessenger
+                                                                  .of(
+                                                                Get.context!,
+                                                              ).clearSnackBars();
+                                                              ScaffoldMessenger
+                                                                  .of(
+                                                                Get.context!,
+                                                              ).showSnackBar(
+                                                                const SnackBar(
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .green,
+                                                                  content: Text(
+                                                                    "Finalizing your details, please wait ...",
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Colors
+                                                                          .white,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            } else if (vm
+                                                                    .ongoingOrder ==
+                                                                null) {
+                                                              if (!vm.busy(vm
+                                                                  .vehicleTypes)) {
+                                                                vm.processNewOrder();
+                                                              }
+                                                            } else if (vm
+                                                                        .dvrMessage ==
+                                                                    null ||
+                                                                vm.dvrMessage ==
+                                                                    "null") {
+                                                              vm.cancelOrder();
+                                                            } else {
+                                                              if (vm.ongoingOrder?.status == "enroute" ||
+                                                                  vm.ongoingOrder
+                                                                          ?.status ==
+                                                                      "preparing" ||
+                                                                  vm.ongoingOrder
+                                                                          ?.status ==
+                                                                      "delivered") {
+                                                                setState(() {
+                                                                  vm.showReport =
+                                                                      true;
+                                                                });
+                                                              } else {
+                                                                vm.cancelOrder();
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        style: TextStyle(
+                                                          height: 1.05,
+                                                          fontSize: vm.ongoingOrder !=
+                                                                      null &&
+                                                                  vm.ongoingOrder!
+                                                                          .status !=
+                                                                      "cancelled"
+                                                              ? null
+                                                              : 16,
+                                                          color: vm.ongoingOrder !=
+                                                                      null &&
+                                                                  vm.ongoingOrder!
+                                                                          .status !=
+                                                                      "cancelled"
+                                                              ? Colors.red
+                                                              : Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 15),
+                                                    SizedBox(
+                                                      width: ((MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width -
+                                                                  64) /
+                                                              3)
+                                                          .clamp(0, 120),
+                                                      child: ConstrainedBox(
+                                                        constraints:
+                                                            const BoxConstraints(
+                                                          maxWidth: 200,
+                                                        ),
+                                                        child: Container(
+                                                          height: 50,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors.white,
+                                                            borderRadius:
+                                                                const BorderRadius
+                                                                    .all(
+                                                              Radius.circular(
+                                                                8,
+                                                              ),
+                                                            ),
+                                                            border: Border.all(
+                                                              color:
+                                                                  const Color(
                                                                 0xFF007BFF,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          child: Center(
+                                                            child: Text(
+                                                              vm.ongoingOrder !=
+                                                                          null &&
+                                                                      vm.ongoingOrder!
+                                                                              .status !=
+                                                                          "cancelled"
+                                                                  ? AuthService
+                                                                          .inReviewMode()
+                                                                      ? vm.isPreparing
+                                                                          ? "•••"
+                                                                          : "${vm.ongoingOrder!.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(1)} km"
+                                                                      : vm.isPreparing
+                                                                          ? "•••"
+                                                                          : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${((vm.ongoingOrder?.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && (vm.ongoingOrder?.discount ?? 0) == 0 ? (vm.user?["markup_amount"] ?? 0) : 0)).toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
+                                                                  : vm.selectedVehicle == null
+                                                                      ? AuthService.inReviewMode()
+                                                                          ? vm.isPreparing
+                                                                              ? "•••"
+                                                                              : "Dist"
+                                                                          : vm.isPreparing
+                                                                              ? "•••"
+                                                                              : "Fare"
+                                                                      : AuthService.inReviewMode()
+                                                                          ? vm.isPreparing
+                                                                              ? "•••"
+                                                                              : "${vm.selectedVehicle?.kmDistance?.toStringAsFixed(1)} km"
+                                                                          : vm.isPreparing
+                                                                              ? "•••"
+                                                                              : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.total?.toStringAsFixed(0)}${" "}${vm.paymentId == 1 ? "Cash" : "Load"}",
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Color(
+                                                                  0xFF007BFF,
+                                                                ),
                                                               ),
                                                             ),
                                                           ),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
+                                                  ],
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(
-                                            height: 20,
-                                          ),
-                                        ],
-                                      ),
+                                            const SizedBox(
+                                              height: 20,
+                                            ),
+                                          ],
+                                        ),
                                 ),
                               ),
                             ],
@@ -3189,12 +3185,12 @@ class _HomeViewState extends State<HomeView> {
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: SizedBox(
-                                  width: MediaQuery.of(context).size.width *
-                                              0.84 >
-                                          320
-                                      ? 320
-                                      : MediaQuery.of(context).size.width *
-                                          0.84,
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.84 >
+                                              320
+                                          ? 320
+                                          : MediaQuery.of(context).size.width *
+                                              0.84,
                                   height: double.infinity,
                                   child: Material(
                                     color: Colors.transparent,

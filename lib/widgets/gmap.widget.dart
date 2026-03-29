@@ -199,7 +199,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                           width: marker.width,
                           height: marker.height,
                           fit: BoxFit.contain,
-                          filterQuality: FilterQuality.medium,
+                          filterQuality: FilterQuality.low,
                         ),
                       ),
                     ),
