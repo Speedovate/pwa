@@ -27,6 +27,10 @@ class SplashViewModel extends BaseViewModel {
   Future<void> initialise() async {
     await getAppUser();
     await AppStrings.getAppSettingsFromStorage();
+    await AppStrings.getHomeSettingsFromStorage();
+    if (AppStrings.appSettingsObject == null) {
+      await getSettings();
+    }
     await AuthService.ensureUserNameInFirestore();
     if (isIOSLikeBrowser()) {
       initLatLng = defaultLatLng;
@@ -57,8 +61,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.37";
-      versionCode = "57";
+      version = "1.0.38";
+      versionCode = "58";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

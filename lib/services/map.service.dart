@@ -13,7 +13,6 @@ class MapService {
   static bool get shouldAttemptGoogleMaps => !_isHuaweiBrowser;
   static bool get _hasGoogleMapsApiKey =>
       AppStrings.googleMapApiKey.trim().isNotEmpty;
-  static bool get _hasLoadedAppSettings => AppStrings.appSettingsObject != null;
 
   static bool get shouldUseGoogleMapsByDefault =>
       shouldAttemptGoogleMaps && _hasGoogleMapsApiKey;
@@ -25,12 +24,6 @@ class MapService {
       return true;
     }
     if (_isHuaweiBrowser) {
-      return false;
-    }
-    if (!_hasLoadedAppSettings) {
-      return null;
-    }
-    if (!_hasGoogleMapsApiKey) {
       return false;
     }
     return null;
