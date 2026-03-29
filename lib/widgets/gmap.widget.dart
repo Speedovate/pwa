@@ -35,6 +35,7 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
+  static const Duration _cameraIdleDebounce = Duration(milliseconds: 120);
   final fmap.MapController _leafletMapController = fmap.MapController();
   Timer? _leafletCameraMoveDebounce;
   bool _leafletMapReady = false;
@@ -102,7 +103,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     _pendingLeafletCameraMove = center;
     _leafletCameraMoveDebounce?.cancel();
     _leafletCameraMoveDebounce = Timer(
-      const Duration(milliseconds: 16),
+      _cameraIdleDebounce,
       () {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || _pendingLeafletCameraMove == null) {

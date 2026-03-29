@@ -32,17 +32,38 @@ class GMapViewModel extends BaseViewModel {
   gmaps.LatLng? lastCenter;
   GeocoderService geocoderService = GeocoderService();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
+  ValueNotifier<bool> showMapLoadingIndicator = ValueNotifier(false);
+  ValueNotifier<bool> showPartnerButtons = ValueNotifier(false);
   bool get isMapInteractionLocked => isLoading || _isResolvingCameraMove;
   bool get isCameraMovePending => _isCameraMovePending;
+  bool _hasActivatedBottomUi = false;
+  bool get hasActivatedBottomUi => _hasActivatedBottomUi;
+
+  void _syncMapUiNotifiers() {
+    final nextLoading = isLoading ||
+        isInitializing ||
+        (!_hasActivatedBottomUi && _isCameraMovePending);
+    if (showMapLoadingIndicator.value != nextLoading) {
+      showMapLoadingIndicator.value = nextLoading;
+    }
+    final nextPartners = _hasActivatedBottomUi &&
+        !_isCameraMovePending &&
+        !isLoading &&
+        !isInitializing;
+    if (showPartnerButtons.value != nextPartners) {
+      showPartnerButtons.value = nextPartners;
+    }
+  }
 
   void beginCameraMove() {
     if (_isResolvingCameraMove || _isCameraMovePending) {
       return;
     }
     selectedAddress.value = null;
+    pickupAddress = null;
     isInitializing = false;
     _isCameraMovePending = true;
-    notifyListeners();
+    _syncMapUiNotifiers();
   }
 
   @override
@@ -50,6 +71,8 @@ class GMapViewModel extends BaseViewModel {
     _debounce?.cancel();
     _debounce = null;
     selectedAddress.dispose();
+    showMapLoadingIndicator.dispose();
+    showPartnerButtons.dispose();
     _map = null;
     super.dispose();
   }
@@ -58,6 +81,7 @@ class GMapViewModel extends BaseViewModel {
     _map = map;
     lastCenter = map.center;
     isInitializing = true;
+    _syncMapUiNotifiers();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
         mapCameraMove("setMap", mapCenter);
@@ -140,12 +164,8 @@ class GMapViewModel extends BaseViewModel {
           isLoading = true;
           _isCameraMovePending = false;
         }
-        notifyListeners();
+        _syncMapUiNotifiers();
         try {
-          if (!skipSelectedAddress) {
-            selectedAddress.value = null;
-          }
-          setBusyForObject(selectedAddress, true);
           try {
             List<Address> addresses =
                 await geocoderService.findAddressesFromCoordinates(
@@ -177,7 +197,6 @@ class GMapViewModel extends BaseViewModel {
             isLoading = false;
             isInitializing = false;
             await addressSelected(address, animate: true);
-            notifyListeners();
           } catch (e) {
             isLoading = false;
             isInitializing = false;
@@ -191,6 +210,7 @@ class GMapViewModel extends BaseViewModel {
                 );
             selectedAddress.value = fallbackAddress;
             pickupAddress = fallbackAddress;
+            _hasActivatedBottomUi = true;
             ApiResponse? apiResponse;
             try {
               apiResponse = await taxiRequest.locationAvailableRequest(
@@ -225,7 +245,6 @@ class GMapViewModel extends BaseViewModel {
                 ),
               ),
             );
-            notifyListeners();
           }
           if (gVehicleTypes.isEmpty) {
             try {
@@ -242,8 +261,8 @@ class GMapViewModel extends BaseViewModel {
         } finally {
           isLoading = false;
           _isCameraMovePending = false;
-          setBusyForObject(selectedAddress, false);
           _isResolvingCameraMove = false;
+          _syncMapUiNotifiers();
           notifyListeners();
         }
       },
@@ -254,7 +273,6 @@ class GMapViewModel extends BaseViewModel {
     Address address, {
     bool animate = false,
   }) async {
-    setBusyForObject(selectedAddress, true);
     try {
       var resolvedAddress = address;
       if (address.gMapPlaceId != null) {
@@ -266,6 +284,7 @@ class GMapViewModel extends BaseViewModel {
       }
       selectedAddress.value = resolvedAddress;
       pickupAddress = resolvedAddress;
+      _hasActivatedBottomUi = true;
       if (_map != null) {
         final currentZoom = _map!.zoom;
         final nextCenter = gmaps.LatLng(
@@ -282,8 +301,6 @@ class GMapViewModel extends BaseViewModel {
       }
     } catch (e) {
       debugPrint("Error in addressSelected: $e");
-    } finally {
-      setBusyForObject(selectedAddress, false);
     }
   }
 

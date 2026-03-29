@@ -57,8 +57,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.32";
-      versionCode = "52";
+      version = "1.0.33";
+      versionCode = "53";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

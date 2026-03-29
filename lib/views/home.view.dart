@@ -724,11 +724,7 @@ class _HomeViewState extends State<HomeView> {
               }
               final resolvedCenter = snapshot.data!;
               final currentCenter = _homeMapCenter;
-              final showBottomUi = vm.selectedAddress.value != null;
-              final showPartnerButtons = showBottomUi &&
-                  !vm.isCameraMovePending &&
-                  !vm.isLoading &&
-                  !vm.isInitializing;
+              final showBottomUi = vm.hasActivatedBottomUi;
               if (currentCenter == null ||
                   (_sameLatLng(currentCenter, defaultLatLng) &&
                       !_sameLatLng(resolvedCenter, defaultLatLng))) {
@@ -998,49 +994,80 @@ class _HomeViewState extends State<HomeView> {
                                                 true,
                                           )
                                       ? const SizedBox.shrink()
-                                      : Positioned(
-                                          left: 0,
-                                          right: 0,
-                                          bottom:
-                                              showPartnerButtons ? 20 : -500,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              PartnerButtonWidget(
-                                                image: AppImages.mnb,
-                                                show: true,
-                                                onTap: () async {
-                                                  if (gBanners.isEmpty) {
-                                                    await SplashViewModel()
-                                                        .getBanners();
-                                                  }
-                                                  setState(() {
-                                                    isAdSeen = false;
-                                                    showBranch = false;
-                                                  });
-                                                },
+                                      : ValueListenableBuilder<bool>(
+                                          valueListenable: vm.showPartnerButtons,
+                                          builder: (_, showPartnerButtons, __) {
+                                            return Positioned(
+                                              left: 0,
+                                              right: 0,
+                                              bottom: showPartnerButtons
+                                                  ? 20
+                                                  : -500,
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  PartnerButtonWidget(
+                                                    image: AppImages.mnb,
+                                                    show: true,
+                                                    onTap: () async {
+                                                      if (gBanners.isEmpty) {
+                                                        await SplashViewModel()
+                                                            .getBanners();
+                                                      }
+                                                      setState(() {
+                                                        isAdSeen = false;
+                                                        showBranch = false;
+                                                      });
+                                                    },
+                                                  ),
+                                                  const SizedBox(
+                                                    width: 12,
+                                                  ),
+                                                  PartnerButtonWidget(
+                                                    image: AppImages.sbb,
+                                                    show: true,
+                                                    onTap: () async {
+                                                      if (gBanners.isEmpty) {
+                                                        await SplashViewModel()
+                                                            .getBanners();
+                                                      }
+                                                      setState(() {
+                                                        isAd1Seen = false;
+                                                        showBranch = false;
+                                                      });
+                                                    },
+                                                  ),
+                                                ],
                                               ),
-                                              const SizedBox(
-                                                width: 12,
+                                            );
+                                          },
+                                        ),
+                                  ValueListenableBuilder<bool>(
+                                    valueListenable: vm.showMapLoadingIndicator,
+                                    builder: (_, showMapLoadingIndicator, __) {
+                                      if (!showMapLoadingIndicator) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Positioned(
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 20,
+                                        child: IgnorePointer(
+                                          child: Center(
+                                            child: SizedBox(
+                                              width: 45,
+                                              height: 45,
+                                              child: Center(
+                                                child:
+                                                    _homeLoadingIndicator(),
                                               ),
-                                              PartnerButtonWidget(
-                                                image: AppImages.sbb,
-                                                show: true,
-                                                onTap: () async {
-                                                  if (gBanners.isEmpty) {
-                                                    await SplashViewModel()
-                                                        .getBanners();
-                                                  }
-                                                  setState(() {
-                                                    isAd1Seen = false;
-                                                    showBranch = false;
-                                                  });
-                                                },
-                                              ),
-                                            ],
+                                            ),
                                           ),
                                         ),
+                                      );
+                                    },
+                                  ),
                                   vm.markers.isNotEmpty
                                       ? const SizedBox.shrink()
                                       : const Center(
@@ -2655,23 +2682,34 @@ class _HomeViewState extends State<HomeView> {
                                                           width: 8,
                                                         ),
                                                         Expanded(
-                                                          child: Text(
-                                                            capitalizeWords(
-                                                              pickupAddress
-                                                                  ?.addressLine,
-                                                              alt:
-                                                                  "Where from?",
-                                                            ),
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style:
-                                                                const TextStyle(
-                                                              color: Color(
-                                                                0xFF030744,
-                                                              ),
-                                                            ),
+                                                          child:
+                                                              ValueListenableBuilder<
+                                                                  Address?>(
+                                                            valueListenable:
+                                                                vm.selectedAddress,
+                                                            builder:
+                                                                (_,
+                                                                    selectedAddress,
+                                                                    __) {
+                                                              return Text(
+                                                                capitalizeWords(
+                                                                  selectedAddress
+                                                                      ?.addressLine,
+                                                                  alt:
+                                                                      "Where from?",
+                                                                ),
+                                                                maxLines: 1,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                                style:
+                                                                    const TextStyle(
+                                                                  color: Color(
+                                                                    0xFF030744,
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            },
                                                           ),
                                                         ),
                                                         const SizedBox(
@@ -3201,20 +3239,6 @@ class _HomeViewState extends State<HomeView> {
                             ],
                           ),
                         ),
-                      !vm.isLoading && !vm.isInitializing
-                          ? const SizedBox.shrink()
-                          : Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 20,
-                              child: SizedBox(
-                                width: 45,
-                                height: 45,
-                                child: Center(
-                                  child: _homeLoadingIndicator(),
-                                ),
-                              ),
-                            ),
                       vm.ongoingOrder == null ||
                               vm.ongoingOrder?.status == "cancelled"
                           ? const SizedBox.shrink()

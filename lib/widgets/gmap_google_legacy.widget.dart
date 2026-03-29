@@ -28,6 +28,7 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
+  static const Duration _cameraIdleDebounce = Duration(milliseconds: 120);
   late final String viewId;
   gmaps.Map? _map;
   StreamSubscription? _centerChangedSub;
@@ -117,7 +118,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             _pendingCenter = center;
             _cameraMoveDebounce?.cancel();
             _cameraMoveDebounce = Timer(
-              const Duration(milliseconds: 16),
+              _cameraIdleDebounce,
               () {
                 final nextCenter = _pendingCenter;
                 _pendingCenter = null;
