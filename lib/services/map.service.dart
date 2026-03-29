@@ -9,9 +9,13 @@ import 'package:pwa/utils/functions.dart';
 
 class MapService {
   static Future<bool>? _googleMapsReadyFuture;
+  static bool get _isIOSBrowser => isIOSLikeBrowser();
+  static bool get _hasGoogleMapsApiKey =>
+      AppStrings.googleMapApiKey.trim().isNotEmpty;
+  static bool get _hasLoadedAppSettings => AppStrings.appSettingsObject != null;
 
   static bool get shouldUseGoogleMapsByDefault =>
-      !isIOSLikeBrowser() && AppStrings.googleMapApiKey.trim().isNotEmpty;
+      !_isIOSBrowser && _hasGoogleMapsApiKey;
 
   static bool get isLeafletFallbackPreferred => !shouldUseGoogleMapsByDefault;
 
@@ -19,7 +23,13 @@ class MapService {
     if (isGoogleMapsLoaded) {
       return true;
     }
-    if (!shouldUseGoogleMapsByDefault) {
+    if (_isIOSBrowser) {
+      return false;
+    }
+    if (!_hasLoadedAppSettings) {
+      return null;
+    }
+    if (!_hasGoogleMapsApiKey) {
       return false;
     }
     return null;
@@ -34,7 +44,8 @@ class MapService {
     }
   }
 
-  static Future<bool> ensureGoogleMapsReady() {
+  static Future<bool> ensureGoogleMapsReady() async {
+    await AppStrings.getAppSettingsFromStorage();
     if (_googleMapsReadyFuture != null) {
       return _googleMapsReadyFuture!;
     }
