@@ -68,7 +68,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void dispose() => super.dispose();
 
   Future<void> _resolveEngine() async {
-    if (!MapService.shouldUseGoogleMapsByDefault) {
+    if (!MapService.shouldAttemptGoogleMaps) {
       if (mounted) {
         setState(() {
           _useGoogleMaps = false;

@@ -9,13 +9,14 @@ import 'package:pwa/utils/functions.dart';
 
 class MapService {
   static Future<bool>? _googleMapsReadyFuture;
-  static bool get _isIOSBrowser => isIOSLikeBrowser();
+  static bool get _isHuaweiBrowser => isHuaweiLikeBrowser();
+  static bool get shouldAttemptGoogleMaps => !_isHuaweiBrowser;
   static bool get _hasGoogleMapsApiKey =>
       AppStrings.googleMapApiKey.trim().isNotEmpty;
   static bool get _hasLoadedAppSettings => AppStrings.appSettingsObject != null;
 
   static bool get shouldUseGoogleMapsByDefault =>
-      !_isIOSBrowser && _hasGoogleMapsApiKey;
+      shouldAttemptGoogleMaps && _hasGoogleMapsApiKey;
 
   static bool get isLeafletFallbackPreferred => !shouldUseGoogleMapsByDefault;
 
@@ -23,7 +24,7 @@ class MapService {
     if (isGoogleMapsLoaded) {
       return true;
     }
-    if (_isIOSBrowser) {
+    if (_isHuaweiBrowser) {
       return false;
     }
     if (!_hasLoadedAppSettings) {
