@@ -11,6 +11,17 @@ class AppStrings {
     return normalized == '1' || normalized == 'true';
   }
 
+  static Map<String, dynamic>? _envMap(String ref) {
+    final value = env(ref);
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
+  }
+
   static String get appName => env('app_name') ?? '';
 
   static String get companyName => env('company_name') ?? '';
@@ -100,16 +111,16 @@ class AppStrings {
   static String get emergencyContact => env('emergencyContact') ?? '911';
 
   static bool get googleLogin =>
-      _boolValue(env('auth')?['googleLogin'], fallback: true);
+      _boolValue(_envMap('auth')?['googleLogin'], fallback: true);
 
   static bool get appleLogin =>
-      _boolValue(env('auth')?['appleLogin']);
+      _boolValue(_envMap('auth')?['appleLogin']);
 
   static bool get facebookLogin =>
-      _boolValue(env('auth')?['facebookLogin']);
+      _boolValue(_envMap('auth')?['facebookLogin']);
 
   static bool get qrcodeLogin =>
-      _boolValue(env('auth')?['qrcodeLogin']);
+      _boolValue(_envMap('auth')?['qrcodeLogin']);
 
   static dynamic get uiConfig => env('ui');
 

@@ -45,7 +45,10 @@ AvailableDriver? availableDriver;
 List<VehicleType> availableVehicles = [];
 String useExt = "enableFatchByLocation";
 String itexmo = "enableParcelVendorByLocation";
-const gmaps.LatLng defaultLatLng = gmaps.LatLng(9.7638, 118.7473);
+const gmaps.LatLng defaultLatLng = gmaps.LatLng(
+  9.763886475089924,
+  118.747330789576,
+);
 gmaps.LatLng? initLatLng = defaultLatLng;
 gmaps.LatLng? lastKnownRealLatLng;
 bool hasRealLocationFix = false;

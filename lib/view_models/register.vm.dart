@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
@@ -267,7 +268,16 @@ class RegisterViewModel extends BaseViewModel {
             ],
           );
           gsiAccount = await gsi.signInSilently();
-          gsiAccount ??= await gsi.signIn();
+          if (gsiAccount == null) {
+            if (kIsWeb) {
+              gsiAccount = await gsi.signInSilently(
+                suppressErrors: false,
+                reAuthenticate: true,
+              );
+            } else {
+              gsiAccount = await gsi.signIn();
+            }
+          }
           auth = await gsiAccount?.authentication;
           if (auth?.idToken != null) {
             final payload = parseJwt(auth!.idToken!);
@@ -277,6 +287,11 @@ class RegisterViewModel extends BaseViewModel {
           }
           if (emailAddress == null) {
             throw Exception("An error occurred. Please try again");
+          }
+          if (auth?.idToken == null) {
+            throw Exception(
+              "Google sign-up could not verify your identity on this browser. Please try again or use phone registration.",
+            );
           }
           apiResponse = await authRequest.checkCredentialsExist(
             email: emailAddress,
@@ -453,8 +468,8 @@ class RegisterViewModel extends BaseViewModel {
         firebaseIdToken: "$idToken",
         birthday: birthdayTEC.text.trim(),
         name: capitalizeWords(nameTEC.text.trim()),
-        lat: double.parse("${initLatLng?.lat ?? 9.7638}"),
-        lng: double.parse("${initLatLng?.lng ?? 118.7473}"),
+        lat: double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+        lng: double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
       );
       if (apiResponse.hasError()) {
         AlertService().stopLoading(forceStop: true);

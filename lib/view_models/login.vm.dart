@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
@@ -143,7 +144,16 @@ class LoginViewModel extends BaseViewModel {
         ],
       );
       gsiAccount = await gsi.signInSilently();
-      gsiAccount ??= await gsi.signIn();
+      if (gsiAccount == null) {
+        if (kIsWeb) {
+          gsiAccount = await gsi.signInSilently(
+            suppressErrors: false,
+            reAuthenticate: true,
+          );
+        } else {
+          gsiAccount = await gsi.signIn();
+        }
+      }
       auth = await gsiAccount?.authentication;
       if (auth?.idToken != null) {
         final payload = parseJwt(auth!.idToken!);
@@ -154,14 +164,20 @@ class LoginViewModel extends BaseViewModel {
       if (emailAddress == null) {
         throw Exception("An error occurred. Please try again");
       }
+      if (auth?.idToken == null) {
+        throw Exception(
+          "Google sign-in could not verify your identity on this browser. Please try again or use phone login.",
+        );
+      }
+      final verifiedIdToken = auth!.idToken!;
       final credential = GoogleAuthProvider.credential(
-        idToken: auth?.idToken,
-        accessToken: auth?.accessToken,
+        idToken: verifiedIdToken,
+        accessToken: auth.accessToken,
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
       final apiResponse = await authRequest.googleLoginRequest(
         email: emailAddress,
-        idToken: auth!.idToken!,
+        idToken: verifiedIdToken,
       );
       if (apiResponse.allGood) {
         await handleDeviceLogin(apiResponse);
@@ -219,14 +235,15 @@ class LoginViewModel extends BaseViewModel {
         double earthDistance = GeoRange().distance(
           earthCenterLocation,
           Point(
-            latitude: double.parse("${initLatLng?.lat ?? 9.7638}"),
-            longitude: double.parse("${initLatLng?.lng ?? 118.7473}"),
+            latitude: double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+            longitude:
+                double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
           ),
         );
         ApiResponse apiResponse = await taxiRequest.syncLocationRequest(
           earthDistance: earthDistance,
-          lat: double.parse("${initLatLng?.lat ?? 9.7638}"),
-          lng: double.parse("${initLatLng?.lng ?? 118.7473}"),
+          lat: double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+          lng: double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
           isMocked: false,
         );
         if (apiResponse.allGood) {

@@ -8,7 +8,6 @@ import 'package:pwa/constants/images.dart';
 import 'package:pwa/views/register.view.dart';
 import 'package:pwa/view_models/login.vm.dart';
 import 'package:pwa/services/auth.service.dart';
-import 'package:pwa/constants/strings.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
@@ -53,8 +52,7 @@ class _LoginViewState extends State<LoginView> {
         viewModelBuilder: () => loginViewModel,
         onViewModelReady: (vm) => vm.initialise(),
         builder: (context, vm, child) {
-          final canUseGoogleAuth =
-              AppStrings.googleLogin && isGoogleAuthLikelySupported();
+          final canUseGoogleAuth = isGoogleAuthLikelySupported();
           final useGoogleFlow = isTourist && canUseGoogleAuth;
           return GestureDetector(
             onTap: () {
@@ -337,6 +335,7 @@ class _LoginViewState extends State<LoginView> {
                           ),
                         ),
                       if (canUseGoogleAuth) const SizedBox(height: 12),
+                      if (!canUseGoogleAuth) const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,

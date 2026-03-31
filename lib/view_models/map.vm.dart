@@ -55,27 +55,28 @@ class MapViewModel extends BaseViewModel {
     _map = map;
     lastCenter = map.center;
     debugPrint("Map set - MapViewModel");
+    final fallbackCenter = initLatLng ?? defaultLatLng;
     try {
       final initialAddress = isPickup
           ? pickupAddress ??
               Address(
-                addressLine: pickupAddress!.addressLine,
+                addressLine: pickupAddress?.addressLine,
                 coordinates: Coordinates(
                   double.parse(
-                      "${pickupAddress?.latLng.lat ?? initLatLng?.lng}"),
+                      "${pickupAddress?.latLng.lat ?? fallbackCenter.lat}"),
                   double.parse(
-                      "${pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
+                      "${pickupAddress?.latLng.lng ?? fallbackCenter.lng}"),
                 ),
               )
           : dropoffAddress ??
               Address(
                 addressLine:
-                    dropoffAddress?.addressLine ?? pickupAddress!.addressLine,
+                    dropoffAddress?.addressLine ?? pickupAddress?.addressLine,
                 coordinates: Coordinates(
                   double.parse(
-                      "${dropoffAddress?.latLng.lat ?? pickupAddress?.latLng.lat ?? initLatLng?.lng}"),
+                      "${dropoffAddress?.latLng.lat ?? pickupAddress?.latLng.lat ?? fallbackCenter.lat}"),
                   double.parse(
-                      "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? initLatLng?.lng}"),
+                      "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? fallbackCenter.lng}"),
                 ),
               );
       selectedAddress.value = initialAddress;
@@ -91,7 +92,7 @@ class MapViewModel extends BaseViewModel {
       );
     } catch (e) {
       mapCameraMove(
-        initLatLng,
+        fallbackCenter,
         isPickup: isPickup,
       );
     }
@@ -193,8 +194,8 @@ class MapViewModel extends BaseViewModel {
         } catch (e) {
           selectedAddress.value = Address(
             coordinates: Coordinates(
-              double.parse("${initLatLng?.lat ?? 9.7638}"),
-              double.parse("${initLatLng?.lng ?? 118.7473}"),
+              double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+              double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
             ),
           );
           ApiResponse apiResponse = await taxiRequest.locationAvailableRequest(

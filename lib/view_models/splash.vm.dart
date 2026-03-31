@@ -55,8 +55,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.31";
-      versionCode = "51";
+      version = "1.0.35";
+      versionCode = "55";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",
@@ -86,14 +86,15 @@ class SplashViewModel extends BaseViewModel {
           double earthDistance = GeoRange().distance(
             earthCenterLocation,
             Point(
-              latitude: double.parse("${initLatLng?.lat ?? 9.7638}"),
-              longitude: double.parse("${initLatLng?.lng ?? 118.7473}"),
+              latitude: double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+              longitude:
+                  double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
             ),
           );
           ApiResponse apiResponse = await taxiRequest.syncLocationRequest(
             earthDistance: earthDistance,
-            lat: double.parse("${initLatLng?.lat ?? 9.7638}"),
-            lng: double.parse("${initLatLng?.lng ?? 118.7473}"),
+            lat: double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+            lng: double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
             isMocked: false,
           );
           if (apiResponse.allGood) {

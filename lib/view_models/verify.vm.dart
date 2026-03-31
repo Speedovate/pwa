@@ -147,8 +147,8 @@ class VerifyViewModel extends BaseViewModel {
                 phone: "+63${phoneTEC.text}",
                 birthday: birthdayTEC.text.trim(),
                 name: capitalizeWords(nameTEC.text),
-                lat: double.parse("${initLatLng?.lat ?? 9.7638}"),
-                lng: double.parse("${initLatLng?.lng ?? 118.7473}"),
+                lat: double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+                lng: double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
               );
               if (apiResponse.hasError()) {
                 AlertService().stopLoading();
