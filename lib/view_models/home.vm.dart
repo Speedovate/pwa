@@ -43,12 +43,14 @@ class HomeViewModel extends GMapViewModel {
   bool blockCamera = false;
   bool showAnalytics = false;
   Map<String, dynamic>? user;
+  Map<String, dynamic>? partner;
   Map<String, dynamic>? order;
   VehicleType? selectedVehicle;
   Map<String, dynamic>? cHeaders;
   double driverPositionRotation = 0;
   List<VehicleType> vehicleTypes = [];
   StreamSubscription? userUpdateStream;
+  StreamSubscription? partnerUpdateStream;
   StreamSubscription? orderUpdateStream;
   AuthRequest authRequest = AuthRequest();
   TextEditingController reviewTEC = TextEditingController();
@@ -96,6 +98,7 @@ class HomeViewModel extends GMapViewModel {
       }
       LoadViewModel().getLoadBalance();
       startListeningToUser();
+      startListeningToPartner();
       try {
         final userDoc = await fbStore
             .collection(
@@ -906,6 +909,7 @@ class HomeViewModel extends GMapViewModel {
 
   stopAllListeners() {
     orderUpdateStream?.cancel();
+    partnerUpdateStream?.cancel();
   }
 
   closeOrder() async {
@@ -1373,6 +1377,28 @@ class HomeViewModel extends GMapViewModel {
         );
       }
     } catch (_) {}
+  }
+
+  void startListeningToPartner() {
+    if (partnerUpdateStream != null && !partnerUpdateStream!.isPaused) {
+      return;
+    }
+    partnerUpdateStream = fbStore
+        .collection("partners")
+        .doc("${AuthService.currentUser?.id}")
+        .snapshots()
+        .listen(
+      (event) {
+        partner = event.data();
+        notifyListeners();
+      },
+    );
+  }
+
+  String get providerDisplayPaymentMode {
+    final paymentMode = "${partner?["payment_mode"] ?? user?["payment_mode"] ?? ""}"
+        .toLowerCase();
+    return paymentMode == "cash" ? "cash" : "load";
   }
 
   chatDriver() {

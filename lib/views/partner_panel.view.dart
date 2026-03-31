@@ -473,6 +473,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         {
           "partner_id": trimmedId,
           "partner_name": partnerName,
+          "markup_amount": markupAmount,
+          "payment_mode": normalizedPaymentMode,
           "updated_at": timestamp,
           if ((partnerSnapshot.data()?["created_at"]) == null)
             "created_at": timestamp,
@@ -487,6 +489,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         {
           "partner_id": trimmedId,
           "partner_name": partnerName,
+          "markup_amount": markupAmount,
+          "payment_mode": normalizedPaymentMode,
           "today_amount": 0,
           "month_amount": 0,
           "total_amount": 0,

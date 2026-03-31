@@ -1228,7 +1228,7 @@ class _HomeViewState extends State<HomeView> {
                                                         ),
                                                         child: Center(
                                                           child: Text(
-                                                            vm.providerPaymentMode ==
+                                                            vm.providerDisplayPaymentMode ==
                                                                     "cash"
                                                                 ? "Cash: Pay Your Driver"
                                                                 : "Load: Auto Deduction",
@@ -1299,7 +1299,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             .start,
                                                                     children: [
                                                                       Text(
-                                                                        "₱${vm.user?["today_amount"] ?? 0}",
+                                                                        "₱${vm.partner?["today_amount"] ?? 0}",
                                                                         textAlign:
                                                                             TextAlign.center,
                                                                         style:
@@ -1390,7 +1390,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             .start,
                                                                     children: [
                                                                       Text(
-                                                                        "₱${vm.user?["month_amount"] ?? 0}",
+                                                                        "₱${vm.partner?["month_amount"] ?? 0}",
                                                                         textAlign:
                                                                             TextAlign.center,
                                                                         style:
@@ -1489,7 +1489,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             .start,
                                                                     children: [
                                                                       Text(
-                                                                        "₱${vm.user?["total_amount"] ?? 0}",
+                                                                        "₱${vm.partner?["total_amount"] ?? 0}",
                                                                         textAlign:
                                                                             TextAlign.center,
                                                                         style:
@@ -1580,7 +1580,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             .start,
                                                                     children: [
                                                                       Text(
-                                                                        "₱${vm.user?["markup_amount"] ?? 0}",
+                                                                        "₱${vm.partner?["markup_amount"] ?? 0}",
                                                                         textAlign:
                                                                             TextAlign.center,
                                                                         style:

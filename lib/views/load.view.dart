@@ -1,4 +1,7 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
@@ -22,6 +25,7 @@ class _LoadViewState extends State<LoadView> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   bool _isRefreshing = false;
+  bool _showMarkupHistory = false;
 
   @override
   void initState() {
@@ -46,9 +50,258 @@ class _LoadViewState extends State<LoadView> {
   _refresh() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
+    vm.startListeningToPartnerMarkup();
     await vm.getLoadBalance();
     await vm.getLoadTransactions(initialLoading: true);
     setState(() => _isRefreshing = false);
+  }
+
+  Widget _buildMarkupSummaryBar(LoadViewModel vm) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        border: Border.all(
+          width: 1,
+          color: const Color(0xFF030744).withOpacity(0.15),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF030744).withOpacity(0.06),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: Color(0xFF030744),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Claimable Partner Markup",
+                  style: TextStyle(
+                    height: 1,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF030744),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "₱${vm.claimablePartnerMarkupAmount.toStringAsFixed(0)}",
+                  style: const TextStyle(
+                    height: 0.95,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF030744),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      height: 42,
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFF030744) : Colors.transparent,
+        borderRadius: const BorderRadius.all(Radius.circular(1000)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: const BorderRadius.all(Radius.circular(1000)),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                height: 1,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected
+                    ? Colors.white
+                    : const Color(0xFF030744).withOpacity(0.7),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarkupHistoryList(LoadViewModel vm) {
+    if (vm.partnerMarkupTransactions.isEmpty) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            color: const Color(0xFF030744).withOpacity(0.5),
+            size: 75,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "No markup history yet",
+            style: TextStyle(
+              height: 1,
+              fontSize: 20,
+              color: const Color(0xFF030744).withOpacity(0.5),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Your claimable partner markup history will appear here",
+            style: TextStyle(
+              height: 1,
+              color: const Color(0xFF030744).withOpacity(0.5),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      physics: const BouncingScrollPhysics(),
+      itemCount: vm.partnerMarkupTransactions.length + 1,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              border: Border.all(
+                width: 1,
+                color: const Color(0xFF030744).withOpacity(0.15),
+              ),
+            ),
+            child: Text(
+              "Claimable partner markup came from bookings paid in cash and can be claimed via request.",
+              style: TextStyle(
+                height: 1.25,
+                fontSize: 12,
+                color: const Color(0xFF030744).withOpacity(0.7),
+              ),
+            ),
+          );
+        }
+        final transaction = vm.partnerMarkupTransactions[index - 1];
+        final createdAt = transaction["created_at"] as DateTime?;
+        final driverName = transaction["driver_name"]?.toString() ?? "Driver";
+        final orderId = transaction["order_id"];
+        final markup = (transaction["markup"] as num?)?.toDouble() ??
+            (transaction["amount"] as num?)?.toDouble() ??
+            0;
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+            border: Border.all(
+              width: 1,
+              color: const Color(0xFF030744).withOpacity(0.15),
+            ),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Text(
+                    _shortenDriverName(driverName),
+                    style: const TextStyle(
+                      height: 1,
+                      fontSize: 14,
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  const Expanded(child: SizedBox()),
+                  Text(
+                    "+ ₱${markup.toStringAsFixed(0)}",
+                    style: const TextStyle(
+                      height: 1,
+                      fontSize: 14,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      orderId == null ? "-" : "Booking $orderId",
+                      style: const TextStyle(
+                        height: 1,
+                        fontSize: 14,
+                        color: Color(0xFF030744),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    createdAt == null
+                        ? ""
+                        : DateFormat("dd/MM/yyyy - h:mm a").format(createdAt),
+                    style: const TextStyle(
+                      height: 1,
+                      fontSize: 14,
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _shortenDriverName(String value) {
+    final parts = value
+        .split(RegExp(r'\s+'))
+        .where((part) => part.trim().isNotEmpty)
+        .toList();
+    if (parts.isEmpty) {
+      return value;
+    }
+    if (parts.length == 1) {
+      return parts.first;
+    }
+    return [
+      parts.first,
+      ...parts.skip(1).map((part) => part[0].toUpperCase()),
+    ].join(' ');
   }
 
   @override
@@ -404,13 +657,61 @@ class _LoadViewState extends State<LoadView> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                if (isBool(AuthService.currentUser?.isProvider))
+                  _buildMarkupSummaryBar(vm),
+                if (isBool(AuthService.currentUser?.isProvider))
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          width: 1,
+                          color: const Color(0xFF030744).withOpacity(0.15),
+                        ),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(1000)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _buildFilterButton(
+                              label: "Load History",
+                              selected: !_showMarkupHistory,
+                              onTap: () {
+                                setState(() {
+                                  _showMarkupHistory = false;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: _buildFilterButton(
+                              label: "Markup History",
+                              selected: _showMarkupHistory,
+                              onTap: () {
+                                setState(() {
+                                  _showMarkupHistory = true;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 Divider(
                   height: 1,
                   thickness: 1,
                   color: const Color(0xFF030744).withOpacity(0.15),
                 ),
                 Expanded(
-                  child: vm.isBusy
+                  child: isBool(AuthService.currentUser?.isProvider) &&
+                          _showMarkupHistory
+                      ? _buildMarkupHistoryList(vm)
+                      : vm.isBusy
                       ? Column(
                           children: [
                             LinearProgressIndicator(
