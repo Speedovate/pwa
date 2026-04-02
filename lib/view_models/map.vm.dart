@@ -27,6 +27,13 @@ class MapViewModel extends BaseViewModel {
   TextEditingController searchTEC = TextEditingController();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
 
+  void _clearSearchAfterBuild() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (disposed) return;
+      searchTEC.clear();
+    });
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -80,7 +87,7 @@ class MapViewModel extends BaseViewModel {
                 ),
               );
       selectedAddress.value = initialAddress;
-      searchTEC.text = initialAddress.addressLine ?? "";
+      _clearSearchAfterBuild();
       final initialCenter = initialAddress.latLng;
       lastCenter = initialCenter;
       _ignoreCameraMoveUntil = DateTime.now().add(
