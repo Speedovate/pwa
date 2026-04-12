@@ -479,7 +479,7 @@ class GMapViewModel extends BaseViewModel {
         id: "pickupMarker",
         position: gmaps.LatLng(0, 0),
         imageUrl:
-            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/pickup.png',
+            'http://assets.ppc-toda.com/pickup.png',
         width: 50,
         height: 50,
       ).copyWith(position: pickupLatLng),
@@ -487,7 +487,7 @@ class GMapViewModel extends BaseViewModel {
         id: "driverMarker",
         position: gmaps.LatLng(0, 0),
         imageUrl:
-            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
+            'http://assets.ppc-toda.com/driver.png',
         width: 35,
         height: 35,
       ).copyWith(position: driverLatLng),
@@ -537,7 +537,7 @@ class GMapViewModel extends BaseViewModel {
         id: "pickupMarker",
         position: gmaps.LatLng(0, 0),
         imageUrl:
-            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/pickup.png',
+            'http://assets.ppc-toda.com/pickup.png',
         width: 50,
         height: 50,
       ).copyWith(position: pickupLatLng),
@@ -545,7 +545,7 @@ class GMapViewModel extends BaseViewModel {
         id: "dropoffMarker",
         position: gmaps.LatLng(0, 0),
         imageUrl:
-            'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/dropoff.png',
+            'http://assets.ppc-toda.com/dropoff.png',
         width: 50,
         height: 50,
       ).copyWith(position: dropoffLatLng),
@@ -556,7 +556,7 @@ class GMapViewModel extends BaseViewModel {
           id: "driverMarker",
           position: gmaps.LatLng(0, 0),
           imageUrl:
-              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
+              'http://assets.ppc-toda.com/driver.png',
           width: 35,
           height: 35,
         ).copyWith(position: driverLatLng),
@@ -612,7 +612,7 @@ class GMapViewModel extends BaseViewModel {
           id: 'driverMarker',
           position: position,
           imageUrl:
-              'https://storage.googleapis.com/ppctoda_website/ppctoda_pwa/driver.png',
+              'http://assets.ppc-toda.com/driver.png',
           width: 35,
           height: 35,
           rotationDegrees: rotationDegrees,

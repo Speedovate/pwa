@@ -313,7 +313,7 @@ class _VerifyViewState extends State<VerifyView> {
                           text: TextSpan(
                             children: [
                               const TextSpan(
-                                text: "Need help? ",
+                                text: "Need help now? ",
                                 style: TextStyle(
                                   height: 1.15,
                                   fontWeight: FontWeight.w400,

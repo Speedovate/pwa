@@ -91,7 +91,7 @@ class UpgradeWidget extends StatelessWidget {
                     text: TextSpan(
                       children: [
                         TextSpan(
-                          text: "Need help? ",
+                          text: "Need help now? ",
                           style: TextStyle(
                             height: 1.15,
                             fontSize: 14,

@@ -309,7 +309,7 @@ class HomeViewModel extends GMapViewModel {
         await startHandlingOngoingOrder(forceStop: forceStop);
         await loadUIByOngoingOrderStatus(forceStop: forceStop);
         if (rebookSecs == 0 && bookingId != ongoingOrder?.id) {
-          rebookSecs = 40;
+          rebookSecs = 120;
           startRebookTimer();
           notifyListeners();
         }

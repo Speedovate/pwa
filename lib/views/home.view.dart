@@ -3041,6 +3041,8 @@ class _HomeViewState extends State<HomeView> {
                                                                   "null") {
                                                             return "CANCEL";
                                                           } else if (status ==
+                                                                  "pending" ||
+                                                              status ==
                                                                   "enroute" ||
                                                               status ==
                                                                   "preparing" ||
@@ -3130,7 +3132,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     "null") {
                                                               vm.cancelOrder();
                                                             } else {
-                                                              if (vm.ongoingOrder?.status == "enroute" ||
+                                                              if (vm.ongoingOrder?.status == "pending" ||
+                                                                  vm.ongoingOrder?.status ==
+                                                                      "enroute" ||
                                                                   vm.ongoingOrder
                                                                           ?.status ==
                                                                       "preparing" ||
@@ -4381,7 +4385,7 @@ class _HomeViewState extends State<HomeView> {
                                                                 children: [
                                                                   TextSpan(
                                                                     text:
-                                                                        "Need help? ",
+                                                                        "Need help now? ",
                                                                     style:
                                                                         TextStyle(
                                                                       height:
