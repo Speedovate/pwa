@@ -52,8 +52,9 @@ class _OrderListItemState extends State<OrderListItem> {
             Row(
               children: [
                 const SizedBox(width: 12),
-                Image.asset(
+                Image.network(
                   AppImages.icon,
+                  cacheWidth: 600,
                   height: 28,
                   width: 28,
                   color: const Color(0xFF030744),

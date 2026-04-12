@@ -1,7 +1,7 @@
 name: pwa
 description: "PPC TODA (Beta)"
 publish_to: 'none'
-version: 1.0.31+51
+version: 1.0.32+52
 environment:
   sdk: ^3.5.0
 
@@ -47,7 +47,4 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/splash.png
-    - assets/images/
     - assets/json/
-    - assets/

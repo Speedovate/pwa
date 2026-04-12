@@ -25,7 +25,7 @@ class NetworkImageWidget extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.cover,
-    this.memCacheWidth,
+    this.memCacheWidth = 600,
     this.progressIndicatorBuilder,
     this.errorWidget,
     super.key,
@@ -45,6 +45,7 @@ class NetworkImageWidget extends StatelessWidget {
 
     return Image.network(
       imageUrl,
+      cacheWidth: memCacheWidth,
       width: width,
       height: height,
       fit: fit,

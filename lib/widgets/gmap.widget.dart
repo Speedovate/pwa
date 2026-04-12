@@ -5,8 +5,7 @@ import 'package:pwa/services/map.service.dart';
 import 'package:pwa/utils/map_controller.dart';
 import 'package:pwa/utils/map_layers.dart';
 import 'package:pwa/utils/map_types.dart' as app_maps;
-import 'package:pwa/widgets/gmap_google_legacy.widget.dart'
-    as legacy_google;
+import 'package:pwa/widgets/gmap_google_legacy.widget.dart' as legacy_google;
 
 class GoogleMapWidget extends StatefulWidget {
   final app_maps.LatLng center;
@@ -91,7 +90,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       return;
     }
 
-    if (event is fmap.MapEventMoveEnd && _isLeafletUserMoveSource(event.source)) {
+    if (event is fmap.MapEventMoveEnd &&
+        _isLeafletUserMoveSource(event.source)) {
       final center = event.camera.center.toAppLatLng();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
@@ -134,7 +134,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             polylines: widget.polylines
                 .map(
                   (polyline) => fmap.Polyline(
-                    points: polyline.points.map((point) => point.toLeafletLatLng()).toList(),
+                    points: polyline.points
+                        .map((point) => point.toLeafletLatLng())
+                        .toList(),
                     strokeWidth: polyline.strokeWidth,
                     color: polyline.color,
                   ),
@@ -154,6 +156,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                         angle: marker.rotationDegrees * math.pi / 180,
                         child: Image.network(
                           marker.imageUrl,
+                          cacheWidth: 600,
                           width: marker.width,
                           height: marker.height,
                           fit: BoxFit.contain,
@@ -194,7 +197,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           if (!mounted) {
             return;
           }
-          MapService.debugLog('Google widget reported load error; switching to Leaflet');
+          MapService.debugLog(
+              'Google widget reported load error; switching to Leaflet');
           setState(() {
             _useLeafletFallback = true;
           });

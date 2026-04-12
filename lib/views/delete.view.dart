@@ -90,8 +90,9 @@ class _DeleteViewState extends State<DeleteView> {
                       Expanded(
                         flex: 2,
                         child: Center(
-                          child: Image.asset(
+                          child: Image.network(
                             AppImages.auth,
+                            cacheWidth: 600,
                             fit: BoxFit.fitWidth,
                           ),
                         ),

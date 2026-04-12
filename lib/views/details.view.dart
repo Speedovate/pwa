@@ -180,6 +180,7 @@ class _DetailsViewState extends State<DetailsView> {
                                                 child: Image.network(
                                                   widget.order.driver?.cPhoto ??
                                                       "",
+                                                  cacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -510,8 +511,9 @@ class _DetailsViewState extends State<DetailsView> {
                                           ),
                                         ),
                                       )
-                                    : Image.asset(
+                                    : Image.network(
                                         AppImages.icon,
+                                        cacheWidth: 600,
                                         height: 28,
                                         width: 28,
                                         color: const Color(0xFF030744),

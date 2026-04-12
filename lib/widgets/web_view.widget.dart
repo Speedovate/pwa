@@ -154,8 +154,9 @@ class WebViewWidgetState extends State<WebViewWidget> {
                                 right: 16,
                                 bottom: 18,
                               ),
-                              child: Image.asset(
+                              child: Image.network(
                                 AppImages.logo,
+                                cacheWidth: 600,
                                 fit: BoxFit.cover,
                               ),
                             ),

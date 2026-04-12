@@ -118,8 +118,9 @@ class _ChangeViewState extends State<ChangeView> {
                       Expanded(
                         flex: 2,
                         child: Center(
-                          child: Image.asset(
+                          child: Image.network(
                             AppImages.auth,
+                            cacheWidth: 600,
                             fit: BoxFit.fitWidth,
                           ),
                         ),

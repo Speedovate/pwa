@@ -1,6 +1,7 @@
 import 'package:lottie/lottie.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -35,8 +36,9 @@ class UpgradeWidget extends StatelessWidget {
               SizedBox(height: MediaQuery.of(context).padding.top),
               const SizedBox(height: 52),
               ClipOval(
-                child: Image.asset(
-                  "assets/images/logo.png",
+                child: Image.network(
+                  AppImages.logo,
+                  cacheWidth: 600,
                   height: 50,
                   width: 50,
                 ),

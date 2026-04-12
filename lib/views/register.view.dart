@@ -788,8 +788,9 @@ class _RegisterViewState extends State<RegisterView> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Image.asset(
+                                      Image.network(
                                         AppImages.google,
+                                        cacheWidth: 600,
                                         width: 24,
                                         height: 24,
                                       ),

@@ -90,7 +90,7 @@ class _IntroViewState extends State<IntroView> {
                                                         2.2)
                                                     .clamp(0, 250),
                                         child: Center(
-                                          child: Image.asset(
+                                          child: Image.network(
                                             () {
                                               if (item == "e") {
                                                 return AppImages.cashless;
@@ -107,6 +107,7 @@ class _IntroViewState extends State<IntroView> {
                                                 return AppImages.convenience;
                                               }
                                             }(),
+                                            cacheWidth: 600,
                                           ),
                                         ),
                                       ),

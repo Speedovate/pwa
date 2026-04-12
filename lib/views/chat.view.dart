@@ -134,6 +134,7 @@ class _ChatViewState extends State<ChatView> {
                                               customWidget: PinchZoom(
                                                 child: Image.network(
                                                   vm.messages[index].text,
+                                                  cacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -286,12 +287,16 @@ class _ChatViewState extends State<ChatView> {
                                                             : DecorationImage(
                                                                 fit: BoxFit
                                                                     .cover,
-                                                                image:
-                                                                    NetworkImage(
-                                                                  vm
-                                                                      .messages[
-                                                                          index]
-                                                                      .text,
+                                                                image: ResizeImage
+                                                                    .resizeIfNeeded(
+                                                                  600,
+                                                                  null,
+                                                                  NetworkImage(
+                                                                    vm
+                                                                        .messages[
+                                                                            index]
+                                                                        .text,
+                                                                  ),
                                                                 ),
                                                               ),
                                                       ),
@@ -438,6 +443,7 @@ class _ChatViewState extends State<ChatView> {
                                               customWidget: PinchZoom(
                                                 child: Image.network(
                                                   vm.messages[index].text,
+                                                  cacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -498,9 +504,16 @@ class _ChatViewState extends State<ChatView> {
                                                         ? null
                                                         : DecorationImage(
                                                             fit: BoxFit.cover,
-                                                            image: NetworkImage(
-                                                              vm.messages[index]
-                                                                  .text,
+                                                            image: ResizeImage
+                                                                .resizeIfNeeded(
+                                                              600,
+                                                              null,
+                                                              NetworkImage(
+                                                                vm
+                                                                    .messages[
+                                                                        index]
+                                                                    .text,
+                                                              ),
                                                             ),
                                                           ),
                                                   ),

@@ -109,7 +109,11 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               image: DecorationImage(
-                image: NetworkImage(banner.photo),
+                image: ResizeImage.resizeIfNeeded(
+                  600,
+                  null,
+                  NetworkImage(banner.photo),
+                ),
                 fit: BoxFit.cover,
               ),
             ),
@@ -138,8 +142,9 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
     return [
       const SizedBox(height: 20),
       ClipOval(
-        child: Image.asset(
+        child: Image.network(
           widget.partnerImage,
+          cacheWidth: 600,
           width: 66,
           height: 66,
           fit: BoxFit.cover,

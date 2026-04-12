@@ -40,7 +40,11 @@ class _PartnerButtonWidgetState extends State<PartnerButtonWidget> {
           color: Colors.white,
           child: Ink.image(
             fit: BoxFit.cover,
-            image: AssetImage(widget.image),
+            image: ResizeImage.resizeIfNeeded(
+              600,
+              null,
+              NetworkImage(widget.image),
+            ),
             child: InkWell(
               onTap: widget.onTap,
               hoverDuration: const Duration(milliseconds: 500),

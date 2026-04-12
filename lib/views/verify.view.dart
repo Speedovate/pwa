@@ -151,8 +151,9 @@ class _VerifyViewState extends State<VerifyView> {
                       Expanded(
                         flex: 2,
                         child: Center(
-                          child: Image.asset(
+                          child: Image.network(
                             AppImages.verify,
+                            cacheWidth: 600,
                             fit: BoxFit.fitWidth,
                           ),
                         ),

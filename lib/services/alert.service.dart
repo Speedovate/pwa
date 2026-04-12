@@ -317,8 +317,9 @@ class AlertService {
                             fit: BoxFit.cover,
                           ),
                           Center(
-                            child: Image.asset(
+                            child: Image.network(
                               AppImages.icon,
+                              cacheWidth: 600,
                               height: 50,
                               width: 50,
                             ),

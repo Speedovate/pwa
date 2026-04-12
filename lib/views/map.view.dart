@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:get/get.dart';
+import 'package:pwa/constants/images.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -155,8 +156,9 @@ class _MapViewState extends State<MapView> {
                                     horizontal: 16,
                                   ),
                                   leading: ClipOval(
-                                    child: Image.asset(
-                                      "assets/images/logo.png",
+                                    child: Image.network(
+                                      AppImages.logo,
+                                      cacheWidth: 600,
                                       height: 25,
                                     ),
                                   ),

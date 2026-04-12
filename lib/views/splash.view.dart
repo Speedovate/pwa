@@ -26,8 +26,9 @@ class _SplashViewState extends State<SplashView> {
             backgroundColor: Colors.white,
           ),
           body: Center(
-            child: Image.asset(
+            child: Image.network(
               AppImages.splash,
+              cacheWidth: 600,
               width: MediaQuery.of(context).size.width >
                       MediaQuery.of(context).size.height
                   ? (MediaQuery.of(context).size.height / 2.1).clamp(0, 350)
