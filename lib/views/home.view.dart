@@ -58,7 +58,9 @@ class _HomeViewState extends State<HomeView> {
     _initialCenterFuture = _loadInitialCenter();
   }
 
-  Future<gmaps.LatLng?> _loadInitialCenter() async {
+  Future<gmaps.LatLng?> _loadInitialCenter({
+    bool forceLocationRequest = false,
+  }) async {
     await homeViewModel.ensureInitialOngoingOrderLoaded();
     if (isIOSLikeBrowser()) {
       _homeMapCenter = defaultLatLng;
@@ -68,10 +70,10 @@ class _HomeViewState extends State<HomeView> {
       _homeMapCenter = defaultLatLng;
       return defaultLatLng;
     }
-    if (lastKnownRealLatLng != null) {
+    if (lastKnownRealLatLng != null && !forceLocationRequest) {
       return lastKnownRealLatLng;
     }
-    if (lastGeolocationErrorMessage != null) {
+    if (lastGeolocationErrorMessage != null && !forceLocationRequest) {
       return null;
     }
     return await getMyLatLng(
@@ -81,7 +83,10 @@ class _HomeViewState extends State<HomeView> {
 
   void _retryInitialCenter() {
     setState(() {
-      _initialCenterFuture = _loadInitialCenter();
+      lastGeolocationErrorMessage = null;
+      _initialCenterFuture = _loadInitialCenter(
+        forceLocationRequest: true,
+      );
     });
   }
 
@@ -563,23 +568,37 @@ class _HomeViewState extends State<HomeView> {
   String _locationErrorHint() {
     final error = lastGeolocationErrorMessage ?? "";
     if (error.contains("POSITION_UNAVAILABLE")) {
-      return "We could not get your current location yet. Please make sure Location Services are turned on and available for this browser, then try again. You can also use the default location to continue more quickly.";
+      return "Please enable device location, then try again. Or use the default location to continue right away.";
     }
     if (error.contains("TIMEOUT")) {
-      return "Getting your current location is taking longer than expected. Please try again, or use the default location to continue more quickly.";
+      return "Please try again. Or use the default location to continue right away.";
     }
     if (error.contains("PERMISSION_DENIED")) {
-      return "Location access is turned off for this browser. Please allow location access, then try again, or use the default location to continue more quickly.";
+      return "Please allow location for this app, then try again. Or use the default location to continue right away.";
     }
-    return "We could not get your current location yet. Please make sure Location is turned on, then try again or use the default location to continue more quickly.";
+    return "Please allow location for this app and enable device location, then try again. Or use the default location to continue right away.";
+  }
+
+  String _locationErrorTitle() {
+    final error = lastGeolocationErrorMessage ?? "";
+    if (error.contains("POSITION_UNAVAILABLE")) {
+      return "Device Location Disabled";
+    }
+    if (error.contains("TIMEOUT")) {
+      return "Location Took Too Long";
+    }
+    if (error.contains("PERMISSION_DENIED")) {
+      return "App Location Blocked";
+    }
+    return "Location Required";
   }
 
   String _locationLoadingHint() {
     final error = lastGeolocationErrorMessage ?? "";
     if (error.contains("POSITION_UNAVAILABLE")) {
-      return "We are still trying to get your current location. Please keep Location Services turned on for this browser. If you want to continue more quickly, you can use the default location for now.";
+      return "Please keep device location enabled. Or use the default location to continue right away.";
     }
-    return "Please wait while we get your actual current location. If you want to continue more quickly, you can use the default location for now.";
+    return "Please wait. Or use the default location to continue right away.";
   }
 
   @override
@@ -615,8 +634,8 @@ class _HomeViewState extends State<HomeView> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: 88,
-                          height: 88,
+                          width: 100,
+                          height: 100,
                           child: Image.network(
                             AppImages.logo,
                             cacheWidth: 600,
@@ -624,10 +643,10 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         const SizedBox(height: 18),
-                        const Text(
-                          "Unable to get your current location yet.",
+                        Text(
+                          _locationErrorTitle(),
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF030744),
@@ -659,7 +678,7 @@ class _HomeViewState extends State<HomeView> {
                             text: "Use Default Location",
                             mainColor: Colors.white,
                             style: const TextStyle(
-                              color: Color(0xFF030744),
+                              color: Color(0xFF007BFF),
                               fontWeight: FontWeight.w600,
                             ),
                             onTap: _useDefaultInitialCenter,
@@ -685,10 +704,10 @@ class _HomeViewState extends State<HomeView> {
                               Center(
                                 child: Padding(
                                   padding: const EdgeInsets.only(
-                                    top: 16,
-                                    left: 16,
-                                    right: 16,
-                                    bottom: 18,
+                                    top: 12,
+                                    left: 12,
+                                    right: 12,
+                                    bottom: 14,
                                   ),
                                   child: Image.network(
                                     AppImages.logo,
@@ -743,7 +762,7 @@ class _HomeViewState extends State<HomeView> {
                             text: "Use Default Location",
                             mainColor: Colors.white,
                             style: const TextStyle(
-                              color: Color(0xFF030744),
+                              color: Color(0xFF007BFF),
                               fontWeight: FontWeight.w600,
                             ),
                             onTap: _useDefaultInitialCenter,
