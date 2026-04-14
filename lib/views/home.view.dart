@@ -4776,6 +4776,8 @@ class _HomeViewState extends State<HomeView> {
                                                         "userSeen": true,
                                                       },
                                                     );
+                                                    vm.userSeen = true;
+                                                    vm.notifyListeners();
                                                   },
                                                   borderRadius:
                                                       BorderRadius.circular(10),

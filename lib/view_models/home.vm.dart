@@ -1396,8 +1396,9 @@ class HomeViewModel extends GMapViewModel {
   }
 
   String get providerDisplayPaymentMode {
-    final paymentMode = "${partner?["payment_mode"] ?? user?["payment_mode"] ?? ""}"
-        .toLowerCase();
+    final paymentMode =
+        "${partner?["payment_mode"] ?? user?["payment_mode"] ?? ""}"
+            .toLowerCase();
     return paymentMode == "cash" ? "cash" : "load";
   }
 
@@ -1408,6 +1409,8 @@ class HomeViewModel extends GMapViewModel {
         "userSeen": true,
       },
     );
+    userSeen = true;
+    notifyListeners();
     Map<String, PeerUser> peers = {
       '${ongoingOrder?.user?.id}': PeerUser(
         id: '${ongoingOrder?.user?.id}',

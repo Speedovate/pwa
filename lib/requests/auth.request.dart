@@ -15,7 +15,7 @@ class AuthRequest extends HttpService {
   }) async {
     try {
       final apiResult = await post(
-        "https://ppctoda.com/api/fcm",
+        "${Api.baseUrl}/api/fcm",
         {
           "token": token,
           "topics": topics.join(","),
