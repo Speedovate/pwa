@@ -4,11 +4,11 @@ import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/view_models/verify.vm.dart';
 import 'package:pwa/services/alert.service.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class VerifyView extends StatefulWidget {
@@ -37,18 +37,28 @@ class VerifyView extends StatefulWidget {
 
 class _VerifyViewState extends State<VerifyView> {
   VerifyViewModel verifyViewModel = VerifyViewModel();
+  final FocusNode _codeFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     resendCountdownTimer?.cancel();
+    _codeFocusNode.addListener(_handleCodeFocusChange);
     startCountDown();
   }
 
   @override
   void dispose() {
-    super.dispose();
     resendCountdownTimer?.cancel();
+    _codeFocusNode.removeListener(_handleCodeFocusChange);
+    _codeFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _handleCodeFocusChange() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -202,54 +212,94 @@ class _VerifyViewState extends State<VerifyView> {
                             horizontal: 24,
                           ),
                           child: SizedBox(
-                            height: (MediaQuery.of(context)
-                                        .size
-                                        .width
-                                        .clamp(0, 800) -
-                                    106) /
-                                6,
+                            height: 72,
                             width: double.infinity.clamp(0, 800),
-                            child: PinCodeTextField(
-                              appContext: context,
-                              length: 6,
-                              controller: vm.codeTEC,
-                              keyboardType: TextInputType.number,
-                              animationType: AnimationType.none,
-                              autoFocus: true,
-                              enableActiveFill: true,
-                              pinTheme: PinTheme(
-                                shape: PinCodeFieldShape.box,
-                                borderRadius: BorderRadius.circular(10),
-                                fieldHeight: (MediaQuery.of(context)
-                                            .size
-                                            .width
-                                            .clamp(0, 800) -
-                                        106) /
-                                    6,
-                                fieldWidth: (MediaQuery.of(context)
-                                            .size
-                                            .width
-                                            .clamp(0, 800) -
-                                        106) /
-                                    6,
-                                activeColor: const Color(
-                                  0xFF007BFF,
-                                ),
-                                selectedColor: const Color(
-                                  0xFF007BFF,
-                                ),
-                                inactiveColor: const Color(
-                                  0xFF030744,
-                                ),
-                                activeFillColor: Colors.white,
-                                selectedFillColor: Colors.white,
-                                inactiveFillColor: Colors.white,
+                            child: GestureDetector(
+                              onTap: () {
+                                _codeFocusNode.requestFocus();
+                              },
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Positioned.fill(
+                                    child: Opacity(
+                                      opacity: 0.02,
+                                      child: TextField(
+                                        controller: vm.codeTEC,
+                                        focusNode: _codeFocusNode,
+                                        autofocus: true,
+                                        keyboardType: TextInputType.number,
+                                        textInputAction: TextInputAction.done,
+                                        autofillHints: const [
+                                          AutofillHints.oneTimeCode,
+                                        ],
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                          LengthLimitingTextInputFormatter(6),
+                                        ],
+                                        autocorrect: false,
+                                        enableSuggestions: false,
+                                        showCursor: false,
+                                        decoration: const InputDecoration(
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.zero,
+                                          counterText: "",
+                                        ),
+                                        onChanged: (_) {
+                                          setState(() {});
+                                        },
+                                        onSubmitted: (_) {
+                                          FocusManager.instance.primaryFocus
+                                              ?.unfocus();
+                                          vm.verifyCode("${widget.purpose}");
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  IgnorePointer(
+                                    child: Row(
+                                      children: List.generate(6, (index) {
+                                        final code = vm.codeTEC.text;
+                                        final hasValue = index < code.length;
+                                        final isActive = _codeFocusNode.hasFocus &&
+                                            index == code.length.clamp(0, 5);
+                                        return Expanded(
+                                          child: Container(
+                                            height: 72,
+                                            margin: EdgeInsets.only(
+                                              right: index == 5 ? 0 : 10,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: isActive
+                                                    ? const Color(0xFF007BFF)
+                                                    : const Color(0xFF030744),
+                                              ),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                hasValue ? code[index] : "",
+                                                style: TextStyle(
+                                                  height: 1.2,
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: hasValue
+                                                      ? const Color(0xFF030744)
+                                                      : const Color(0xFF030744)
+                                                          .withOpacity(0.25),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              textStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              onChanged: (value) {},
                             ),
                           ),
                         ),

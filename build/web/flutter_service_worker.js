@@ -3,7 +3,7 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"flutter_bootstrap.js": "f2823e232808f5face6655bd81e4b1f8",
+const RESOURCES = {"flutter_bootstrap.js": "cb138e2c2d55e5b30b7abe08e8265b9c",
 "version.json": "e616169637ba907be2204a9db744e3de",
 "offline.html": "3d3dea9db8f7c1848bf057128b4f688a",
 "splash/img/light-2x.png": "8dda9abb5763ffd253ba19b6d78899df",
@@ -18,7 +18,7 @@ const RESOURCES = {"flutter_bootstrap.js": "f2823e232808f5face6655bd81e4b1f8",
 "/": "a1d9227789b5887c16ab41b709f58ae2",
 "offline.js": "87ec7f1a9e3642cf0e4b391d3f4a191a",
 "firebase-messaging-sw.js": "9ccf755cf4335dd2305a96f6a144ab6f",
-"main.dart.js": "c2e4cf6c0b5c55a75fbcbc26d15e0748",
+"main.dart.js": "0a96ed4e1c776c6ea78bf1a4ab076b59",
 "flutter.js": "f31737fb005cd3a3c6bd9355efd33061",
 "style/indexstyle.css": "a444b89405f099266cc05911ee7959b2",
 "script/installpwa.js": "47947a1d0eb7cd1adf5bd060ef1680c5",
