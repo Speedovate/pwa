@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
 import 'dart:html' as html;
@@ -82,8 +82,8 @@ class PushService {
   }
 
   static void _attachTokenRefreshListener() {
-    _tokenRefreshSubscription ??= FirebaseMessaging.instance.onTokenRefresh
-        .listen(
+    _tokenRefreshSubscription ??=
+        FirebaseMessaging.instance.onTokenRefresh.listen(
       (String token) async {
         if (token.isEmpty) {
           return;

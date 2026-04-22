@@ -1415,12 +1415,12 @@ class HomeViewModel extends GMapViewModel {
       '${ongoingOrder?.user?.id}': PeerUser(
         id: '${ongoingOrder?.user?.id}',
         name: '${ongoingOrder?.user?.name}',
-        image: '${ongoingOrder?.user?.photo}',
+        image: ongoingOrder?.user?.photo ?? "",
       ),
       '${ongoingOrder?.driver?.id}': PeerUser(
         id: "${ongoingOrder?.driver?.id}",
         name: '${ongoingOrder?.driver?.name}',
-        image: '${ongoingOrder?.driver?.photo}',
+        image: ongoingOrder?.driver?.photo ?? "",
       ),
     };
     final chatEntity = ChatEntity(

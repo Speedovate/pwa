@@ -9,6 +9,7 @@ import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/view_models/verify.vm.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class VerifyView extends StatefulWidget {
@@ -158,12 +159,12 @@ class _VerifyViewState extends State<VerifyView> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      Expanded(
+                      const Expanded(
                         flex: 2,
                         child: Center(
-                          child: Image.network(
-                            AppImages.verify,
-                            cacheWidth: 600,
+                          child: NetworkImageWidget(
+                            imageUrl: AppImages.verify,
+                            memCacheWidth: 600,
                             fit: BoxFit.fitWidth,
                           ),
                         ),
@@ -230,11 +231,20 @@ class _VerifyViewState extends State<VerifyView> {
                                         autofocus: true,
                                         keyboardType: TextInputType.number,
                                         textInputAction: TextInputAction.done,
+                                        textAlignVertical:
+                                            TextAlignVertical.center,
+                                        scrollPadding: const EdgeInsets.only(
+                                          left: 24,
+                                          top: 24,
+                                          right: 24,
+                                          bottom: 120,
+                                        ),
                                         autofillHints: const [
                                           AutofillHints.oneTimeCode,
                                         ],
                                         inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
                                           LengthLimitingTextInputFormatter(6),
                                         ],
                                         autocorrect: false,
@@ -261,7 +271,8 @@ class _VerifyViewState extends State<VerifyView> {
                                       children: List.generate(6, (index) {
                                         final code = vm.codeTEC.text;
                                         final hasValue = index < code.length;
-                                        final isActive = _codeFocusNode.hasFocus &&
+                                        final isActive = _codeFocusNode
+                                                .hasFocus &&
                                             index == code.length.clamp(0, 5);
                                         return Expanded(
                                           child: Container(
@@ -289,7 +300,8 @@ class _VerifyViewState extends State<VerifyView> {
                                                   color: hasValue
                                                       ? const Color(0xFF030744)
                                                       : const Color(0xFF030744)
-                                                          .withOpacity(0.25),
+                                                          .withValues(
+                                                              alpha: 0.25),
                                                 ),
                                               ),
                                             ),

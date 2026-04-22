@@ -1,8 +1,9 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/functions.dart';
 
@@ -28,8 +29,8 @@ class MapService {
 
   static bool get isGoogleMapsLoaded {
     try {
-      final google = js_util.getProperty(html.window, 'google');
-      return google != null && js_util.hasProperty(google, 'maps');
+      final google = globalContext.getProperty<JSObject?>('google'.toJS);
+      return google != null && google.hasProperty('maps'.toJS).toDart;
     } catch (_) {
       return false;
     }

@@ -5,6 +5,7 @@ import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 
 class AlertService {
   Future<bool?> showAppAlert({
@@ -55,7 +56,7 @@ class AlertService {
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.transparent.withOpacity(0.5),
+                      color: Colors.transparent.withValues(alpha: 0.5),
                     ),
                   ),
                   Center(
@@ -316,10 +317,10 @@ class AlertService {
                             AppLotties.loading,
                             fit: BoxFit.cover,
                           ),
-                          Center(
-                            child: Image.network(
-                              AppImages.icon,
-                              cacheWidth: 600,
+                          const Center(
+                            child: NetworkImageWidget(
+                              imageUrl: AppImages.icon,
+                              memCacheWidth: 600,
                               height: 50,
                               width: 50,
                             ),
@@ -335,7 +336,7 @@ class AlertService {
           ),
         );
       },
-      barrierColor: bg ?? const Color(0xFF007BFF),
+      barrierColor: bg ?? Colors.black.withValues(alpha: 0.5),
     ).whenComplete(() {
       isLoadingDialogOpen = false;
     });

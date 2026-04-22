@@ -1,4 +1,4 @@
-// ignore_for_file: undefined_prefixed_name, avoid_web_libraries_in_flutter
+// ignore_for_file: undefined_prefixed_name, avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:html' as html;
 import 'dart:ui_web' as ui;
@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 
 class WebViewWidget extends StatefulWidget {
   const WebViewWidget({
@@ -78,7 +79,7 @@ class WebViewWidgetState extends State<WebViewWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final dividerColor = const Color(0xFF030744).withOpacity(0.1);
+    final dividerColor = const Color(0xFF030744).withValues(alpha: 0.1);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -146,17 +147,17 @@ class WebViewWidgetState extends State<WebViewWidget> {
                       height: 120,
                       child: Stack(
                         children: [
-                          Center(
+                          const Center(
                             child: Padding(
-                              padding: const EdgeInsets.only(
+                              padding: EdgeInsets.only(
                                 top: 16,
                                 left: 16,
                                 right: 16,
                                 bottom: 18,
                               ),
-                              child: Image.network(
-                                AppImages.logo,
-                                cacheWidth: 600,
+                              child: NetworkImageWidget(
+                                imageUrl: AppImages.logo,
+                                memCacheWidth: 600,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -173,7 +174,7 @@ class WebViewWidgetState extends State<WebViewWidget> {
                                 ),
                                 backgroundColor: const Color(
                                   0xFF007BFF,
-                                ).withOpacity(0.25),
+                                ).withValues(alpha: 0.25),
                               ),
                             ),
                           ),

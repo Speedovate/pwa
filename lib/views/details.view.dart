@@ -103,7 +103,7 @@ class _DetailsViewState extends State<DetailsView> {
                     Divider(
                       height: 1,
                       thickness: 1,
-                      color: const Color(0xFF030744).withOpacity(0.15),
+                      color: const Color(0xFF030744).withValues(alpha: 0.15),
                     ),
                     widget.order.driver == null
                         ? const SizedBox.shrink()
@@ -126,7 +126,7 @@ class _DetailsViewState extends State<DetailsView> {
                                   decoration: BoxDecoration(
                                     border: Border.all(
                                       color: const Color(0xFF030744)
-                                          .withOpacity(0.15),
+                                          .withValues(alpha: 0.15),
                                     ),
                                     borderRadius: const BorderRadius.all(
                                       Radius.circular(
@@ -140,7 +140,7 @@ class _DetailsViewState extends State<DetailsView> {
                                       Icon(
                                         Icons.account_circle,
                                         color: const Color(0xFF030744)
-                                            .withOpacity(0.5),
+                                            .withValues(alpha: 0.5),
                                         size: 36,
                                       ),
                                       const SizedBox(width: 6),
@@ -151,7 +151,7 @@ class _DetailsViewState extends State<DetailsView> {
                                             height: 1.05,
                                             fontSize: 13,
                                             color: const Color(0xFF030744)
-                                                .withOpacity(0.5),
+                                                .withValues(alpha: 0.5),
                                           ),
                                         ),
                                       ),
@@ -177,10 +177,11 @@ class _DetailsViewState extends State<DetailsView> {
                                                         .size
                                                         .width -
                                                     70,
-                                                child: Image.network(
-                                                  widget.order.driver?.cPhoto ??
+                                                child: NetworkImageWidget(
+                                                  imageUrl: widget.order.driver
+                                                          ?.cPhoto ??
                                                       "",
-                                                  cacheWidth: 600,
+                                                  memCacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -209,7 +210,7 @@ class _DetailsViewState extends State<DetailsView> {
                                                   ),
                                                   backgroundColor: const Color(
                                                     0xFF007BFF,
-                                                  ).withOpacity(0.25),
+                                                  ).withValues(alpha: 0.25),
                                                 );
                                               },
                                               errorWidget: (
@@ -298,7 +299,7 @@ class _DetailsViewState extends State<DetailsView> {
                                             child: Icon(
                                               Icons.call,
                                               color: const Color(0xFF030744)
-                                                  .withOpacity(0.3),
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
                                         ),
@@ -334,7 +335,7 @@ class _DetailsViewState extends State<DetailsView> {
                                             child: Icon(
                                               Icons.chat,
                                               color: const Color(0xFF030744)
-                                                  .withOpacity(0.3),
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
                                         ),
@@ -359,7 +360,8 @@ class _DetailsViewState extends State<DetailsView> {
                           ),
                           border: Border.all(
                             width: 1,
-                            color: const Color(0xFF030744).withOpacity(0.15),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.15),
                           ),
                         ),
                         child: Column(
@@ -485,8 +487,8 @@ class _DetailsViewState extends State<DetailsView> {
                               child: Divider(
                                 height: 1,
                                 thickness: 1,
-                                color:
-                                    const Color(0xFF030744).withOpacity(0.15),
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.15),
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -511,12 +513,11 @@ class _DetailsViewState extends State<DetailsView> {
                                           ),
                                         ),
                                       )
-                                    : Image.network(
-                                        AppImages.icon,
-                                        cacheWidth: 600,
+                                    : const NetworkImageWidget(
+                                        imageUrl: AppImages.icon,
+                                        memCacheWidth: 600,
                                         height: 28,
                                         width: 28,
-                                        color: const Color(0xFF030744),
                                       ),
                                 const SizedBox(width: 6),
                                 Expanded(
@@ -548,8 +549,8 @@ class _DetailsViewState extends State<DetailsView> {
                               child: Divider(
                                 height: 1,
                                 thickness: 1,
-                                color:
-                                    const Color(0xFF030744).withOpacity(0.15),
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.15),
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -610,8 +611,8 @@ class _DetailsViewState extends State<DetailsView> {
                               child: Divider(
                                 height: 1,
                                 thickness: 1,
-                                color:
-                                    const Color(0xFF030744).withOpacity(0.15),
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.15),
                               ),
                             ),
                             const SizedBox(

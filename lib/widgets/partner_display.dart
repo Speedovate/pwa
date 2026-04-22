@@ -5,6 +5,7 @@ import 'package:pwa/views/login.view.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
+import 'package:pwa/widgets/network_image.widget.dart';
 
 class PartnerDisplayWidget extends StatefulWidget {
   final bool show;
@@ -53,7 +54,7 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
       child: GestureDetector(
         onTap: widget.onClose,
         child: Container(
-          color: Colors.black.withOpacity(0.5),
+          color: Colors.black.withValues(alpha: 0.5),
           child: SafeArea(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -97,11 +98,24 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
 
   /// ---------------- BANNERS (WEB SAFE)
   List<Widget> _buildBannerCarousel(double clampedWidth) {
-    if (widget.banners.isEmpty) return [];
+    final validBanners = widget.banners
+        .where((banner) => sanitizeImageUrl(banner.photo).isNotEmpty)
+        .toList();
+
+    if (validBanners.isEmpty) return [];
 
     return [
       CarouselSlider(
-        items: widget.banners.map((banner) {
+        items: validBanners.map((banner) {
+          final imageProvider = safeNetworkImageProvider(
+            banner.photo,
+            cacheWidth: 600,
+          );
+
+          if (imageProvider == null) {
+            return const SizedBox.shrink();
+          }
+
           return Container(
             margin: const EdgeInsets.only(top: 20),
             width: clampedWidth - 70,
@@ -109,11 +123,7 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               image: DecorationImage(
-                image: ResizeImage.resizeIfNeeded(
-                  600,
-                  null,
-                  NetworkImage(banner.photo),
-                ),
+                image: imageProvider,
                 fit: BoxFit.cover,
               ),
             ),
@@ -130,7 +140,7 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
       ),
       const SizedBox(height: 12),
       PageIndicatorWidget(
-        count: widget.banners.length,
+        count: validBanners.length,
         currentIndex: bannerIndex,
       ),
       const SizedBox(height: 12),
@@ -142,12 +152,48 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
     return [
       const SizedBox(height: 20),
       ClipOval(
-        child: Image.network(
-          widget.partnerImage,
-          cacheWidth: 600,
+        child: SizedBox(
           width: 66,
           height: 66,
-          fit: BoxFit.cover,
+          child: Material(
+            color: Colors.transparent,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                NetworkImageWidget(
+                  imageUrl: widget.partnerImage,
+                  memCacheWidth: 600,
+                  fit: BoxFit.cover,
+                  progressIndicatorBuilder: (context, imageUrl, progress) {
+                    return const SizedBox.shrink();
+                  },
+                  errorWidget: (context, imageUrl, error) {
+                    return Container(
+                      color: Colors.white,
+                      child: const Icon(
+                        Icons.storefront_outlined,
+                        color: primaryColor,
+                      ),
+                    );
+                  },
+                ),
+                InkWell(
+                  onTap: () {},
+                  hoverDuration: const Duration(milliseconds: 500),
+                  focusColor: primaryColor.withValues(alpha: 0.2),
+                  hoverColor: primaryColor.withValues(alpha: 0.2),
+                  splashColor: primaryColor.withValues(alpha: 0.2),
+                  highlightColor: primaryColor.withValues(alpha: 0.2),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       const SizedBox(height: 6),
@@ -187,7 +233,8 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? accentColor : primaryColor.withOpacity(0.25),
+            color:
+                isSelected ? accentColor : primaryColor.withValues(alpha: 0.25),
           ),
         ),
         child: Center(
@@ -195,7 +242,9 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
             branch.name,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: isSelected ? accentColor : primaryColor.withOpacity(0.6),
+              color: isSelected
+                  ? accentColor
+                  : primaryColor.withValues(alpha: 0.6),
             ),
           ),
         ),

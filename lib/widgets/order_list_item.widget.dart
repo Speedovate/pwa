@@ -12,6 +12,7 @@ import 'package:pwa/models/address.model.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/models/coordinates.model.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 
 class OrderListItem extends StatefulWidget {
   const OrderListItem({
@@ -40,7 +41,7 @@ class _OrderListItemState extends State<OrderListItem> {
         ),
         border: Border.all(
           width: 1,
-          color: const Color(0xFF030744).withOpacity(0.15),
+          color: const Color(0xFF030744).withValues(alpha: 0.15),
         ),
       ),
       child: WidgetButton(
@@ -52,12 +53,11 @@ class _OrderListItemState extends State<OrderListItem> {
             Row(
               children: [
                 const SizedBox(width: 12),
-                Image.network(
-                  AppImages.icon,
-                  cacheWidth: 600,
+                const NetworkImageWidget(
+                  imageUrl: AppImages.icon,
+                  memCacheWidth: 600,
                   height: 28,
                   width: 28,
-                  color: const Color(0xFF030744),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -312,7 +312,8 @@ class _OrderListItemState extends State<OrderListItem> {
                         VerticalDivider(
                           width: 1,
                           thickness: 1,
-                          color: const Color(0xFF030744).withOpacity(0.15),
+                          color:
+                              const Color(0xFF030744).withValues(alpha: 0.15),
                         ),
                         Expanded(
                           child: ElevatedButton(
@@ -399,7 +400,7 @@ class _OrderListItemState extends State<OrderListItem> {
             Divider(
               height: 1,
               thickness: 1,
-              color: const Color(0xFF030744).withOpacity(0.15),
+              color: const Color(0xFF030744).withValues(alpha: 0.15),
             ),
             const SizedBox(height: 12),
             Row(

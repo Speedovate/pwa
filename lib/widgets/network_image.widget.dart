@@ -1,5 +1,48 @@
 import 'package:flutter/material.dart';
 
+String sanitizeImageUrl(dynamic rawUrl) {
+  final value = rawUrl?.toString().trim() ?? "";
+  if (value.isEmpty || value.toLowerCase() == "null") {
+    return "";
+  }
+
+  final uri = Uri.tryParse(value);
+  if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+    return "";
+  }
+
+  const supportedSchemes = {"http", "https", "data", "blob"};
+  if (!supportedSchemes.contains(uri.scheme.toLowerCase())) {
+    return "";
+  }
+
+  return value;
+}
+
+ImageProvider? safeNetworkImageProvider(
+  dynamic rawUrl, {
+  int? cacheWidth,
+}) {
+  final imageUrl = sanitizeImageUrl(rawUrl);
+  if (imageUrl.isEmpty) {
+    return null;
+  }
+
+  final provider = NetworkImage(
+    imageUrl,
+    webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+  );
+  if (cacheWidth == null) {
+    return provider;
+  }
+
+  return ResizeImage.resizeIfNeeded(
+    cacheWidth,
+    null,
+    provider,
+  );
+}
+
 typedef ProgressIndicatorBuilder = Widget Function(
   BuildContext context,
   String url,
@@ -33,9 +76,11 @@ class NetworkImageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.isEmpty) {
+    final safeImageUrl = sanitizeImageUrl(imageUrl);
+
+    if (safeImageUrl.isEmpty) {
       return errorWidget != null
-          ? errorWidget!(context, imageUrl, "Empty URL")
+          ? errorWidget!(context, imageUrl, "Invalid image URL")
           : SizedBox(
               width: width,
               height: height,
@@ -44,8 +89,9 @@ class NetworkImageWidget extends StatelessWidget {
     }
 
     return Image.network(
-      imageUrl,
+      safeImageUrl,
       cacheWidth: memCacheWidth,
+      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
       width: width,
       height: height,
       fit: fit,
@@ -54,7 +100,7 @@ class NetworkImageWidget extends StatelessWidget {
         return progressIndicatorBuilder != null
             ? progressIndicatorBuilder!(
                 context,
-                imageUrl,
+                safeImageUrl,
                 loadingProgress.expectedTotalBytes != null
                     ? loadingProgress.cumulativeBytesLoaded /
                         loadingProgress.expectedTotalBytes!
@@ -71,14 +117,14 @@ class NetworkImageWidget extends StatelessWidget {
                     ),
                     backgroundColor: const Color(
                       0xFF007BFF,
-                    ).withOpacity(0.25),
+                    ).withValues(alpha: 0.25),
                   ),
                 ),
               );
       },
       errorBuilder: (context, error, stackTrace) {
         return errorWidget != null
-            ? errorWidget!(context, imageUrl, error)
+            ? errorWidget!(context, safeImageUrl, error)
             : SizedBox(
                 width: width,
                 height: height,

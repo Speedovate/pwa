@@ -1,9 +1,9 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
 import 'dart:html' as html;
+import 'dart:js_interop';
 import 'dart:ui_web' as ui;
-import 'dart:js_util' as js_util;
 import 'package:flutter/material.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 import 'package:pwa/services/map.service.dart';
@@ -37,8 +37,7 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
-  static const Duration _centerChangeIdleDuration =
-      Duration(milliseconds: 180);
+  static const Duration _centerChangeIdleDuration = Duration(milliseconds: 180);
   late final String viewId;
   gmaps.Map? _map;
   StreamSubscription? _dragStartSub;
@@ -59,45 +58,58 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   final List<gmaps.Polyline> _renderedPolylines = [];
   List<MapPolylineData> _renderedPolylineData = [];
 
-  static const List<Map<String, dynamic>> _defaultStyles = [
-    {
-      "featureType": "poi",
-      "stylers": [
-        {"visibility": "off"}
-      ]
-    },
-    {
-      "featureType": "transit",
-      "stylers": [
-        {"visibility": "off"}
-      ]
-    },
-    {
-      "featureType": "road",
-      "elementType": "labels.icon",
-      "stylers": [
-        {"visibility": "off"}
-      ]
-    },
-    {
-      "featureType": "administrative",
-      "stylers": [
-        {"visibility": "off"}
-      ]
-    },
-    {
-      "featureType": "landscape",
-      "stylers": [
-        {"color": "#f2f2f2"}
-      ]
-    },
-    {
-      "featureType": "water",
-      "stylers": [
-        {"color": "#c9c9c9"}
-      ]
-    },
-  ];
+  static List<gmaps.MapTypeStyle> get _defaultStyles => [
+        _mapStyle(
+          featureType: 'poi',
+          stylers: [
+            {'visibility': 'off'},
+          ],
+        ),
+        _mapStyle(
+          featureType: 'transit',
+          stylers: [
+            {'visibility': 'off'},
+          ],
+        ),
+        _mapStyle(
+          featureType: 'road',
+          elementType: 'labels.icon',
+          stylers: [
+            {'visibility': 'off'},
+          ],
+        ),
+        _mapStyle(
+          featureType: 'administrative',
+          stylers: [
+            {'visibility': 'off'},
+          ],
+        ),
+        _mapStyle(
+          featureType: 'landscape',
+          stylers: [
+            {'color': '#f2f2f2'},
+          ],
+        ),
+        _mapStyle(
+          featureType: 'water',
+          stylers: [
+            {'color': '#c9c9c9'},
+          ],
+        ),
+      ];
+
+  static gmaps.MapTypeStyle _mapStyle({
+    required String featureType,
+    required List<Map<String, String>> stylers,
+    String? elementType,
+  }) {
+    return gmaps.MapTypeStyle(
+      featureType: featureType,
+      elementType: elementType,
+      stylers:
+          stylers.map((styler) => styler.jsify()! as JSObject).toList().toJS,
+    );
+  }
 
   @override
   void initState() {
@@ -111,7 +123,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void _initializeMap() {
     () async {
       try {
-        MapService.debugLog('Legacy Google widget waiting for Google Maps readiness');
+        MapService.debugLog(
+            'Legacy Google widget waiting for Google Maps readiness');
         final ready = await MapService.ensureGoogleMapsReady();
         MapService.debugLog('Legacy Google widget readiness returned $ready');
         if (!ready) {
@@ -153,10 +166,11 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                 ..disableDefaultUI = true
                 ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
                 ..disableDoubleClickZoom = true
-                ..mapTypeId = gmaps.MapTypeId.ROADMAP;
+                ..mapTypeId = gmaps.MapTypeId.ROADMAP
+                ..styles = _defaultStyles;
               _map = gmaps.Map(mapDiv as dynamic, mapOptions);
-              MapService.debugLog('Legacy Google widget created gmaps.Map instance');
-              js_util.setProperty(_map!, 'styles', _defaultStyles);
+              MapService.debugLog(
+                  'Legacy Google widget created gmaps.Map instance');
               _syncOverlays();
               widget.onMapCreated?.call(_map!);
               _dragStartSub = _map!.onDragstart.listen(
@@ -181,7 +195,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
               );
               _mapInitialized = true;
             } catch (error) {
-              MapService.debugLog('Legacy Google widget map creation error: $error');
+              MapService.debugLog(
+                  'Legacy Google widget map creation error: $error');
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _handleLoadError();
               });
@@ -241,8 +256,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     if (_mapInitialized && _map != null) {
       _syncOverlays();
       if (oldWidget.enableGestures != widget.enableGestures) {
-        js_util.setProperty(_map!, 'gestureHandling',
-            widget.enableGestures ? 'greedy' : 'none');
+        _map!.options = gmaps.MapOptions(
+          gestureHandling: widget.enableGestures ? 'greedy' : 'none',
+        );
       }
       if (!_latLngEquals(oldWidget.center, widget.center)) {
         _suppressCameraCallbacks = true;
@@ -302,13 +318,12 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       _clearRenderedPolylines();
       for (final polyline in widget.polylines) {
         final polylineOptions = gmaps.PolylineOptions()
-          ..path = js_util.jsify(
-            polyline.points
-                .map((point) => gmaps.LatLng(point.lat, point.lng))
-                .toList(),
-          )
+          ..path = polyline.points
+              .map((point) => gmaps.LatLng(point.lat, point.lng))
+              .toList()
+              .toJS
           ..strokeColor = _colorToGoogleHex(polyline.color)
-          ..strokeOpacity = polyline.color.opacity
+          ..strokeOpacity = polyline.color.a
           ..strokeWeight = polyline.strokeWidth
           ..map = _map;
         _renderedPolylines.add(
@@ -355,7 +370,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   }
 
   String _colorToGoogleHex(Color color) {
-    final value = color.value & 0x00FFFFFF;
+    final value = color.toARGB32() & 0x00FFFFFF;
     return '#${value.toRadixString(16).padLeft(6, '0').toUpperCase()}';
   }
 
@@ -389,7 +404,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     super.dispose();
   }
 
-   _ensureHideGmapUiStyle() {
+  _ensureHideGmapUiStyle() {
     const styleId = 'gmap-hide-ui';
     if (html.document.getElementById(styleId) != null) return;
     final styleEl = html.StyleElement()

@@ -449,9 +449,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         paymentMode.toLowerCase() == "cash" ? "cash" : "load";
     final rawPartnerName =
         "${userData["name"] ?? userData["partner_name"] ?? ""}".trim();
-    final partnerName = rawPartnerName.isEmpty || rawPartnerName.toLowerCase() == "null"
-        ? null
-        : capitalizeWords(rawPartnerName, alt: rawPartnerName);
+    final partnerName =
+        rawPartnerName.isEmpty || rawPartnerName.toLowerCase() == "null"
+            ? null
+            : capitalizeWords(rawPartnerName, alt: rawPartnerName);
 
     final batch = fbStore.batch();
     batch.set(
@@ -545,8 +546,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           "payment_mode": _quickPaymentMode,
           "partner_name":
               "${_quickPartnerUserData?["name"] ?? _quickPartnerUserData?["partner_name"] ?? ""}"
-                          .trim()
-                          .isEmpty
+                      .trim()
+                      .isEmpty
                   ? null
                   : capitalizeWords(
                       "${_quickPartnerUserData?["name"] ?? _quickPartnerUserData?["partner_name"] ?? ""}",
@@ -599,7 +600,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       final results = <Map<String, dynamic>>[];
       final lowerKeyword = trimmedKeyword.toLowerCase();
 
-      final idSnapshot = await fbStore.collection("users").doc(trimmedKeyword).get();
+      final idSnapshot =
+          await fbStore.collection("users").doc(trimmedKeyword).get();
       if (idSnapshot.exists) {
         final data = idSnapshot.data() ?? {};
         seenIds.add(idSnapshot.id);
@@ -659,11 +661,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         }
       }
 
-      final broadNameSnapshot = await fbStore
-          .collection("users")
-          .orderBy("name")
-          .limit(50)
-          .get();
+      final broadNameSnapshot =
+          await fbStore.collection("users").orderBy("name").limit(50).get();
       for (final doc in broadNameSnapshot.docs) {
         if (seenIds.contains(doc.id)) {
           continue;
@@ -732,8 +731,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         .split(" ")
         .where((part) => part.trim().isNotEmpty)
         .map(
-          (part) =>
-              part[0].toUpperCase() + part.substring(1).toLowerCase(),
+          (part) => part[0].toUpperCase() + part.substring(1).toLowerCase(),
         )
         .join(" ");
   }
@@ -811,7 +809,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     ),
                     const SizedBox(height: _panelGap),
                     DropdownButtonFormField<String>(
-                      value: paymentMode,
+                      initialValue: paymentMode,
                       decoration: _dropdownDecoration(
                         label: "Payment Mode",
                       ),
@@ -1116,7 +1114,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       {
         "amount": amount,
         "driver_id": driverId,
-        "driver_name": "${driverData["driver_name"] ?? driverData["name"] ?? ""}",
+        "driver_name":
+            "${driverData["driver_name"] ?? driverData["name"] ?? ""}",
         "month_key": monthKey,
         "created_at": _timestampNow(),
         "note": note.trim(),
@@ -1397,7 +1396,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
-          color: const Color(0xFF030744).withOpacity(0.08),
+          color: const Color(0xFF030744).withValues(alpha: 0.08),
         ),
       ),
       child: Row(
@@ -1477,7 +1476,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
-          color: const Color(0xFF030744).withOpacity(0.08),
+          color: const Color(0xFF030744).withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -1556,7 +1555,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
-          color: const Color(0xFF030744).withOpacity(0.08),
+          color: const Color(0xFF030744).withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -1677,7 +1676,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(_panelRadius),
             border: Border.all(
-              color: const Color(0xFF030744).withOpacity(0.08),
+              color: const Color(0xFF030744).withValues(alpha: 0.08),
             ),
           ),
           child: Column(
@@ -1717,11 +1716,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(_panelRadius),
                     border: Border.all(
-                      color: const Color(0xFF030744).withOpacity(0.08),
+                      color: const Color(0xFF030744).withValues(alpha: 0.08),
                     ),
                   ),
                   child: Column(
-                    children: _quickPartnerSearchResults.take(6).map((userData) {
+                    children:
+                        _quickPartnerSearchResults.take(6).map((userData) {
                       final userId = "${userData["id"] ?? ""}";
                       final userName = capitalizeWords(
                         "${userData["name"] ?? "Unnamed User"}",
@@ -1738,7 +1738,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                           decoration: BoxDecoration(
                             border: Border(
                               bottom: BorderSide(
-                                color: const Color(0xFF030744).withOpacity(0.06),
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.06),
                               ),
                             ),
                           ),
@@ -1769,7 +1770,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                   ),
                 ),
               ],
-              if (_quickPartnerUserData != null && _quickPartnerUserId != null) ...[
+              if (_quickPartnerUserData != null &&
+                  _quickPartnerUserId != null) ...[
                 const SizedBox(height: _panelGap),
                 Container(
                   width: double.infinity,
@@ -1778,7 +1780,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     color: const Color(0xFFF7F9FC),
                     borderRadius: BorderRadius.circular(_panelRadius),
                     border: Border.all(
-                      color: const Color(0xFF030744).withOpacity(0.08),
+                      color: const Color(0xFF030744).withValues(alpha: 0.08),
                     ),
                   ),
                   child: Column(
@@ -1815,7 +1817,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 ),
                 const SizedBox(height: _panelGap),
                 DropdownButtonFormField<String>(
-                  value: _quickPaymentMode,
+                  initialValue: _quickPaymentMode,
                   decoration: _dropdownDecoration(
                     label: "Payment Mode",
                   ),
@@ -1867,7 +1869,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
-          color: const Color(0xFF030744).withOpacity(0.08),
+          color: const Color(0xFF030744).withValues(alpha: 0.08),
         ),
       ),
       child: TextFieldWidget(
@@ -1903,8 +1905,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                   stream: fbStore
                       .collection("users")
                       .orderBy("partner_name")
-                      .startAt([""])
-                      .snapshots(),
+                      .startAt([""]).snapshots(),
                   builder: (context, userSnapshot) {
                     if ((partnerSnapshot.connectionState ==
                                 ConnectionState.waiting &&
@@ -1989,13 +1990,15 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                         final isExpanded =
                             _expandedPartnerIds.contains(partnerId);
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: _panelOuterGap),
+                          padding:
+                              const EdgeInsets.only(bottom: _panelOuterGap),
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(_panelRadius),
                               border: Border.all(
-                                color: const Color(0xFF030744).withOpacity(0.08),
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.08),
                               ),
                             ),
                             child: Column(
@@ -2007,7 +2010,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                     userData: userData,
                                   ),
                                   subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         "User ID: $partnerId",
@@ -2049,7 +2053,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                   Divider(
                                     height: 1,
                                     thickness: 1,
-                                    color: const Color(0xFF030744).withOpacity(0.08),
+                                    color: const Color(0xFF030744)
+                                        .withValues(alpha: 0.08),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(
@@ -2069,27 +2074,33 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                         _buildSummaryRow(
                                           "Markup",
                                           userData != null
-                                              ? _formatMoney(userData["markup_amount"])
-                                              : _loadingPartnerUserIds.contains(partnerId)
+                                              ? _formatMoney(
+                                                  userData["markup_amount"])
+                                              : _loadingPartnerUserIds
+                                                      .contains(partnerId)
                                                   ? "Loading..."
                                                   : _formatMoney(0),
                                         ),
                                         _buildSummaryRow(
                                           "Today",
-                                          _formatMoney(partnerData["today_amount"]),
+                                          _formatMoney(
+                                              partnerData["today_amount"]),
                                         ),
                                         _buildSummaryRow(
                                           "This Month",
-                                          _formatMoney(partnerData["month_amount"]),
+                                          _formatMoney(
+                                              partnerData["month_amount"]),
                                         ),
                                         _buildSummaryRow(
                                           "All Time",
-                                          _formatMoney(partnerData["total_amount"]),
+                                          _formatMoney(
+                                              partnerData["total_amount"]),
                                         ),
                                         _buildSummaryRow(
                                           "Claimed",
                                           _formatMoney(
-                                            partnerData["claimed_cash_markup_amount"],
+                                            partnerData[
+                                                "claimed_cash_markup_amount"],
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -2117,21 +2128,24 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                         _buildHistoryWrap(
                                           "Monthly Markup History",
                                           _toDoubleMap(
-                                            partnerData["monthly_markup_history"],
+                                            partnerData[
+                                                "monthly_markup_history"],
                                           ),
                                         ),
                                         const SizedBox(height: _panelGap),
                                         _buildHistoryWrap(
                                           "Monthly Claimable Cash History",
                                           _toDoubleMap(
-                                            partnerData["monthly_cash_markup_history"],
+                                            partnerData[
+                                                "monthly_cash_markup_history"],
                                           ),
                                         ),
                                         const SizedBox(height: _panelGap),
                                         _buildHistoryWrap(
                                           "Monthly Claimed History",
                                           _toDoubleMap(
-                                            partnerData["monthly_claimed_cash_markup_history"],
+                                            partnerData[
+                                                "monthly_claimed_cash_markup_history"],
                                           ),
                                         ),
                                         const SizedBox(height: _panelGap),
@@ -2140,7 +2154,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                           stream: fbStore
                                               .collection("partners")
                                               .doc(partnerId)
-                                              .collection("claimed_transactions")
+                                              .collection(
+                                                  "claimed_transactions")
                                               .snapshots(),
                                           amountKey: "amount",
                                           actorLabel: "Partner",
@@ -2175,216 +2190,220 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         ),
         const SizedBox(height: _panelGap),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: fbStore.collection("drivers").snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(
-                  color: Color(0xFF007BFF),
+          stream: fbStore.collection("drivers").snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF007BFF),
+                  ),
                 ),
-              ),
-            );
-          }
-          var docs = snapshot.hasData
-              ? _sortDocsByUpdatedAt(snapshot.data!.docs)
-              : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-          final query = _driverListSearchTEC.text.trim();
-          docs = docs.where((doc) {
-            final data = doc.data();
-            final received = _toDouble(data["received_cash_markup_amount"]);
-            final deducted = _toDouble(data["deducted_cash_markup_amount"]);
-            final hasMarkup = received > 0 || deducted > 0;
-            if (!hasMarkup) {
-              return false;
+              );
             }
-            if (query.isEmpty) {
-              return true;
-            }
-            final driverId = "${data["driver_id"] ?? doc.id}";
-            final haystack = [
-              driverId,
-              "${data["driver_name"] ?? ""}",
-              "${data["name"] ?? ""}",
-            ].join(" ");
-            return _matchesSearch(haystack, query);
-          }).toList();
-          docs.sort((a, b) {
-            final aData = a.data();
-            final bData = b.data();
-            final aDeductible = max(
-              _toDouble(aData["received_cash_markup_amount"]) -
-                  _toDouble(aData["deducted_cash_markup_amount"]),
-              0,
-            );
-            final bDeductible = max(
-              _toDouble(bData["received_cash_markup_amount"]) -
-                  _toDouble(bData["deducted_cash_markup_amount"]),
-              0,
-            );
-            final deductibleDiff = bDeductible.compareTo(aDeductible);
-            if (deductibleDiff != 0) {
-              return deductibleDiff;
-            }
-            final aTs = aData["updated_at"];
-            final bTs = bData["updated_at"];
-            if (aTs is Timestamp && bTs is Timestamp) {
-              return bTs.compareTo(aTs);
-            }
-            return 0;
-          });
-          if (docs.isEmpty) {
-            return const Text(
-              "No driver markup records found.",
-              style: TextStyle(
-                color: Color(0xFF6D7890),
-              ),
-            );
-          }
-          return Column(
-            children: docs.map((doc) {
+            var docs = snapshot.hasData
+                ? _sortDocsByUpdatedAt(snapshot.data!.docs)
+                : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+            final query = _driverListSearchTEC.text.trim();
+            docs = docs.where((doc) {
               final data = doc.data();
+              final received = _toDouble(data["received_cash_markup_amount"]);
+              final deducted = _toDouble(data["deducted_cash_markup_amount"]);
+              final hasMarkup = received > 0 || deducted > 0;
+              if (!hasMarkup) {
+                return false;
+              }
+              if (query.isEmpty) {
+                return true;
+              }
               final driverId = "${data["driver_id"] ?? doc.id}";
-              final deductible = max(
-                _toDouble(data["received_cash_markup_amount"]) -
-                    _toDouble(data["deducted_cash_markup_amount"]),
+              final haystack = [
+                driverId,
+                "${data["driver_name"] ?? ""}",
+                "${data["name"] ?? ""}",
+              ].join(" ");
+              return _matchesSearch(haystack, query);
+            }).toList();
+            docs.sort((a, b) {
+              final aData = a.data();
+              final bData = b.data();
+              final aDeductible = max(
+                _toDouble(aData["received_cash_markup_amount"]) -
+                    _toDouble(aData["deducted_cash_markup_amount"]),
                 0,
               );
-              return Padding(
-                padding: const EdgeInsets.only(bottom: _panelOuterGap),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(_panelRadius),
-                    border: Border.all(
-                      color: const Color(0xFF030744).withOpacity(0.08),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildExpandableRow(
-                        title: capitalizeWords(
-                          "${data["driver_name"] ?? data["name"] ?? "Driver"}",
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Driver ID: $driverId",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6D7890),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Deductible: ${_formatMoney(deductible)}",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6D7890),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Deducted: ${_formatMoney(data["deducted_cash_markup_amount"])}",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6D7890),
-                              ),
-                            ),
-                          ],
-                        ),
-                        isExpanded: _expandedDriverIds.contains(driverId),
-                        onTap: () {
-                          setState(() {
-                            if (_expandedDriverIds.contains(driverId)) {
-                              _expandedDriverIds.remove(driverId);
-                            } else {
-                              _expandedDriverIds.add(driverId);
-                            }
-                          });
-                        },
+              final bDeductible = max(
+                _toDouble(bData["received_cash_markup_amount"]) -
+                    _toDouble(bData["deducted_cash_markup_amount"]),
+                0,
+              );
+              final deductibleDiff = bDeductible.compareTo(aDeductible);
+              if (deductibleDiff != 0) {
+                return deductibleDiff;
+              }
+              final aTs = aData["updated_at"];
+              final bTs = bData["updated_at"];
+              if (aTs is Timestamp && bTs is Timestamp) {
+                return bTs.compareTo(aTs);
+              }
+              return 0;
+            });
+            if (docs.isEmpty) {
+              return const Text(
+                "No driver markup records found.",
+                style: TextStyle(
+                  color: Color(0xFF6D7890),
+                ),
+              );
+            }
+            return Column(
+              children: docs.map((doc) {
+                final data = doc.data();
+                final driverId = "${data["driver_id"] ?? doc.id}";
+                final deductible = max(
+                  _toDouble(data["received_cash_markup_amount"]) -
+                      _toDouble(data["deducted_cash_markup_amount"]),
+                  0,
+                );
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: _panelOuterGap),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(_panelRadius),
+                      border: Border.all(
+                        color: const Color(0xFF030744).withValues(alpha: 0.08),
                       ),
-                      if (_expandedDriverIds.contains(driverId)) ...[
-                        Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: const Color(0xFF030744).withOpacity(0.08),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            _panelOuterGap,
-                            _panelGap,
-                            _panelOuterGap,
-                            _panelOuterGap,
+                    ),
+                    child: Column(
+                      children: [
+                        _buildExpandableRow(
+                          title: capitalizeWords(
+                            "${data["driver_name"] ?? data["name"] ?? "Driver"}",
                           ),
-                          child: Column(
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildSummaryRow(
-                                "Received",
-                                _formatMoney(
-                                  data["received_cash_markup_amount"],
+                              Text(
+                                "Driver ID: $driverId",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6D7890),
                                 ),
                               ),
-                              _buildSummaryRow(
-                                "Deducted",
-                                _formatMoney(
-                                  data["deducted_cash_markup_amount"],
+                              const SizedBox(height: 4),
+                              Text(
+                                "Deductible: ${_formatMoney(deductible)}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6D7890),
                                 ),
                               ),
-                              _buildSummaryRow(
-                                "Deductible",
-                                _formatMoney(deductible),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildPrimaryButton(
-                                text: "Record Deduction",
-                                onTap: () {
-                                  _showDriverDeductionDialog(
-                                    driverId: driverId,
-                                    driverData: data,
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: _panelGap),
-                              _buildHistoryWrap(
-                                "Monthly Received History",
-                                _toDoubleMap(
-                                  data["monthly_received_cash_markup_history"],
+                              const SizedBox(height: 4),
+                              Text(
+                                "Deducted: ${_formatMoney(data["deducted_cash_markup_amount"])}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6D7890),
                                 ),
-                              ),
-                              const SizedBox(height: _panelGap),
-                              _buildHistoryWrap(
-                                "Monthly Deducted History",
-                                _toDoubleMap(
-                                  data["monthly_deducted_cash_markup_history"],
-                                ),
-                              ),
-                              const SizedBox(height: _panelGap),
-                              _buildTransactionHistoryList(
-                                title: "Deduction History",
-                                stream: fbStore
-                                    .collection("drivers")
-                                    .doc(driverId)
-                                    .collection("deducted_markup_transactions")
-                                    .snapshots(),
-                                amountKey: "amount",
-                                actorLabel: "Driver",
                               ),
                             ],
                           ),
+                          isExpanded: _expandedDriverIds.contains(driverId),
+                          onTap: () {
+                            setState(() {
+                              if (_expandedDriverIds.contains(driverId)) {
+                                _expandedDriverIds.remove(driverId);
+                              } else {
+                                _expandedDriverIds.add(driverId);
+                              }
+                            });
+                          },
                         ),
+                        if (_expandedDriverIds.contains(driverId)) ...[
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.08),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              _panelOuterGap,
+                              _panelGap,
+                              _panelOuterGap,
+                              _panelOuterGap,
+                            ),
+                            child: Column(
+                              children: [
+                                _buildSummaryRow(
+                                  "Received",
+                                  _formatMoney(
+                                    data["received_cash_markup_amount"],
+                                  ),
+                                ),
+                                _buildSummaryRow(
+                                  "Deducted",
+                                  _formatMoney(
+                                    data["deducted_cash_markup_amount"],
+                                  ),
+                                ),
+                                _buildSummaryRow(
+                                  "Deductible",
+                                  _formatMoney(deductible),
+                                ),
+                                const SizedBox(height: 8),
+                                _buildPrimaryButton(
+                                  text: "Record Deduction",
+                                  onTap: () {
+                                    _showDriverDeductionDialog(
+                                      driverId: driverId,
+                                      driverData: data,
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: _panelGap),
+                                _buildHistoryWrap(
+                                  "Monthly Received History",
+                                  _toDoubleMap(
+                                    data[
+                                        "monthly_received_cash_markup_history"],
+                                  ),
+                                ),
+                                const SizedBox(height: _panelGap),
+                                _buildHistoryWrap(
+                                  "Monthly Deducted History",
+                                  _toDoubleMap(
+                                    data[
+                                        "monthly_deducted_cash_markup_history"],
+                                  ),
+                                ),
+                                const SizedBox(height: _panelGap),
+                                _buildTransactionHistoryList(
+                                  title: "Deduction History",
+                                  stream: fbStore
+                                      .collection("drivers")
+                                      .doc(driverId)
+                                      .collection(
+                                          "deducted_markup_transactions")
+                                      .snapshots(),
+                                  amountKey: "amount",
+                                  actorLabel: "Driver",
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
-          );
-        },
-      ),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     );
   }
@@ -2515,7 +2534,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
               Divider(
                 height: 1,
                 thickness: 1,
-                color: const Color(0xFF030744).withOpacity(0.1),
+                color: const Color(0xFF030744).withValues(alpha: 0.1),
               ),
               Expanded(
                 child: _buildPanelBody(),

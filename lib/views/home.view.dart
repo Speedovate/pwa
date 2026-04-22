@@ -207,7 +207,7 @@ class _HomeViewState extends State<HomeView> {
                             ),
                             backgroundColor: const Color(
                               0xFF007BFF,
-                            ).withOpacity(0.25),
+                            ).withValues(alpha: 0.25),
                           );
                         },
                         errorWidget: (context, imageUrl, progress) {
@@ -297,7 +297,7 @@ class _HomeViewState extends State<HomeView> {
             thickness: 1,
             color: const Color(
               0xFF030744,
-            ).withOpacity(0.1),
+            ).withValues(alpha: 0.1),
           ),
           if (AuthService.isLoggedIn())
             ListTileWidget(
@@ -529,7 +529,7 @@ class _HomeViewState extends State<HomeView> {
         ),
         backgroundColor: const Color(
           0xFF007BFF,
-        ).withOpacity(0.25),
+        ).withValues(alpha: 0.25),
       ),
     );
   }
@@ -633,12 +633,12 @@ class _HomeViewState extends State<HomeView> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 100,
                           height: 100,
-                          child: Image.network(
-                            AppImages.logo,
-                            cacheWidth: 600,
+                          child: NetworkImageWidget(
+                            imageUrl: AppImages.logo,
+                            memCacheWidth: 600,
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -658,7 +658,8 @@ class _HomeViewState extends State<HomeView> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
-                            color: const Color(0xFF030744).withOpacity(0.7),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.7),
                           ),
                         ),
                         const SizedBox(height: 18),
@@ -701,17 +702,17 @@ class _HomeViewState extends State<HomeView> {
                           height: 120,
                           child: Stack(
                             children: [
-                              Center(
+                              const Center(
                                 child: Padding(
-                                  padding: const EdgeInsets.only(
+                                  padding: EdgeInsets.only(
                                     top: 12,
                                     left: 12,
                                     right: 12,
                                     bottom: 14,
                                   ),
-                                  child: Image.network(
-                                    AppImages.logo,
-                                    cacheWidth: 600,
+                                  child: NetworkImageWidget(
+                                    imageUrl: AppImages.logo,
+                                    memCacheWidth: 600,
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -728,7 +729,7 @@ class _HomeViewState extends State<HomeView> {
                                     ),
                                     backgroundColor: const Color(
                                       0xFF007BFF,
-                                    ).withOpacity(0.25),
+                                    ).withValues(alpha: 0.25),
                                   ),
                                 ),
                               ),
@@ -751,7 +752,8 @@ class _HomeViewState extends State<HomeView> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
-                            color: const Color(0xFF030744).withOpacity(0.7),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.7),
                           ),
                         ),
                         const SizedBox(height: 18),
@@ -1158,7 +1160,7 @@ class _HomeViewState extends State<HomeView> {
                                                 BoxShadow(
                                                   color: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(0.25),
+                                                  ).withValues(alpha: 0.25),
                                                   blurRadius: 2,
                                                   offset: const Offset(0, 2),
                                                 ),
@@ -1197,8 +1199,8 @@ class _HomeViewState extends State<HomeView> {
                                                           decoration:
                                                               BoxDecoration(
                                                             color: Colors.red
-                                                                .withOpacity(
-                                                              0.08,
+                                                                .withValues(
+                                                              alpha: 0.08,
                                                             ),
                                                             borderRadius:
                                                                 const BorderRadius
@@ -1669,7 +1671,8 @@ class _HomeViewState extends State<HomeView> {
                                                           thickness: 1,
                                                           color: const Color(
                                                             0xFF030744,
-                                                          ).withOpacity(0.1),
+                                                          ).withValues(
+                                                              alpha: 0.1),
                                                         ),
                                                         const SizedBox(
                                                           height: 20,
@@ -1889,8 +1892,9 @@ class _HomeViewState extends State<HomeView> {
                                                                       color:
                                                                           const Color(
                                                                         0xFF007BFF,
-                                                                      ).withOpacity(
-                                                                        0.25,
+                                                                      ).withValues(
+                                                                        alpha:
+                                                                            0.25,
                                                                       ),
                                                                     ),
                                                               const SizedBox(
@@ -1923,7 +1927,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             color:
                                                                                 const Color(
                                                                               0xFF007BFF,
-                                                                            ).withOpacity(0.1),
+                                                                            ).withValues(alpha: 0.1),
                                                                             borderRadius:
                                                                                 const BorderRadius.all(
                                                                               Radius.circular(
@@ -1987,9 +1991,9 @@ class _HomeViewState extends State<HomeView> {
                                                                                   customWidget: PinchZoom(
                                                                                     child: SizedBox(
                                                                                       height: MediaQuery.of(context).size.width - 70,
-                                                                                      child: Image.network(
-                                                                                        vm.ongoingOrder?.driver?.cPhoto ?? "",
-                                                                                        cacheWidth: 600,
+                                                                                      child: NetworkImageWidget(
+                                                                                        imageUrl: vm.ongoingOrder?.driver?.cPhoto ?? "",
+                                                                                        memCacheWidth: 600,
                                                                                         fit: BoxFit.cover,
                                                                                       ),
                                                                                     ),
@@ -2139,8 +2143,9 @@ class _HomeViewState extends State<HomeView> {
                                                               color:
                                                                   const Color(
                                                                 0xFF030744,
-                                                              ).withOpacity(
-                                                                      0.1),
+                                                              ).withValues(
+                                                                      alpha:
+                                                                          0.1),
                                                             ),
                                                             const SizedBox(
                                                               height: 20,
@@ -2208,9 +2213,9 @@ class _HomeViewState extends State<HomeView> {
                                                                                           padding: const EdgeInsets.symmetric(
                                                                                             horizontal: 8,
                                                                                           ),
-                                                                                          child: Image.network(
-                                                                                            "${AppImages.baseUrl}${lowerCase(previewVehicle.name!)}.png",
-                                                                                            cacheWidth: 600,
+                                                                                          child: NetworkImageWidget(
+                                                                                            imageUrl: "${AppImages.baseUrl}${lowerCase(previewVehicle.name!)}.png",
+                                                                                            memCacheWidth: 600,
                                                                                           ),
                                                                                         ),
                                                                                       ),
@@ -2520,14 +2525,14 @@ class _HomeViewState extends State<HomeView> {
                                                                                     const SizedBox(
                                                                                       height: 12,
                                                                                     ),
-                                                                                    Expanded(
+                                                                                    const Expanded(
                                                                                       child: Padding(
-                                                                                        padding: const EdgeInsets.symmetric(
+                                                                                        padding: EdgeInsets.symmetric(
                                                                                           horizontal: 8,
                                                                                         ),
-                                                                                        child: Image.network(
-                                                                                          AppImages.load,
-                                                                                          cacheWidth: 600,
+                                                                                        child: NetworkImageWidget(
+                                                                                          imageUrl: AppImages.load,
+                                                                                          memCacheWidth: 600,
                                                                                         ),
                                                                                       ),
                                                                                     ),
@@ -3049,8 +3054,8 @@ class _HomeViewState extends State<HomeView> {
                                                                   .isPreparing
                                                               ? const Color(
                                                                   0xFF030744,
-                                                                ).withOpacity(
-                                                                  0.2)
+                                                                ).withValues(
+                                                                  alpha: 0.2)
                                                               : vm.ongoingOrder !=
                                                                           null &&
                                                                       vm.ongoingOrder!
@@ -3271,7 +3276,7 @@ class _HomeViewState extends State<HomeView> {
                               child: GestureDetector(
                                 onTap: _closeIOSMenu,
                                 child: Container(
-                                  color: Colors.black.withOpacity(0.18),
+                                  color: Colors.black.withValues(alpha: 0.18),
                                 ),
                               ),
                             ),
@@ -3483,8 +3488,8 @@ class _HomeViewState extends State<HomeView> {
                                                                 color:
                                                                     const Color(
                                                                   0xFF030744,
-                                                                ).withOpacity(
-                                                                  0.15,
+                                                                ).withValues(
+                                                                  alpha: 0.15,
                                                                 ),
                                                               ),
                                                             ),
@@ -3688,8 +3693,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     color:
                                                                         const Color(
                                                                       0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.15,
+                                                                    ).withValues(
+                                                                      alpha:
+                                                                          0.15,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -3776,8 +3782,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     color:
                                                                         const Color(
                                                                       0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.15,
+                                                                    ).withValues(
+                                                                      alpha:
+                                                                          0.15,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -3885,8 +3892,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     color:
                                                                         const Color(
                                                                       0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.15,
+                                                                    ).withValues(
+                                                                      alpha:
+                                                                          0.15,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -4041,8 +4049,8 @@ class _HomeViewState extends State<HomeView> {
                                                             mainColor:
                                                                 const Color(
                                                               0xFF007BFF,
-                                                            ).withOpacity(
-                                                              0.1,
+                                                            ).withValues(
+                                                              alpha: 0.1,
                                                             ),
                                                             text:
                                                                 "Return to home",
@@ -4091,8 +4099,8 @@ class _HomeViewState extends State<HomeView> {
                                                     .bottom,
                                         width:
                                             MediaQuery.of(context).size.width,
-                                        color: Colors.black.withOpacity(
-                                          0.8,
+                                        color: Colors.black.withValues(
+                                          alpha: 0.8,
                                         ),
                                         child: Center(
                                           child: SingleChildScrollView(
@@ -4371,8 +4379,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     color:
                                                                         const Color(
                                                                       0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.5,
+                                                                    ).withValues(
+                                                                      alpha:
+                                                                          0.5,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -4416,8 +4425,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     color:
                                                                         const Color(
                                                                       0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.5,
+                                                                    ).withValues(
+                                                                      alpha:
+                                                                          0.5,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -4461,8 +4471,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     color:
                                                                         const Color(
                                                                       0xFF030744,
-                                                                    ).withOpacity(
-                                                                      0.5,
+                                                                    ).withValues(
+                                                                      alpha:
+                                                                          0.5,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -4493,8 +4504,8 @@ class _HomeViewState extends State<HomeView> {
                             vm.dvrMessage == ""
                         ? const SizedBox.shrink()
                         : Container(
-                            color: Colors.black.withOpacity(
-                              0.5,
+                            color: Colors.black.withValues(
+                              alpha: 0.5,
                             ),
                           ),
                     isBool(vm.userSeen) ||
@@ -4527,11 +4538,11 @@ class _HomeViewState extends State<HomeView> {
                                                           .size
                                                           .width -
                                                       70,
-                                                  child: Image.network(
-                                                    vm.ongoingOrder?.driver
-                                                            ?.cPhoto ??
+                                                  child: NetworkImageWidget(
+                                                    imageUrl: vm.ongoingOrder
+                                                            ?.driver?.cPhoto ??
                                                         "",
-                                                    cacheWidth: 600,
+                                                    memCacheWidth: 600,
                                                     fit: BoxFit.cover,
                                                   ),
                                                 ),
@@ -4646,23 +4657,23 @@ class _HomeViewState extends State<HomeView> {
                                                 ),
                                                 focusColor: const Color(
                                                   0xFF030744,
-                                                ).withOpacity(
-                                                  0.2,
+                                                ).withValues(
+                                                  alpha: 0.2,
                                                 ),
                                                 hoverColor: const Color(
                                                   0xFF030744,
-                                                ).withOpacity(
-                                                  0.2,
+                                                ).withValues(
+                                                  alpha: 0.2,
                                                 ),
                                                 splashColor: const Color(
                                                   0xFF030744,
-                                                ).withOpacity(
-                                                  0.2,
+                                                ).withValues(
+                                                  alpha: 0.2,
                                                 ),
                                                 highlightColor: const Color(
                                                   0xFF030744,
-                                                ).withOpacity(
-                                                  0.2,
+                                                ).withValues(
+                                                  alpha: 0.2,
                                                 ),
                                                 child: const Center(
                                                   child: Icon(
@@ -4695,9 +4706,9 @@ class _HomeViewState extends State<HomeView> {
                                             AlertService().showAppAlert(
                                               isCustom: true,
                                               customWidget: PinchZoom(
-                                                child: Image.network(
-                                                  "${vm.dvrMessage}",
-                                                  cacheWidth: 600,
+                                                child: NetworkImageWidget(
+                                                  imageUrl: "${vm.dvrMessage}",
+                                                  memCacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -4716,23 +4727,22 @@ class _HomeViewState extends State<HomeView> {
                                               height: MediaQuery.of(context)
                                                   .size
                                                   .width,
-                                              decoration: BoxDecoration(
-                                                color: const Color(
+                                              decoration: const BoxDecoration(
+                                                color: Color(
                                                   0xFF007BFF,
                                                 ),
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(10),
+                                                ),
+                                              ),
+                                              child: ClipRRect(
                                                 borderRadius:
                                                     const BorderRadius.all(
                                                   Radius.circular(10),
                                                 ),
-                                                image: DecorationImage(
-                                                  image: ResizeImage
-                                                      .resizeIfNeeded(
-                                                    600,
-                                                    null,
-                                                    NetworkImage(
-                                                      "${vm.dvrMessage}",
-                                                    ),
-                                                  ),
+                                                child: NetworkImageWidget(
+                                                  imageUrl: "${vm.dvrMessage}",
+                                                  memCacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -4783,23 +4793,23 @@ class _HomeViewState extends State<HomeView> {
                                                       BorderRadius.circular(10),
                                                   focusColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   hoverColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   splashColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   highlightColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   child: const Center(
                                                     child: Row(
@@ -4861,23 +4871,23 @@ class _HomeViewState extends State<HomeView> {
                                                   ),
                                                   focusColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   hoverColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   splashColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   highlightColor: const Color(
                                                     0xFF030744,
-                                                  ).withOpacity(
-                                                    0.1,
+                                                  ).withValues(
+                                                    alpha: 0.1,
                                                   ),
                                                   child: Center(
                                                     child: vm.isBusy
@@ -4975,8 +4985,8 @@ class _HomeViewState extends State<HomeView> {
                             });
                           },
                           banners: [
-                            BannerModel(photo: "${gBanners[0].photo}"),
-                            BannerModel(photo: "${gBanners[1].photo}"),
+                            BannerModel(photo: gBanners[0].photo ?? ""),
+                            BannerModel(photo: gBanners[1].photo ?? ""),
                           ],
                           partnerName: "Max & Bunny",
                           partnerDescription: "Dine in and help a driver earn!",
@@ -5044,8 +5054,8 @@ class _HomeViewState extends State<HomeView> {
                             });
                           },
                           banners: [
-                            BannerModel(photo: "${gBanners[2].photo}"),
-                            BannerModel(photo: "${gBanners[3].photo}"),
+                            BannerModel(photo: gBanners[2].photo ?? ""),
+                            BannerModel(photo: gBanners[3].photo ?? ""),
                           ],
                           partnerName: "Sabie Bakes",
                           partnerDescription: "Dine in and help a driver earn!",
@@ -5107,7 +5117,7 @@ class FloatingButton extends StatelessWidget {
           BoxShadow(
               color: const Color(
                 0xFF030744,
-              ).withOpacity(0.25),
+              ).withValues(alpha: 0.25),
               blurRadius: 2,
               offset: const Offset(0, 2))
         ],

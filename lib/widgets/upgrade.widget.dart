@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class UpgradeWidget extends StatelessWidget {
@@ -35,10 +36,10 @@ class UpgradeWidget extends StatelessWidget {
             children: [
               SizedBox(height: MediaQuery.of(context).padding.top),
               const SizedBox(height: 52),
-              ClipOval(
-                child: Image.network(
-                  AppImages.logo,
-                  cacheWidth: 600,
+              const ClipOval(
+                child: NetworkImageWidget(
+                  imageUrl: AppImages.logo,
+                  memCacheWidth: 600,
                   height: 50,
                   width: 50,
                 ),
@@ -83,7 +84,7 @@ class UpgradeWidget extends StatelessWidget {
                   height: 1.15,
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: const Color(0xFF030744).withOpacity(0.5),
+                  color: const Color(0xFF030744).withValues(alpha: 0.5),
                 ),
               ),
               Expanded(
@@ -98,7 +99,8 @@ class UpgradeWidget extends StatelessWidget {
                             height: 1.15,
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: const Color(0xFF030744).withOpacity(0.5),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.5),
                           ),
                         ),
                         TextSpan(
@@ -122,7 +124,8 @@ class UpgradeWidget extends StatelessWidget {
                             height: 1.15,
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: const Color(0xFF030744).withOpacity(0.5),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.5),
                           ),
                         ),
                         TextSpan(
@@ -146,7 +149,8 @@ class UpgradeWidget extends StatelessWidget {
                             height: 1.15,
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: const Color(0xFF030744).withOpacity(0.5),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.5),
                           ),
                         ),
                       ],

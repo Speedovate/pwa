@@ -28,7 +28,7 @@ class _TransactionListItemState extends State<TransactionListItem> {
         ),
         border: Border.all(
           width: 1,
-          color: const Color(0xFF09244B).withOpacity(0.15),
+          color: const Color(0xFF09244B).withValues(alpha: 0.15),
         ),
       ),
       child: Column(

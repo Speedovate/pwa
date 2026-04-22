@@ -2,6 +2,7 @@ import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/view_models/splash.vm.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -26,9 +27,9 @@ class _SplashViewState extends State<SplashView> {
             backgroundColor: Colors.white,
           ),
           body: Center(
-            child: Image.network(
-              AppImages.splash,
-              cacheWidth: 600,
+            child: NetworkImageWidget(
+              imageUrl: AppImages.splash,
+              memCacheWidth: 600,
               width: MediaQuery.of(context).size.width >
                       MediaQuery.of(context).size.height
                   ? (MediaQuery.of(context).size.height / 2.1).clamp(0, 350)

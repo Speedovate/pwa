@@ -6,6 +6,7 @@ import 'package:pwa/utils/map_controller.dart';
 import 'package:pwa/utils/map_layers.dart';
 import 'package:pwa/utils/map_types.dart' as app_maps;
 import 'package:pwa/widgets/gmap_google_legacy.widget.dart' as legacy_google;
+import 'package:pwa/widgets/network_image.widget.dart';
 
 class GoogleMapWidget extends StatefulWidget {
   final app_maps.LatLng center;
@@ -154,13 +155,15 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                     child: Center(
                       child: Transform.rotate(
                         angle: marker.rotationDegrees * math.pi / 180,
-                        child: Image.network(
-                          marker.imageUrl,
-                          cacheWidth: 600,
+                        child: NetworkImageWidget(
+                          imageUrl: marker.imageUrl,
+                          memCacheWidth: 600,
                           width: marker.width,
                           height: marker.height,
                           fit: BoxFit.contain,
-                          filterQuality: FilterQuality.low,
+                          errorWidget: (context, imageUrl, error) {
+                            return const SizedBox.shrink();
+                          },
                         ),
                       ),
                     ),

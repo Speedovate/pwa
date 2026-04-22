@@ -1,8 +1,9 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:convert';
 import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/services.dart';
@@ -25,8 +26,7 @@ String browserUserAgent() => lowerCase(
 
 bool isHuaweiLikeBrowser() {
   final userAgent = browserUserAgent();
-  return userAgent.contains("huaweibrowser") ||
-      userAgent.contains("hmscore");
+  return userAgent.contains("huaweibrowser") || userAgent.contains("hmscore");
 }
 
 bool isIOSLikeBrowser() {
@@ -38,9 +38,10 @@ bool isIOSLikeBrowser() {
   }
   if (userAgent.contains("macintosh")) {
     try {
-      final touchPoints =
-          js_util.getProperty(html.window.navigator, 'maxTouchPoints');
-      return (touchPoints is num && touchPoints > 1);
+      final touchPoints = globalContext
+          .getProperty<JSObject>('navigator'.toJS)
+          .getProperty<JSNumber?>('maxTouchPoints'.toJS);
+      return (touchPoints?.toDartInt ?? 0) > 1;
     } catch (_) {
       return false;
     }
@@ -50,8 +51,7 @@ bool isIOSLikeBrowser() {
 
 bool isGoogleAuthLikelySupported() => !isIOSLikeBrowser();
 
-bool isWebPushLikelySupported() =>
-    html.window.navigator.serviceWorker != null;
+bool isWebPushLikelySupported() => html.window.navigator.serviceWorker != null;
 
 String capitalizeWords(
   dynamic input, {
@@ -67,10 +67,7 @@ String capitalizeWords(
         if (word.contains('(')) {
           var parts = word.split('(');
 
-          return parts[0] +
-              '(' +
-              parts[1][0].toUpperCase() +
-              parts[1].substring(1).toLowerCase();
+          return "${parts[0]}(${parts[1][0].toUpperCase()}${parts[1].substring(1).toLowerCase()}";
         }
         return word.split('-').map(
           (part) {
@@ -117,7 +114,7 @@ String lowerCase(
       (word) {
         if (word.contains('(')) {
           var parts = word.split('(');
-          return parts[0].toLowerCase() + '(' + parts[1].toLowerCase();
+          return "${parts[0].toLowerCase()}(${parts[1].toLowerCase()}";
         }
         return word
             .split('-')
@@ -143,7 +140,7 @@ String upperCase(
       (word) {
         if (word.contains('(')) {
           var parts = word.split('(');
-          return parts[0].toUpperCase() + '(' + parts[1].toUpperCase();
+          return "${parts[0].toUpperCase()}(${parts[1].toUpperCase()}";
         }
         return word
             .split('-')
@@ -404,8 +401,7 @@ Future<gmaps.LatLng?> getMyLatLng({
     final position = await _requestCurrentPosition(
       enableHighAccuracy: true,
       timeout: useFastTimeout ? const Duration(seconds: 5) : null,
-      maximumAge:
-          useFastTimeout ? const Duration(seconds: 30) : Duration.zero,
+      maximumAge: useFastTimeout ? const Duration(seconds: 30) : Duration.zero,
     );
     return _storeRealLatLng(position);
   } catch (e, stackTrace) {
@@ -426,8 +422,8 @@ Future<gmaps.LatLng?> getMyLatLng({
         lastGeolocationErrorMessage = _describeGeolocationError(retryError);
       }
     }
-    final existingLocation = _nonDefaultLatLng(lastKnownRealLatLng) ??
-        _nonDefaultLatLng(initLatLng);
+    final existingLocation =
+        _nonDefaultLatLng(lastKnownRealLatLng) ?? _nonDefaultLatLng(initLatLng);
     initLatLng = existingLocation ?? (permissionDenied ? defaultLatLng : null);
     lastGeolocationErrorMessage ??= _describeGeolocationError(e);
     debugPrint(
@@ -478,8 +474,9 @@ gmaps.LatLng? _nonDefaultLatLng(gmaps.LatLng? value) {
 
 String _describeGeolocationError(Object error) {
   try {
-    final code = js_util.getProperty(error, 'code');
-    final message = js_util.getProperty(error, 'message');
+    final jsError = error as JSObject;
+    final code = jsError.getProperty<JSAny?>('code'.toJS)?.dartify();
+    final message = jsError.getProperty<JSAny?>('message'.toJS)?.dartify();
     final normalizedCode = '$code';
     final readableCode = switch (normalizedCode) {
       '1' => 'PERMISSION_DENIED',
@@ -495,24 +492,20 @@ String _describeGeolocationError(Object error) {
 
 Future<bool> _isGeolocationDenied() async {
   try {
-    final permissions = js_util.getProperty(
-      html.window.navigator,
-      'permissions',
-    );
+    final permissions = globalContext
+        .getProperty<JSObject>('navigator'.toJS)
+        .getProperty<JSObject?>('permissions'.toJS);
     if (permissions == null) {
       return false;
     }
-    final queryPromise = js_util.callMethod(
-      permissions,
-      'query',
-      [
-        js_util.jsify({
-          'name': 'geolocation',
-        }),
-      ],
+    final queryPromise = permissions.callMethod<JSPromise<JSObject?>>(
+      'query'.toJS,
+      {
+        'name': 'geolocation',
+      }.jsify(),
     );
-    final status = await js_util.promiseToFuture<Object?>(queryPromise);
-    final state = js_util.getProperty(status!, 'state');
+    final status = await queryPromise.toDart;
+    final state = status?.getProperty<JSString?>('state'.toJS)?.toDart;
     return '$state' == 'denied';
   } catch (_) {
     return false;

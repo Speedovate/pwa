@@ -5,6 +5,7 @@ import 'package:pwa/constants/images.dart';
 import 'package:pwa/view_models/send.vm.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
 
 class SendView extends StatefulWidget {
@@ -127,12 +128,12 @@ class _SendViewState extends State<SendView> {
                           ),
                         ],
                       ),
-                      Expanded(
+                      const Expanded(
                         flex: 2,
                         child: Center(
-                          child: Image.network(
-                            AppImages.auth,
-                            cacheWidth: 600,
+                          child: NetworkImageWidget(
+                            imageUrl: AppImages.auth,
+                            memCacheWidth: 600,
                             fit: BoxFit.fitWidth,
                           ),
                         ),

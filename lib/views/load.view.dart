@@ -65,7 +65,7 @@ class _LoadViewState extends State<LoadView> {
         borderRadius: const BorderRadius.all(Radius.circular(12)),
         border: Border.all(
           width: 1,
-          color: const Color(0xFF030744).withOpacity(0.15),
+          color: const Color(0xFF030744).withValues(alpha: 0.15),
         ),
       ),
       child: Row(
@@ -74,7 +74,7 @@ class _LoadViewState extends State<LoadView> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFF030744).withOpacity(0.06),
+              color: const Color(0xFF030744).withValues(alpha: 0.06),
               borderRadius: const BorderRadius.all(Radius.circular(12)),
             ),
             child: const Icon(
@@ -140,7 +140,7 @@ class _LoadViewState extends State<LoadView> {
                 fontWeight: FontWeight.w600,
                 color: selected
                     ? Colors.white
-                    : const Color(0xFF030744).withOpacity(0.7),
+                    : const Color(0xFF030744).withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -156,7 +156,7 @@ class _LoadViewState extends State<LoadView> {
         children: [
           Icon(
             Icons.inventory_2_outlined,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
             size: 75,
           ),
           const SizedBox(height: 12),
@@ -165,7 +165,7 @@ class _LoadViewState extends State<LoadView> {
             style: TextStyle(
               height: 1,
               fontSize: 20,
-              color: const Color(0xFF030744).withOpacity(0.5),
+              color: const Color(0xFF030744).withValues(alpha: 0.5),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -174,7 +174,7 @@ class _LoadViewState extends State<LoadView> {
             "Your claimable partner markup history will appear here",
             style: TextStyle(
               height: 1,
-              color: const Color(0xFF030744).withOpacity(0.5),
+              color: const Color(0xFF030744).withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -195,7 +195,7 @@ class _LoadViewState extends State<LoadView> {
               borderRadius: const BorderRadius.all(Radius.circular(12)),
               border: Border.all(
                 width: 1,
-                color: const Color(0xFF030744).withOpacity(0.15),
+                color: const Color(0xFF030744).withValues(alpha: 0.15),
               ),
             ),
             child: Text(
@@ -203,7 +203,7 @@ class _LoadViewState extends State<LoadView> {
               style: TextStyle(
                 height: 1.25,
                 fontSize: 12,
-                color: const Color(0xFF030744).withOpacity(0.7),
+                color: const Color(0xFF030744).withValues(alpha: 0.7),
               ),
             ),
           );
@@ -221,7 +221,7 @@ class _LoadViewState extends State<LoadView> {
             borderRadius: const BorderRadius.all(Radius.circular(12)),
             border: Border.all(
               width: 1,
-              color: const Color(0xFF030744).withOpacity(0.15),
+              color: const Color(0xFF030744).withValues(alpha: 0.15),
             ),
           ),
           child: Column(
@@ -509,7 +509,8 @@ class _LoadViewState extends State<LoadView> {
                                           ],
                                         ),
                                       ),
-                                      !isBool(AuthService.currentUser?.isProvider)
+                                      !isBool(AuthService
+                                              .currentUser?.isProvider)
                                           ? const SizedBox()
                                           : Column(
                                               children: [
@@ -668,7 +669,8 @@ class _LoadViewState extends State<LoadView> {
                         color: Colors.white,
                         border: Border.all(
                           width: 1,
-                          color: const Color(0xFF030744).withOpacity(0.15),
+                          color:
+                              const Color(0xFF030744).withValues(alpha: 0.15),
                         ),
                         borderRadius:
                             const BorderRadius.all(Radius.circular(1000)),
@@ -705,41 +707,42 @@ class _LoadViewState extends State<LoadView> {
                 Divider(
                   height: 1,
                   thickness: 1,
-                  color: const Color(0xFF030744).withOpacity(0.15),
+                  color: const Color(0xFF030744).withValues(alpha: 0.15),
                 ),
                 Expanded(
                   child: isBool(AuthService.currentUser?.isProvider) &&
                           _showMarkupHistory
                       ? _buildMarkupHistoryList(vm)
                       : vm.isBusy
-                      ? Column(
-                          children: [
-                            LinearProgressIndicator(
-                              color: const Color(
-                                0xFF007BFF,
-                              ),
-                              backgroundColor: const Color(
-                                0xFF007BFF,
-                              ).withOpacity(0.25),
-                            ),
-                          ],
-                        )
-                      : vm.hasError
-                          ? _buildErrorWidget()
-                          : vm.loadTransactions.isEmpty
-                              ? _buildEmptyWidget()
-                              : ListViewWidget(
-                                  items: vm.loadTransactions,
-                                  controller: _scrollController,
-                                  isLoadingMore: _isLoadingMore,
-                                  onRefresh: _refresh,
-                                  currentPage: vm.queryPage,
-                                  itemBuilder: (context, order, index) {
-                                    return TransactionListItem(
-                                      transaction: vm.loadTransactions[index],
-                                    );
-                                  },
+                          ? Column(
+                              children: [
+                                LinearProgressIndicator(
+                                  color: const Color(
+                                    0xFF007BFF,
+                                  ),
+                                  backgroundColor: const Color(
+                                    0xFF007BFF,
+                                  ).withValues(alpha: 0.25),
                                 ),
+                              ],
+                            )
+                          : vm.hasError
+                              ? _buildErrorWidget()
+                              : vm.loadTransactions.isEmpty
+                                  ? _buildEmptyWidget()
+                                  : ListViewWidget(
+                                      items: vm.loadTransactions,
+                                      controller: _scrollController,
+                                      isLoadingMore: _isLoadingMore,
+                                      onRefresh: _refresh,
+                                      currentPage: vm.queryPage,
+                                      itemBuilder: (context, order, index) {
+                                        return TransactionListItem(
+                                          transaction:
+                                              vm.loadTransactions[index],
+                                        );
+                                      },
+                                    ),
                 ),
               ],
             ),
@@ -755,7 +758,7 @@ class _LoadViewState extends State<LoadView> {
       children: [
         Icon(
           Icons.warning_amber_outlined,
-          color: const Color(0xFF030744).withOpacity(0.5),
+          color: const Color(0xFF030744).withValues(alpha: 0.5),
           size: 75,
         ),
         const SizedBox(height: 12),
@@ -764,7 +767,7 @@ class _LoadViewState extends State<LoadView> {
           style: TextStyle(
             height: 1,
             fontSize: 20,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -773,7 +776,7 @@ class _LoadViewState extends State<LoadView> {
           "Please try again later",
           style: TextStyle(
             height: 1,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
           ),
         ),
       ],
@@ -786,7 +789,7 @@ class _LoadViewState extends State<LoadView> {
       children: [
         Icon(
           Icons.cancel_presentation,
-          color: const Color(0xFF030744).withOpacity(0.5),
+          color: const Color(0xFF030744).withValues(alpha: 0.5),
           size: 75,
         ),
         const SizedBox(height: 12),
@@ -795,7 +798,7 @@ class _LoadViewState extends State<LoadView> {
           style: TextStyle(
             height: 1,
             fontSize: 20,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -804,7 +807,7 @@ class _LoadViewState extends State<LoadView> {
           "Your transactions will appear here",
           style: TextStyle(
             height: 1,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
           ),
         ),
       ],

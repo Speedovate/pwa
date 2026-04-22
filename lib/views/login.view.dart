@@ -10,6 +10,7 @@ import 'package:pwa/view_models/login.vm.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
 
 class LoginView extends StatefulWidget {
@@ -301,17 +302,17 @@ class _LoginViewState extends State<LoginView> {
                                         ?.unfocus();
                                     vm.processGoogleLogin();
                                   },
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Image.network(
-                                        AppImages.google,
-                                        cacheWidth: 600,
+                                      NetworkImageWidget(
+                                        imageUrl: AppImages.google,
+                                        memCacheWidth: 600,
                                         width: 24,
                                         height: 24,
                                       ),
-                                      const SizedBox(width: 12),
-                                      const Text(
+                                      SizedBox(width: 12),
+                                      Text(
                                         "Sign in with Google",
                                         style: TextStyle(
                                           fontSize: 14,
@@ -319,7 +320,7 @@ class _LoginViewState extends State<LoginView> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
+                                      SizedBox(width: 4),
                                     ],
                                   ),
                                 ),

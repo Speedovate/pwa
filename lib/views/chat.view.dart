@@ -132,9 +132,10 @@ class _ChatViewState extends State<ChatView> {
                                             AlertService().showAppAlert(
                                               isCustom: true,
                                               customWidget: PinchZoom(
-                                                child: Image.network(
-                                                  vm.messages[index].text,
-                                                  cacheWidth: 600,
+                                                child: NetworkImageWidget(
+                                                  imageUrl:
+                                                      vm.messages[index].text,
+                                                  memCacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -184,8 +185,12 @@ class _ChatViewState extends State<ChatView> {
                                                             NetworkImageWidget(
                                                           fit: BoxFit.cover,
                                                           memCacheWidth: 600,
-                                                          imageUrl:
-                                                              "${vm.messages[index].user.profileImage}",
+                                                          imageUrl: vm
+                                                                  .messages[
+                                                                      index]
+                                                                  .user
+                                                                  .profileImage ??
+                                                              "",
                                                           progressIndicatorBuilder:
                                                               (
                                                             context,
@@ -287,17 +292,15 @@ class _ChatViewState extends State<ChatView> {
                                                             : DecorationImage(
                                                                 fit: BoxFit
                                                                     .cover,
-                                                                image: ResizeImage
-                                                                    .resizeIfNeeded(
-                                                                  600,
-                                                                  null,
-                                                                  NetworkImage(
-                                                                    vm
-                                                                        .messages[
-                                                                            index]
-                                                                        .text,
-                                                                  ),
-                                                                ),
+                                                                image:
+                                                                    safeNetworkImageProvider(
+                                                                  vm
+                                                                      .messages[
+                                                                          index]
+                                                                      .text,
+                                                                  cacheWidth:
+                                                                      600,
+                                                                )!,
                                                               ),
                                                       ),
                                                       child: Column(
@@ -382,8 +385,9 @@ class _ChatViewState extends State<ChatView> {
                                                                 "https",
                                                               )
                                                                   ? Colors.black
-                                                                      .withOpacity(
-                                                                      0.5,
+                                                                      .withValues(
+                                                                      alpha:
+                                                                          0.5,
                                                                     )
                                                                   : Colors
                                                                       .transparent,
@@ -441,9 +445,10 @@ class _ChatViewState extends State<ChatView> {
                                             AlertService().showAppAlert(
                                               isCustom: true,
                                               customWidget: PinchZoom(
-                                                child: Image.network(
-                                                  vm.messages[index].text,
-                                                  cacheWidth: 600,
+                                                child: NetworkImageWidget(
+                                                  imageUrl:
+                                                      vm.messages[index].text,
+                                                  memCacheWidth: 600,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -504,17 +509,12 @@ class _ChatViewState extends State<ChatView> {
                                                         ? null
                                                         : DecorationImage(
                                                             fit: BoxFit.cover,
-                                                            image: ResizeImage
-                                                                .resizeIfNeeded(
-                                                              600,
-                                                              null,
-                                                              NetworkImage(
-                                                                vm
-                                                                    .messages[
-                                                                        index]
-                                                                    .text,
-                                                              ),
-                                                            ),
+                                                            image:
+                                                                safeNetworkImageProvider(
+                                                              vm.messages[index]
+                                                                  .text,
+                                                              cacheWidth: 600,
+                                                            )!,
                                                           ),
                                                   ),
                                                   child: Column(
@@ -588,8 +588,9 @@ class _ChatViewState extends State<ChatView> {
                                                             "https",
                                                           )
                                                               ? Colors.black
-                                                                  .withOpacity(
-                                                                      0.5)
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.5)
                                                               : Colors
                                                                   .transparent,
                                                         ),
@@ -713,6 +714,17 @@ class _ChatViewState extends State<ChatView> {
                                   Expanded(
                                     child: TextField(
                                       controller: _controller,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                      textInputAction: TextInputAction.send,
+                                      textAlignVertical:
+                                          TextAlignVertical.center,
+                                      scrollPadding: const EdgeInsets.only(
+                                        left: 24,
+                                        top: 24,
+                                        right: 24,
+                                        bottom: 120,
+                                      ),
                                       decoration: InputDecoration(
                                         filled: true,
                                         border: const OutlineInputBorder(
@@ -1053,8 +1065,8 @@ class _ChatViewState extends State<ChatView> {
                               thickness: 1,
                               color: const Color(
                                 0xFF030744,
-                              ).withOpacity(
-                                0.15,
+                              ).withValues(
+                                alpha: 0.15,
                               ),
                             ),
                           ],

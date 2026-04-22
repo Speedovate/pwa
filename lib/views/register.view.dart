@@ -12,6 +12,7 @@ import 'package:pwa/widgets/date_picker.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:pwa/view_models/register.vm.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
 
@@ -25,6 +26,42 @@ class RegisterView extends StatefulWidget {
 class _RegisterViewState extends State<RegisterView> {
   RegisterViewModel registerViewModel = RegisterViewModel();
 
+  bool _hasPendingRegisterDetails(RegisterViewModel vm) {
+    return agreed == true ||
+        selfieFile != null ||
+        (vm.nameTEC.text != "" && vm.nameTEC.text != "null") ||
+        (vm.emailTEC.text != "" && vm.emailTEC.text != "null") ||
+        (vm.phoneTEC.text != "" && vm.phoneTEC.text != "null") ||
+        (vm.birthdayTEC.text != "" && vm.birthdayTEC.text != "null") ||
+        (vm.passwordTEC.text != "" && vm.passwordTEC.text != "null") ||
+        (vm.cPasswordTEC.text != "" && vm.cPasswordTEC.text != "null");
+  }
+
+  void _leaveRegisterPage() {
+    setState(() {
+      isTourist = false;
+    });
+    Get.back();
+  }
+
+  void _confirmLeaveRegisterPage(RegisterViewModel vm) {
+    if (!_hasPendingRegisterDetails(vm)) {
+      _leaveRegisterPage();
+      return;
+    }
+
+    AlertService().showAppAlert(
+      title: "Are you sure?",
+      content: "You're about to leave this page",
+      hideCancel: false,
+      confirmText: "Go back",
+      confirmAction: () {
+        _leaveRegisterPage();
+        Get.back();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -33,39 +70,7 @@ class _RegisterViewState extends State<RegisterView> {
         if (didPop) {
           return;
         }
-        if (agreed == false &&
-            selfieFile == null &&
-            (registerViewModel.nameTEC.text == "" ||
-                registerViewModel.nameTEC.text == "null") &&
-            (registerViewModel.emailTEC.text == "" ||
-                registerViewModel.emailTEC.text == "null") &&
-            (registerViewModel.phoneTEC.text == "" ||
-                registerViewModel.phoneTEC.text == "null") &&
-            (registerViewModel.birthdayTEC.text == "" ||
-                registerViewModel.birthdayTEC.text == "null") &&
-            (registerViewModel.passwordTEC.text == "" ||
-                registerViewModel.passwordTEC.text == "null") &&
-            (registerViewModel.cPasswordTEC.text == "" ||
-                registerViewModel.cPasswordTEC.text == "null")) {
-          setState(() {
-            isTourist = false;
-          });
-          Get.back();
-        } else {
-          AlertService().showAppAlert(
-            title: "Are you sure?",
-            content: "You're about to leave this page",
-            hideCancel: false,
-            confirmText: "Go back",
-            confirmAction: () {
-              setState(() {
-                isTourist = false;
-              });
-              Get.back();
-              Get.back();
-            },
-          );
-        }
+        _confirmLeaveRegisterPage(registerViewModel);
       },
       child: ViewModelBuilder<RegisterViewModel>.reactive(
         viewModelBuilder: () => registerViewModel,
@@ -93,39 +98,7 @@ class _RegisterViewState extends State<RegisterView> {
                           const SizedBox(width: 4),
                           WidgetButton(
                             onTap: () {
-                              if (agreed == false &&
-                                  selfieFile == null &&
-                                  (vm.nameTEC.text == "" ||
-                                      vm.nameTEC.text == "null") &&
-                                  (vm.emailTEC.text == "" ||
-                                      vm.emailTEC.text == "null") &&
-                                  (vm.phoneTEC.text == "" ||
-                                      vm.phoneTEC.text == "null") &&
-                                  (vm.birthdayTEC.text == "" ||
-                                      vm.birthdayTEC.text == "null") &&
-                                  (vm.passwordTEC.text == "" ||
-                                      vm.passwordTEC.text == "null") &&
-                                  (vm.cPasswordTEC.text == "" ||
-                                      vm.cPasswordTEC.text == "null")) {
-                                setState(() {
-                                  isTourist = false;
-                                });
-                                Get.back();
-                              } else {
-                                AlertService().showAppAlert(
-                                  title: "Are you sure?",
-                                  content: "You're about to leave this page",
-                                  hideCancel: false,
-                                  confirmText: "Go back",
-                                  confirmAction: () {
-                                    setState(() {
-                                      isTourist = false;
-                                    });
-                                    Get.back();
-                                    Get.back();
-                                  },
-                                );
-                              }
+                              _confirmLeaveRegisterPage(vm);
                             },
                             child: const SizedBox(
                               width: 58,
@@ -267,15 +240,6 @@ class _RegisterViewState extends State<RegisterView> {
                         child: SizedBox(
                           width: double.infinity.clamp(0, 800),
                           child: TextFieldWidget(
-                            readOnly: selfieFile == null &&
-                                !AuthService.inReviewMode(),
-                            onTap: () {
-                              if (selfieFile == null &&
-                                  !AuthService.inReviewMode()) {
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                vm.processRegister();
-                              }
-                            },
                             controller: vm.nameTEC,
                             hintText: "Juan Dela Cruz",
                             labelText: "Full Name",
@@ -305,15 +269,9 @@ class _RegisterViewState extends State<RegisterView> {
                                 child: WidgetButton(
                                   borderRadius: 10,
                                   onTap: () async {
-                                    if (selfieFile == null) {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      vm.processRegister();
-                                    } else {
-                                      setState(() {
-                                        vm.isBirthdayActive = true;
-                                      });
-                                    }
+                                    setState(() {
+                                      vm.isBirthdayActive = true;
+                                    });
                                   },
                                   child: Container(
                                     width:
@@ -326,9 +284,7 @@ class _RegisterViewState extends State<RegisterView> {
                                         ),
                                       ),
                                       border: Border.all(
-                                        color: selfieFile == null
-                                            ? Colors.grey
-                                            : const Color(0xFF030744),
+                                        color: const Color(0xFF030744),
                                       ),
                                     ),
                                     child: Row(
@@ -339,23 +295,19 @@ class _RegisterViewState extends State<RegisterView> {
                                                   vm.birthdayTEC.text == "null")
                                               ? "Birthday"
                                               : vm.birthdayTEC.text,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             height: 1,
                                             fontSize: 14,
                                             fontFamily: "Inter",
                                             fontWeight: FontWeight.w500,
-                                            color: selfieFile == null
-                                                ? Colors.grey
-                                                : const Color(0xFF030744),
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
                                         const Expanded(child: SizedBox()),
-                                        Icon(
+                                        const Icon(
                                           Icons.calendar_month_outlined,
                                           size: 24,
-                                          color: selfieFile == null
-                                              ? Colors.grey
-                                              : const Color(0xFF030744),
+                                          color: Color(0xFF030744),
                                         ),
                                         const SizedBox(width: 12),
                                       ],
@@ -450,16 +402,6 @@ class _RegisterViewState extends State<RegisterView> {
                               child: SizedBox(
                                 width: double.infinity.clamp(0, 800),
                                 child: TextFieldWidget(
-                                  readOnly: selfieFile == null &&
-                                      !AuthService.inReviewMode(),
-                                  onTap: () {
-                                    if (selfieFile == null &&
-                                        !AuthService.inReviewMode()) {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      vm.processRegister();
-                                    }
-                                  },
                                   controller: vm.emailTEC,
                                   hintText: "juandelacruz@gmail.com",
                                   labelText: "Email Address",
@@ -490,16 +432,6 @@ class _RegisterViewState extends State<RegisterView> {
                               child: SizedBox(
                                 width: double.infinity.clamp(0, 800),
                                 child: TextFieldWidget(
-                                  readOnly: selfieFile == null &&
-                                      !AuthService.inReviewMode(),
-                                  onTap: () {
-                                    if (selfieFile == null &&
-                                        !AuthService.inReviewMode()) {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      vm.processRegister();
-                                    }
-                                  },
                                   controller: vm.phoneTEC,
                                   hintText: "XXXXXXXXX",
                                   labelText: "Phone Number",
@@ -530,16 +462,6 @@ class _RegisterViewState extends State<RegisterView> {
                               child: SizedBox(
                                 width: double.infinity.clamp(0, 800),
                                 child: TextFieldWidget(
-                                  readOnly: selfieFile == null &&
-                                      !AuthService.inReviewMode(),
-                                  onTap: () {
-                                    if (selfieFile == null &&
-                                        !AuthService.inReviewMode()) {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      vm.processRegister();
-                                    }
-                                  },
                                   controller: vm.passwordTEC,
                                   hintText: "Enter your password",
                                   labelText: "Password",
@@ -570,16 +492,6 @@ class _RegisterViewState extends State<RegisterView> {
                               child: SizedBox(
                                 width: double.infinity.clamp(0, 800),
                                 child: TextFieldWidget(
-                                  readOnly: selfieFile == null &&
-                                      !AuthService.inReviewMode(),
-                                  onTap: () {
-                                    if (selfieFile == null &&
-                                        !AuthService.inReviewMode()) {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      vm.processRegister();
-                                    }
-                                  },
                                   controller: vm.cPasswordTEC,
                                   hintText: "confirm your password",
                                   labelText: "Confirm Password",
@@ -608,15 +520,6 @@ class _RegisterViewState extends State<RegisterView> {
                         child: SizedBox(
                           width: double.infinity.clamp(0, 800),
                           child: TextFieldWidget(
-                            readOnly: selfieFile == null &&
-                                !AuthService.inReviewMode(),
-                            onTap: () {
-                              if (selfieFile == null &&
-                                  !AuthService.inReviewMode()) {
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                vm.processRegister();
-                              }
-                            },
                             controller: vm.referralTEC,
                             hintText: "Enter referral code",
                             labelText: "Referral Code (Optional)",
@@ -785,17 +688,17 @@ class _RegisterViewState extends State<RegisterView> {
                                       provider: "google",
                                     );
                                   },
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Image.network(
-                                        AppImages.google,
-                                        cacheWidth: 600,
+                                      NetworkImageWidget(
+                                        imageUrl: AppImages.google,
+                                        memCacheWidth: 600,
                                         width: 24,
                                         height: 24,
                                       ),
-                                      const SizedBox(width: 12),
-                                      const Text(
+                                      SizedBox(width: 12),
+                                      Text(
                                         "Sign up with Google",
                                         style: TextStyle(
                                           fontSize: 14,
@@ -803,7 +706,7 @@ class _RegisterViewState extends State<RegisterView> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
+                                      SizedBox(width: 4),
                                     ],
                                   ),
                                 ),
@@ -828,10 +731,7 @@ class _RegisterViewState extends State<RegisterView> {
                           text: "Login to account",
                           mainColor: const Color(0xFF030744),
                           onTap: () {
-                            setState(() {
-                              isTourist = false;
-                            });
-                            Get.back();
+                            _confirmLeaveRegisterPage(vm);
                           },
                         ),
                       ),

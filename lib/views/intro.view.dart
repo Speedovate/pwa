@@ -5,6 +5,7 @@ import 'package:pwa/views/login.view.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:pwa/widgets/page_indicator.widget.dart';
 
 class IntroView extends StatefulWidget {
@@ -90,8 +91,8 @@ class _IntroViewState extends State<IntroView> {
                                                         2.2)
                                                     .clamp(0, 250),
                                         child: Center(
-                                          child: Image.network(
-                                            () {
+                                          child: NetworkImageWidget(
+                                            imageUrl: () {
                                               if (item == "e") {
                                                 return AppImages.cashless;
                                               }
@@ -107,7 +108,7 @@ class _IntroViewState extends State<IntroView> {
                                                 return AppImages.convenience;
                                               }
                                             }(),
-                                            cacheWidth: 600,
+                                            memCacheWidth: 600,
                                           ),
                                         ),
                                       ),

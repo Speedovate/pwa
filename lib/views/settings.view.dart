@@ -79,7 +79,7 @@ class _SettingsViewState extends State<SettingsView> {
                   Divider(
                     height: 1,
                     thickness: 1,
-                    color: const Color(0xFF030744).withOpacity(0.1),
+                    color: const Color(0xFF030744).withValues(alpha: 0.1),
                   ),
                   WidgetButton(
                     borderRadius: 0,

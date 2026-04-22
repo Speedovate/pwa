@@ -70,28 +70,54 @@ class TextFieldWidget extends StatefulWidget {
 
 class TextFieldWidgetState extends State<TextFieldWidget> {
   late FocusNode internalFocusNode;
+  late bool ownsFocusNode;
   bool isFocused = false;
   bool isVisible = true;
 
-  @override
-  void initState() {
-    super.initState();
-    internalFocusNode = widget.focusNode ?? FocusNode();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        isVisible = !widget.obscureText;
-      });
-    });
-    internalFocusNode.addListener(() {
-      setState(() {
-        isFocused = internalFocusNode.hasFocus;
-      });
+  void _handleFocusChange() {
+    if (!mounted) return;
+    setState(() {
+      isFocused = internalFocusNode.hasFocus;
     });
   }
 
   @override
+  void initState() {
+    super.initState();
+    ownsFocusNode = widget.focusNode == null;
+    internalFocusNode = widget.focusNode ?? FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        isVisible = !widget.obscureText;
+      });
+    });
+    internalFocusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant TextFieldWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.focusNode != widget.focusNode) {
+      internalFocusNode.removeListener(_handleFocusChange);
+      if (ownsFocusNode) {
+        internalFocusNode.dispose();
+      }
+
+      ownsFocusNode = widget.focusNode == null;
+      internalFocusNode = widget.focusNode ?? FocusNode();
+      internalFocusNode.addListener(_handleFocusChange);
+      isFocused = internalFocusNode.hasFocus;
+    }
+  }
+
+  @override
   void dispose() {
-    internalFocusNode.dispose();
+    internalFocusNode.removeListener(_handleFocusChange);
+    if (ownsFocusNode) {
+      internalFocusNode.dispose();
+    }
     super.dispose();
   }
 
@@ -101,7 +127,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
       data: ThemeData(
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: const Color(0xFF007BFF),
-          selectionColor: const Color(0xFF007BFF).withOpacity(0.3),
+          selectionColor: const Color(0xFF007BFF).withValues(alpha: 0.3),
           selectionHandleColor: const Color(0xFF007BFF),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -123,18 +149,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
       ),
       child: TextField(
         onTap: widget.onTap,
-        onChanged: (value) {
-          final oldText = widget.controller?.text ?? '';
-          final oldSelection = widget.controller?.selection ??
-              const TextSelection.collapsed(offset: 0);
-          widget.controller?.text = value;
-          widget.controller?.selection = oldSelection.copyWith(
-            baseOffset: oldSelection.baseOffset,
-            extentOffset:
-                oldSelection.baseOffset + (value.length - oldText.length),
-          );
-          widget.onChanged?.call(value);
-        },
+        onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
         controller: widget.controller,
         autofocus: widget.autoFocus,
@@ -142,6 +157,16 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
             widget.textCapitalization ?? TextCapitalization.sentences,
         textInputAction: widget.textInputAction,
         keyboardType: widget.keyboardType,
+        textAlignVertical: TextAlignVertical.center,
+        scrollPadding: const EdgeInsets.only(
+          left: 24,
+          top: 24,
+          right: 24,
+          bottom: 120,
+        ),
+        autocorrect: !widget.obscureText,
+        enableSuggestions: !widget.obscureText,
+        enableIMEPersonalizedLearning: !widget.obscureText,
         obscureText: !isVisible,
         focusNode: internalFocusNode,
         readOnly: widget.readOnly,
@@ -173,7 +198,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
                 overflow: TextOverflow.ellipsis,
                 color: widget.readOnly
                     ? Colors.grey
-                    : const Color(0xFF007BFF).withOpacity(0.5),
+                    : const Color(0xFF007BFF).withValues(alpha: 0.5),
               ),
               labelStyle: TextStyle(
                 height: 1,

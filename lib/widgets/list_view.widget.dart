@@ -68,7 +68,7 @@ class ListViewWidget<T> extends StatelessWidget {
                     ),
                     backgroundColor: const Color(
                       0xFF007BFF,
-                    ).withOpacity(0.25),
+                    ).withValues(alpha: 0.25),
                   ),
                 ),
               ),

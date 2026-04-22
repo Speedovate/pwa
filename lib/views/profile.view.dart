@@ -116,7 +116,7 @@ class _ProfileViewState extends State<ProfileView> {
                       Divider(
                         height: 1,
                         thickness: 1,
-                        color: const Color(0xFF030744).withOpacity(0.1),
+                        color: const Color(0xFF030744).withValues(alpha: 0.1),
                       ),
                       const SizedBox(height: 24),
                       GestureDetector(
@@ -172,7 +172,7 @@ class _ProfileViewState extends State<ProfileView> {
                                             ),
                                             backgroundColor: const Color(
                                               0xFF007BFF,
-                                            ).withOpacity(0.25),
+                                            ).withValues(alpha: 0.25),
                                           );
                                         },
                                         errorWidget:
@@ -212,9 +212,8 @@ class _ProfileViewState extends State<ProfileView> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color:
-                                          const Color(0xFF030744).withOpacity(
-                                        0.25,
+                                      color: const Color(0xFF030744).withValues(
+                                        alpha: 0.25,
                                       ),
                                       spreadRadius: 0,
                                       blurRadius: 2,
@@ -288,7 +287,8 @@ class _ProfileViewState extends State<ProfileView> {
                           child: Divider(
                             height: 1,
                             thickness: 1,
-                            color: const Color(0xFF030744).withOpacity(0.1),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.1),
                           ),
                         ),
                       ),
@@ -305,8 +305,8 @@ class _ProfileViewState extends State<ProfileView> {
                                 "Name",
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color:
-                                      const Color(0xFF030744).withOpacity(0.5),
+                                  color: const Color(0xFF030744)
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -391,7 +391,7 @@ class _ProfileViewState extends State<ProfileView> {
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: const Color(0xFF030744)
-                                              .withOpacity(0.5),
+                                              .withValues(alpha: 0.5),
                                         ),
                                       ),
                                     ],
@@ -441,8 +441,8 @@ class _ProfileViewState extends State<ProfileView> {
                                 "Email",
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color:
-                                      const Color(0xFF030744).withOpacity(0.5),
+                                  color: const Color(0xFF030744)
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -486,7 +486,7 @@ class _ProfileViewState extends State<ProfileView> {
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: const Color(0xFF030744)
-                                            .withOpacity(0.5),
+                                            .withValues(alpha: 0.5),
                                       ),
                                     ),
                                   ],
@@ -533,8 +533,8 @@ class _ProfileViewState extends State<ProfileView> {
                                 "Area",
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color:
-                                      const Color(0xFF030744).withOpacity(0.5),
+                                  color: const Color(0xFF030744)
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -575,8 +575,8 @@ class _ProfileViewState extends State<ProfileView> {
                                 "UID",
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color:
-                                      const Color(0xFF030744).withOpacity(0.5),
+                                  color: const Color(0xFF030744)
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                             ],

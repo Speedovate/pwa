@@ -1,4 +1,4 @@
-// ignore_for_file: must_be_immutable, undefined_prefixed_name, avoid_web_libraries_in_flutter
+// ignore_for_file: must_be_immutable, undefined_prefixed_name, avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
 import 'dart:typed_data';
@@ -130,7 +130,7 @@ class _CameraWidgetState extends State<CameraWidget> {
     }
   }
 
- _showError(String msg) {
+  _showError(String msg) {
     final ctx = Get.context;
     if (ctx != null) {
       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -287,16 +287,17 @@ class _CameraWidgetState extends State<CameraWidget> {
                                     ),
                                     backgroundColor: const Color(
                                       0xFF007BFF,
-                                    ).withOpacity(0.25),
+                                    ).withValues(alpha: 0.25),
                                   ),
                                 )
                               : Transform(
                                   alignment: Alignment.center,
                                   transform: Matrix4.identity()
-                                    ..scale(
+                                    ..scaleByDouble(
                                       widget.cameraType == "profile"
                                           ? -1.0
                                           : 1.0,
+                                      1.0,
                                       1.0,
                                       1.0,
                                     ),
@@ -359,8 +360,8 @@ class _CameraWidgetState extends State<CameraWidget> {
                                     boxShadow: [
                                       BoxShadow(
                                         color:
-                                            const Color(0xFF030744).withOpacity(
-                                          0.1,
+                                            const Color(0xFF030744).withValues(
+                                          alpha: 0.1,
                                         ),
                                         spreadRadius: 0,
                                         blurRadius: 4,
@@ -460,7 +461,7 @@ class CameraImageWidget extends StatelessWidget {
                   ),
                   const SizedBox(width: 2),
                   Text(
-                        () {
+                    () {
                       if (cameraType == "chat") {
                         return "Capture Photo";
                       } else if (cameraType == "vehicle") {
@@ -489,10 +490,9 @@ class CameraImageWidget extends StatelessWidget {
               Transform(
                 alignment: Alignment.center,
                 transform: Matrix4.identity()
-                  ..scale(
-                    cameraType != "profile"
-                        ? -1.0
-                        : 1.0,
+                  ..scaleByDouble(
+                    cameraType != "profile" ? -1.0 : 1.0,
+                    1.0,
                     1.0,
                     1.0,
                   ),
@@ -568,8 +568,8 @@ class CameraImageWidget extends StatelessWidget {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF030744).withOpacity(
-                                    0.1,
+                                  color: const Color(0xFF030744).withValues(
+                                    alpha: 0.1,
                                   ),
                                   spreadRadius: 0,
                                   blurRadius: 4,
@@ -614,8 +614,8 @@ class CameraImageWidget extends StatelessWidget {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF030744).withOpacity(
-                                    0.1,
+                                  color: const Color(0xFF030744).withValues(
+                                    alpha: 0.1,
                                   ),
                                   spreadRadius: 0,
                                   blurRadius: 4,
@@ -648,13 +648,14 @@ class CameraImageWidget extends StatelessWidget {
     );
   }
 
- _onConfirm() async {
+  _onConfirm() async {
     if (cameraType == "chat") {
       final img = html.ImageElement();
       final completer = Completer<Uint8List>();
       img.src = html.Url.createObjectUrlFromBlob(html.Blob([imageBytes]));
       img.onLoad.listen((_) async {
-        final canvas = html.CanvasElement(width: img.width!, height: img.height!);
+        final canvas =
+            html.CanvasElement(width: img.width!, height: img.height!);
         final ctx = canvas.context2D;
         ctx.translate(img.width!.toDouble(), 0);
         ctx.scale(-1, 1);

@@ -10,6 +10,7 @@ import 'package:pwa/widgets/gmap.widget.dart';
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
@@ -121,7 +122,7 @@ class _MapViewState extends State<MapView> {
                                             ),
                                             backgroundColor: const Color(
                                               0xFF007BFF,
-                                            ).withOpacity(0.25),
+                                            ).withValues(alpha: 0.25),
                                           ),
                                         ),
                                       ),
@@ -134,7 +135,7 @@ class _MapViewState extends State<MapView> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: const Color(0xFF030744)
-                                          .withOpacity(0.5),
+                                          .withValues(alpha: 0.5),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -145,7 +146,7 @@ class _MapViewState extends State<MapView> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: const Color(0xFF030744)
-                                          .withOpacity(0.5),
+                                          .withValues(alpha: 0.5),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -155,10 +156,10 @@ class _MapViewState extends State<MapView> {
                                     vertical: 4,
                                     horizontal: 16,
                                   ),
-                                  leading: ClipOval(
-                                    child: Image.network(
-                                      AppImages.logo,
-                                      cacheWidth: 600,
+                                  leading: const ClipOval(
+                                    child: NetworkImageWidget(
+                                      imageUrl: AppImages.logo,
+                                      memCacheWidth: 600,
                                       height: 25,
                                     ),
                                   ),
@@ -185,13 +186,23 @@ class _MapViewState extends State<MapView> {
                                     Divider(
                                   height: 1,
                                   thickness: 1,
-                                  color:
-                                      const Color(0xFF030744).withOpacity(0.1),
+                                  color: const Color(0xFF030744)
+                                      .withValues(alpha: 0.1),
                                 ),
                                 builder: (context, controller, focusNode) =>
                                     TextField(
                                   focusNode: focusNode,
                                   controller: controller,
+                                  textInputAction: TextInputAction.search,
+                                  textAlignVertical: TextAlignVertical.center,
+                                  scrollPadding: const EdgeInsets.only(
+                                    left: 24,
+                                    top: 24,
+                                    right: 24,
+                                    bottom: 120,
+                                  ),
+                                  autocorrect: false,
+                                  enableSuggestions: false,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
@@ -201,12 +212,12 @@ class _MapViewState extends State<MapView> {
                                     hintStyle: TextStyle(
                                       fontSize: 14,
                                       color: const Color(0xFF030744)
-                                          .withOpacity(0.5),
+                                          .withValues(alpha: 0.5),
                                       fontWeight: FontWeight.w500,
                                     ),
                                     filled: true,
                                     fillColor: const Color(0xFF007BFF)
-                                        .withOpacity(0.1),
+                                        .withValues(alpha: 0.1),
                                     prefixIcon: Icon(
                                       Icons.trip_origin,
                                       color: widget.isPickup
@@ -218,7 +229,7 @@ class _MapViewState extends State<MapView> {
                                       child: Icon(
                                         Icons.clear,
                                         color: const Color(0xFF030744)
-                                            .withOpacity(0.5),
+                                            .withValues(alpha: 0.5),
                                       ),
                                     ),
                                     hintText:
@@ -240,7 +251,7 @@ class _MapViewState extends State<MapView> {
                         Divider(
                           height: 1,
                           thickness: 1,
-                          color: const Color(0xFF030744).withOpacity(0.1),
+                          color: const Color(0xFF030744).withValues(alpha: 0.1),
                         ),
                         Expanded(
                           child: Stack(
@@ -290,7 +301,7 @@ class _MapViewState extends State<MapView> {
                                           boxShadow: [
                                             BoxShadow(
                                               color: const Color(0xFF030744)
-                                                  .withOpacity(0.25),
+                                                  .withValues(alpha: 0.25),
                                               blurRadius: 2,
                                               offset: const Offset(0, 2),
                                             ),
@@ -464,7 +475,8 @@ class _MapViewState extends State<MapView> {
                             Divider(
                               height: 1,
                               thickness: 1,
-                              color: const Color(0xFF030744).withOpacity(0.1),
+                              color: const Color(0xFF030744)
+                                  .withValues(alpha: 0.1),
                             ),
                             const SizedBox(height: 24),
                             Padding(
@@ -481,7 +493,7 @@ class _MapViewState extends State<MapView> {
                                               mapUnavailable
                                           ? Colors.red.shade50
                                           : const Color(0xFF007BFF)
-                                              .withOpacity(0.1),
+                                              .withValues(alpha: 0.1),
                                       borderRadius: const BorderRadius.all(
                                         Radius.circular(8),
                                       ),
@@ -505,11 +517,11 @@ class _MapViewState extends State<MapView> {
                                                 backgroundColor: widget.isPickup
                                                     ? const Color(
                                                         0xFF007BFF,
-                                                      ).withOpacity(
-                                                        0.25,
+                                                      ).withValues(
+                                                        alpha: 0.25,
                                                       )
-                                                    : Colors.red.withOpacity(
-                                                        0.25,
+                                                    : Colors.red.withValues(
+                                                        alpha: 0.25,
                                                       ),
                                               ),
                                             ),
@@ -618,7 +630,7 @@ class _MapViewState extends State<MapView> {
                                     return Material(
                                       color: address == null
                                           ? const Color(0xFF030744)
-                                              .withOpacity(0.25)
+                                              .withValues(alpha: 0.25)
                                           : const Color(0xFF007BFF),
                                       borderRadius: const BorderRadius.all(
                                         Radius.circular(8),
@@ -690,7 +702,7 @@ class _FloatingButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(1000),
         boxShadow: [
           BoxShadow(
-              color: const Color(0xFF030744).withOpacity(0.25),
+              color: const Color(0xFF030744).withValues(alpha: 0.25),
               blurRadius: 2,
               offset: const Offset(0, 2))
         ],

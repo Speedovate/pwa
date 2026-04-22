@@ -30,7 +30,8 @@ if (cleanResult.status !== 0) {
 
 const buildResult = spawnSync(
   "flutter",
-  ["build", "web", "--web-renderer", "html", "--release"],
+  // Flutter 3.41 no longer accepts the legacy --web-renderer flag.
+  ["build", "web", "--release"],
   {
     stdio: "inherit",
   },

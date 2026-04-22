@@ -10,9 +10,9 @@ import 'package:pwa/widgets/order_list_item.widget.dart';
 
 class HistoryView extends StatefulWidget {
   const HistoryView(
-      this.hvm, {
-        super.key,
-      });
+    this.hvm, {
+    super.key,
+  });
 
   final HomeViewModel hvm;
 
@@ -110,7 +110,7 @@ class _HistoryViewState extends State<HistoryView> {
                 Divider(
                   height: 1,
                   thickness: 1,
-                  color: const Color(0xFF030744).withOpacity(0.15),
+                  color: const Color(0xFF030744).withValues(alpha: 0.15),
                 ),
                 Expanded(
                   child: vm.isBusy
@@ -122,7 +122,7 @@ class _HistoryViewState extends State<HistoryView> {
                               ),
                               backgroundColor: const Color(
                                 0xFF007BFF,
-                              ).withOpacity(0.25),
+                              ).withValues(alpha: 0.25),
                             ),
                           ],
                         )
@@ -163,7 +163,7 @@ class _HistoryViewState extends State<HistoryView> {
       children: [
         Icon(
           Icons.warning_amber_outlined,
-          color: const Color(0xFF030744).withOpacity(0.5),
+          color: const Color(0xFF030744).withValues(alpha: 0.5),
           size: 75,
         ),
         const SizedBox(height: 12),
@@ -172,7 +172,7 @@ class _HistoryViewState extends State<HistoryView> {
           style: TextStyle(
             height: 1,
             fontSize: 20,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -181,7 +181,7 @@ class _HistoryViewState extends State<HistoryView> {
           "Please try again later",
           style: TextStyle(
             height: 1,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
           ),
         ),
       ],
@@ -194,7 +194,7 @@ class _HistoryViewState extends State<HistoryView> {
       children: [
         Icon(
           Icons.cancel_presentation,
-          color: const Color(0xFF030744).withOpacity(0.5),
+          color: const Color(0xFF030744).withValues(alpha: 0.5),
           size: 75,
         ),
         const SizedBox(height: 12),
@@ -203,7 +203,7 @@ class _HistoryViewState extends State<HistoryView> {
           style: TextStyle(
             height: 1,
             fontSize: 20,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -212,7 +212,7 @@ class _HistoryViewState extends State<HistoryView> {
           "Your bookings will appear here",
           style: TextStyle(
             height: 1,
-            color: const Color(0xFF030744).withOpacity(0.5),
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
           ),
         ),
       ],
