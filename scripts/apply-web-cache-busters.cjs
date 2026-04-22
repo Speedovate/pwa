@@ -18,14 +18,23 @@ function getVersionTag() {
 function updateFlutterBootstrap(versionTag) {
   const bootstrap = fs.readFileSync(flutterBootstrapPath, "utf8");
   const mainJsPathPattern = /"mainJsPath":"main\.dart\.js(?:\?v[^"]*)?"/;
+  const flutterServiceWorkerPattern = /_flutter\.loader\.load\(\{\s*serviceWorkerSettings:\s*\{[\s\S]*?\}\s*\}\);/;
+
   if (!mainJsPathPattern.test(bootstrap)) {
     throw new Error("Could not find mainJsPath in build/web/flutter_bootstrap.js");
   }
 
-  const nextBootstrap = bootstrap.replace(
+  let nextBootstrap = bootstrap.replace(
     mainJsPathPattern,
     `"mainJsPath":"main.dart.js?v=${versionTag}"`,
   );
+
+  if (flutterServiceWorkerPattern.test(nextBootstrap)) {
+    nextBootstrap = nextBootstrap.replace(
+      flutterServiceWorkerPattern,
+      "_flutter.loader.load({});",
+    );
+  }
 
   fs.writeFileSync(flutterBootstrapPath, nextBootstrap);
 }
