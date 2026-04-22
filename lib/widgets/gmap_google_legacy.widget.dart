@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:js_interop';
 import 'dart:ui_web' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
@@ -58,59 +57,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   final List<gmaps.Polyline> _renderedPolylines = [];
   List<MapPolylineData> _renderedPolylineData = [];
 
-  static List<gmaps.MapTypeStyle> get _defaultStyles => [
-        _mapStyle(
-          featureType: 'poi',
-          stylers: [
-            {'visibility': 'off'},
-          ],
-        ),
-        _mapStyle(
-          featureType: 'transit',
-          stylers: [
-            {'visibility': 'off'},
-          ],
-        ),
-        _mapStyle(
-          featureType: 'road',
-          elementType: 'labels.icon',
-          stylers: [
-            {'visibility': 'off'},
-          ],
-        ),
-        _mapStyle(
-          featureType: 'administrative',
-          stylers: [
-            {'visibility': 'off'},
-          ],
-        ),
-        _mapStyle(
-          featureType: 'landscape',
-          stylers: [
-            {'color': '#f2f2f2'},
-          ],
-        ),
-        _mapStyle(
-          featureType: 'water',
-          stylers: [
-            {'color': '#c9c9c9'},
-          ],
-        ),
-      ];
-
-  static gmaps.MapTypeStyle _mapStyle({
-    required String featureType,
-    required List<Map<String, String>> stylers,
-    String? elementType,
-  }) {
-    return gmaps.MapTypeStyle(
-      featureType: featureType,
-      elementType: elementType,
-      stylers:
-          stylers.map((styler) => styler.jsify()! as JSObject).toList().toJS,
-    );
-  }
-
   @override
   void initState() {
     super.initState();
@@ -162,12 +108,11 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
               final mapOptions = gmaps.MapOptions()
                 ..zoom = 16
                 ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
-                ..clickableIcons = false
+                ..clickableIcons = true
                 ..disableDefaultUI = true
                 ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
                 ..disableDoubleClickZoom = true
-                ..mapTypeId = gmaps.MapTypeId.ROADMAP
-                ..styles = _defaultStyles;
+                ..mapTypeId = gmaps.MapTypeId.ROADMAP;
               _map = gmaps.Map(mapDiv as dynamic, mapOptions);
               MapService.debugLog(
                   'Legacy Google widget created gmaps.Map instance');
