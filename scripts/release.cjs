@@ -40,3 +40,15 @@ const buildResult = spawnSync(
 if (buildResult.status !== 0) {
   process.exit(buildResult.status ?? 1);
 }
+
+const cacheBustResult = spawnSync(
+  process.execPath,
+  ["scripts/apply-web-cache-busters.cjs"],
+  {
+    stdio: "inherit",
+  },
+);
+
+if (cacheBustResult.status !== 0) {
+  process.exit(cacheBustResult.status ?? 1);
+}

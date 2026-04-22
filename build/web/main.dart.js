@@ -126272,8 +126272,8 @@ for(;;)switch(s){case 0:s=2
 return A.i(A.w3(),$async$y8)
 case 2:s=3
 return A.i(A.HE(),$async$y8)
-case 3:try{$.bhp="1.0.31"
-$.bce="51"}catch(o){q=A.M(o)
+case 3:try{$.bhp="1.0.35"
+$.bce="55"}catch(o){q=A.M(o)
 A.b3().$1("getAppInfo error: "+A.e(q))}return A.m(null,r)}})
 return A.n($async$y8,r)},
 mf(a){var s=0,r=A.o(t.H),q=1,p=[],o=this,n,m,l,k,j,i,h,g,f,e,d,c

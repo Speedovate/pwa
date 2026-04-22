@@ -6,6 +6,7 @@ const pubspecPath = path.join(rootDir, "pubspec.yaml");
 const packageJsonPath = path.join(rootDir, "package.json");
 const splashViewModelPath = path.join(rootDir, "lib", "view_models", "splash.vm.dart");
 const webIndexHtmlPath = path.join(rootDir, "web", "index.html");
+const webServiceWorkerPath = path.join(rootDir, "web", "sw.js");
 
 function getArgValue(flagName) {
   const args = process.argv.slice(2);
@@ -102,16 +103,35 @@ function updateSplashViewModel(targetVersion, targetBuildNumber) {
 function updateWebIndexHtml(targetVersion, targetBuildNumber) {
   const indexHtml = fs.readFileSync(webIndexHtmlPath, "utf8");
   const stylesheetHrefPattern = /href="style\/indexstyle\.css\?v[^"]*"/;
+  const appVersionPattern = /APP_VERSION = "[^"]*";/;
   if (!stylesheetHrefPattern.test(indexHtml)) {
     throw new Error("Could not find the index stylesheet tag in web/index.html");
   }
+  if (!appVersionPattern.test(indexHtml)) {
+    throw new Error("Could not find APP_VERSION in web/index.html");
+  }
 
-  const nextIndexHtml = indexHtml.replace(
-    stylesheetHrefPattern,
-    `href="style/indexstyle.css?v=${targetVersion}+${targetBuildNumber}"`,
-  );
+  const versionTag = `${targetVersion}+${targetBuildNumber}`;
+  const nextIndexHtml = indexHtml
+    .replace(stylesheetHrefPattern, `href="style/indexstyle.css?v=${versionTag}"`)
+    .replace(appVersionPattern, `APP_VERSION = "${versionTag}";`);
 
   fs.writeFileSync(webIndexHtmlPath, nextIndexHtml);
+}
+
+function updateWebServiceWorker(targetVersion, targetBuildNumber) {
+  const serviceWorker = fs.readFileSync(webServiceWorkerPath, "utf8");
+  const appVersionPattern = /APP_VERSION = "[^"]*";/;
+  if (!appVersionPattern.test(serviceWorker)) {
+    throw new Error("Could not find APP_VERSION in web/sw.js");
+  }
+
+  const nextServiceWorker = serviceWorker.replace(
+    appVersionPattern,
+    `APP_VERSION = "${targetVersion}+${targetBuildNumber}";`,
+  );
+
+  fs.writeFileSync(webServiceWorkerPath, nextServiceWorker);
 }
 
 function updatePackageJsonVersion(targetVersion) {
@@ -146,5 +166,6 @@ if (nextPubspecContent !== pubspecContent) {
 updatePackageJsonVersion(targetVersion);
 updateSplashViewModel(targetVersion, resolvedBuildNumber);
 updateWebIndexHtml(targetVersion, resolvedBuildNumber);
+updateWebServiceWorker(targetVersion, resolvedBuildNumber);
 
 console.log(`Synced version files to ${targetVersion}+${resolvedBuildNumber}`);

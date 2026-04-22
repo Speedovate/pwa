@@ -1,4 +1,5 @@
-var CACHE_NAME = "redirect-fallback-v1";
+var APP_VERSION = "1.0.35+55";
+var CACHE_NAME = "redirect-fallback-" + APP_VERSION;
 var OFFLINE_PAGE = "offline.html";
 var STATIC_ASSETS = [
   "./",
@@ -35,6 +36,7 @@ self.addEventListener("activate", function (event) {
 
 self.addEventListener("fetch", function (event) {
   var request = event.request;
+  var url = new URL(request.url);
   var acceptsHtml =
     request.mode === "navigate" ||
     (request.headers.get("accept") || "").indexOf("text/html") !== -1;
@@ -58,8 +60,17 @@ self.addEventListener("fetch", function (event) {
 
   if (acceptsHtml) {
     event.respondWith(
-      fetch(request).catch(function () {
+      fetch(request, { cache: "no-store" }).catch(function () {
         return caches.match(OFFLINE_PAGE);
+      })
+    );
+    return;
+  }
+
+  if (url.origin === self.location.origin && url.search) {
+    event.respondWith(
+      fetch(request, { cache: "no-store" }).catch(function () {
+        return caches.match(request);
       })
     );
     return;

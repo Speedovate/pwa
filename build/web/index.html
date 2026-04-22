@@ -106,7 +106,7 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.31+51" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.35+55" />
 
   <!-- Splash Screen Style -->
   <style>
@@ -153,29 +153,139 @@
     <img id="logo" src="https://assets.ppc-toda.com/splash.png" alt="" />
   </div>
 
-  <!-- End Splash -->
   <script>
+    (function () {
+      var APP_VERSION = "1.0.35+55";
+      var VERSION_STORAGE_KEY = "ppc-toda-app-version";
+      var REFRESH_STORAGE_KEY = "ppc-toda-version-refresh";
 
-    if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('Service Worker registered:', registration);
-      })
-      .catch(error => {
-        console.log('Service Worker registration failed:', error);
+      function latestVersionTag(versionJson) {
+        if (!versionJson || !versionJson.version || !versionJson.build_number) {
+          return null;
+        }
+
+        return versionJson.version + "+" + versionJson.build_number;
+      }
+
+      function deleteAppCaches() {
+        if (!("caches" in window)) {
+          return Promise.resolve();
+        }
+
+        return caches.keys().then(function (keys) {
+          return Promise.all(
+            keys.map(function (key) {
+              return caches.delete(key);
+            })
+          );
+        });
+      }
+
+      function unregisterAppServiceWorkers() {
+        if (!("serviceWorker" in navigator)) {
+          return Promise.resolve();
+        }
+
+        return navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          return Promise.all(
+            registrations.map(function (registration) {
+              return registration.unregister();
+            })
+          );
+        });
+      }
+
+      function reloadWithVersion(versionTag) {
+        try {
+          sessionStorage.setItem(REFRESH_STORAGE_KEY, versionTag);
+          localStorage.setItem(VERSION_STORAGE_KEY, versionTag);
+        } catch (_) {}
+
+        var url = new URL(window.location.href);
+        url.searchParams.set("appVersion", versionTag);
+        window.location.replace(url.toString());
+      }
+
+      function loadFlutterBootstrap() {
+        var script = document.createElement("script");
+        script.src = "flutter_bootstrap.js?v=" + encodeURIComponent(APP_VERSION);
+        script.async = true;
+        document.body.appendChild(script);
+      }
+
+      function registerAppServiceWorker() {
+        if (!("serviceWorker" in navigator)) {
+          return;
+        }
+
+        navigator.serviceWorker.register("/sw.js?v=" + encodeURIComponent(APP_VERSION))
+          .then(function (registration) {
+            console.log("Service Worker registered:", registration);
+          })
+          .catch(function (error) {
+            console.log("Service Worker registration failed:", error);
+          });
+      }
+
+      function checkForVersionUpdate() {
+        return fetch("version.json?v=" + encodeURIComponent(Date.now().toString()), {
+          cache: "no-store",
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error("Version request failed");
+            }
+
+            return response.json();
+          })
+          .then(function (versionJson) {
+            var latestVersion = latestVersionTag(versionJson);
+            if (!latestVersion || latestVersion === APP_VERSION) {
+              try {
+                localStorage.setItem(VERSION_STORAGE_KEY, APP_VERSION);
+                sessionStorage.removeItem(REFRESH_STORAGE_KEY);
+              } catch (_) {}
+              return false;
+            }
+
+            var alreadyRefreshedForVersion = null;
+            try {
+              alreadyRefreshedForVersion = sessionStorage.getItem(REFRESH_STORAGE_KEY);
+            } catch (_) {}
+
+            if (alreadyRefreshedForVersion === latestVersion) {
+              return false;
+            }
+
+            return Promise.all([
+              deleteAppCaches(),
+              unregisterAppServiceWorkers(),
+            ]).then(function () {
+              reloadWithVersion(latestVersion);
+              return true;
+            });
+          })
+          .catch(function () {
+            return false;
+          });
+      }
+
+      window.addEventListener("load", function () {
+        checkForVersionUpdate().then(function (isReloading) {
+          if (isReloading) {
+            return;
+          }
+
+          registerAppServiceWorker();
+          loadFlutterBootstrap();
+        });
       });
-  });
-}
-
+    })();
 
     window.addEventListener("flutter-first-frame", function () {
       document.getElementById("splash").style.display = "none";
     });
   </script>
-
-  <!-- Flutter Bootstrap -->
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 
 </html>
