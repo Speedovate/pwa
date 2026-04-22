@@ -106,7 +106,7 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.30+50" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.31+51" />
 
   <!-- Splash Screen Style -->
   <style>
@@ -155,9 +155,10 @@
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.30+50";
+      var APP_VERSION = "1.0.31+51";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
       var REFRESH_STORAGE_KEY = "ppc-toda-version-refresh";
+      var REFRESH_COUNT_STORAGE_KEY = "ppc-toda-version-refresh-count";
       var bootstrapLoaded = false;
 
       function latestVersionTag(versionJson) {
@@ -197,6 +198,12 @@
       }
 
       function reloadWithVersion(versionTag) {
+        var refreshCount = 0;
+        try {
+          refreshCount = Number(sessionStorage.getItem(REFRESH_COUNT_STORAGE_KEY) || "0");
+          sessionStorage.setItem(REFRESH_COUNT_STORAGE_KEY, String(refreshCount + 1));
+        } catch (_) {}
+
         try {
           sessionStorage.setItem(REFRESH_STORAGE_KEY, versionTag);
           localStorage.setItem(VERSION_STORAGE_KEY, versionTag);
@@ -258,17 +265,19 @@
               try {
                 localStorage.setItem(VERSION_STORAGE_KEY, APP_VERSION);
                 sessionStorage.removeItem(REFRESH_STORAGE_KEY);
+                sessionStorage.removeItem(REFRESH_COUNT_STORAGE_KEY);
               } catch (_) {}
               return false;
             }
 
             var alreadyRefreshedForVersion = null;
+            var refreshCount = 0;
             try {
               alreadyRefreshedForVersion = sessionStorage.getItem(REFRESH_STORAGE_KEY);
+              refreshCount = Number(sessionStorage.getItem(REFRESH_COUNT_STORAGE_KEY) || "0");
             } catch (_) {}
 
-            var urlVersion = new URL(window.location.href).searchParams.get("appVersion");
-            if (alreadyRefreshedForVersion === latestVersion || urlVersion === latestVersion) {
+            if (alreadyRefreshedForVersion === latestVersion && refreshCount >= 2) {
               return false;
             }
 
