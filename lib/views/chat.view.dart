@@ -66,6 +66,54 @@ class _ChatViewState extends State<ChatView> {
     }
   }
 
+  String? _getMessageImageUrl(String text) => sanitizeImageUrl(text);
+
+  Widget _buildChatMessageImage(
+    BuildContext context,
+    String imageUrl,
+  ) {
+    final size = MediaQuery.of(context).size.width - 124;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(8),
+          topRight: Radius.circular(8),
+        ),
+        child: ColoredBox(
+          color: Colors.white,
+          child: NetworkImageWidget(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            memCacheWidth: 900,
+            progressIndicatorBuilder: (context, imageUrl, progress) {
+              return const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
+              );
+            },
+            errorWidget: (context, imageUrl, error) {
+              return const Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.grey,
+                  size: 28,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ChatViewModel chatViewModel = ChatViewModel();
@@ -113,6 +161,11 @@ class _ChatViewState extends State<ChatView> {
                                 padding: EdgeInsets.zero,
                                 itemCount: vm.messages.length,
                                 itemBuilder: (context, index) {
+                                  final messageImageUrl = _getMessageImageUrl(
+                                    vm.messages[index].text,
+                                  );
+                                  final isImageMessage =
+                                      messageImageUrl != null;
                                   if (vm.messages[index].text == "" ||
                                       vm.messages[index].text == "null") {
                                     return const SizedBox.shrink();
@@ -261,12 +314,7 @@ class _ChatViewState extends State<ChatView> {
                                                           ),
                                                     const SizedBox(height: 4),
                                                     Container(
-                                                      padding: vm
-                                                              .messages[index]
-                                                              .text
-                                                              .contains(
-                                                        "https",
-                                                      )
+                                                      padding: isImageMessage
                                                           ? EdgeInsets.zero
                                                           : const EdgeInsets
                                                               .all(
@@ -282,48 +330,16 @@ class _ChatViewState extends State<ChatView> {
                                                             8,
                                                           ),
                                                         ),
-                                                        image: !vm
-                                                                .messages[index]
-                                                                .text
-                                                                .contains(
-                                                          "https",
-                                                        )
-                                                            ? null
-                                                            : DecorationImage(
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                                image:
-                                                                    safeNetworkImageProvider(
-                                                                  vm
-                                                                      .messages[
-                                                                          index]
-                                                                      .text,
-                                                                  cacheWidth:
-                                                                      600,
-                                                                )!,
-                                                              ),
                                                       ),
                                                       child: Column(
                                                         crossAxisAlignment:
                                                             CrossAxisAlignment
                                                                 .start,
                                                         children: [
-                                                          vm.messages[index]
-                                                                  .text
-                                                                  .contains(
-                                                            "https",
-                                                          )
-                                                              ? SizedBox(
-                                                                  width: MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      124,
-                                                                  height: MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      124,
+                                                          isImageMessage
+                                                              ? _buildChatMessageImage(
+                                                                  context,
+                                                                  messageImageUrl,
                                                                 )
                                                               : SelectableText(
                                                                   vm
@@ -347,23 +363,16 @@ class _ChatViewState extends State<ChatView> {
                                                           ),
                                                           Container(
                                                             margin: vm
-                                                                    .messages[
-                                                                        index]
+                                                                    .messages[index]
                                                                     .text
                                                                     .contains(
-                                                              "https",
-                                                            )
+                                                                      "https",
+                                                                    )
                                                                 ? const EdgeInsets
                                                                     .all(5)
                                                                 : EdgeInsets
                                                                     .zero,
-                                                            padding: vm
-                                                                    .messages[
-                                                                        index]
-                                                                    .text
-                                                                    .contains(
-                                                              "https",
-                                                            )
+                                                            padding: isImageMessage
                                                                 ? const EdgeInsets
                                                                     .all(5)
                                                                 : EdgeInsets
@@ -381,9 +390,7 @@ class _ChatViewState extends State<ChatView> {
                                                                       .messages[
                                                                           index]
                                                                       .text
-                                                                      .contains(
-                                                                "https",
-                                                              )
+                                                                      .contains("https")
                                                                   ? Colors.black
                                                                       .withValues(
                                                                       alpha:
@@ -404,15 +411,8 @@ class _ChatViewState extends State<ChatView> {
                                                               style: TextStyle(
                                                                 height: 1.15,
                                                                 fontSize: 12,
-                                                                color: vm
-                                                                        .messages[
-                                                                            index]
-                                                                        .text
-                                                                        .contains(
-                                                                  "https",
-                                                                )
-                                                                    ? Colors
-                                                                        .white
+                                                                color: isImageMessage
+                                                                    ? Colors.white
                                                                     : Colors
                                                                         .black,
                                                               ),
@@ -482,60 +482,30 @@ class _ChatViewState extends State<ChatView> {
                                               const SizedBox(width: 50),
                                               Flexible(
                                                 child: Container(
-                                                  padding: vm
-                                                          .messages[index].text
-                                                          .contains(
-                                                    "https",
-                                                  )
+                                                  padding: isImageMessage
                                                       ? EdgeInsets.zero
                                                       : const EdgeInsets.all(
                                                           10,
                                                         ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
+                                                  decoration: const BoxDecoration(
+                                                    color: Color(
                                                       0xFF007BFF,
                                                     ),
                                                     borderRadius:
-                                                        const BorderRadius.all(
+                                                        BorderRadius.all(
                                                       Radius.circular(
                                                         8,
                                                       ),
                                                     ),
-                                                    image: !vm.messages[index]
-                                                            .text
-                                                            .contains(
-                                                      "https",
-                                                    )
-                                                        ? null
-                                                        : DecorationImage(
-                                                            fit: BoxFit.cover,
-                                                            image:
-                                                                safeNetworkImageProvider(
-                                                              vm.messages[index]
-                                                                  .text,
-                                                              cacheWidth: 600,
-                                                            )!,
-                                                          ),
                                                   ),
                                                   child: Column(
                                                     crossAxisAlignment:
                                                         CrossAxisAlignment.end,
                                                     children: [
-                                                      vm.messages[index].text
-                                                              .contains(
-                                                        "https",
-                                                      )
-                                                          ? SizedBox(
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width -
-                                                                  124,
-                                                              height: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width -
-                                                                  124,
+                                                      isImageMessage
+                                                          ? _buildChatMessageImage(
+                                                              context,
+                                                              messageImageUrl,
                                                             )
                                                           : SelectableText(
                                                               vm.messages[index]
@@ -556,18 +526,11 @@ class _ChatViewState extends State<ChatView> {
                                                         margin: vm
                                                                 .messages[index]
                                                                 .text
-                                                                .contains(
-                                                          "https",
-                                                        )
+                                                                .contains("https")
                                                             ? const EdgeInsets
                                                                 .all(5)
                                                             : EdgeInsets.zero,
-                                                        padding: vm
-                                                                .messages[index]
-                                                                .text
-                                                                .contains(
-                                                          "https",
-                                                        )
+                                                        padding: isImageMessage
                                                             ? const EdgeInsets
                                                                 .all(5)
                                                             : EdgeInsets.zero,
@@ -584,9 +547,7 @@ class _ChatViewState extends State<ChatView> {
                                                                   .messages[
                                                                       index]
                                                                   .text
-                                                                  .contains(
-                                                            "https",
-                                                          )
+                                                                  .contains("https")
                                                               ? Colors.black
                                                                   .withValues(
                                                                       alpha:

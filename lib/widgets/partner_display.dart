@@ -107,24 +107,33 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
     return [
       CarouselSlider(
         items: validBanners.map((banner) {
-          final imageProvider = safeNetworkImageProvider(
-            banner.photo,
-            cacheWidth: 600,
-          );
-
-          if (imageProvider == null) {
-            return const SizedBox.shrink();
-          }
-
-          return Container(
-            margin: const EdgeInsets.only(top: 20),
-            width: clampedWidth - 70,
-            height: clampedWidth - 70,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              image: DecorationImage(
-                image: imageProvider,
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              margin: const EdgeInsets.only(top: 20),
+              width: clampedWidth - 70,
+              height: clampedWidth - 70,
+              color: Colors.white,
+              child: NetworkImageWidget(
+                imageUrl: banner.photo,
+                memCacheWidth: 600,
                 fit: BoxFit.cover,
+                progressIndicatorBuilder: (context, imageUrl, progress) {
+                  return Container(
+                    color: Colors.white,
+                  );
+                },
+                errorWidget: (context, imageUrl, error) {
+                  return Container(
+                    color: Colors.white,
+                    child: const Center(
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: primaryColor,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           );
