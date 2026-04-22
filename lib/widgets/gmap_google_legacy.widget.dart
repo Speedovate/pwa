@@ -110,10 +110,11 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                 ..zoom = 16
                 ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
                 ..clickableIcons = true
-                ..disableDefaultUI = true
+                ..disableDefaultUI = false
                 ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
                 ..disableDoubleClickZoom = true
-                ..mapTypeId = gmaps.MapTypeId.ROADMAP;
+                ..mapTypeId = gmaps.MapTypeId.ROADMAP
+                ..styles = const [];
               _map = gmaps.Map(mapDiv as dynamic, mapOptions);
               MapService.debugLog(
                   'Legacy Google widget created gmaps.Map instance');
@@ -357,8 +358,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       ..id = styleId
       ..appendText('''
         .gm-style-cc,
-        .gmnoprint,
-        .gm-style a,
         .gm-style-mtc,
         .gm-fullscreen-control,
         .gm-svpc {
