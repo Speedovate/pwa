@@ -106,7 +106,7 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.30+50" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.31+51" />
 
   <!-- Splash Screen Style -->
   <style>
@@ -155,8 +155,9 @@
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.30+50";
+      var APP_VERSION = "1.0.31+51";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
+      var VERSION_CHECK_DELAY_MS = 10000;
       var bootstrapLoaded = false;
 
       function latestVersionTag(versionJson) {
@@ -239,25 +240,21 @@
       }
 
       window.addEventListener("load", function () {
-        var fallbackId = window.setTimeout(function () {
-          registerAppServiceWorker(APP_VERSION);
-          loadFlutterBootstrap(APP_VERSION);
-        }, 1500);
+        registerAppServiceWorker(APP_VERSION);
+        loadFlutterBootstrap(APP_VERSION);
 
-        checkForVersionUpdate().then(function (versionTag) {
-          window.clearTimeout(fallbackId);
+        window.setTimeout(function () {
+          checkForVersionUpdate().then(function (versionTag) {
+            try {
+              localStorage.setItem(VERSION_STORAGE_KEY, versionTag);
+            } catch (_) {}
 
-          try {
-            localStorage.setItem(VERSION_STORAGE_KEY, versionTag);
-          } catch (_) {}
-
-          if (versionTag !== APP_VERSION) {
-            deleteAppCaches().catch(function () {});
-          }
-
-          registerAppServiceWorker(versionTag);
-          loadFlutterBootstrap(versionTag);
-        });
+            if (versionTag !== APP_VERSION) {
+              deleteAppCaches().catch(function () {});
+              registerAppServiceWorker(versionTag);
+            }
+          });
+        }, VERSION_CHECK_DELAY_MS);
       });
     })();
 
