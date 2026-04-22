@@ -4,6 +4,12 @@ const path = require("path");
 const rootDir = process.cwd();
 const pubspecPath = path.join(rootDir, "pubspec.yaml");
 const flutterBootstrapPath = path.join(rootDir, "build", "web", "flutter_bootstrap.js");
+const flutterServiceWorkerPath = path.join(
+  rootDir,
+  "build",
+  "web",
+  "flutter_service_worker.js",
+);
 
 function getVersionTag() {
   const pubspec = fs.readFileSync(pubspecPath, "utf8");
@@ -39,7 +45,28 @@ function updateFlutterBootstrap(versionTag) {
   fs.writeFileSync(flutterBootstrapPath, nextBootstrap);
 }
 
+function neutralizeFlutterServiceWorker() {
+  if (!fs.existsSync(flutterServiceWorkerPath)) {
+    return;
+  }
+
+  fs.writeFileSync(
+    flutterServiceWorkerPath,
+    `'use strict';
+
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+`,
+  );
+}
+
 const versionTag = getVersionTag();
 updateFlutterBootstrap(versionTag);
+neutralizeFlutterServiceWorker();
 
 console.log(`Applied web cache busters for ${versionTag}`);

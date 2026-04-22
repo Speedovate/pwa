@@ -77,7 +77,9 @@ class _RegisterViewState extends State<RegisterView> {
         onViewModelReady: (vm) => vm.initialise(),
         builder: (context, vm, child) {
           final canUseGoogleAuth = isGoogleAuthLikelySupported();
-          final useGoogleFlow = isTourist && canUseGoogleAuth;
+          final showGoogleAuthOption =
+              canUseGoogleAuth && !AuthService.inReviewMode();
+          final useGoogleFlow = isTourist && showGoogleAuthOption;
           return GestureDetector(
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
@@ -547,7 +549,7 @@ class _RegisterViewState extends State<RegisterView> {
                           width: double.infinity.clamp(0, 800),
                           child: Row(
                             children: [
-                              if (canUseGoogleAuth)
+                              if (showGoogleAuthOption)
                                 SizedBox(
                                   width: 20,
                                   height: 20,
@@ -568,8 +570,9 @@ class _RegisterViewState extends State<RegisterView> {
                                     },
                                   ),
                                 ),
-                              if (canUseGoogleAuth) const SizedBox(width: 8),
-                              if (canUseGoogleAuth)
+                              if (showGoogleAuthOption)
+                                const SizedBox(width: 8),
+                              if (showGoogleAuthOption)
                                 const Text(
                                   "I have a PH 🇵🇭 Phone Number",
                                   textAlign: TextAlign.center,
@@ -712,17 +715,16 @@ class _RegisterViewState extends State<RegisterView> {
                                 ),
                               ),
                             ),
-                      if (canUseGoogleAuth) const SizedBox(height: 12),
-                      if (canUseGoogleAuth)
-                        const Text(
-                          "or",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF030744),
-                            fontWeight: FontWeight.bold,
-                          ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "or",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF030744),
+                          fontWeight: FontWeight.bold,
                         ),
-                      if (canUseGoogleAuth) const SizedBox(height: 12),
+                      ),
+                      const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
