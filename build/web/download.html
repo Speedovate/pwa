@@ -1,420 +1,568 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=yes"
-  />
-  <meta
-    name="google-site-verification"
-    content="ww57RSB8jFKR02G6AdHJIp93fSkeHsKsoRFiEbfKt04"
-  />
-  <title>Download the PPC TODA App</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=yes"
+    />
+    <meta
+      name="google-site-verification"
+      content="ww57RSB8jFKR02G6AdHJIp93fSkeHsKsoRFiEbfKt04"
+    />
+    <title>Download the PPC TODA App</title>
 
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "PPC TODA",
-      "url": "https://ppctoda.com",
-      "logo": "https://assets.ppc-toda.com/branding.png"
-    }
-  </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "PPC TODA",
+        "url": "https://ppctoda.com",
+        "logo": "https://assets.ppc-toda.com/branding.png"
+      }
+    </script>
 
-  <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json" />
 
-  <meta property="og:title" content="Download the PPC TODA App" />
-  <meta property="og:description" content="Official download page of PPC TODA." />
-  <meta property="og:image" content="https://assets.ppc-toda.com/Social-Preview.jpg" />
-  <meta property="og:url" content="https://ppctoda.com" />
-  <meta property="og:type" content="website" />
+    <meta property="og:title" content="Download the PPC TODA App" />
+    <meta
+      property="og:description"
+      content="Official download page of PPC TODA."
+    />
+    <meta
+      property="og:image"
+      content="https://assets.ppc-toda.com/Social-Preview.jpg"
+    />
+    <meta property="og:url" content="https://ppctoda.com" />
+    <meta property="og:type" content="website" />
 
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Download the PPC TODA App" />
-  <meta name="twitter:description" content="Official download page of PPC TODA." />
-  <meta name="twitter:image" content="https://assets.ppc-toda.com/Social-Preview.jpg" />
-  <meta name="twitter:url" content="https://ppctoda.com" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Download the PPC TODA App" />
+    <meta
+      name="twitter:description"
+      content="Official download page of PPC TODA."
+    />
+    <meta
+      name="twitter:image"
+      content="https://assets.ppc-toda.com/Social-Preview.jpg"
+    />
+    <meta name="twitter:url" content="https://ppctoda.com" />
 
-  <meta property="fb:app_id" content="0" />
+    <meta property="fb:app_id" content="0" />
 
-  <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-    rel="stylesheet"
-  />
-  <link
-    rel="icon"
-    href="https://assets.ppc-toda.com/favicon.png"
-    type="image/png"
-  />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap"
-    rel="stylesheet"
-  />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="https://assets.ppc-toda.com/favicon.png"
+      type="image/png"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="stylesheet" href="style.css?v=1.2.6" />
+    <link rel="stylesheet" href="style.css?v=1.2.6" />
 
-  <style>
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100%;
-      font-family: 'Inter', Helvetica, Arial, sans-serif;
-      background: #000000;
-      background-size: 100% auto;
-      background-position: center, center;
-      overflow: visible;
-    }
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100%;
+        font-family: "Inter", Helvetica, Arial, sans-serif;
+        background: #000000;
+        background-size: 100% auto;
+        background-position: center, center;
+        overflow: visible;
+      }
 
-    .superc {
-      height: auto;
-      overflow: hidden;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    .parent {
-      position: fixed;
-      background-position: top center;
-      width: 100vw;
-      height: 100vh;
-      background: url('https://assets.ppc-toda.com/phonecontent.jpg') no-repeat center center;
-      background-size: cover;
-      filter: blur(10px);
-      opacity: 0.6;
-      z-index: 0;
-    }
+      .superc {
+        height: auto;
+        overflow: hidden;
+      }
 
-    .mobile {
-      position: absolute;
-      left: 50%;
-      transform: translate(-50%);
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      height: 100vh;
-      overflow: scroll;
-      max-width: 500px;
-      box-shadow: 0 0 25px rgba(0, 0, 0, 0.35);
-      background: white;
-      z-index: 2;
-    }
+      .parent {
+        position: fixed;
+        background-position: top center;
+        width: 100vw;
+        height: 100vh;
+        background: url("https://assets.ppc-toda.com/phonecontent.jpg")
+          no-repeat center center;
+        background-size: cover;
+        filter: blur(10px);
+        opacity: 0.6;
+        z-index: 0;
+      }
 
-    #loading-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #fff;
-      color: #007bff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: Arial, sans-serif;
-      font-size: 1.5rem;
-      z-index: 9999;
-    }
+      .mobile {
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%);
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-height: 100vh;
+        height: 100vh;
+        overflow-y: auto;
+        max-width: 500px;
+        box-shadow: 0 0 35px rgba(0, 0, 0, 0.45);
+        background: #ffffff;
+        z-index: 2;
+      }
 
-    #content-container1 {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 5%;
-      width: 100%;
-      padding: 3% 0%;
-    }
+      .mobile::-webkit-scrollbar {
+        display: none;
+      }
 
-    #content-container2 {
-      display: flex;
-      flex-direction: row;
-      gap: 0%;
-      width: auto;
-      max-width: 500px;
-      padding: 3% 0% 3% 3%;
-      overflow: scroll;
-    }
+      .store-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 22px 18px 28px;
+      }
 
-    #content-container2::-webkit-scrollbar {
-      display: none;
-    }
+      .app-header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding-top: 10px;
+      }
 
-    #content-container3 {
-      display: flex;
-      flex-direction: column;
-      gap: 5%;
-      height: auto;
-      width: auto;
-      max-width: 500px;
-      padding: 3% 0% 3% 3%;
-    }
+      .app-meta {
+        min-width: 0;
+      }
 
-    #content-container4 {
-      display: flex;
-      flex-direction: row;
-      gap: 3%;
-      height: auto;
-      width: auto;
-      max-width: 500px;
-      padding: 3% 0% 3% 3%;
-    }
+      .section-card {
+        border: 1px solid #eeeeee;
+        border-radius: 22px;
+        padding: 18px;
+        background: #ffffff;
+        box-shadow: 0 10px 28px rgba(12, 18, 33, 0.06);
+      }
 
-    .material-symbols-outlined {
-      font-variation-settings:
-        'FILL' 0,
-        'wght' 400,
-        'GRAD' 0,
-        'opsz' 24;
-    }
+      .update-badge {
+        align-self: flex-start;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: rgba(0, 123, 255, 0.08);
+        color: #1a73e8;
+        font-size: 0.72rem;
+        font-weight: 650;
+      }
 
-    #logo {
-      height: 85px;
-      aspect-ratio: 1 / 1;
-      border-radius: 12px;
-      border: solid #f4f4f4;
-      margin-left: 3%;
-      object-fit: contain;
-      object-position: center;
-      background-color: white;
-    }
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+        color: #007bff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        font-size: 1.5rem;
+        z-index: 9999;
+      }
 
-    #app-title {
-      margin: 1% 0%;
-    }
+      #content-container1 {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 5%;
+        width: 100%;
+        padding: 0;
+      }
 
-    .text1 {
-      margin-bottom: 1%;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
+      #content-container2 {
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+        width: auto;
+        max-width: 500px;
+        padding: 2px 0 8px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+      }
 
-    .text1-2 {
-      margin-bottom: 1%;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
+      #content-container2::-webkit-scrollbar {
+        display: none;
+      }
 
-    .text2 {
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: #1A73E8;
-    }
+      #content-container3 {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        height: auto;
+        width: auto;
+        max-width: 500px;
+        padding: 0;
+      }
 
-    #specs-container {
-      height: 40px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-around;
-      align-items: center;
-    }
+      #content-container4 {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        flex-wrap: wrap;
+        height: auto;
+        width: auto;
+        max-width: 500px;
+        padding: 0;
+      }
 
-    .text3 {
-      font-size: 1rem;
-      font-weight: 700;
-    }
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
 
-    .text4 {
-      color: #666666;
-      font-size: 0.7rem;
-      font-weight: 500;
-    }
+      #logo {
+        height: 96px;
+        aspect-ratio: 1 / 1;
+        border-radius: 20px;
+        border: 1px solid #eeeeee;
+        margin-left: 0;
+        object-fit: contain;
+        object-position: center;
+        background-color: white;
+        box-shadow: 0 10px 24px rgba(12, 18, 33, 0.12);
+      }
 
-    .text5 {
-      width: 97%;
-      margin: 3% 3% 0 0;
-      overflow-wrap: break-word;
-      color: #666666;
-      font-size: 0.85rem;
-      font-weight: 400;
-    }
+      #app-title {
+        margin: 1% 0%;
+      }
 
-    #installPwa {
-      user-select: none;
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      display: flex;
-      flex-direction: row;
-      width: 100%;
-      height: 50px;
-      margin: 0% 3%;
-      border-radius: 1000px;
-      background-color: #007bff;
-      color: #fff;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      transition: 0.3s ease;
-    }
+      .text1 {
+        margin-bottom: 1%;
+        font-size: 1.55rem;
+        line-height: 1.15;
+        font-weight: 650;
+        color: #202124;
+      }
 
-    #installPwa:hover {
-      background-color: #1765D1;
-    }
+      .text1-2 {
+        margin-bottom: 1%;
+        font-size: 1.12rem;
+        font-weight: 650;
+        color: #202124;
+      }
 
-    #installPwa:active {
-      background-color: #174EA6;
-    }
+      .text2 {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #1a73e8;
+      }
 
-    #screenshots {
-      width: 85px;
-      height: auto;
-      margin-right: 3%;
-      border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(12, 18, 33, 0.08);
-      object-fit: cover;
-    }
+      #specs-container {
+        height: 54px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+        position: relative;
+      }
 
-    #categories {
-      height: auto;
-      width: auto;
-      padding: 2% 3%;
-      border: 1.5px solid #cccccc;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: #666666;
-    }
-  </style>
+      #specs-container:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 8px;
+        width: 1px;
+        height: 38px;
+        background: #e0e0e0;
+      }
 
-  <script
-    src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
-    type="module"
-  ></script>
-</head>
+      .text3 {
+        font-size: 1rem;
+        font-weight: 700;
+      }
 
-<body>
-  <div id="main-content" class="superc">
-    <div class="parent"></div>
-    <div class="mobile">
-      <!-- <div id="loading-screen">
+      .text4 {
+        color: #666666;
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+
+      .text5 {
+        width: 100%;
+        margin: 0;
+        overflow-wrap: break-word;
+        color: #666666;
+        font-size: 0.92rem;
+        line-height: 1.55;
+        font-weight: 400;
+      }
+
+      #installPwa {
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        height: 52px;
+        margin: 0;
+        border-radius: 1000px;
+        background-color: #007bff;
+        color: #fff;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        transition: 0.3s ease;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        box-shadow: 0 12px 24px rgba(0, 123, 255, 0.25);
+      }
+
+      #installPwa:hover {
+        background-color: #1765d1;
+      }
+
+      #installPwa:active {
+        background-color: #174ea6;
+      }
+
+      #screenshots {
+        width: 142px;
+        height: 252px;
+        margin-right: 0;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(12, 18, 33, 0.14);
+        object-fit: cover;
+        scroll-snap-align: start;
+        border: 1px solid #eeeeee;
+      }
+
+      #categories {
+        height: auto;
+        width: auto;
+        padding: 9px 13px;
+        border: 1.5px solid #cccccc;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #666666;
+      }
+
+      .top-spacer {
+        height: 8px;
+      }
+
+      .stats-row {
+        padding: 14px 0 6px;
+      }
+
+      .install-row {
+        padding: 2px 0 0;
+      }
+
+      .screenshot-card {
+        padding: 4px 0 2px;
+        border: none;
+        box-shadow: none;
+      }
+
+      .version-note {
+        padding: 2px 2px 0;
+        text-align: center;
+        font-size: 0.72rem;
+        color: #8a8a8a;
+        letter-spacing: 0.01em;
+      }
+
+      @media (max-width: 360px) {
+        .store-shell {
+          padding: 18px 14px 24px;
+        }
+
+        .app-header {
+          gap: 14px;
+        }
+
+        #logo {
+          height: 82px;
+          border-radius: 18px;
+        }
+
+        .text1 {
+          font-size: 1.35rem;
+        }
+
+        #screenshots {
+          width: 126px;
+          height: 224px;
+        }
+      }
+    </style>
+
+    <script
+      src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+      type="module"
+    ></script>
+  </head>
+
+  <body>
+    <div id="main-content" class="superc">
+      <div class="parent"></div>
+      <div class="mobile">
+        <!-- <div id="loading-screen">
         Loading...
       </div> -->
 
-      <div id="content-container1"></div>
+        <div class="store-shell">
+          <div class="top-spacer"></div>
 
-      <div id="content-container1">
-        <img
-          id="logo"
-          src="https://assets.ppc-toda.com/ppctodalogo.png"
-          alt=""
-        />
-        <div id="app-title">
-          <div class="text1">PPC TODA (Beta)</div>
-          <div class="text2">PPC TODA Federation</div>
-        </div>
-      </div>
+          <div id="content-container1" class="app-header">
+            <img
+              id="logo"
+              src="https://assets.ppc-toda.com/logo.png"
+              alt=""
+            />
+            <div id="app-title" class="app-meta">
+              <div class="text1">PPC TODA (Beta)</div>
+              <div class="text2">PPC TODA Federation</div>
+            </div>
+          </div>
 
-      <div id="content-container1">
-        <div id="specs-container">
-          <div class="text3">4.8</div>
-          <div class="text4">144 reviews</div>
-        </div>
-        <div id="specs-container">
-          <div class="text3">3+</div>
-          <div class="text4">Rated for 3+</div>
-        </div>
-        <div id="specs-container">
-          <div class="text3">1K+</div>
-          <div class="text4">Downloads</div>
-        </div>
-      </div>
+          <div id="content-container1" class="stats-row">
+            <div id="specs-container">
+              <div class="text3">4.8</div>
+              <div class="text4">144 reviews</div>
+            </div>
+            <div id="specs-container">
+              <div class="text3">3+</div>
+              <div class="text4">Rated for 3+</div>
+            </div>
+            <div id="specs-container">
+              <div class="text3">1K+</div>
+              <div class="text4">Downloads</div>
+            </div>
+          </div>
 
-      <div id="content-container1">
-        <div id="installPwa">Install</div>
-      </div>
+          <div id="content-container1" class="install-row">
+            <div id="installPwa">Install</div>
+          </div>
 
-      <div id="content-container2">
-        <video
-          id="screenshots"
-          src="https://storage.googleapis.com/ppctoda_website/ppctoda_assets/phoneanimation.mp4"
-          preload="auto"
-          loop
-          autoplay
-          muted
-          playsinline
-        ></video>
-        <img
-          id="screenshots"
-          src="https://assets.ppc-toda.com/phonescreenshots.jpg"
-          alt=""
-        />
-        <img
-          id="screenshots"
-          src="https://assets.ppc-toda.com/phonescreenshots.jpg"
-          alt=""
-        />
-        <img
-          id="screenshots"
-          src="https://assets.ppc-toda.com/phonescreenshots.jpg"
-          alt=""
-        />
-        <img
-          id="screenshots"
-          src="https://assets.ppc-toda.com/phonescreenshots.jpg"
-          alt=""
-        />
-      </div>
+          <div class="section-card screenshot-card">
+            <div id="content-container2">
+              <img
+                id="screenshots"
+                src="https://ppc-toda-assets/Screenshot1.jpg"
+                alt=""
+              />
+              <img
+                id="screenshots"
+                src="https://ppc-toda-assets/Screenshot2.jpg"
+                alt=""
+              />
+              <img
+                id="screenshots"
+                src="https://ppc-toda-assets/Screenshot1.jpg"
+                alt=""
+              />
+              <img
+                id="screenshots"
+                src="https://ppc-toda-assets/Screenshot2.jpg"
+                alt=""
+              />
+              <img
+                id="screenshots"
+                src="https://ppc-toda-assets/Screenshot1.jpg"
+                alt=""
+              />
+            </div>
+          </div>
 
-      <div id="content-container3">
-        <div class="text1-2">About this app</div>
-        <div class="text5">
-          The official mobile application of Puerto Princesa City Tricycle
-          Operators and Drivers Association Federation designed to enhance
-          services and provide convenience, making transportation much easier
-          and more reliable.
-        </div>
-      </div>
+          <div class="section-card">
+            <div id="content-container3">
+              <div class="text1-2">About this app</div>
+              <div class="text5">
+                The official mobile application of Puerto Princesa City Tricycle
+                Operators and Drivers Association Federation designed to enhance
+                services and provide convenience, making transportation much
+                easier and more reliable.
+              </div>
+            </div>
+          </div>
 
-      <div id="content-container4">
-        <div id="categories">Transportation</div>
-        <div id="categories">Tricycle</div>
-        <div id="categories">Booking</div>
-        <div id="categories">Listing</div>
-      </div>
+          <div class="section-card">
+            <div id="content-container3">
+              <div class="text1-2">What's new</div>
+              <div class="update-badge">Beta release</div>
+              <div class="text5">
+                We are preparing PPC TODA for smoother passenger booking,
+                improved tricycle listings, and a more reliable installation
+                experience across supported devices.
+              </div>
+            </div>
+          </div>
 
-      <div id="content-container3">
-        <div class="text1-2">Data safety</div>
-        <div class="text5">
-          Safety starts with understanding how developers collect and share your
-          data. Data privacy and security practices may vary based on your use,
-          region, and age. The developer provided this information and may
-          update it over time.
+          <div id="content-container4">
+            <div id="categories">Transportation</div>
+            <div id="categories">Tricycle</div>
+            <div id="categories">Booking</div>
+            <div id="categories">Listing</div>
+          </div>
+
+          <div class="section-card">
+            <div id="content-container3">
+              <div class="text1-2">Data safety</div>
+              <div class="text5">
+                Safety starts with understanding how developers collect and
+                share your data. Data privacy and security practices may vary
+                based on your use, region, and age. The developer provided this
+                information and may update it over time.
+              </div>
+            </div>
+          </div>
+
+          <div id="installPwaVersion" class="version-note"></div>
         </div>
       </div>
     </div>
-  </div>
 
-  <script src="script/documentloaddetector.js"></script>
-  <script src="script/installpwa.js"></script>
+    <script src="script/documentloaddetector.js"></script>
+    <script src="script/installpwa.js"></script>
 
-  <script>
-    function openInBrowser() {
-      const url = window.location.href;
+    <script>
+      function openInBrowser() {
+        const url = window.location.href;
 
-      if (/android/i.test(navigator.userAgent)) {
-        window.location.href =
-          "intent://" +
-          url.replace(/^https?:\/\//, "") +
-          "#Intent;scheme=https;package=com.android.chrome;end";
-      } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-        window.location.href = url;
+        if (/android/i.test(navigator.userAgent)) {
+          window.location.href =
+            "intent://" +
+            url.replace(/^https?:\/\//, "") +
+            "#Intent;scheme=https;package=com.android.chrome;end";
+        } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+          window.location.href = url;
+        }
       }
-    }
 
-    function detectWebview() {
-      const ua =
-        navigator.userAgent ||
-        navigator.vendor ||
-        window.opera ||
-        "";
+      function detectWebview() {
+        const ua =
+          navigator.userAgent || navigator.vendor || window.opera || "";
 
-      return /(Telegram|WebView|wv|FBAN|FBAV|Instagram|Line|TikTok|Twitter)/i.test(ua);
-    }
+        return /(Telegram|WebView|wv|FBAN|FBAV|Instagram|Line|TikTok|Twitter)/i.test(
+          ua,
+        );
+      }
 
-    if (detectWebview() && !sessionStorage.getItem("redirected")) {
-      sessionStorage.setItem("redirected", "true");
-      openInBrowser();
-    }
-  </script>
-</body>
+      if (detectWebview() && !sessionStorage.getItem("redirected")) {
+        sessionStorage.setItem("redirected", "true");
+        openInBrowser();
+      }
+    </script>
+  </body>
 </html>
