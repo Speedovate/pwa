@@ -12,6 +12,16 @@
     />
     <title>Download the PPC TODA App</title>
 
+    <script>
+      const INSTALL_PWA_VERSION = "1.0.1";
+      const installVersionLabel = document.getElementById("installPwaVersion");
+
+      if (installVersionLabel) {
+        installVersionLabel.textContent =
+          "Install v" + INSTALL_PWA_VERSION;
+      }
+    </script>
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -425,11 +435,7 @@
           <div class="top-spacer"></div>
 
           <div id="content-container1" class="app-header">
-            <img
-              id="logo"
-              src="https://assets.ppc-toda.com/logo.png"
-              alt=""
-            />
+            <img id="logo" src="https://assets.ppc-toda.com/logo.png" alt="" />
             <div id="app-title" class="app-meta">
               <div class="text1">PPC TODA (Beta)</div>
               <div class="text2">PPC TODA Federation</div>
@@ -459,27 +465,27 @@
             <div id="content-container2">
               <img
                 id="screenshots"
-                src="https://ppc-toda-assets/Screenshot1.jpg"
+                src="https://assets.ppc-toda.com/Screenshot1.jpg"
                 alt=""
               />
               <img
                 id="screenshots"
-                src="https://ppc-toda-assets/Screenshot2.jpg"
+                src="https://assets.ppc-toda.com/Screenshot2.jpg"
                 alt=""
               />
               <img
                 id="screenshots"
-                src="https://ppc-toda-assets/Screenshot1.jpg"
+                src="https://assets.ppc-toda.com/Screenshot1.jpg"
                 alt=""
               />
               <img
                 id="screenshots"
-                src="https://ppc-toda-assets/Screenshot2.jpg"
+                src="https://assets.ppc-toda.com/Screenshot2.jpg"
                 alt=""
               />
               <img
                 id="screenshots"
-                src="https://ppc-toda-assets/Screenshot1.jpg"
+                src="https://assets.ppc-toda.com/Screenshot1.jpg"
                 alt=""
               />
             </div>
