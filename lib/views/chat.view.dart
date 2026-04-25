@@ -66,49 +66,69 @@ class _ChatViewState extends State<ChatView> {
     }
   }
 
-  String? _getMessageImageUrl(String text) => sanitizeImageUrl(text);
+  String? _messageImageUrl(ChatMessage message) {
+    final text = message.text.trim();
+    if (text.contains("https")) {
+      return text;
+    }
+    if (message.medias != null && message.medias!.isNotEmpty) {
+      final mediaUrl = message.medias!.first.url.trim();
+      if (mediaUrl.isNotEmpty && mediaUrl.toLowerCase() != "null") {
+        return mediaUrl;
+      }
+    }
+    return null;
+  }
 
-  Widget _buildChatMessageImage(
+  bool _messageHasVisibleContent(ChatMessage message) {
+    final text = message.text.trim();
+    if (text.isNotEmpty && text.toLowerCase() != "null") {
+      return true;
+    }
+    return _messageImageUrl(message) != null;
+  }
+
+  Widget _buildChatImage(
     BuildContext context,
     String imageUrl,
   ) {
-    final size = MediaQuery.of(context).size.width - 124;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
+    final availableWidth = MediaQuery.of(context).size.width - 124;
+    final width = availableWidth < 250 ? availableWidth : 250.0;
+    return ClipRRect(
+      borderRadius: const BorderRadius.all(
+        Radius.circular(8),
+      ),
+      child: NetworkImageWidget(
+        imageUrl: imageUrl,
+        width: width,
+        height: 300,
+        fit: BoxFit.cover,
+        memCacheWidth: 900,
+      ),
+    );
+  }
+
+  Widget _buildImageTimeBadge(DateTime createdAt) {
+    return Container(
+      margin: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 5,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(
+          Radius.circular(5),
         ),
-        child: ColoredBox(
+        color: Colors.black.withValues(alpha: 0.5),
+      ),
+      child: Text(
+        DateFormat(
+          "h:mm a",
+        ).format(createdAt),
+        style: const TextStyle(
+          height: 1.15,
+          fontSize: 12,
           color: Colors.white,
-          child: NetworkImageWidget(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            memCacheWidth: 900,
-            progressIndicatorBuilder: (context, imageUrl, progress) {
-              return const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    strokeCap: StrokeCap.round,
-                  ),
-                ),
-              );
-            },
-            errorWidget: (context, imageUrl, error) {
-              return const Center(
-                child: Icon(
-                  Icons.broken_image_outlined,
-                  color: Colors.grey,
-                  size: 28,
-                ),
-              );
-            },
-          ),
         ),
       ),
     );
@@ -161,15 +181,12 @@ class _ChatViewState extends State<ChatView> {
                                 padding: EdgeInsets.zero,
                                 itemCount: vm.messages.length,
                                 itemBuilder: (context, index) {
-                                  final messageImageUrl = _getMessageImageUrl(
-                                    vm.messages[index].text,
-                                  );
-                                  final isImageMessage =
-                                      messageImageUrl != null;
-                                  if (vm.messages[index].text == "" ||
-                                      vm.messages[index].text == "null") {
+                                  final message = vm.messages[index];
+                                  final imageUrl = _messageImageUrl(message);
+                                  final isImageMessage = imageUrl != null;
+                                  if (!_messageHasVisibleContent(message)) {
                                     return const SizedBox.shrink();
-                                  } else if (vm.messages[index].user.id !=
+                                  } else if (message.user.id !=
                                       "${AuthService.currentUser?.id}") {
                                     return Padding(
                                       padding: EdgeInsets.only(
@@ -180,15 +197,13 @@ class _ChatViewState extends State<ChatView> {
                                       ),
                                       child: GestureDetector(
                                         onTap: () {
-                                          if (vm.messages[index].text
-                                              .contains("https")) {
+                                          if (isImageMessage) {
                                             AlertService().showAppAlert(
                                               isCustom: true,
                                               customWidget: PinchZoom(
                                                 child: NetworkImageWidget(
-                                                  imageUrl:
-                                                      vm.messages[index].text,
-                                                  memCacheWidth: 600,
+                                                  imageUrl: imageUrl,
+                                                  memCacheWidth: 900,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -238,12 +253,8 @@ class _ChatViewState extends State<ChatView> {
                                                             NetworkImageWidget(
                                                           fit: BoxFit.cover,
                                                           memCacheWidth: 600,
-                                                          imageUrl: vm
-                                                                  .messages[
-                                                                      index]
-                                                                  .user
-                                                                  .profileImage ??
-                                                              "",
+                                                          imageUrl:
+                                                              "${vm.messages[index].user.profileImage}",
                                                           progressIndicatorBuilder:
                                                               (
                                                             context,
@@ -331,21 +342,30 @@ class _ChatViewState extends State<ChatView> {
                                                           ),
                                                         ),
                                                       ),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          isImageMessage
-                                                              ? _buildChatMessageImage(
+                                                      child: isImageMessage
+                                                          ? Stack(
+                                                              alignment: Alignment
+                                                                  .bottomLeft,
+                                                              children: [
+                                                                _buildChatImage(
                                                                   context,
-                                                                  messageImageUrl,
-                                                                )
-                                                              : SelectableText(
+                                                                  imageUrl,
+                                                                ),
+                                                                _buildImageTimeBadge(
                                                                   vm
                                                                       .messages[
                                                                           index]
-                                                                      .text,
+                                                                      .createdAt,
+                                                                ),
+                                                              ],
+                                                            )
+                                                          : Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                SelectableText(
+                                                                  message.text,
                                                                   style:
                                                                       const TextStyle(
                                                                     fontSize:
@@ -358,68 +378,30 @@ class _ChatViewState extends State<ChatView> {
                                                                   key:
                                                                       _getKey(),
                                                                 ),
-                                                          const SizedBox(
-                                                            height: 5,
-                                                          ),
-                                                          Container(
-                                                            margin: vm
-                                                                    .messages[index]
-                                                                    .text
-                                                                    .contains(
-                                                                      "https",
-                                                                    )
-                                                                ? const EdgeInsets
-                                                                    .all(5)
-                                                                : EdgeInsets
-                                                                    .zero,
-                                                            padding: isImageMessage
-                                                                ? const EdgeInsets
-                                                                    .all(5)
-                                                                : EdgeInsets
-                                                                    .zero,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                Radius.circular(
-                                                                  5,
+                                                                const SizedBox(
+                                                                  height: 5,
                                                                 ),
-                                                              ),
-                                                              color: vm
-                                                                      .messages[
-                                                                          index]
-                                                                      .text
-                                                                      .contains("https")
-                                                                  ? Colors.black
-                                                                      .withValues(
-                                                                      alpha:
-                                                                          0.5,
-                                                                    )
-                                                                  : Colors
-                                                                      .transparent,
-                                                            ),
-                                                            child: Text(
-                                                              DateFormat(
-                                                                "h:mm a",
-                                                              ).format(
-                                                                vm
-                                                                    .messages[
-                                                                        index]
-                                                                    .createdAt,
-                                                              ),
-                                                              style: TextStyle(
-                                                                height: 1.15,
-                                                                fontSize: 12,
-                                                                color: isImageMessage
-                                                                    ? Colors.white
-                                                                    : Colors
+                                                                Text(
+                                                                  DateFormat(
+                                                                    "h:mm a",
+                                                                  ).format(
+                                                                    vm
+                                                                        .messages[
+                                                                            index]
+                                                                        .createdAt,
+                                                                  ),
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    height:
+                                                                        1.15,
+                                                                    fontSize:
+                                                                        12,
+                                                                    color: Colors
                                                                         .black,
-                                                              ),
+                                                                  ),
+                                                                ),
+                                                              ],
                                                             ),
-                                                          ),
-                                                        ],
-                                                      ),
                                                     ),
                                                   ],
                                                 ),
@@ -440,15 +422,13 @@ class _ChatViewState extends State<ChatView> {
                                       ),
                                       child: GestureDetector(
                                         onTap: () {
-                                          if (vm.messages[index].text
-                                              .contains("https")) {
+                                          if (isImageMessage) {
                                             AlertService().showAppAlert(
                                               isCustom: true,
                                               customWidget: PinchZoom(
                                                 child: NetworkImageWidget(
-                                                  imageUrl:
-                                                      vm.messages[index].text,
-                                                  memCacheWidth: 600,
+                                                  imageUrl: imageUrl,
+                                                  memCacheWidth: 900,
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -487,7 +467,8 @@ class _ChatViewState extends State<ChatView> {
                                                       : const EdgeInsets.all(
                                                           10,
                                                         ),
-                                                  decoration: const BoxDecoration(
+                                                  decoration:
+                                                      const BoxDecoration(
                                                     color: Color(
                                                       0xFF007BFF,
                                                     ),
@@ -498,18 +479,28 @@ class _ChatViewState extends State<ChatView> {
                                                       ),
                                                     ),
                                                   ),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.end,
-                                                    children: [
-                                                      isImageMessage
-                                                          ? _buildChatMessageImage(
+                                                  child: isImageMessage
+                                                      ? Stack(
+                                                          alignment: Alignment
+                                                              .bottomRight,
+                                                          children: [
+                                                            _buildChatImage(
                                                               context,
-                                                              messageImageUrl,
-                                                            )
-                                                          : SelectableText(
+                                                              imageUrl,
+                                                            ),
+                                                            _buildImageTimeBadge(
                                                               vm.messages[index]
-                                                                  .text,
+                                                                  .createdAt,
+                                                            ),
+                                                          ],
+                                                        )
+                                                      : Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .end,
+                                                          children: [
+                                                            SelectableText(
+                                                              message.text,
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 14,
@@ -519,59 +510,28 @@ class _ChatViewState extends State<ChatView> {
                                                               ),
                                                               key: _getKey(),
                                                             ),
-                                                      const SizedBox(
-                                                        height: 5,
-                                                      ),
-                                                      Container(
-                                                        margin: vm
-                                                                .messages[index]
-                                                                .text
-                                                                .contains("https")
-                                                            ? const EdgeInsets
-                                                                .all(5)
-                                                            : EdgeInsets.zero,
-                                                        padding: isImageMessage
-                                                            ? const EdgeInsets
-                                                                .all(5)
-                                                            : EdgeInsets.zero,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .all(
-                                                            Radius.circular(
-                                                              5,
+                                                            const SizedBox(
+                                                              height: 5,
                                                             ),
-                                                          ),
-                                                          color: vm
-                                                                  .messages[
-                                                                      index]
-                                                                  .text
-                                                                  .contains("https")
-                                                              ? Colors.black
-                                                                  .withValues(
-                                                                      alpha:
-                                                                          0.5)
-                                                              : Colors
-                                                                  .transparent,
+                                                            Text(
+                                                              DateFormat(
+                                                                "h:mm a",
+                                                              ).format(
+                                                                vm
+                                                                    .messages[
+                                                                        index]
+                                                                    .createdAt,
+                                                              ),
+                                                              style:
+                                                                  const TextStyle(
+                                                                height: 1.15,
+                                                                fontSize: 12,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                        child: Text(
-                                                          DateFormat(
-                                                            "h:mm a",
-                                                          ).format(
-                                                            vm.messages[index]
-                                                                .createdAt,
-                                                          ),
-                                                          style:
-                                                              const TextStyle(
-                                                            height: 1.15,
-                                                            fontSize: 12,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
                                                 ),
                                               ),
                                             ],
@@ -612,6 +572,9 @@ class _ChatViewState extends State<ChatView> {
                                               await showCameraSource(
                                                 cameraType: "chat",
                                               );
+                                              if (mounted) {
+                                                setState(() {});
+                                              }
                                             },
                                             borderRadius: 8,
                                             child: const Center(
@@ -646,7 +609,9 @@ class _ChatViewState extends State<ChatView> {
                                                 if (image != null) {
                                                   chatFile =
                                                       await image.readAsBytes();
-                                                  Get.forceAppUpdate();
+                                                  if (mounted) {
+                                                    setState(() {});
+                                                  }
                                                 }
                                               } catch (e) {
                                                 if (showParseText) {
@@ -675,17 +640,6 @@ class _ChatViewState extends State<ChatView> {
                                   Expanded(
                                     child: TextField(
                                       controller: _controller,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                      textInputAction: TextInputAction.send,
-                                      textAlignVertical:
-                                          TextAlignVertical.center,
-                                      scrollPadding: const EdgeInsets.only(
-                                        left: 24,
-                                        top: 24,
-                                        right: 24,
-                                        bottom: 120,
-                                      ),
                                       decoration: InputDecoration(
                                         filled: true,
                                         border: const OutlineInputBorder(
@@ -800,6 +754,9 @@ class _ChatViewState extends State<ChatView> {
                                         child: WidgetButton(
                                           onTap: () async {
                                             chatFile = null;
+                                            if (mounted) {
+                                              setState(() {});
+                                            }
                                           },
                                           mainColor: Colors.red,
                                           useDefaultHoverColor: false,
@@ -840,7 +797,7 @@ class _ChatViewState extends State<ChatView> {
                                               try {
                                                 await OrderRequest().postMedia(
                                                   widget.order.id!,
-                                                  "driver",
+                                                  "client",
                                                 );
                                                 await OrderRequest().getMedia(
                                                   widget.order.id!,
@@ -867,6 +824,9 @@ class _ChatViewState extends State<ChatView> {
                                                   );
                                                 }
                                                 chatFile = null;
+                                                if (mounted) {
+                                                  setState(() {});
+                                                }
                                               } catch (e) {
                                                 ScaffoldMessenger.of(
                                                         Get.context!)

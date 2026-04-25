@@ -1,6 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -24,14 +25,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   static const double _panelRadius = 8;
   static const double _panelGap = 12;
   static const double _panelOuterGap = 16;
-  static const double _panelInset = 14;
 
-  final NumberFormat _currencyFormatter = NumberFormat.currency(
-    locale: "en_PH",
-    symbol: "P ",
-    decimalDigits: 0,
-  );
+  final NumberFormat _currencyFormatter = NumberFormat("#,##0", "en_US");
   final TextEditingController _userIdTEC = TextEditingController();
+  final TextEditingController _quickPartnerNameTEC = TextEditingController();
   final TextEditingController _markupTEC = TextEditingController();
   final TextEditingController _partnerListSearchTEC = TextEditingController();
   final TextEditingController _driverListSearchTEC = TextEditingController();
@@ -52,6 +49,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   void dispose() {
     _quickPartnerSearchDebounce?.cancel();
     _userIdTEC.dispose();
+    _quickPartnerNameTEC.dispose();
     _markupTEC.dispose();
     _partnerListSearchTEC.dispose();
     _driverListSearchTEC.dispose();
@@ -77,9 +75,24 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   }
 
   String _formatMoney(dynamic value) {
-    return _currencyFormatter.format(
-      _toDouble(value),
-    );
+    final formatted = _currencyFormatter
+        .format(_toDouble(value).round())
+        .replaceAll(RegExp(r"^[^\d-]+"), "");
+    return "₱$formatted";
+  }
+
+  String _formatWholeNumber(dynamic value) {
+    return _toDouble(value).toStringAsFixed(0);
+  }
+
+  String _firstNonEmptyText(List<dynamic> values) {
+    for (final value in values) {
+      final text = "$value".trim();
+      if (text.isNotEmpty && text.toLowerCase() != "null") {
+        return text;
+      }
+    }
+    return "";
   }
 
   String _monthKeyNow() {
@@ -90,30 +103,170 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
+  String _currentMonthLabel() {
+    return DateFormat("MMM yyyy").format(DateTime.now());
+  }
+
+  String _editableDateTimeLabel(DateTime value) {
+    return DateFormat("MMM dd, yyyy hh:mm a").format(value);
+  }
+
   Timestamp _timestampNow() {
     return Timestamp.now();
   }
 
-  Map<String, double> _toDoubleMap(dynamic value) {
-    if (value is! Map) {
-      return {};
+  String _transactionV2DocIdFromDate(DateTime value) {
+    return DateFormat("MMddyyyyhhmma").format(value).toLowerCase();
+  }
+
+  Future<String> _resolveTransactionV2DocId({
+    required CollectionReference<Map<String, dynamic>> collection,
+    required String baseId,
+    String? currentId,
+  }) async {
+    if (currentId == baseId) {
+      return baseId;
     }
-    return value.map(
-      (key, item) => MapEntry(
-        "$key",
-        _toDouble(item),
-      ),
+    var candidate = baseId;
+    var suffix = 2;
+    while (true) {
+      final snapshot = await collection.doc(candidate).get();
+      if (!snapshot.exists || candidate == currentId) {
+        return candidate;
+      }
+      candidate = "${baseId}_$suffix";
+      suffix++;
+    }
+  }
+
+  DateTime? _dateTimeFromValue(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    return DateTime.tryParse("$value");
+  }
+
+  Timestamp? _timestampFromValue(dynamic value) {
+    if (value is Timestamp) {
+      return value;
+    }
+    final date = _dateTimeFromValue(value);
+    if (date == null) {
+      return null;
+    }
+    return Timestamp.fromDate(date);
+  }
+
+  Timestamp? _latestTimestamp(Timestamp? current, dynamic candidate) {
+    final next = _timestampFromValue(candidate);
+    if (next == null) {
+      return current;
+    }
+    if (current == null || next.compareTo(current) > 0) {
+      return next;
+    }
+    return current;
+  }
+
+  dynamic _toEditableValue(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate().toIso8601String();
+    }
+    if (value is DateTime) {
+      return value.toIso8601String();
+    }
+    if (value is Map) {
+      return value.map(
+        (key, item) => MapEntry(
+          "$key",
+          _toEditableValue(item),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map(_toEditableValue).toList();
+    }
+    return value;
+  }
+
+  dynamic _fromEditableValue(String? key, dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (mapKey, item) => MapEntry(
+          "$mapKey",
+          _fromEditableValue("$mapKey", item),
+        ),
+      );
+    }
+    if (value is List) {
+      return value.map((item) => _fromEditableValue(key, item)).toList();
+    }
+    if (value is String) {
+      final trimmed = value.trim();
+      final isDateKey = (key ?? "").endsWith("_at") ||
+          (key ?? "").contains("date") ||
+          trimmed.contains("T");
+      if (isDateKey) {
+        final parsed = DateTime.tryParse(trimmed);
+        if (parsed != null) {
+          return Timestamp.fromDate(parsed);
+        }
+      }
+      return value;
+    }
+    return value;
+  }
+
+  String _prettyJson(Map<String, dynamic> data) {
+    const encoder = JsonEncoder.withIndent("  ");
+    return encoder.convert(
+      _toEditableValue(data),
     );
   }
 
-  Map<String, dynamic> _increaseMapValue(
-    Map<String, double> source,
-    String key,
-    double amount,
-  ) {
-    final next = Map<String, double>.from(source);
-    next[key] = (next[key] ?? 0) + amount;
-    return next;
+  Map<String, dynamic> _mapFromJsonText(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) {
+      throw "JSON must be an object.";
+    }
+    return Map<String, dynamic>.from(
+      _fromEditableValue(null, decoded) as Map,
+    );
+  }
+
+  String _monthKeyFromData(Map<String, dynamic> data) {
+    final monthKey = "${data["month_key"] ?? ""}".trim();
+    if (monthKey.isNotEmpty && monthKey.toLowerCase() != "null") {
+      return monthKey;
+    }
+    final createdAt = _dateTimeFromValue(data["created_at"]);
+    if (createdAt == null) {
+      return _monthKeyNow();
+    }
+    return DateFormat("yyyy-MM").format(createdAt);
+  }
+
+  bool _isCreditTransaction(Map<String, dynamic> data) {
+    if (data["is_credit"] == null) {
+      return true;
+    }
+    return isBool(data["is_credit"]);
+  }
+
+  bool _isPartnerUserData(Map<String, dynamic> data) {
+    return isBool(data["is_provider"]) ||
+        isBool(data["is_prv"]) ||
+        isBool(data["isProvider"]);
+  }
+
+  bool _hasDriverIdentity(Map<String, dynamic> data) {
+    return _firstNonEmptyText([
+      data["driver_id"],
+      data["driver_name"],
+    ]).isNotEmpty;
   }
 
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _sortDocsByUpdatedAt(
@@ -196,11 +349,18 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     }
 
     for (final doc in transactionDocs) {
+      final ownerRef = doc.reference.parent.parent;
+      if (ownerRef?.parent.id != "partners") {
+        continue;
+      }
       final transactionData = doc.data();
       final partnerId =
-          "${doc.reference.parent.parent?.id ?? transactionData["user_id"] ?? ""}"
-              .trim();
+          "${ownerRef?.id ?? transactionData["user_id"] ?? ""}".trim();
       if (partnerId.isEmpty) {
+        continue;
+      }
+      if (_toDouble(transactionData["markup"] ?? transactionData["amount"]) <=
+          0) {
         continue;
       }
       entries.putIfAbsent(
@@ -230,6 +390,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       final userData = doc.data();
       final partnerId = doc.id.trim();
       if (partnerId.isEmpty) {
+        continue;
+      }
+      if (!entries.containsKey(partnerId) && !_isPartnerUserData(userData)) {
         continue;
       }
       final partnerName =
@@ -264,34 +427,61 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     merged.sort((a, b) {
       final aData = a["partnerData"] as Map<String, dynamic>? ?? {};
       final bData = b["partnerData"] as Map<String, dynamic>? ?? {};
-      final claimableDiff = _toDouble(
-        bData["claimable_cash_markup_amount"],
+      final aUserData = a["userData"] as Map<String, dynamic>?;
+      final bUserData = b["userData"] as Map<String, dynamic>?;
+      final totalDiff = _toDouble(
+        bData["total_amount"],
       ).compareTo(
-        _toDouble(aData["claimable_cash_markup_amount"]),
+        _toDouble(aData["total_amount"]),
       );
-      if (claimableDiff != 0) {
-        return claimableDiff;
+      if (totalDiff != 0) {
+        return totalDiff;
       }
-      final aTs = aData["updated_at"];
-      final bTs = bData["updated_at"];
-      if (aTs is Timestamp && bTs is Timestamp) {
-        return bTs.compareTo(aTs);
-      }
-      if (aTs is Timestamp) {
-        return -1;
-      }
-      if (bTs is Timestamp) {
-        return 1;
+      final aName = _normalizedSortText(
+        _partnerDisplayName(
+          partnerId: "${a["partnerId"]}",
+          partnerData: aData,
+          userData: aUserData,
+        ),
+      );
+      final bName = _normalizedSortText(
+        _partnerDisplayName(
+          partnerId: "${b["partnerId"]}",
+          partnerData: bData,
+          userData: bUserData,
+        ),
+      );
+      final nameDiff = aName.compareTo(bName);
+      if (nameDiff != 0) {
+        return nameDiff;
       }
       return ("${a["partnerId"]}").compareTo("${b["partnerId"]}");
     });
     return merged;
   }
 
+  int _visibleDriverCount({
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> driverDocs,
+    required Set<String> partnerIds,
+  }) {
+    return driverDocs.where((doc) {
+      final data = doc.data();
+      final driverId = "${data["driver_id"] ?? doc.id}";
+      if ((partnerIds.contains(doc.id) || partnerIds.contains(driverId)) &&
+          !_hasDriverIdentity(data)) {
+        return false;
+      }
+      final deductible = _toDouble(data["deductable_cash_markup_amount"]);
+      final deducted = _toDouble(data["deducted_cash_markup_amount"]);
+      final hasMarkup = deductible > 0 || deducted > 0;
+      return hasMarkup || _hasDriverIdentity(data);
+    }).length;
+  }
+
   String _formatTimestamp(dynamic value) {
     if (value is Timestamp) {
       return DateFormat(
-        "MMM d, yyyy h:mm a",
+        "dd/MM/yyyy - h:mm a",
       ).format(
         value.toDate(),
       );
@@ -299,18 +489,54 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     return "-";
   }
 
-  String _formatMonthLabel(String key) {
-    try {
-      return DateFormat(
-        "MMM yyyy",
-      ).format(
-        DateFormat(
-          "yyyy-MM",
-        ).parse(key),
-      );
-    } catch (_) {
-      return key;
+  Future<DateTime?> _pickDateTime(DateTime initialValue) async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialValue,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF007BFF),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF030744),
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (pickedDate == null || !mounted) {
+      return null;
     }
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialValue),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF007BFF),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF030744),
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (pickedTime == null) {
+      return null;
+    }
+    return DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
   }
 
   String _partnerDisplayName({
@@ -325,6 +551,14 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       return "Unnamed Partner ($partnerId)";
     }
     return capitalizeWords(rawName);
+  }
+
+  String _normalizePartnerName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r"\s+"), " ");
+  }
+
+  String _normalizedSortText(String value) {
+    return value.trim().toLowerCase();
   }
 
   Future<void> _ensurePartnerUsersLoaded(List<String> userIds) async {
@@ -364,6 +598,15 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     }
   }
 
+  void _ensurePartnerUsersLoadedAfterBuild(List<String> userIds) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _ensurePartnerUsersLoaded(userIds);
+    });
+  }
+
   void _showSuccessSnack(String message) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -372,7 +615,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         content: Text(
           message,
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF030744),
           ),
         ),
       ),
@@ -387,11 +630,88 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         content: Text(
           message,
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF030744),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _showJsonEditorDialog({
+    required String title,
+    required Map<String, dynamic> initialData,
+    required Future<void> Function(Map<String, dynamic> data) onSave,
+  }) async {
+    final jsonTEC = TextEditingController(
+      text: _prettyJson(initialData),
+    );
+    bool isSaving = false;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 24,
+              ),
+              backgroundColor: Colors.white,
+              title: Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF030744),
+                ),
+              ),
+              content: SizedBox(
+                width: min(MediaQuery.of(context).size.width, 520),
+                child: TextFieldWidget(
+                  controller: jsonTEC,
+                  labelText: "JSON Data",
+                  maxLines: 18,
+                  minLines: 18,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  style: _darkBlueTextButtonStyle(),
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+                TextButton(
+                  style: _darkBlueTextButtonStyle(),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          setStateDialog(() {
+                            isSaving = true;
+                          });
+                          try {
+                            final data = _mapFromJsonText(jsonTEC.text);
+                            await onSave(data);
+                            if (!mounted) {
+                              return;
+                            }
+                            Navigator.of(this.context).pop();
+                          } catch (e) {
+                            if (!mounted) {
+                              return;
+                            }
+                            _showErrorSnack("$e");
+                            setStateDialog(() {
+                              isSaving = false;
+                            });
+                          }
+                        },
+                  child: Text(isSaving ? "Saving..." : "Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    jsonTEC.dispose();
   }
 
   bool _isNarrowScreen(BuildContext context) {
@@ -427,10 +747,93 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
+  ButtonStyle _darkBlueTextButtonStyle() {
+    return TextButton.styleFrom(
+      foregroundColor: const Color(0xFF030744),
+    );
+  }
+
+  Widget _buildSelectorField({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    final isEmpty = value.trim().isEmpty;
+    return WidgetButton(
+      onTap: onTap,
+      borderRadius: _panelRadius,
+      mainColor: Colors.white,
+      useDefaultHoverColor: false,
+      child: Theme(
+        data: ThemeData(
+          inputDecorationTheme: InputDecorationTheme(
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(
+                color: Color(0xFF030744),
+              ),
+              borderRadius: BorderRadius.circular(_panelRadius),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(
+                color: Color(0xFF007BFF),
+              ),
+              borderRadius: BorderRadius.circular(_panelRadius),
+            ),
+          ),
+        ),
+        child: InputDecorator(
+          isFocused: false,
+          isEmpty: isEmpty,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            labelText: isEmpty ? label : null,
+            labelStyle: const TextStyle(
+              height: 1,
+              fontSize: 14,
+              fontFamily: "Inter",
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF030744),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 18,
+              horizontal: 18,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  isEmpty ? label : value,
+                  style: TextStyle(
+                    height: 1,
+                    fontSize: 14,
+                    fontFamily: "Inter",
+                    fontWeight: FontWeight.w500,
+                    color: isEmpty
+                        ? const Color(0xFF007BFF).withValues(alpha: 0.5)
+                        : const Color(0xFF030744),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 18,
+                color: Color(0xFF030744),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _savePartnerSettings({
     required String userId,
     required double markupAmount,
     required String paymentMode,
+    String? partnerNameOverride,
   }) async {
     final trimmedId = userId.trim();
     if (trimmedId.isEmpty) {
@@ -448,7 +851,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     final normalizedPaymentMode =
         paymentMode.toLowerCase() == "cash" ? "cash" : "load";
     final rawPartnerName =
-        "${userData["name"] ?? userData["partner_name"] ?? ""}".trim();
+        "${partnerNameOverride ?? userData["partner_name"] ?? userData["name"] ?? ""}"
+            .trim();
     final partnerName =
         rawPartnerName.isEmpty || rawPartnerName.toLowerCase() == "null"
             ? null
@@ -458,6 +862,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     batch.set(
       userRef,
       {
+        if (partnerName != null) "name": partnerName,
         "markup_amount": markupAmount,
         "payment_mode": normalizedPaymentMode,
         "partner_name": partnerName,
@@ -515,10 +920,117 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       "markup_amount": markupAmount,
       "payment_mode": normalizedPaymentMode,
       "partner_name": partnerName,
-      "name": userData["name"],
+      "name": partnerName ?? userData["name"],
       "updated_at": timestamp,
     };
     _loadingPartnerUserIds.remove(trimmedId);
+  }
+
+  Future<void> _savePartnerRecord({
+    required String partnerId,
+    required Map<String, dynamic> data,
+  }) async {
+    final trimmedId = partnerId.trim();
+    if (trimmedId.isEmpty) {
+      throw "Partner ID is missing.";
+    }
+    final timestamp = _timestampNow();
+    final partnerData = Map<String, dynamic>.from(data)
+      ..["partner_id"] = trimmedId
+      ..["updated_at"] = timestamp;
+    final userUpdate = <String, dynamic>{
+      "updated_at": timestamp,
+    };
+    const syncedKeys = [
+      "partner_name",
+      "markup_amount",
+      "payment_mode",
+      "today_amount",
+      "month_amount",
+      "total_amount",
+      "monthly_markup_history",
+      "monthly_cash_markup_history",
+      "claimable_cash_markup_amount",
+      "claimable_cash_markup_month_amount",
+      "claimed_cash_markup_amount",
+      "claimed_cash_markup_month_amount",
+      "monthly_claimed_cash_markup_history",
+    ];
+    for (final key in syncedKeys) {
+      if (partnerData.containsKey(key)) {
+        userUpdate[key] = partnerData[key];
+      }
+    }
+    if ("${partnerData["partner_name"] ?? ""}".trim().isNotEmpty) {
+      userUpdate["name"] = partnerData["partner_name"];
+    }
+    final batch = fbStore.batch();
+    batch.set(
+      fbStore.collection("partners").doc(trimmedId),
+      partnerData,
+      SetOptions(merge: true),
+    );
+    batch.set(
+      fbStore.collection("users").doc(trimmedId),
+      userUpdate,
+      SetOptions(merge: true),
+    );
+    await batch.commit();
+    _partnerUserCache[trimmedId] = {
+      ...?_partnerUserCache[trimmedId],
+      ...userUpdate,
+    };
+  }
+
+  Future<void> _saveDriverRecord({
+    required String driverId,
+    required Map<String, dynamic> data,
+  }) async {
+    final trimmedId = driverId.trim();
+    if (trimmedId.isEmpty) {
+      throw "Driver ID is missing.";
+    }
+    final timestamp = _timestampNow();
+    final driverData = Map<String, dynamic>.from(data)
+      ..["driver_id"] = trimmedId
+      ..["updated_at"] = timestamp;
+    final userUpdate = <String, dynamic>{
+      "updated_at": timestamp,
+    };
+    const syncedKeys = [
+      "driver_id",
+      "driver_name",
+      "deductable_cash_markup_amount",
+      "deductable_cash_markup_month_amount",
+      "deducted_cash_markup_amount",
+      "deducted_cash_markup_month_amount",
+      "monthly_deducted_cash_markup_history",
+    ];
+    for (final key in syncedKeys) {
+      if (driverData.containsKey(key)) {
+        userUpdate[key] = driverData[key];
+      }
+    }
+    final batch = fbStore.batch();
+    batch.set(
+      fbStore.collection("drivers").doc(trimmedId),
+      driverData,
+      SetOptions(merge: true),
+    );
+    final normalizedName = _firstNonEmptyText([
+      driverData["driver_name"],
+      driverData["name"],
+    ]);
+    if (normalizedName.isNotEmpty) {
+      userUpdate["name"] = normalizedName;
+      userUpdate["driver_name"] = normalizedName;
+    }
+    batch.set(
+      fbStore.collection("users").doc(trimmedId),
+      userUpdate,
+      SetOptions(merge: true),
+    );
+    await batch.commit();
   }
 
   Future<void> _saveQuickSettings() async {
@@ -535,6 +1047,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         userId: _userIdTEC.text,
         markupAmount: markupAmount,
         paymentMode: _quickPaymentMode,
+        partnerNameOverride: _quickPartnerNameTEC.text,
       );
       if (!mounted) {
         return;
@@ -544,14 +1057,17 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           ...?_quickPartnerUserData,
           "markup_amount": markupAmount,
           "payment_mode": _quickPaymentMode,
-          "partner_name":
-              "${_quickPartnerUserData?["name"] ?? _quickPartnerUserData?["partner_name"] ?? ""}"
-                      .trim()
-                      .isEmpty
-                  ? null
-                  : capitalizeWords(
-                      "${_quickPartnerUserData?["name"] ?? _quickPartnerUserData?["partner_name"] ?? ""}",
-                    ),
+          "partner_name": _quickPartnerNameTEC.text.trim().isEmpty
+              ? null
+              : capitalizeWords(
+                  _quickPartnerNameTEC.text,
+                  alt: _quickPartnerNameTEC.text,
+                ),
+          if (_quickPartnerNameTEC.text.trim().isNotEmpty)
+            "name": capitalizeWords(
+              _quickPartnerNameTEC.text,
+              alt: _quickPartnerNameTEC.text,
+            ),
         };
       });
       _showSuccessSnack("Partner settings updated.");
@@ -746,7 +1262,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       _quickPartnerUserId = userId;
       _quickPartnerUserData = userData;
       _userIdTEC.text = userId;
-      _markupTEC.text = "${_toDouble(userData["markup_amount"])}";
+      _quickPartnerNameTEC.text = _firstNonEmptyText([
+        userData["partner_name"],
+        userData["name"],
+      ]);
+      _markupTEC.text = _formatWholeNumber(userData["markup_amount"]);
       _quickPaymentMode =
           "${userData["payment_mode"] ?? "load"}".toLowerCase() == "cash"
               ? "cash"
@@ -757,130 +1277,19 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
 
   Future<void> _showEditPartnerDialog({
     required String partnerId,
-    required Map<String, dynamic>? userData,
+    required Map<String, dynamic> partnerData,
   }) async {
-    final markupTEC = TextEditingController(
-      text: "${_toDouble(userData?["markup_amount"])}",
-    );
-    String paymentMode =
-        "${userData?["payment_mode"] ?? "load"}".toLowerCase() == "cash"
-            ? "cash"
-            : "load";
-    bool isSaving = false;
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 24,
-              ),
-              backgroundColor: Colors.white,
-              title: const Text(
-                "Edit Partner Settings",
-                style: TextStyle(
-                  color: Color(0xFF030744),
-                ),
-              ),
-              content: SizedBox(
-                width: min(
-                  MediaQuery.of(context).size.width,
-                  420,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFieldWidget(
-                      controller: TextEditingController(
-                        text: partnerId,
-                      ),
-                      labelText: "User ID",
-                      readOnly: true,
-                    ),
-                    const SizedBox(height: _panelGap),
-                    TextFieldWidget(
-                      controller: markupTEC,
-                      labelText: "Markup Amount",
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                    ),
-                    const SizedBox(height: _panelGap),
-                    DropdownButtonFormField<String>(
-                      initialValue: paymentMode,
-                      decoration: _dropdownDecoration(
-                        label: "Payment Mode",
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: "cash",
-                          child: Text("Cash"),
-                        ),
-                        DropdownMenuItem(
-                          value: "load",
-                          child: Text("Load"),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setStateDialog(() {
-                          paymentMode = value;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: const Text(
-                    "Cancel",
-                  ),
-                ),
-                TextButton(
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          setStateDialog(() {
-                            isSaving = true;
-                          });
-                          try {
-                            await _savePartnerSettings(
-                              userId: partnerId,
-                              markupAmount: _toDouble(markupTEC.text),
-                              paymentMode: paymentMode,
-                            );
-                            if (!mounted) {
-                              return;
-                            }
-                            Navigator.of(this.context).pop();
-                            _showSuccessSnack("Partner settings updated.");
-                          } catch (e) {
-                            if (!mounted) {
-                              return;
-                            }
-                            _showErrorSnack("$e");
-                            setStateDialog(() {
-                              isSaving = false;
-                            });
-                          }
-                        },
-                  child: Text(
-                    isSaving ? "Saving..." : "Save",
-                  ),
-                ),
-              ],
-            );
-          },
+    await _showJsonEditorDialog(
+      title: "Edit Partner Record",
+      initialData: partnerData,
+      onSave: (data) async {
+        await _savePartnerRecord(
+          partnerId: partnerId,
+          data: data,
         );
+        _showSuccessSnack("Partner record updated.");
       },
     );
-    markupTEC.dispose();
   }
 
   Future<void> _recordPartnerClaim({
@@ -892,83 +1301,697 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     final currentClaimable = _toDouble(
       partnerData["claimable_cash_markup_amount"],
     );
-    final currentClaimableMonth = _toDouble(
-      partnerData["claimable_cash_markup_month_amount"],
-    );
     if (amount <= 0) {
       throw "Enter a valid claim amount.";
     }
     if (amount > currentClaimable) {
       throw "Claim amount is greater than the current claimable total.";
     }
-
-    final monthKey = _monthKeyNow();
-    final claimedHistory = _toDoubleMap(
-      partnerData["monthly_claimed_cash_markup_history"],
-    );
-    final partnerRef = fbStore.collection("partners").doc(partnerId);
-    final userRef = fbStore.collection("users").doc(partnerId);
-    final batch = fbStore.batch();
-    final claimRef = partnerRef.collection("claimed_transactions").doc();
-
-    batch.set(
-      claimRef,
-      {
+    await _savePartnerTransaction(
+      partnerId: partnerId,
+      partnerData: partnerData,
+      data: {
+        "name": _firstNonEmptyText([
+          partnerData["partner_name"],
+          partnerData["name"],
+        ]),
         "amount": amount,
-        "partner_id": partnerId,
-        "partner_name":
-            "${partnerData["partner_name"] ?? partnerData["name"] ?? ""}",
-        "month_key": monthKey,
-        "created_at": _timestampNow(),
-        "note": note.trim(),
-        "claimed_by_user_id": AuthService.currentUser?.id,
-        "claimed_by_name": AuthService.currentUser?.name,
+        "is_credit": false,
+        "created_at": DateTime.now().toIso8601String(),
+        "note": note.trim().isEmpty ? "Claimed" : note.trim(),
       },
     );
+  }
+
+  Future<void> _repairSinglePartnerAggregate(String partnerId) async {
+    final partnerRef = fbStore.collection("partners").doc(partnerId);
+    final partnerSnapshot = await partnerRef.get();
+    if (!partnerSnapshot.exists) {
+      return;
+    }
+    final partnerData = partnerSnapshot.data() ?? {};
+    final userSnapshot = await fbStore.collection("users").doc(partnerId).get();
+    final userData = userSnapshot.data() ?? {};
+    final transactionsSnapshot =
+        await partnerRef.collection("transactions_v2").get();
+
+    var todayTotal = 0.0;
+    var totalAmount = 0.0;
+    var claimedTotal = 0.0;
+    final markupHistory = <String, double>{};
+    final claimedHistory = <String, double>{};
+    Timestamp? repairedUpdatedAt;
+
+    for (final transactionDoc in transactionsSnapshot.docs) {
+      final transactionData = transactionDoc.data();
+      final amount = _toDouble(transactionData["amount"]);
+      if (amount <= 0) {
+        continue;
+      }
+      final monthKey = _monthKeyFromData(transactionData);
+      repairedUpdatedAt = _latestTimestamp(
+        repairedUpdatedAt,
+        transactionData["updated_at"] ?? transactionData["created_at"],
+      );
+      if (_isCreditTransaction(transactionData)) {
+        totalAmount += amount;
+        markupHistory[monthKey] = (markupHistory[monthKey] ?? 0) + amount;
+        final createdAt = _dateTimeFromValue(transactionData["created_at"]);
+        final now = DateTime.now();
+        if (createdAt != null &&
+            createdAt.year == now.year &&
+            createdAt.month == now.month &&
+            createdAt.day == now.day) {
+          todayTotal += amount;
+        }
+      } else {
+        claimedTotal += amount;
+        claimedHistory[monthKey] = (claimedHistory[monthKey] ?? 0) + amount;
+      }
+    }
+
+    repairedUpdatedAt ??= _latestTimestamp(
+      _timestampFromValue(partnerData["updated_at"]),
+      userData["updated_at"],
+    );
+    final currentMonthKey = _monthKeyNow();
+    final monthAmount = _toDouble(markupHistory[currentMonthKey]);
+    final claimedMonthTotal = _toDouble(claimedHistory[currentMonthKey]);
+    final claimable = max(totalAmount - claimedTotal, 0);
+    final claimableMonth = max(monthAmount - claimedMonthTotal, 0);
+    final partnerName = _firstNonEmptyText([
+      partnerData["partner_name"],
+      userData["partner_name"],
+      userData["name"],
+    ]);
+
+    final batch = fbStore.batch();
     batch.set(
       partnerRef,
       {
-        "claimed_cash_markup_amount":
-            _toDouble(partnerData["claimed_cash_markup_amount"]) + amount,
-        "claimed_cash_markup_month_amount":
-            _toDouble(partnerData["claimed_cash_markup_month_amount"]) + amount,
-        "monthly_claimed_cash_markup_history": _increaseMapValue(
-          claimedHistory,
-          monthKey,
-          amount,
-        ),
-        "claimable_cash_markup_amount": max(
-          currentClaimable - amount,
-          0,
-        ),
-        "claimable_cash_markup_month_amount": max(
-          currentClaimableMonth - amount,
-          0,
-        ),
-        "updated_at": _timestampNow(),
+        "today_amount": todayTotal,
+        "month_amount": monthAmount,
+        "total_amount": totalAmount,
+        "claimable_cash_markup_amount": claimable,
+        "claimable_cash_markup_month_amount": claimableMonth,
+        "claimed_cash_markup_amount": claimedTotal,
+        "claimed_cash_markup_month_amount": claimedMonthTotal,
+        "monthly_markup_history": markupHistory,
+        "monthly_cash_markup_history": markupHistory,
+        "monthly_claimed_cash_markup_history": claimedHistory,
+        "updated_at": repairedUpdatedAt ?? _timestampNow(),
+        if (partnerName.isNotEmpty) "partner_name": partnerName,
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
+    );
+    batch.set(
+      fbStore.collection("users").doc(partnerId),
+      {
+        "today_amount": todayTotal,
+        "month_amount": monthAmount,
+        "total_amount": totalAmount,
+        "claimable_cash_markup_amount": claimable,
+        "claimable_cash_markup_month_amount": claimableMonth,
+        "updated_at": repairedUpdatedAt ?? _timestampNow(),
+      },
+      SetOptions(merge: true),
+    );
+    await batch.commit();
+  }
+
+  Future<void> _repairSingleDriverAggregate(String driverId) async {
+    final driverRef = fbStore.collection("drivers").doc(driverId);
+    final userRef = fbStore.collection("users").doc(driverId);
+    final driverSnapshot = await driverRef.get();
+    if (!driverSnapshot.exists) {
+      return;
+    }
+    final driverData = driverSnapshot.data() ?? {};
+    final transactionsSnapshot =
+        await driverRef.collection("transactions_v2").get();
+
+    var credit = 0.0;
+    var debit = 0.0;
+    final creditHistory = <String, double>{};
+    final deductedHistory = <String, double>{};
+    Timestamp? repairedUpdatedAt;
+    String driverNameFromTransactions = "";
+
+    for (final transactionDoc in transactionsSnapshot.docs) {
+      final transactionData = transactionDoc.data();
+      final amount = _toDouble(transactionData["amount"]);
+      if (amount <= 0) {
+        continue;
+      }
+      driverNameFromTransactions = _firstNonEmptyText([
+        driverNameFromTransactions,
+        transactionData["name"],
+        driverData["driver_name"],
+        driverData["name"],
+      ]);
+      repairedUpdatedAt = _latestTimestamp(
+        repairedUpdatedAt,
+        transactionData["updated_at"] ?? transactionData["created_at"],
+      );
+      final monthKey = _monthKeyFromData(transactionData);
+      if (_isCreditTransaction(transactionData)) {
+        credit += amount;
+        creditHistory[monthKey] = (creditHistory[monthKey] ?? 0) + amount;
+      } else {
+        debit += amount;
+        deductedHistory[monthKey] = (deductedHistory[monthKey] ?? 0) + amount;
+      }
+    }
+
+    final currentMonthKey = _monthKeyNow();
+    final deductedMonth = _toDouble(deductedHistory[currentMonthKey]);
+    final creditMonth = _toDouble(creditHistory[currentMonthKey]);
+    final aggregateUpdate = {
+      "driver_id": driverId,
+      "deductable_cash_markup_amount": max(credit - debit, 0),
+      "deductable_cash_markup_month_amount":
+          max(creditMonth - deductedMonth, 0),
+      "deducted_cash_markup_amount": debit,
+      "deducted_cash_markup_month_amount": deductedMonth,
+      "monthly_deducted_cash_markup_history": deductedHistory,
+      if (driverNameFromTransactions.isNotEmpty)
+        "driver_name": driverNameFromTransactions,
+      "updated_at": repairedUpdatedAt ?? _timestampNow(),
+    };
+    final batch = fbStore.batch();
+    batch.set(
+      driverRef,
+      aggregateUpdate,
+      SetOptions(merge: true),
     );
     batch.set(
       userRef,
-      {
-        "claimable_cash_markup_amount": max(
-          currentClaimable - amount,
-          0,
-        ),
-        "claimable_cash_markup_month_amount": max(
-          currentClaimableMonth - amount,
-          0,
-        ),
-        "updated_at": _timestampNow(),
-      },
-      SetOptions(
-        merge: true,
-      ),
+      aggregateUpdate,
+      SetOptions(merge: true),
     );
     await batch.commit();
+  }
+
+  Future<void> _showEditDriverDialog({
+    required String driverId,
+    required Map<String, dynamic> driverData,
+  }) async {
+    await _showJsonEditorDialog(
+      title: "Edit Driver Record",
+      initialData: driverData,
+      onSave: (data) async {
+        await _saveDriverRecord(
+          driverId: driverId,
+          data: data,
+        );
+        _showSuccessSnack("Driver record updated.");
+      },
+    );
+  }
+
+  Map<String, dynamic> _partnerTransactionTemplate({
+    required String partnerId,
+    required Map<String, dynamic> partnerData,
+  }) {
+    return {
+      "amount": 0,
+      "is_credit": true,
+      "name": _firstNonEmptyText([
+        partnerData["partner_name"],
+        partnerData["name"],
+      ]),
+      "created_at": DateTime.now().toIso8601String(),
+      "note": "",
+    };
+  }
+
+  Map<String, dynamic> _driverTransactionTemplate({
+    required String driverId,
+    required Map<String, dynamic> driverData,
+  }) {
+    return {
+      "amount": 0,
+      "is_credit": true,
+      "name": _firstNonEmptyText([
+        driverData["driver_name"],
+        driverData["name"],
+      ]),
+      "created_at": DateTime.now().toIso8601String(),
+      "note": "",
+    };
+  }
+
+  Future<void> _showPartnerTransactionDialog({
+    required String title,
+    required String partnerId,
+    required Map<String, dynamic> partnerData,
+    String? transactionId,
+    Map<String, dynamic>? initialData,
+  }) async {
+    final seed = initialData ??
+        _partnerTransactionTemplate(
+            partnerId: partnerId, partnerData: partnerData);
+    final amountTEC = TextEditingController(
+      text: _toDouble(seed["amount"]) > 0
+          ? _toDouble(seed["amount"]).toStringAsFixed(0)
+          : "",
+    );
+    final nameTEC = TextEditingController(
+      text: _firstNonEmptyText([
+        seed["name"],
+        partnerData["partner_name"],
+        partnerData["name"],
+      ]),
+    );
+    final noteTEC = TextEditingController(
+      text: _firstNonEmptyText([
+        seed["note"],
+      ]),
+    );
+    var transactionDateTime =
+        _dateTimeFromValue(seed["created_at"]) ?? DateTime.now();
+    final dateTimeTEC = TextEditingController(
+      text: _editableDateTimeLabel(transactionDateTime),
+    );
+    var isCredit = _isCreditTransaction(seed);
+    var isSaving = false;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 24,
+              ),
+              backgroundColor: Colors.white,
+              title: Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF030744),
+                ),
+              ),
+              content: SizedBox(
+                width: min(MediaQuery.of(context).size.width, 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFieldWidget(
+                      controller: nameTEC,
+                      labelText: "Name",
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: _panelGap),
+                    TextFieldWidget(
+                      controller: amountTEC,
+                      labelText: "Amount",
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                    const SizedBox(height: _panelGap),
+                    DropdownButtonFormField<String>(
+                      initialValue: isCredit ? "credit" : "debit",
+                      decoration: _dropdownDecoration(
+                        label: "Type",
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: "credit",
+                          child: Text("Credit"),
+                        ),
+                        DropdownMenuItem(
+                          value: "debit",
+                          child: Text("Debit"),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setStateDialog(() {
+                          isCredit = value == "credit";
+                        });
+                      },
+                    ),
+                    const SizedBox(height: _panelGap),
+                    _buildSelectorField(
+                      label: "Date Time",
+                      value: dateTimeTEC.text,
+                      onTap: () async {
+                        final picked = await _pickDateTime(transactionDateTime);
+                        if (picked == null) {
+                          return;
+                        }
+                        setStateDialog(() {
+                          transactionDateTime = picked;
+                          dateTimeTEC.text =
+                              _editableDateTimeLabel(transactionDateTime);
+                        });
+                      },
+                    ),
+                    const SizedBox(height: _panelGap),
+                    TextFieldWidget(
+                      controller: noteTEC,
+                      labelText: "Note",
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  style: _darkBlueTextButtonStyle(),
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+                TextButton(
+                  style: _darkBlueTextButtonStyle(),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          setStateDialog(() {
+                            isSaving = true;
+                          });
+                          try {
+                            await _savePartnerTransaction(
+                              partnerId: partnerId,
+                              partnerData: partnerData,
+                              transactionId: transactionId,
+                              data: {
+                                ...seed,
+                                "name": nameTEC.text.trim(),
+                                "amount": _toDouble(amountTEC.text),
+                                "is_credit": isCredit,
+                                "created_at":
+                                    transactionDateTime.toIso8601String(),
+                                "note": noteTEC.text.trim(),
+                              },
+                            );
+                            if (!mounted) return;
+                            Navigator.of(this.context).pop();
+                            _showSuccessSnack(
+                              transactionId == null
+                                  ? "Partner transaction added."
+                                  : "Partner transaction updated.",
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            _showErrorSnack("$e");
+                            setStateDialog(() {
+                              isSaving = false;
+                            });
+                          }
+                        },
+                  child: Text(isSaving ? "Saving..." : "Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    amountTEC.dispose();
+    nameTEC.dispose();
+    dateTimeTEC.dispose();
+    noteTEC.dispose();
+  }
+
+  Future<void> _showDriverTransactionDialog({
+    required String title,
+    required String driverId,
+    required Map<String, dynamic> driverData,
+    String? transactionId,
+    Map<String, dynamic>? initialData,
+  }) async {
+    final seed = initialData ??
+        _driverTransactionTemplate(driverId: driverId, driverData: driverData);
+    final amountTEC = TextEditingController(
+      text: _toDouble(seed["amount"]) > 0
+          ? _toDouble(seed["amount"]).toStringAsFixed(0)
+          : "",
+    );
+    final nameTEC = TextEditingController(
+      text: _firstNonEmptyText([
+        seed["name"],
+        driverData["driver_name"],
+        driverData["name"],
+      ]),
+    );
+    final noteTEC = TextEditingController(
+      text: _firstNonEmptyText([
+        seed["note"],
+      ]),
+    );
+    var transactionDateTime =
+        _dateTimeFromValue(seed["created_at"]) ?? DateTime.now();
+    final dateTimeTEC = TextEditingController(
+      text: _editableDateTimeLabel(transactionDateTime),
+    );
+    var isCredit = _isCreditTransaction(seed);
+    var isSaving = false;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 24,
+              ),
+              backgroundColor: Colors.white,
+              title: Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF030744),
+                ),
+              ),
+              content: SizedBox(
+                width: min(MediaQuery.of(context).size.width, 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFieldWidget(
+                      controller: nameTEC,
+                      labelText: "Name",
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: _panelGap),
+                    TextFieldWidget(
+                      controller: amountTEC,
+                      labelText: "Amount",
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                    const SizedBox(height: _panelGap),
+                    DropdownButtonFormField<String>(
+                      initialValue: isCredit ? "credit" : "debit",
+                      decoration: _dropdownDecoration(
+                        label: "Type",
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: "credit",
+                          child: Text("Credit"),
+                        ),
+                        DropdownMenuItem(
+                          value: "debit",
+                          child: Text("Debit"),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setStateDialog(() {
+                          isCredit = value == "credit";
+                        });
+                      },
+                    ),
+                    const SizedBox(height: _panelGap),
+                    _buildSelectorField(
+                      label: "Date Time",
+                      value: dateTimeTEC.text,
+                      onTap: () async {
+                        final picked = await _pickDateTime(transactionDateTime);
+                        if (picked == null) {
+                          return;
+                        }
+                        setStateDialog(() {
+                          transactionDateTime = picked;
+                          dateTimeTEC.text =
+                              _editableDateTimeLabel(transactionDateTime);
+                        });
+                      },
+                    ),
+                    const SizedBox(height: _panelGap),
+                    TextFieldWidget(
+                      controller: noteTEC,
+                      labelText: "Note",
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  style: _darkBlueTextButtonStyle(),
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+                TextButton(
+                  style: _darkBlueTextButtonStyle(),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          setStateDialog(() {
+                            isSaving = true;
+                          });
+                          try {
+                            await _saveDriverTransaction(
+                              driverId: driverId,
+                              driverData: driverData,
+                              transactionId: transactionId,
+                              data: {
+                                ...seed,
+                                "name": nameTEC.text.trim(),
+                                "amount": _toDouble(amountTEC.text),
+                                "is_credit": isCredit,
+                                "created_at":
+                                    transactionDateTime.toIso8601String(),
+                                "note": noteTEC.text.trim(),
+                              },
+                            );
+                            if (!mounted) return;
+                            Navigator.of(this.context).pop();
+                            _showSuccessSnack(
+                              transactionId == null
+                                  ? "Driver transaction added."
+                                  : "Driver transaction updated.",
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            _showErrorSnack("$e");
+                            setStateDialog(() {
+                              isSaving = false;
+                            });
+                          }
+                        },
+                  child: Text(isSaving ? "Saving..." : "Save"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    amountTEC.dispose();
+    nameTEC.dispose();
+    dateTimeTEC.dispose();
+    noteTEC.dispose();
+  }
+
+  Future<void> _savePartnerTransaction({
+    required String partnerId,
+    required Map<String, dynamic> partnerData,
+    String? transactionId,
+    required Map<String, dynamic> data,
+  }) async {
+    final partnerRef = fbStore.collection("partners").doc(partnerId);
+    final isCredit = _isCreditTransaction(data);
+    final amount = _toDouble(data["amount"]);
+    if (amount <= 0) {
+      throw "Transaction amount must be greater than zero.";
+    }
+    final timestamp = _timestampNow();
+    final createdAt = _timestampFromValue(data["created_at"]) ?? timestamp;
+    final createdAtDate = createdAt.toDate();
+    final collection = partnerRef.collection("transactions_v2");
+    final nextDocId = await _resolveTransactionV2DocId(
+      collection: collection,
+      baseId: _transactionV2DocIdFromDate(createdAtDate),
+      currentId: transactionId,
+    );
+    final normalized = <String, dynamic>{
+      "note": _firstNonEmptyText([data["note"]]),
+      "name": _firstNonEmptyText([
+        data["name"],
+        partnerData["partner_name"],
+        partnerData["name"],
+      ]),
+      "amount": amount,
+      "is_credit": isCredit,
+      "created_at": createdAt,
+    };
+    final transactionRef = collection.doc(nextDocId);
+    final batch = fbStore.batch();
+    batch.set(transactionRef, normalized, SetOptions(merge: true));
+    if (transactionId != null && transactionId != nextDocId) {
+      batch.delete(partnerRef.collection("transactions_v2").doc(transactionId));
+    }
+    await batch.commit();
+    await _repairSinglePartnerAggregate(partnerId);
+  }
+
+  Future<void> _deletePartnerTransaction({
+    required String partnerId,
+    required String transactionId,
+  }) async {
+    final partnerRef = fbStore.collection("partners").doc(partnerId);
+    final batch = fbStore.batch();
+    batch.delete(partnerRef.collection("transactions_v2").doc(transactionId));
+    await batch.commit();
+    await _repairSinglePartnerAggregate(partnerId);
+  }
+
+  Future<void> _saveDriverTransaction({
+    required String driverId,
+    required Map<String, dynamic> driverData,
+    String? transactionId,
+    required Map<String, dynamic> data,
+  }) async {
+    final isCredit = _isCreditTransaction(data);
+    final amount = _toDouble(data["amount"]);
+    if (amount <= 0) {
+      throw "Transaction amount must be greater than zero.";
+    }
+    final createdAt =
+        _timestampFromValue(data["created_at"]) ?? _timestampNow();
+    final driverRef = fbStore.collection("drivers").doc(driverId);
+    final collection = driverRef.collection("transactions_v2");
+    final nextDocId = await _resolveTransactionV2DocId(
+      collection: collection,
+      baseId: _transactionV2DocIdFromDate(createdAt.toDate()),
+      currentId: transactionId,
+    );
+    final normalized = <String, dynamic>{
+      "note": _firstNonEmptyText([data["note"]]),
+      "name": _firstNonEmptyText([
+        data["name"],
+        driverData["driver_name"],
+        driverData["name"],
+      ]),
+      "amount": amount,
+      "is_credit": isCredit,
+      "created_at": createdAt,
+    };
+
+    final transactionRef = collection.doc(nextDocId);
+    final batch = fbStore.batch();
+    if (transactionId != null && transactionId != nextDocId) {
+      batch.delete(driverRef.collection("transactions_v2").doc(transactionId));
+    }
+    batch.set(transactionRef, normalized, SetOptions(merge: true));
+    await batch.commit();
+    await _repairSingleDriverAggregate(driverId);
+  }
+
+  Future<void> _deleteDriverTransaction({
+    required String driverId,
+    required String transactionId,
+  }) async {
+    final driverRef = fbStore.collection("drivers").doc(driverId);
+    final batch = fbStore.batch();
+    batch.delete(driverRef.collection("transactions_v2").doc(transactionId));
+    await batch.commit();
+    await _repairSingleDriverAggregate(driverId);
   }
 
   Future<void> _showPartnerClaimDialog({
@@ -1021,18 +2044,18 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     TextFieldWidget(
                       controller: noteTEC,
                       labelText: "Note",
-                      maxLines: 3,
-                      minLines: 3,
                     ),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
+                  style: _darkBlueTextButtonStyle(),
                   onPressed: isSaving ? null : () => Navigator.pop(context),
                   child: const Text("Cancel"),
                 ),
                 TextButton(
+                  style: _darkBlueTextButtonStyle(),
                   onPressed: isSaving
                       ? null
                       : () async {
@@ -1081,18 +2104,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     required double amount,
     String note = "",
   }) async {
-    final received = _toDouble(driverData["received_cash_markup_amount"]);
-    final deducted = _toDouble(driverData["deducted_cash_markup_amount"]);
-    final receivedMonth = _toDouble(
-      driverData["received_cash_markup_month_amount"],
-    );
-    final deductedMonth = _toDouble(
-      driverData["deducted_cash_markup_month_amount"],
-    );
-    final deductible = max(
-      received - deducted,
-      0,
-    );
+    final deductible = _toDouble(driverData["deductable_cash_markup_amount"]);
     if (amount <= 0) {
       throw "Enter a valid deducted amount.";
     }
@@ -1100,54 +2112,20 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       throw "Deducted amount is greater than the current deductible total.";
     }
 
-    final monthKey = _monthKeyNow();
-    final deductedHistory = _toDoubleMap(
-      driverData["monthly_deducted_cash_markup_history"],
-    );
-    final driverRef = fbStore.collection("drivers").doc(driverId);
-    final deductionRef =
-        driverRef.collection("deducted_markup_transactions").doc();
-    final batch = fbStore.batch();
-
-    batch.set(
-      deductionRef,
-      {
+    await _saveDriverTransaction(
+      driverId: driverId,
+      driverData: driverData,
+      data: {
+        "name": _firstNonEmptyText([
+          driverData["driver_name"],
+          driverData["name"],
+        ]),
         "amount": amount,
-        "driver_id": driverId,
-        "driver_name":
-            "${driverData["driver_name"] ?? driverData["name"] ?? ""}",
-        "month_key": monthKey,
-        "created_at": _timestampNow(),
-        "note": note.trim(),
-        "deducted_by_user_id": AuthService.currentUser?.id,
-        "deducted_by_name": AuthService.currentUser?.name,
+        "is_credit": false,
+        "created_at": DateTime.now().toIso8601String(),
+        "note": note.trim().isEmpty ? "Deducted" : note.trim(),
       },
     );
-    batch.set(
-      driverRef,
-      {
-        "deducted_cash_markup_amount": deducted + amount,
-        "deducted_cash_markup_month_amount": deductedMonth + amount,
-        "monthly_deducted_cash_markup_history": _increaseMapValue(
-          deductedHistory,
-          monthKey,
-          amount,
-        ),
-        "deductable_cash_markup_amount": max(
-          received - (deducted + amount),
-          0,
-        ),
-        "deductable_cash_markup_month_amount": max(
-          receivedMonth - (deductedMonth + amount),
-          0,
-        ),
-        "updated_at": _timestampNow(),
-      },
-      SetOptions(
-        merge: true,
-      ),
-    );
-    await batch.commit();
   }
 
   Future<void> _showDriverDeductionDialog({
@@ -1157,11 +2135,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     final amountTEC = TextEditingController();
     final noteTEC = TextEditingController();
     bool isSaving = false;
-    final deductible = max(
-      _toDouble(driverData["received_cash_markup_amount"]) -
-          _toDouble(driverData["deducted_cash_markup_amount"]),
-      0,
-    );
+    final deductible = _toDouble(driverData["deductable_cash_markup_amount"]);
     await showDialog(
       context: context,
       builder: (context) {
@@ -1203,18 +2177,18 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     TextFieldWidget(
                       controller: noteTEC,
                       labelText: "Note",
-                      maxLines: 3,
-                      minLines: 3,
                     ),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
+                  style: _darkBlueTextButtonStyle(),
                   onPressed: isSaving ? null : () => Navigator.pop(context),
                   child: const Text("Cancel"),
                 ),
                 TextButton(
+                  style: _darkBlueTextButtonStyle(),
                   onPressed: isSaving
                       ? null
                       : () async {
@@ -1287,31 +2261,19 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildInlineStat(
+    String label,
+    String value, {
+    Color color = const Color(0xFF030744),
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF6D7890),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF030744),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(right: 12, bottom: 6),
+      child: Text(
+        "$label: $value",
+        style: TextStyle(
+          fontSize: 12,
+          color: color,
+        ),
       ),
     );
   }
@@ -1319,21 +2281,28 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   Widget _buildPrimaryButton({
     required String text,
     required VoidCallback onTap,
-    Color color = const Color(0xFF007BFF),
+    Color color = Colors.white,
   }) {
-    return SizedBox(
+    final isDarkButton = color != Colors.white;
+    return Container(
       width: double.infinity,
       height: 38,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(_panelRadius),
+        border: Border.all(
+          color: const Color(0xFF030744),
+        ),
+      ),
       child: WidgetButton(
         onTap: onTap,
         borderRadius: _panelRadius,
         mainColor: color,
-        useDefaultHoverColor: false,
+        useDefaultHoverColor: true,
         child: Center(
           child: Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isDarkButton ? Colors.white : const Color(0xFF030744),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1347,14 +2316,18 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     required Widget subtitle,
     required bool isExpanded,
     required VoidCallback onTap,
+    Color titleColor = const Color(0xFF030744),
+    Color iconColor = const Color(0xFF030744),
   }) {
     return WidgetButton(
       onTap: onTap,
       borderRadius: 8,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: _panelOuterGap,
-          vertical: _panelGap,
+        padding: const EdgeInsets.fromLTRB(
+          _panelOuterGap,
+          10,
+          _panelOuterGap,
+          4,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1365,11 +2338,15 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       height: 1,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF030744),
+                      color: titleColor,
+                    ),
+                    textHeightBehavior: const TextHeightBehavior(
+                      applyHeightToFirstAscent: false,
+                      applyHeightToLastDescent: false,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -1380,7 +2357,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
             const SizedBox(width: 12),
             Icon(
               isExpanded ? Icons.expand_less : Icons.expand_more,
-              color: const Color(0xFF030744),
+              color: iconColor,
             ),
           ],
         ),
@@ -1388,15 +2365,15 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
-  Widget _buildSectionSwitch() {
+  Widget _buildSectionSwitch({
+    int? partnerCount,
+    int? driverCount,
+  }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(_panelRadius),
         border: Border.all(
-          color: const Color(0xFF030744).withValues(alpha: 0.08),
+          color: const Color(0xFF030744),
         ),
       ),
       child: Row(
@@ -1418,7 +2395,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 height: 40,
                 child: Center(
                   child: Text(
-                    "Partners",
+                    "Partners${partnerCount == null ? "" : " ($partnerCount)"}",
                     style: TextStyle(
                       color: _selectedSection == "partners"
                           ? Colors.white
@@ -1447,7 +2424,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 height: 40,
                 child: Center(
                   child: Text(
-                    "Drivers",
+                    "Drivers${driverCount == null ? "" : " ($driverCount)"}",
                     style: TextStyle(
                       color: _selectedSection == "drivers"
                           ? Colors.white
@@ -1464,204 +2441,215 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
-  Widget _buildHistoryWrap(String title, Map<String, double> values) {
-    final entries = values.entries.toList()
-      ..sort(
-        (a, b) => b.key.compareTo(a.key),
-      );
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(_panelInset),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_panelRadius),
-        border: Border.all(
-          color: const Color(0xFF030744).withValues(alpha: 0.08),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              height: 1,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF030744),
-            ),
-          ),
-          const SizedBox(height: _panelGap),
-          if (entries.isEmpty)
-            const Text(
-              "No history yet.",
-              style: TextStyle(
-                color: Color(0xFF6D7890),
+  Widget _buildTransactionHistoryList({
+    required String title,
+    required Stream<QuerySnapshot<Map<String, dynamic>>> stream,
+    required String amountKey,
+    required VoidCallback onAdd,
+    required Future<void> Function(
+      String transactionId,
+      Map<String, dynamic> data,
+    ) onEdit,
+    required Future<void> Function(
+      String transactionId,
+      Map<String, dynamic> data,
+    ) onDelete,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  height: 1,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF030744),
+                ),
               ),
             ),
-          if (entries.isNotEmpty)
-            Column(
-              children: entries.map((entry) {
+            WidgetButton(
+              onTap: onAdd,
+              borderRadius: 8,
+              child: const SizedBox(
+                width: 34,
+                height: 34,
+                child: Center(
+                  child: Icon(
+                    Icons.add,
+                    size: 20,
+                    color: Color(0xFF030744),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: _panelGap),
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: stream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF007BFF),
+                  ),
+                ),
+              );
+            }
+            final docs = snapshot.hasData
+                ? _sortDocsByCreatedAt(snapshot.data!.docs)
+                    .where(
+                      (doc) =>
+                          _toDouble(
+                            doc.data()[amountKey] ?? doc.data()["amount"],
+                          ) >
+                          0,
+                    )
+                    .toList()
+                : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+            if (docs.isEmpty) {
+              return const Text(
+                "No history yet.",
+                style: TextStyle(
+                  color: Color(0xFF030744),
+                ),
+              );
+            }
+            return Column(
+              children: docs.take(10).map((doc) {
+                final data = doc.data();
+                final isCredit = _isCreditTransaction(data);
+                final amount = _toDouble(data[amountKey] ?? data["amount"]);
+                final actorName = _firstNonEmptyText([
+                  data["name"],
+                  isCredit ? "Credit" : "Debit",
+                ]);
+                final transactionLabel = isCredit ? "Credit" : "Debit";
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F9FC),
-                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(12),
+                      ),
+                      border: Border.all(
+                        width: 1,
+                        color: const Color(0xFF030744).withValues(
+                          alpha: 0.15,
+                        ),
+                      ),
                     ),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Text(
-                            _formatMonthLabel(entry.key),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6D7890),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                actorName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  height: 1.1,
+                                  fontSize: 14,
+                                  color: Color(0xFF030744),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Text(
+                              "${isCredit ? "+" : "-"} ${_formatMoney(amount)}",
+                              style: const TextStyle(
+                                height: 1,
+                                fontSize: 14,
+                                color: Color(0xFF030744),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            WidgetButton(
+                              onTap: () {
+                                onEdit(doc.id, data);
+                              },
+                              borderRadius: 8,
+                              child: const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                    color: Color(0xFF030744),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            WidgetButton(
+                              onTap: () {
+                                onDelete(doc.id, data);
+                              },
+                              borderRadius: 8,
+                              child: const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _formatMoney(entry.value),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF030744),
-                          ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                transactionLabel,
+                                style: const TextStyle(
+                                  height: 1,
+                                  fontSize: 14,
+                                  color: Color(0xFF030744),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              _formatTimestamp(data["created_at"]),
+                              style: const TextStyle(
+                                height: 1,
+                                fontSize: 14,
+                                color: Color(0xFF030744),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                          ],
                         ),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
                 );
               }).toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionHistoryList({
-    required String title,
-    required Stream<QuerySnapshot<Map<String, dynamic>>> stream,
-    required String amountKey,
-    required String actorLabel,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(_panelInset),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_panelRadius),
-        border: Border.all(
-          color: const Color(0xFF030744).withValues(alpha: 0.08),
+            );
+          },
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              height: 1,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF030744),
-            ),
-          ),
-          const SizedBox(height: _panelGap),
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: stream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting &&
-                  !snapshot.hasData) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF007BFF),
-                    ),
-                  ),
-                );
-              }
-              final docs = snapshot.hasData
-                  ? _sortDocsByCreatedAt(snapshot.data!.docs)
-                  : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-              if (docs.isEmpty) {
-                return const Text(
-                  "No history yet.",
-                  style: TextStyle(
-                    color: Color(0xFF6D7890),
-                  ),
-                );
-              }
-              return Column(
-                children: docs.take(10).map((doc) {
-                  final data = doc.data();
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F9FC),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            alignment: WrapAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _formatMoney(data[amountKey]),
-                                style: const TextStyle(
-                                  height: 1,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF030744),
-                                ),
-                              ),
-                              Text(
-                                _formatTimestamp(data["created_at"]),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "$actorLabel: ${data["partner_name"] ?? data["driver_name"] ?? "-"}",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF030744),
-                            ),
-                          ),
-                          if ("${data["note"]}".trim().isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              "${data["note"]}",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6D7890),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -1669,190 +2657,182 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(_panelOuterGap),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(_panelRadius),
-            border: Border.all(
-              color: const Color(0xFF030744).withValues(alpha: 0.08),
+        Column(
+          children: [
+            TextFieldWidget(
+              controller: _userIdTEC,
+              labelText: "Search Name or User ID",
+              onChanged: (value) {
+                setState(() {
+                  _quickPartnerUserData = null;
+                  _quickPartnerUserId = null;
+                  _quickPartnerNameTEC.clear();
+                  _markupTEC.clear();
+                  _quickPaymentMode = "load";
+                });
+                _queueQuickPartnerSearch(value);
+              },
             ),
-          ),
-          child: Column(
-            children: [
-              TextFieldWidget(
-                controller: _userIdTEC,
-                labelText: "Search Name or User ID",
-                onChanged: (value) {
-                  setState(() {
-                    _quickPartnerUserData = null;
-                    _quickPartnerUserId = null;
-                    _markupTEC.clear();
-                    _quickPaymentMode = "load";
-                  });
-                  _queueQuickPartnerSearch(value);
-                },
-              ),
-              if (_isSearchingQuickPartner) ...[
-                const SizedBox(height: _panelGap),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Color(0xFF007BFF),
-                    ),
+            if (_isSearchingQuickPartner) ...[
+              const SizedBox(height: _panelGap),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color(0xFF007BFF),
                   ),
                 ),
-              ],
-              if (_quickPartnerSearchResults.isNotEmpty) ...[
-                const SizedBox(height: _panelGap),
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(_panelRadius),
-                    border: Border.all(
-                      color: const Color(0xFF030744).withValues(alpha: 0.08),
-                    ),
+              ),
+            ],
+            if (_quickPartnerSearchResults.isNotEmpty) ...[
+              const SizedBox(height: _panelGap),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(_panelRadius),
+                  border: Border.all(
+                    color: const Color(0xFF030744).withValues(alpha: 0.08),
                   ),
-                  child: Column(
-                    children:
-                        _quickPartnerSearchResults.take(6).map((userData) {
-                      final userId = "${userData["id"] ?? ""}";
-                      final userName = capitalizeWords(
-                        "${userData["name"] ?? "Unnamed User"}",
-                        alt: "Unnamed User",
-                      );
-                      return InkWell(
-                        onTap: () => _selectQuickPartner(userData),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: const Color(0xFF030744)
-                                    .withValues(alpha: 0.06),
-                              ),
+                ),
+                child: Column(
+                  children: _quickPartnerSearchResults.take(6).map((userData) {
+                    final userId = "${userData["id"] ?? ""}";
+                    final userName = capitalizeWords(
+                      "${userData["name"] ?? "Unnamed User"}",
+                      alt: "Unnamed User",
+                    );
+                    return InkWell(
+                      onTap: () => _selectQuickPartner(userData),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: const Color(0xFF030744)
+                                  .withValues(alpha: 0.06),
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                userName,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF030744),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "User ID: $userId",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-              if (_quickPartnerUserData != null &&
-                  _quickPartnerUserId != null) ...[
-                const SizedBox(height: _panelGap),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(_panelGap),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F9FC),
-                    borderRadius: BorderRadius.circular(_panelRadius),
-                    border: Border.all(
-                      color: const Color(0xFF030744).withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        capitalizeWords(
-                          "${_quickPartnerUserData?["name"] ?? "Partner"}",
-                        ),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF030744),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF030744),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "User ID: $userId",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF030744),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        "User ID: ${_quickPartnerUserId ?? ""}",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6D7890),
-                        ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+            if (_quickPartnerUserData != null &&
+                _quickPartnerUserId != null) ...[
+              const SizedBox(height: _panelGap),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(_panelGap),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F9FC),
+                  borderRadius: BorderRadius.circular(_panelRadius),
+                  border: Border.all(
+                    color: const Color(0xFF030744).withValues(alpha: 0.08),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      capitalizeWords(
+                        "${_quickPartnerUserData?["name"] ?? "Partner"}",
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: _panelGap),
-                TextFieldWidget(
-                  controller: _markupTEC,
-                  labelText: "Markup Amount",
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-                const SizedBox(height: _panelGap),
-                DropdownButtonFormField<String>(
-                  initialValue: _quickPaymentMode,
-                  decoration: _dropdownDecoration(
-                    label: "Payment Mode",
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: "cash",
-                      child: Text("Cash"),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF030744),
+                      ),
                     ),
-                    DropdownMenuItem(
-                      value: "load",
-                      child: Text("Load"),
+                    const SizedBox(height: 6),
+                    Text(
+                      "User ID: ${_quickPartnerUserId ?? ""}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF030744),
+                      ),
                     ),
                   ],
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    setState(() {
-                      _quickPaymentMode = value;
-                    });
-                  },
                 ),
-                const SizedBox(height: _panelGap),
-                SizedBox(
-                  width: double.infinity,
-                  child: ActionButton(
-                    text: _isSavingQuickSettings
-                        ? "Saving..."
-                        : "Save Partner Settings",
-                    onTap: _isSavingQuickSettings ? () {} : _saveQuickSettings,
+              ),
+              const SizedBox(height: _panelGap),
+              TextFieldWidget(
+                controller: _quickPartnerNameTEC,
+                labelText: "Partner Name",
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: _panelGap),
+              TextFieldWidget(
+                controller: _markupTEC,
+                labelText: "Markup Amount",
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+              ),
+              const SizedBox(height: _panelGap),
+              DropdownButtonFormField<String>(
+                initialValue: _quickPaymentMode,
+                decoration: _dropdownDecoration(
+                  label: "Payment Mode",
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: "cash",
+                    child: Text("Cash"),
                   ),
-                ),
-              ],
+                  DropdownMenuItem(
+                    value: "load",
+                    child: Text("Load"),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() {
+                    _quickPaymentMode = value;
+                  });
+                },
+              ),
+              const SizedBox(height: _panelGap),
+              _buildPrimaryButton(
+                text: _isSavingQuickSettings
+                    ? "Saving..."
+                    : "Save Partner Settings",
+                onTap: _isSavingQuickSettings ? () {} : _saveQuickSettings,
+              ),
             ],
-          ),
+          ],
         ),
       ],
     );
@@ -1862,23 +2842,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     required TextEditingController controller,
     required String hintText,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(_panelGap),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_panelRadius),
-        border: Border.all(
-          color: const Color(0xFF030744).withValues(alpha: 0.08),
-        ),
-      ),
-      child: TextFieldWidget(
-        controller: controller,
-        labelText: hintText,
-        onChanged: (_) {
-          setState(() {});
-        },
-      ),
+    return TextFieldWidget(
+      controller: controller,
+      labelText: hintText,
+      onChanged: (_) {
+        setState(() {});
+      },
     );
   }
 
@@ -1899,7 +2868,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           stream: fbStore.collection("partners").snapshots(),
           builder: (context, partnerSnapshot) {
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: fbStore.collectionGroup("transactions").snapshots(),
+              stream: fbStore.collectionGroup("transactions_v2").snapshots(),
               builder: (context, transactionSnapshot) {
                 return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                   stream: fbStore
@@ -1938,7 +2907,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                           : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
                     );
 
-                    _ensurePartnerUsersLoaded(
+                    _ensurePartnerUsersLoadedAfterBuild(
                       entries.map((entry) => "${entry["partnerId"]}").toList(),
                     );
 
@@ -1969,11 +2938,31 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       return _matchesSearch(haystack, query);
                     }).toList();
 
+                    final duplicateNameCounts = <String, int>{};
+                    for (final entry in entries) {
+                      final partnerId = "${entry["partnerId"]}";
+                      final partnerData =
+                          entry["partnerData"] as Map<String, dynamic>? ?? {};
+                      final inferredUserData =
+                          entry["userData"] as Map<String, dynamic>?;
+                      final userData =
+                          inferredUserData ?? _partnerUserCache[partnerId];
+                      final normalizedName = _normalizePartnerName(
+                        _partnerDisplayName(
+                          partnerId: partnerId,
+                          partnerData: partnerData,
+                          userData: userData,
+                        ),
+                      );
+                      duplicateNameCounts[normalizedName] =
+                          (duplicateNameCounts[normalizedName] ?? 0) + 1;
+                    }
+
                     if (entries.isEmpty) {
                       return const Text(
                         "No partners found.",
                         style: TextStyle(
-                          color: Color(0xFF6D7890),
+                          color: Color(0xFF030744),
                         ),
                       );
                     }
@@ -1989,6 +2978,18 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                             inferredUserData ?? _partnerUserCache[partnerId];
                         final isExpanded =
                             _expandedPartnerIds.contains(partnerId);
+                        final normalizedName = _normalizePartnerName(
+                          _partnerDisplayName(
+                            partnerId: partnerId,
+                            partnerData: partnerData,
+                            userData: userData,
+                          ),
+                        );
+                        final isDuplicate =
+                            (duplicateNameCounts[normalizedName] ?? 0) > 1;
+                        final accentColor = isDuplicate
+                            ? const Color(0xFFC62828)
+                            : const Color(0xFF030744);
                         return Padding(
                           padding:
                               const EdgeInsets.only(bottom: _panelOuterGap),
@@ -1997,8 +2998,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(_panelRadius),
                               border: Border.all(
-                                color: const Color(0xFF030744)
-                                    .withValues(alpha: 0.08),
+                                color: isDuplicate
+                                    ? accentColor
+                                    : const Color(0xFF030744)
+                                        .withValues(alpha: 0.08),
                               ),
                             ),
                             child: Column(
@@ -2013,32 +3016,69 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        "User ID: $partnerId",
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF6D7890),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Claimable: ${_formatMoney(partnerData["claimable_cash_markup_amount"])}",
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF6D7890),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Claimed: ${_formatMoney(partnerData["claimed_cash_markup_amount"])}",
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF6D7890),
-                                        ),
+                                      Wrap(
+                                        children: [
+                                          _buildInlineStat(
+                                            "User ID",
+                                            partnerId,
+                                            color: accentColor,
+                                          ),
+                                          _buildInlineStat(
+                                            "Payment",
+                                            capitalizeWords(
+                                              "${userData?["payment_mode"] ?? "cash"}",
+                                            ),
+                                            color: accentColor,
+                                          ),
+                                          _buildInlineStat(
+                                            "Markup",
+                                            userData != null
+                                                ? _formatMoney(
+                                                    userData["markup_amount"],
+                                                  )
+                                                : _loadingPartnerUserIds
+                                                        .contains(partnerId)
+                                                    ? "Loading..."
+                                                    : _formatMoney(0),
+                                            color: accentColor,
+                                          ),
+                                          _buildInlineStat(
+                                            "Today",
+                                            _formatMoney(
+                                              partnerData["today_amount"],
+                                            ),
+                                            color: accentColor,
+                                          ),
+                                          _buildInlineStat(
+                                            _currentMonthLabel(),
+                                            _formatMoney(
+                                              partnerData["month_amount"],
+                                            ),
+                                            color: accentColor,
+                                          ),
+                                          _buildInlineStat(
+                                            "Claimable",
+                                            _formatMoney(
+                                              partnerData[
+                                                  "claimable_cash_markup_amount"],
+                                            ),
+                                            color: accentColor,
+                                          ),
+                                          _buildInlineStat(
+                                            "Claimed",
+                                            _formatMoney(
+                                              partnerData[
+                                                  "claimed_cash_markup_amount"],
+                                            ),
+                                            color: accentColor,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                   isExpanded: isExpanded,
+                                  titleColor: accentColor,
+                                  iconColor: accentColor,
                                   onTap: () {
                                     setState(() {
                                       if (isExpanded) {
@@ -2065,51 +3105,13 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                     ),
                                     child: Column(
                                       children: [
-                                        _buildSummaryRow(
-                                          "Payment Mode",
-                                          capitalizeWords(
-                                            "${userData?["payment_mode"] ?? "cash"}",
-                                          ),
-                                        ),
-                                        _buildSummaryRow(
-                                          "Markup",
-                                          userData != null
-                                              ? _formatMoney(
-                                                  userData["markup_amount"])
-                                              : _loadingPartnerUserIds
-                                                      .contains(partnerId)
-                                                  ? "Loading..."
-                                                  : _formatMoney(0),
-                                        ),
-                                        _buildSummaryRow(
-                                          "Today",
-                                          _formatMoney(
-                                              partnerData["today_amount"]),
-                                        ),
-                                        _buildSummaryRow(
-                                          "This Month",
-                                          _formatMoney(
-                                              partnerData["month_amount"]),
-                                        ),
-                                        _buildSummaryRow(
-                                          "All Time",
-                                          _formatMoney(
-                                              partnerData["total_amount"]),
-                                        ),
-                                        _buildSummaryRow(
-                                          "Claimed",
-                                          _formatMoney(
-                                            partnerData[
-                                                "claimed_cash_markup_amount"],
-                                          ),
-                                        ),
                                         const SizedBox(height: 8),
                                         _buildPrimaryButton(
-                                          text: "Edit Settings",
+                                          text: "Edit Partner",
                                           onTap: () {
                                             _showEditPartnerDialog(
                                               partnerId: partnerId,
-                                              userData: userData,
+                                              partnerData: partnerData,
                                             );
                                           },
                                         ),
@@ -2122,43 +3124,91 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                               partnerData: partnerData,
                                             );
                                           },
-                                          color: const Color(0xFF030744),
-                                        ),
-                                        const SizedBox(height: _panelGap),
-                                        _buildHistoryWrap(
-                                          "Monthly Markup History",
-                                          _toDoubleMap(
-                                            partnerData[
-                                                "monthly_markup_history"],
-                                          ),
-                                        ),
-                                        const SizedBox(height: _panelGap),
-                                        _buildHistoryWrap(
-                                          "Monthly Claimable Cash History",
-                                          _toDoubleMap(
-                                            partnerData[
-                                                "monthly_cash_markup_history"],
-                                          ),
-                                        ),
-                                        const SizedBox(height: _panelGap),
-                                        _buildHistoryWrap(
-                                          "Monthly Claimed History",
-                                          _toDoubleMap(
-                                            partnerData[
-                                                "monthly_claimed_cash_markup_history"],
-                                          ),
                                         ),
                                         const SizedBox(height: _panelGap),
                                         _buildTransactionHistoryList(
-                                          title: "Claim History",
+                                          title: "Transactions",
                                           stream: fbStore
                                               .collection("partners")
                                               .doc(partnerId)
-                                              .collection(
-                                                  "claimed_transactions")
+                                              .collection("transactions_v2")
                                               .snapshots(),
                                           amountKey: "amount",
-                                          actorLabel: "Partner",
+                                          onAdd: () {
+                                            _showPartnerTransactionDialog(
+                                              title: "Add Partner Transaction",
+                                              partnerId: partnerId,
+                                              partnerData: partnerData,
+                                            );
+                                          },
+                                          onEdit: (transactionId, data) async {
+                                            await _showPartnerTransactionDialog(
+                                              title: "Edit Partner Transaction",
+                                              partnerId: partnerId,
+                                              partnerData: partnerData,
+                                              transactionId: transactionId,
+                                              initialData: data,
+                                            );
+                                          },
+                                          onDelete:
+                                              (transactionId, data) async {
+                                            final confirmed =
+                                                await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (context) {
+                                                        return AlertDialog(
+                                                          backgroundColor:
+                                                              Colors.white,
+                                                          title: const Text(
+                                                            "Delete Transaction?",
+                                                          ),
+                                                          content: const Text(
+                                                            "This will remove the partner transaction and any linked claim record.",
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              style:
+                                                                  _darkBlueTextButtonStyle(),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                context,
+                                                                false,
+                                                              ),
+                                                              child: const Text(
+                                                                "Cancel",
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              style:
+                                                                  _darkBlueTextButtonStyle(),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                context,
+                                                                true,
+                                                              ),
+                                                              child: const Text(
+                                                                "Delete",
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
+                                                    ) ??
+                                                    false;
+                                            if (!confirmed) {
+                                              return;
+                                            }
+                                            await _deletePartnerTransaction(
+                                              partnerId: partnerId,
+                                              transactionId: transactionId,
+                                            );
+                                            if (!mounted) {
+                                              return;
+                                            }
+                                            _showSuccessSnack(
+                                              "Partner transaction removed.",
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),
@@ -2190,217 +3240,313 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         ),
         const SizedBox(height: _panelGap),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: fbStore.collection("drivers").snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting &&
-                !snapshot.hasData) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF007BFF),
-                  ),
-                ),
-              );
-            }
-            var docs = snapshot.hasData
-                ? _sortDocsByUpdatedAt(snapshot.data!.docs)
-                : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-            final query = _driverListSearchTEC.text.trim();
-            docs = docs.where((doc) {
-              final data = doc.data();
-              final received = _toDouble(data["received_cash_markup_amount"]);
-              final deducted = _toDouble(data["deducted_cash_markup_amount"]);
-              final hasMarkup = received > 0 || deducted > 0;
-              if (!hasMarkup) {
-                return false;
-              }
-              if (query.isEmpty) {
-                return true;
-              }
-              final driverId = "${data["driver_id"] ?? doc.id}";
-              final haystack = [
-                driverId,
-                "${data["driver_name"] ?? ""}",
-                "${data["name"] ?? ""}",
-              ].join(" ");
-              return _matchesSearch(haystack, query);
-            }).toList();
-            docs.sort((a, b) {
-              final aData = a.data();
-              final bData = b.data();
-              final aDeductible = max(
-                _toDouble(aData["received_cash_markup_amount"]) -
-                    _toDouble(aData["deducted_cash_markup_amount"]),
-                0,
-              );
-              final bDeductible = max(
-                _toDouble(bData["received_cash_markup_amount"]) -
-                    _toDouble(bData["deducted_cash_markup_amount"]),
-                0,
-              );
-              final deductibleDiff = bDeductible.compareTo(aDeductible);
-              if (deductibleDiff != 0) {
-                return deductibleDiff;
-              }
-              final aTs = aData["updated_at"];
-              final bTs = bData["updated_at"];
-              if (aTs is Timestamp && bTs is Timestamp) {
-                return bTs.compareTo(aTs);
-              }
-              return 0;
-            });
-            if (docs.isEmpty) {
-              return const Text(
-                "No driver markup records found.",
-                style: TextStyle(
-                  color: Color(0xFF6D7890),
-                ),
-              );
-            }
-            return Column(
-              children: docs.map((doc) {
-                final data = doc.data();
-                final driverId = "${data["driver_id"] ?? doc.id}";
-                final deductible = max(
-                  _toDouble(data["received_cash_markup_amount"]) -
-                      _toDouble(data["deducted_cash_markup_amount"]),
-                  0,
-                );
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: _panelOuterGap),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(_panelRadius),
-                      border: Border.all(
-                        color: const Color(0xFF030744).withValues(alpha: 0.08),
+          stream: fbStore.collection("partners").snapshots(),
+          builder: (context, partnerSnapshot) {
+            final partnerIds = partnerSnapshot.hasData
+                ? partnerSnapshot.data!.docs.map((doc) => doc.id).toSet()
+                : <String>{};
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: fbStore.collection("drivers").snapshots(),
+              builder: (context, snapshot) {
+                if (((partnerSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        !partnerSnapshot.hasData) ||
+                    (snapshot.connectionState == ConnectionState.waiting &&
+                        !snapshot.hasData))) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF007BFF),
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        _buildExpandableRow(
-                          title: capitalizeWords(
-                            "${data["driver_name"] ?? data["name"] ?? "Driver"}",
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Driver ID: $driverId",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
+                  );
+                }
+                var docs = snapshot.hasData
+                    ? _sortDocsByUpdatedAt(snapshot.data!.docs)
+                    : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+                final query = _driverListSearchTEC.text.trim();
+                docs = docs.where((doc) {
+                  final data = doc.data();
+                  final driverId = "${data["driver_id"] ?? doc.id}";
+                  if ((partnerIds.contains(doc.id) ||
+                          partnerIds.contains(driverId)) &&
+                      !_hasDriverIdentity(data)) {
+                    return false;
+                  }
+                  final deductible =
+                      _toDouble(data["deductable_cash_markup_amount"]);
+                  final deducted =
+                      _toDouble(data["deducted_cash_markup_amount"]);
+                  final hasMarkup = deductible > 0 || deducted > 0;
+                  if (!hasMarkup && !_hasDriverIdentity(data)) {
+                    return false;
+                  }
+                  if (query.isEmpty) {
+                    return true;
+                  }
+                  final haystack = [
+                    driverId,
+                    "${data["driver_name"] ?? ""}",
+                    "${data["name"] ?? ""}",
+                  ].join(" ");
+                  return _matchesSearch(haystack, query);
+                }).toList();
+                docs.sort((a, b) {
+                  final aData = a.data();
+                  final bData = b.data();
+                  final aDeductible =
+                      _toDouble(aData["deductable_cash_markup_amount"]);
+                  final bDeductible =
+                      _toDouble(bData["deductable_cash_markup_amount"]);
+                  final deductibleDiff = bDeductible.compareTo(aDeductible);
+                  if (deductibleDiff != 0) {
+                    return deductibleDiff;
+                  }
+                  final aDeducted =
+                      _toDouble(aData["deducted_cash_markup_amount"]);
+                  final bDeducted =
+                      _toDouble(bData["deducted_cash_markup_amount"]);
+                  final deductedDiff = bDeducted.compareTo(aDeducted);
+                  if (deductedDiff != 0) {
+                    return deductedDiff;
+                  }
+                  final aName = _normalizedSortText(
+                    _firstNonEmptyText([
+                      aData["driver_name"],
+                      aData["name"],
+                      a.id,
+                    ]),
+                  );
+                  final bName = _normalizedSortText(
+                    _firstNonEmptyText([
+                      bData["driver_name"],
+                      bData["name"],
+                      b.id,
+                    ]),
+                  );
+                  final nameDiff = aName.compareTo(bName);
+                  if (nameDiff != 0) {
+                    return nameDiff;
+                  }
+                  return a.id.compareTo(b.id);
+                });
+                if (docs.isEmpty) {
+                  return const Text(
+                    "No driver markup records found.",
+                    style: TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                  );
+                }
+                return Column(
+                  children: docs.map((doc) {
+                    final data = doc.data();
+                    final driverId = "${data["driver_id"] ?? doc.id}";
+                    final driverName = _firstNonEmptyText([
+                      data["driver_name"],
+                      data["name"],
+                      "Driver",
+                    ]);
+                    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: fbStore
+                          .collection("drivers")
+                          .doc(driverId)
+                          .collection("transactions_v2")
+                          .snapshots(),
+                      builder: (context, transactionSnapshot) {
+                        final deducted =
+                            _toDouble(data["deducted_cash_markup_amount"]);
+                        final deductible =
+                            _toDouble(data["deductable_cash_markup_amount"]);
+                        return Padding(
+                          padding:
+                              const EdgeInsets.only(bottom: _panelOuterGap),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(_panelRadius),
+                              border: Border.all(
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.08),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Deductible: ${_formatMoney(deductible)}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Deducted: ${_formatMoney(data["deducted_cash_markup_amount"])}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6D7890),
-                                ),
-                              ),
-                            ],
-                          ),
-                          isExpanded: _expandedDriverIds.contains(driverId),
-                          onTap: () {
-                            setState(() {
-                              if (_expandedDriverIds.contains(driverId)) {
-                                _expandedDriverIds.remove(driverId);
-                              } else {
-                                _expandedDriverIds.add(driverId);
-                              }
-                            });
-                          },
-                        ),
-                        if (_expandedDriverIds.contains(driverId)) ...[
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color:
-                                const Color(0xFF030744).withValues(alpha: 0.08),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              _panelOuterGap,
-                              _panelGap,
-                              _panelOuterGap,
-                              _panelOuterGap,
                             ),
                             child: Column(
                               children: [
-                                _buildSummaryRow(
-                                  "Received",
-                                  _formatMoney(
-                                    data["received_cash_markup_amount"],
+                                _buildExpandableRow(
+                                  title: capitalizeWords(
+                                    driverName,
                                   ),
-                                ),
-                                _buildSummaryRow(
-                                  "Deducted",
-                                  _formatMoney(
-                                    data["deducted_cash_markup_amount"],
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Wrap(
+                                        children: [
+                                          _buildInlineStat(
+                                            "Driver ID",
+                                            driverId,
+                                          ),
+                                          _buildInlineStat(
+                                            "Deductible",
+                                            _formatMoney(deductible),
+                                          ),
+                                          _buildInlineStat(
+                                            "Deducted",
+                                            _formatMoney(deducted),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                _buildSummaryRow(
-                                  "Deductible",
-                                  _formatMoney(deductible),
-                                ),
-                                const SizedBox(height: 8),
-                                _buildPrimaryButton(
-                                  text: "Record Deduction",
+                                  isExpanded:
+                                      _expandedDriverIds.contains(driverId),
                                   onTap: () {
-                                    _showDriverDeductionDialog(
-                                      driverId: driverId,
-                                      driverData: data,
-                                    );
+                                    setState(() {
+                                      if (_expandedDriverIds
+                                          .contains(driverId)) {
+                                        _expandedDriverIds.remove(driverId);
+                                      } else {
+                                        _expandedDriverIds.add(driverId);
+                                      }
+                                    });
                                   },
                                 ),
-                                const SizedBox(height: _panelGap),
-                                _buildHistoryWrap(
-                                  "Monthly Received History",
-                                  _toDoubleMap(
-                                    data[
-                                        "monthly_received_cash_markup_history"],
+                                if (_expandedDriverIds.contains(driverId)) ...[
+                                  Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: const Color(0xFF030744)
+                                        .withValues(alpha: 0.08),
                                   ),
-                                ),
-                                const SizedBox(height: _panelGap),
-                                _buildHistoryWrap(
-                                  "Monthly Deducted History",
-                                  _toDoubleMap(
-                                    data[
-                                        "monthly_deducted_cash_markup_history"],
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      _panelOuterGap,
+                                      _panelGap,
+                                      _panelOuterGap,
+                                      _panelOuterGap,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const SizedBox(height: 8),
+                                        _buildPrimaryButton(
+                                          text: "Edit Driver",
+                                          onTap: () {
+                                            _showEditDriverDialog(
+                                              driverId: driverId,
+                                              driverData: data,
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _buildPrimaryButton(
+                                          text: "Record Deduction",
+                                          onTap: () {
+                                            _showDriverDeductionDialog(
+                                              driverId: driverId,
+                                              driverData: data,
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(height: _panelGap),
+                                        _buildTransactionHistoryList(
+                                          title: "Transactions",
+                                          stream: fbStore
+                                              .collection("drivers")
+                                              .doc(driverId)
+                                              .collection("transactions_v2")
+                                              .snapshots(),
+                                          amountKey: "amount",
+                                          onAdd: () {
+                                            _showDriverTransactionDialog(
+                                              title: "Add Driver Transaction",
+                                              driverId: driverId,
+                                              driverData: data,
+                                            );
+                                          },
+                                          onEdit:
+                                              (transactionId, txData) async {
+                                            await _showDriverTransactionDialog(
+                                              title: "Edit Driver Transaction",
+                                              driverId: driverId,
+                                              driverData: data,
+                                              transactionId: transactionId,
+                                              initialData: txData,
+                                            );
+                                          },
+                                          onDelete:
+                                              (transactionId, txData) async {
+                                            final confirmed =
+                                                await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (context) {
+                                                        return AlertDialog(
+                                                          backgroundColor:
+                                                              Colors.white,
+                                                          title: const Text(
+                                                            "Delete Transaction?",
+                                                          ),
+                                                          content: const Text(
+                                                            "This will remove the driver transaction and any linked received/deducted record.",
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              style:
+                                                                  _darkBlueTextButtonStyle(),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                context,
+                                                                false,
+                                                              ),
+                                                              child: const Text(
+                                                                "Cancel",
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              style:
+                                                                  _darkBlueTextButtonStyle(),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                context,
+                                                                true,
+                                                              ),
+                                                              child: const Text(
+                                                                "Delete",
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
+                                                    ) ??
+                                                    false;
+                                            if (!confirmed) {
+                                              return;
+                                            }
+                                            await _deleteDriverTransaction(
+                                              driverId: driverId,
+                                              transactionId: transactionId,
+                                            );
+                                            if (!mounted) {
+                                              return;
+                                            }
+                                            _showSuccessSnack(
+                                              "Driver transaction removed.",
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: _panelGap),
-                                _buildTransactionHistoryList(
-                                  title: "Deduction History",
-                                  stream: fbStore
-                                      .collection("drivers")
-                                      .doc(driverId)
-                                      .collection(
-                                          "deducted_markup_transactions")
-                                      .snapshots(),
-                                  amountKey: "amount",
-                                  actorLabel: "Driver",
-                                ),
+                                ],
                               ],
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
+                        );
+                      },
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             );
           },
         ),
@@ -2463,7 +3609,59 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
             children: [
               _buildQuickPartnerSettings(),
               const SizedBox(height: _panelOuterGap),
-              _buildSectionSwitch(),
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: fbStore.collection("partners").snapshots(),
+                builder: (context, partnerSnapshot) {
+                  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    stream:
+                        fbStore.collectionGroup("transactions_v2").snapshots(),
+                    builder: (context, transactionSnapshot) {
+                      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        stream: fbStore
+                            .collection("users")
+                            .orderBy("partner_name")
+                            .startAt([""]).snapshots(),
+                        builder: (context, userSnapshot) {
+                          return StreamBuilder<
+                              QuerySnapshot<Map<String, dynamic>>>(
+                            stream: fbStore.collection("drivers").snapshots(),
+                            builder: (context, driverSnapshot) {
+                              final partnerDocs = partnerSnapshot.hasData
+                                  ? partnerSnapshot.data!.docs
+                                  : <QueryDocumentSnapshot<
+                                      Map<String, dynamic>>>[];
+                              final partnerEntries = _buildPartnerEntries(
+                                partnerDocs: partnerDocs,
+                                transactionDocs: transactionSnapshot.hasData
+                                    ? transactionSnapshot.data!.docs
+                                    : <QueryDocumentSnapshot<
+                                        Map<String, dynamic>>>[],
+                                userSettingDocs: userSnapshot.hasData
+                                    ? userSnapshot.data!.docs
+                                    : <QueryDocumentSnapshot<
+                                        Map<String, dynamic>>>[],
+                              );
+                              final partnerIds =
+                                  partnerDocs.map((doc) => doc.id).toSet();
+                              final driverCount = _visibleDriverCount(
+                                driverDocs: driverSnapshot.hasData
+                                    ? driverSnapshot.data!.docs
+                                    : <QueryDocumentSnapshot<
+                                        Map<String, dynamic>>>[],
+                                partnerIds: partnerIds,
+                              );
+                              return _buildSectionSwitch(
+                                partnerCount: partnerEntries.length,
+                                driverCount: driverCount,
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
               const SizedBox(height: _panelOuterGap),
               if (_selectedSection == "partners") _buildPartnerList(),
               if (_selectedSection == "drivers") _buildDriverList(),

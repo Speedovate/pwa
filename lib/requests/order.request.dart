@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/constants/api.dart';
 import 'package:pwa/models/order.model.dart';
@@ -65,6 +66,9 @@ class OrderRequest extends HttpService {
     int id,
     String uploadedBy,
   ) async {
+    if (chatFile == null || chatFile!.isEmpty) {
+      throw "No image selected.";
+    }
     dynamic body = {
       "uploaded_by": uploadedBy,
     };
@@ -89,11 +93,23 @@ class OrderRequest extends HttpService {
         ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
+      if (apiResult.statusCode == 200 && apiResult.data is String) {
+        return ApiResponse(
+          code: 200,
+          message: (apiResult.data as String).trim().isEmpty
+              ? "Upload completed."
+              : (apiResult.data as String).trim(),
+          body: apiResult.data,
+        );
+      }
       if (!apiResponse.allGood) {
-        throw apiResponse.message;
+        final status = apiResult.statusCode;
+        final rawBody = apiResult.data;
+        throw "Upload failed${status == null ? "" : " [$status]"}: ${apiResponse.message}${rawBody == null ? "" : " | Response: $rawBody"}";
       }
       return apiResponse;
     } catch (e) {
+      debugPrint("postMedia error for order $id uploaded_by=$uploadedBy: $e");
       throw e.toString();
     }
   }
