@@ -30,8 +30,7 @@ class _HistoryViewState extends State<HistoryView> {
   void initState() {
     super.initState();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent - 100 &&
+      if (_scrollController.position.extentAfter <= 80 &&
           !_isLoadingMore &&
           !vm.isBusy) {
         _loadMore();
@@ -100,7 +99,7 @@ class _HistoryViewState extends State<HistoryView> {
                       style: TextStyle(
                         height: 1,
                         fontSize: 25,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                         color: Color(0xFF030744),
                       ),
                     ),

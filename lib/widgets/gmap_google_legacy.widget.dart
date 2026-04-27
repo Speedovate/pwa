@@ -110,7 +110,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                 ..zoom = 16
                 ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
                 ..clickableIcons = true
-                ..disableDefaultUI = false
+                ..disableDefaultUI = true
                 ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
                 ..disableDoubleClickZoom = true
                 ..mapTypeId = gmaps.MapTypeId.ROADMAP
@@ -249,11 +249,13 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           ..position = nextPosition
           ..title = marker.id;
         markerOptions.icon = nextIcon;
+        markerOptions.zIndex = marker.zIndex.toDouble();
         _renderedMarkers[marker.id] = gmaps.Marker(markerOptions);
       } else {
         renderedMarker.position = nextPosition;
         renderedMarker.icon = nextIcon;
         renderedMarker.title = marker.id;
+        renderedMarker.zIndex = marker.zIndex.toDouble();
         renderedMarker.map = _map;
       }
     }
@@ -360,7 +362,12 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         .gm-style-cc,
         .gm-style-mtc,
         .gm-fullscreen-control,
-        .gm-svpc {
+        .gm-svpc,
+        .gmnoprint,
+        .gmnoscreen,
+        .gm-style img[alt="Google"],
+        .gm-style a[href^="https://maps.google.com"],
+        .gm-style a[href^="https://www.google.com/maps"] {
           display: none !important;
           visibility: hidden !important;
           pointer-events: none !important;

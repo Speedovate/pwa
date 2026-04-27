@@ -248,7 +248,7 @@ class _CameraWidgetState extends State<CameraWidget> {
                                 style: const TextStyle(
                                   height: 1,
                                   fontSize: 25,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                   color: Color(0xFF030744),
                                 ),
                               ),
@@ -477,7 +477,7 @@ class CameraImageWidget extends StatelessWidget {
                     style: const TextStyle(
                       height: 1,
                       fontSize: 25,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.bold,
                       color: Color(0xFF030744),
                     ),
                   ),

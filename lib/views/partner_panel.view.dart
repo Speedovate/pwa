@@ -39,6 +39,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   String? _quickPartnerUserId;
   String _quickPaymentMode = "load";
   List<Map<String, dynamic>> _quickPartnerSearchResults = [];
+  int _quickPartnerSearchVersion = 0;
   String _selectedSection = "partners";
   final Map<String, Map<String, dynamic>?> _partnerUserCache = {};
   final Set<String> _loadingPartnerUserIds = {};
@@ -116,7 +117,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   }
 
   String _transactionV2DocIdFromDate(DateTime value) {
-    return DateFormat("MMddyyyyhhmma").format(value).toLowerCase();
+    return DateFormat("MMddyyyyhhmmssa").format(value).toUpperCase();
   }
 
   Future<String> _resolveTransactionV2DocId({
@@ -158,17 +159,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       return null;
     }
     return Timestamp.fromDate(date);
-  }
-
-  Timestamp? _latestTimestamp(Timestamp? current, dynamic candidate) {
-    final next = _timestampFromValue(candidate);
-    if (next == null) {
-      return current;
-    }
-    if (current == null || next.compareTo(current) > 0) {
-      return next;
-    }
-    return current;
   }
 
   dynamic _toEditableValue(dynamic value) {
@@ -322,7 +312,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
 
   List<Map<String, dynamic>> _buildPartnerEntries({
     required List<QueryDocumentSnapshot<Map<String, dynamic>>> partnerDocs,
-    required List<QueryDocumentSnapshot<Map<String, dynamic>>> transactionDocs,
     required List<QueryDocumentSnapshot<Map<String, dynamic>>> userSettingDocs,
   }) {
     final entries = <String, Map<String, dynamic>>{};
@@ -346,44 +335,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         },
         "userData": null,
       };
-    }
-
-    for (final doc in transactionDocs) {
-      final ownerRef = doc.reference.parent.parent;
-      if (ownerRef?.parent.id != "partners") {
-        continue;
-      }
-      final transactionData = doc.data();
-      final partnerId =
-          "${ownerRef?.id ?? transactionData["user_id"] ?? ""}".trim();
-      if (partnerId.isEmpty) {
-        continue;
-      }
-      if (_toDouble(transactionData["markup"] ?? transactionData["amount"]) <=
-          0) {
-        continue;
-      }
-      entries.putIfAbsent(
-        partnerId,
-        () => {
-          "partnerId": partnerId,
-          "partnerData": _defaultPartnerAggregate(
-            partnerId: partnerId,
-            partnerName: "${transactionData["partner_name"] ?? ""}",
-            updatedAt: transactionData["created_at"],
-          ),
-          "userData": null,
-        },
-      );
-      final currentPartnerData =
-          Map<String, dynamic>.from(entries[partnerId]!["partnerData"] ?? {});
-      if ("${currentPartnerData["partner_name"] ?? ""}".trim().isEmpty) {
-        currentPartnerData["partner_name"] =
-            "${transactionData["partner_name"] ?? ""}";
-      }
-      currentPartnerData["partner_id"] = partnerId;
-      currentPartnerData["updated_at"] ??= transactionData["created_at"];
-      entries[partnerId]!["partnerData"] = currentPartnerData;
     }
 
     for (final doc in userSettingDocs) {
@@ -429,13 +380,21 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       final bData = b["partnerData"] as Map<String, dynamic>? ?? {};
       final aUserData = a["userData"] as Map<String, dynamic>?;
       final bUserData = b["userData"] as Map<String, dynamic>?;
-      final totalDiff = _toDouble(
-        bData["total_amount"],
+      final claimableDiff = _toDouble(
+        bData["claimable_cash_markup_amount"],
       ).compareTo(
-        _toDouble(aData["total_amount"]),
+        _toDouble(aData["claimable_cash_markup_amount"]),
       );
-      if (totalDiff != 0) {
-        return totalDiff;
+      if (claimableDiff != 0) {
+        return claimableDiff;
+      }
+      final claimedDiff = _toDouble(
+        bData["claimed_cash_markup_amount"],
+      ).compareTo(
+        _toDouble(aData["claimed_cash_markup_amount"]),
+      );
+      if (claimedDiff != 0) {
+        return claimedDiff;
       }
       final aName = _normalizedSortText(
         _partnerDisplayName(
@@ -471,7 +430,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           !_hasDriverIdentity(data)) {
         return false;
       }
-      final deductible = _toDouble(data["deductable_cash_markup_amount"]);
+      final deductible = _toDouble(data["deductible_cash_markup_amount"]);
       final deducted = _toDouble(data["deducted_cash_markup_amount"]);
       final hasMarkup = deductible > 0 || deducted > 0;
       return hasMarkup || _hasDriverIdentity(data);
@@ -481,7 +440,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   String _formatTimestamp(dynamic value) {
     if (value is Timestamp) {
       return DateFormat(
-        "dd/MM/yyyy - h:mm a",
+        "MM/dd/yyyy",
       ).format(
         value.toDate(),
       );
@@ -615,7 +574,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         content: Text(
           message,
           style: const TextStyle(
-            color: Color(0xFF030744),
+            color: Colors.white,
           ),
         ),
       ),
@@ -630,7 +589,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         content: Text(
           message,
           style: const TextStyle(
-            color: Color(0xFF030744),
+            color: Colors.white,
           ),
         ),
       ),
@@ -665,11 +624,41 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
               ),
               content: SizedBox(
                 width: min(MediaQuery.of(context).size.width, 520),
-                child: TextFieldWidget(
+                child: TextField(
                   controller: jsonTEC,
-                  labelText: "JSON Data",
-                  maxLines: 18,
                   minLines: 18,
+                  maxLines: 18,
+                  keyboardType: TextInputType.multiline,
+                  smartDashesType: SmartDashesType.disabled,
+                  smartQuotesType: SmartQuotesType.disabled,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    fontFamily: "Courier",
+                    color: Color(0xFF030744),
+                  ),
+                  decoration: InputDecoration(
+                    labelText: "JSON Data",
+                    alignLabelWithHint: true,
+                    labelStyle: const TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(
+                        color: Color(0xFF030744),
+                      ),
+                      borderRadius: BorderRadius.circular(_panelRadius),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(
+                        color: Color(0xFF007BFF),
+                      ),
+                      borderRadius: BorderRadius.circular(_panelRadius),
+                    ),
+                    contentPadding: const EdgeInsets.all(16),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
                 ),
               ),
               actions: [
@@ -677,6 +666,25 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                   style: _darkBlueTextButtonStyle(),
                   onPressed: isSaving ? null : () => Navigator.pop(context),
                   child: const Text("Cancel"),
+                ),
+                TextButton(
+                  style: _darkBlueTextButtonStyle(),
+                  onPressed: isSaving
+                      ? null
+                      : () {
+                          try {
+                            final data = _mapFromJsonText(jsonTEC.text);
+                            jsonTEC.value = TextEditingValue(
+                              text: _prettyJson(data),
+                              selection: TextSelection.collapsed(
+                                offset: _prettyJson(data).length,
+                              ),
+                            );
+                          } catch (e) {
+                            _showErrorSnack("$e");
+                          }
+                        },
+                  child: const Text("Format"),
                 ),
                 TextButton(
                   style: _darkBlueTextButtonStyle(),
@@ -792,7 +800,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
               height: 1,
               fontSize: 14,
               fontFamily: "Inter",
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.bold,
               color: Color(0xFF030744),
             ),
             contentPadding: const EdgeInsets.symmetric(
@@ -809,7 +817,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     height: 1,
                     fontSize: 14,
                     fontFamily: "Inter",
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.bold,
                     color: isEmpty
                         ? const Color(0xFF007BFF).withValues(alpha: 0.5)
                         : const Color(0xFF030744),
@@ -848,6 +856,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     final partnerRef = fbStore.collection("partners").doc(trimmedId);
     final partnerSnapshot = await partnerRef.get();
     final timestamp = _timestampNow();
+    final syncedAt = DateTime.now().toUtc().toIso8601String();
     final normalizedPaymentMode =
         paymentMode.toLowerCase() == "cash" ? "cash" : "load";
     final rawPartnerName =
@@ -866,6 +875,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         "markup_amount": markupAmount,
         "payment_mode": normalizedPaymentMode,
         "partner_name": partnerName,
+        if (!userData.containsKey("today_amount")) "today_amount": 0,
+        if (!userData.containsKey("month_amount")) "month_amount": 0,
+        if (!userData.containsKey("total_amount")) "total_amount": 0,
+        "syncedAt": syncedAt,
         "updated_at": timestamp,
       },
       SetOptions(
@@ -881,6 +894,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           "partner_name": partnerName,
           "markup_amount": markupAmount,
           "payment_mode": normalizedPaymentMode,
+          "today": DateFormat("MMMM d, yyyy").format(DateTime.now()),
+          "month": DateFormat("MMMM").format(DateTime.now()),
           "updated_at": timestamp,
           if ((partnerSnapshot.data()?["created_at"]) == null)
             "created_at": timestamp,
@@ -897,6 +912,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           "partner_name": partnerName,
           "markup_amount": markupAmount,
           "payment_mode": normalizedPaymentMode,
+          "today": DateFormat("MMMM d, yyyy").format(DateTime.now()),
+          "month": DateFormat("MMMM").format(DateTime.now()),
           "today_amount": 0,
           "month_amount": 0,
           "total_amount": 0,
@@ -935,10 +952,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       throw "Partner ID is missing.";
     }
     final timestamp = _timestampNow();
+    final syncedAt = DateTime.now().toUtc().toIso8601String();
     final partnerData = Map<String, dynamic>.from(data)
       ..["partner_id"] = trimmedId
       ..["updated_at"] = timestamp;
     final userUpdate = <String, dynamic>{
+      "syncedAt": syncedAt,
       "updated_at": timestamp,
     };
     const syncedKeys = [
@@ -948,13 +967,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       "today_amount",
       "month_amount",
       "total_amount",
-      "monthly_markup_history",
-      "monthly_cash_markup_history",
-      "claimable_cash_markup_amount",
-      "claimable_cash_markup_month_amount",
-      "claimed_cash_markup_amount",
-      "claimed_cash_markup_month_amount",
-      "monthly_claimed_cash_markup_history",
     ];
     for (final key in syncedKeys) {
       if (partnerData.containsKey(key)) {
@@ -1000,11 +1012,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     const syncedKeys = [
       "driver_id",
       "driver_name",
-      "deductable_cash_markup_amount",
-      "deductable_cash_markup_month_amount",
-      "deducted_cash_markup_amount",
-      "deducted_cash_markup_month_amount",
-      "monthly_deducted_cash_markup_history",
+      "deductible_cash_markup_amount",
+      "deductible_cash_markup_month_amount",
+      "deductible_cash_markup_history",
     ];
     for (final key in syncedKeys) {
       if (driverData.containsKey(key)) {
@@ -1097,6 +1107,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
 
   Future<void> _searchQuickPartners(String value) async {
     final keyword = value.trim();
+    final searchVersion = ++_quickPartnerSearchVersion;
     if (keyword.isEmpty) {
       if (!mounted) {
         return;
@@ -1177,17 +1188,19 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         }
       }
 
-      final broadNameSnapshot =
-          await fbStore.collection("users").orderBy("name").limit(50).get();
-      for (final doc in broadNameSnapshot.docs) {
+      final broadUserSnapshot =
+          await fbStore.collection("users").limit(250).get();
+      for (final doc in broadUserSnapshot.docs) {
         if (seenIds.contains(doc.id)) {
           continue;
         }
         final data = doc.data();
-        final candidateName = "${data["name"] ?? ""}".toLowerCase();
-        final candidateId = doc.id.toLowerCase();
-        if (candidateName.contains(lowerKeyword) ||
-            candidateId.contains(lowerKeyword)) {
+        final haystack = [
+          doc.id,
+          "${data["name"] ?? ""}",
+          "${data["partner_name"] ?? ""}",
+        ].join(" ").toLowerCase();
+        if (haystack.contains(lowerKeyword)) {
           seenIds.add(doc.id);
           results.add(
             {
@@ -1222,7 +1235,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         return aName.compareTo(bName);
       });
 
-      if (!mounted) {
+      if (!mounted ||
+          searchVersion != _quickPartnerSearchVersion ||
+          _userIdTEC.text.trim() != keyword) {
         return;
       }
       setState(() {
@@ -1292,192 +1307,254 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
-  Future<void> _recordPartnerClaim({
+  Future<void> _updatePartnerAggregateForTransactionChange({
     required String partnerId,
     required Map<String, dynamic> partnerData,
-    required double amount,
-    String note = "",
+    Map<String, dynamic>? oldTransactionData,
+    Map<String, dynamic>? newTransactionData,
   }) async {
-    final currentClaimable = _toDouble(
-      partnerData["claimable_cash_markup_amount"],
-    );
-    if (amount <= 0) {
-      throw "Enter a valid claim amount.";
-    }
-    if (amount > currentClaimable) {
-      throw "Claim amount is greater than the current claimable total.";
-    }
-    await _savePartnerTransaction(
-      partnerId: partnerId,
-      partnerData: partnerData,
-      data: {
-        "name": _firstNonEmptyText([
+    final partnerRef = fbStore.collection("partners").doc(partnerId);
+    final partnerSnapshot = await partnerRef.get();
+    final currentPartnerData = {
+      ..._defaultPartnerAggregate(
+        partnerId: partnerId,
+        partnerName: _firstNonEmptyText([
           partnerData["partner_name"],
           partnerData["name"],
         ]),
-        "amount": amount,
-        "is_credit": false,
-        "created_at": DateTime.now().toIso8601String(),
-        "note": note.trim().isEmpty ? "Claimed" : note.trim(),
-      },
+      ),
+      ...partnerData,
+      ...?partnerSnapshot.data(),
+      "partner_id": partnerId,
+    };
+
+    var todayAmount = _toDouble(currentPartnerData["today_amount"]);
+    var monthAmount = _toDouble(currentPartnerData["month_amount"]);
+    var totalAmount = _toDouble(currentPartnerData["total_amount"]);
+    var claimable = _toDouble(
+      currentPartnerData["claimable_cash_markup_amount"],
     );
-  }
-
-  Future<void> _repairSinglePartnerAggregate(String partnerId) async {
-    final partnerRef = fbStore.collection("partners").doc(partnerId);
-    final partnerSnapshot = await partnerRef.get();
-    if (!partnerSnapshot.exists) {
-      return;
-    }
-    final partnerData = partnerSnapshot.data() ?? {};
-    final userSnapshot = await fbStore.collection("users").doc(partnerId).get();
-    final userData = userSnapshot.data() ?? {};
-    final transactionsSnapshot =
-        await partnerRef.collection("transactions_v2").get();
-
-    var todayTotal = 0.0;
-    var totalAmount = 0.0;
-    var claimedTotal = 0.0;
-    final markupHistory = <String, double>{};
-    final claimedHistory = <String, double>{};
-    Timestamp? repairedUpdatedAt;
-
-    for (final transactionDoc in transactionsSnapshot.docs) {
-      final transactionData = transactionDoc.data();
-      final amount = _toDouble(transactionData["amount"]);
-      if (amount <= 0) {
-        continue;
-      }
-      final monthKey = _monthKeyFromData(transactionData);
-      repairedUpdatedAt = _latestTimestamp(
-        repairedUpdatedAt,
-        transactionData["updated_at"] ?? transactionData["created_at"],
-      );
-      if (_isCreditTransaction(transactionData)) {
-        totalAmount += amount;
-        markupHistory[monthKey] = (markupHistory[monthKey] ?? 0) + amount;
-        final createdAt = _dateTimeFromValue(transactionData["created_at"]);
-        final now = DateTime.now();
-        if (createdAt != null &&
-            createdAt.year == now.year &&
-            createdAt.month == now.month &&
-            createdAt.day == now.day) {
-          todayTotal += amount;
-        }
-      } else {
-        claimedTotal += amount;
-        claimedHistory[monthKey] = (claimedHistory[monthKey] ?? 0) + amount;
-      }
-    }
-
-    repairedUpdatedAt ??= _latestTimestamp(
-      _timestampFromValue(partnerData["updated_at"]),
-      userData["updated_at"],
+    var claimableMonth = _toDouble(
+      currentPartnerData["claimable_cash_markup_month_amount"],
+    );
+    var claimedTotal = _toDouble(
+      currentPartnerData["claimed_cash_markup_amount"],
+    );
+    var claimedMonthTotal = _toDouble(
+      currentPartnerData["claimed_cash_markup_month_amount"],
+    );
+    final markupHistory = Map<String, dynamic>.from(
+      currentPartnerData["monthly_markup_history"] ??
+          currentPartnerData["monthly_cash_markup_history"] ??
+          {},
+    );
+    final claimedHistory = Map<String, dynamic>.from(
+      currentPartnerData["monthly_claimed_cash_markup_history"] ?? {},
     );
     final currentMonthKey = _monthKeyNow();
-    final monthAmount = _toDouble(markupHistory[currentMonthKey]);
-    final claimedMonthTotal = _toDouble(claimedHistory[currentMonthKey]);
-    final claimable = max(totalAmount - claimedTotal, 0);
-    final claimableMonth = max(monthAmount - claimedMonthTotal, 0);
-    final partnerName = _firstNonEmptyText([
-      partnerData["partner_name"],
-      userData["partner_name"],
-      userData["name"],
-    ]);
+    final now = DateTime.now();
+
+    void adjustHistory(
+      Map<String, dynamic> history,
+      String monthKey,
+      double delta,
+    ) {
+      final nextValue = max(_toDouble(history[monthKey]) + delta, 0);
+      if (nextValue == 0) {
+        history.remove(monthKey);
+      } else {
+        history[monthKey] = nextValue;
+      }
+    }
+
+    void applyTransaction(
+        Map<String, dynamic>? transactionData, int direction) {
+      if (transactionData == null) {
+        return;
+      }
+      final amount = _toDouble(transactionData["amount"]);
+      if (amount <= 0) {
+        return;
+      }
+      final isCredit = _isCreditTransaction(transactionData);
+      final monthKey = _monthKeyFromData(transactionData);
+      final createdAt = _dateTimeFromValue(transactionData["created_at"]);
+      final isToday = createdAt != null &&
+          createdAt.year == now.year &&
+          createdAt.month == now.month &&
+          createdAt.day == now.day;
+      final signedAmount = amount * direction;
+
+      if (isCredit) {
+        totalAmount = max(totalAmount + signedAmount, 0);
+        claimable = max(claimable + signedAmount, 0);
+        if (isToday) {
+          todayAmount = max(todayAmount + signedAmount, 0);
+        }
+        adjustHistory(
+          markupHistory,
+          monthKey,
+          signedAmount,
+        );
+        if (monthKey == currentMonthKey) {
+          monthAmount = max(monthAmount + signedAmount, 0);
+          claimableMonth = max(claimableMonth + signedAmount, 0);
+        }
+      } else {
+        claimedTotal = max(claimedTotal + signedAmount, 0);
+        claimable = max(claimable - signedAmount, 0);
+        adjustHistory(
+          claimedHistory,
+          monthKey,
+          signedAmount,
+        );
+        if (monthKey == currentMonthKey) {
+          claimedMonthTotal = max(claimedMonthTotal + signedAmount, 0);
+          claimableMonth = max(claimableMonth - signedAmount, 0);
+        }
+      }
+    }
+
+    applyTransaction(oldTransactionData, -1);
+    applyTransaction(newTransactionData, 1);
+    final todayLabel = DateFormat("MMMM d, yyyy").format(DateTime.now());
+    final monthLabel = DateFormat("MMMM").format(DateTime.now());
+
+    final aggregateUpdate = {
+      "partner_id": partnerId,
+      "partner_name": _firstNonEmptyText([
+        currentPartnerData["partner_name"],
+        partnerData["partner_name"],
+        partnerData["name"],
+      ]),
+      "today": todayLabel,
+      "month": monthLabel,
+      "today_amount": todayAmount,
+      "month_amount": monthAmount,
+      "total_amount": totalAmount,
+      "claimable_cash_markup_amount": claimable,
+      "claimable_cash_markup_month_amount": claimableMonth,
+      "claimed_cash_markup_amount": claimedTotal,
+      "claimed_cash_markup_month_amount": claimedMonthTotal,
+      "monthly_markup_history": markupHistory,
+      "monthly_cash_markup_history": markupHistory,
+      "monthly_claimed_cash_markup_history": claimedHistory,
+      "updated_at": _timestampNow(),
+    };
+    final userUpdate = <String, dynamic>{
+      "today_amount": todayAmount,
+      "month_amount": monthAmount,
+      "total_amount": totalAmount,
+      "updated_at": aggregateUpdate["updated_at"],
+    };
+    final partnerName = "${aggregateUpdate["partner_name"] ?? ""}".trim();
+    if (partnerName.isNotEmpty) {
+      userUpdate["partner_name"] = aggregateUpdate["partner_name"];
+      userUpdate["name"] = aggregateUpdate["partner_name"];
+    }
+    if (currentPartnerData.containsKey("markup_amount")) {
+      userUpdate["markup_amount"] = currentPartnerData["markup_amount"];
+    }
+    if (currentPartnerData.containsKey("payment_mode")) {
+      userUpdate["payment_mode"] = currentPartnerData["payment_mode"];
+    }
 
     final batch = fbStore.batch();
     batch.set(
       partnerRef,
-      {
-        "today_amount": todayTotal,
-        "month_amount": monthAmount,
-        "total_amount": totalAmount,
-        "claimable_cash_markup_amount": claimable,
-        "claimable_cash_markup_month_amount": claimableMonth,
-        "claimed_cash_markup_amount": claimedTotal,
-        "claimed_cash_markup_month_amount": claimedMonthTotal,
-        "monthly_markup_history": markupHistory,
-        "monthly_cash_markup_history": markupHistory,
-        "monthly_claimed_cash_markup_history": claimedHistory,
-        "updated_at": repairedUpdatedAt ?? _timestampNow(),
-        if (partnerName.isNotEmpty) "partner_name": partnerName,
-      },
+      aggregateUpdate,
       SetOptions(merge: true),
     );
     batch.set(
       fbStore.collection("users").doc(partnerId),
-      {
-        "today_amount": todayTotal,
-        "month_amount": monthAmount,
-        "total_amount": totalAmount,
-        "claimable_cash_markup_amount": claimable,
-        "claimable_cash_markup_month_amount": claimableMonth,
-        "updated_at": repairedUpdatedAt ?? _timestampNow(),
-      },
+      userUpdate,
       SetOptions(merge: true),
     );
     await batch.commit();
   }
 
-  Future<void> _repairSingleDriverAggregate(String driverId) async {
+  Future<void> _updateDriverAggregateForTransactionChange({
+    required String driverId,
+    required Map<String, dynamic> driverData,
+    Map<String, dynamic>? oldTransactionData,
+    Map<String, dynamic>? newTransactionData,
+  }) async {
     final driverRef = fbStore.collection("drivers").doc(driverId);
     final userRef = fbStore.collection("users").doc(driverId);
     final driverSnapshot = await driverRef.get();
-    if (!driverSnapshot.exists) {
-      return;
-    }
-    final driverData = driverSnapshot.data() ?? {};
     final transactionsSnapshot =
         await driverRef.collection("transactions_v2").get();
+    final currentDriverData = {
+      "driver_id": driverId,
+      ...?driverSnapshot.data(),
+      ...driverData,
+    };
+    final currentMonthKey = _monthKeyNow();
+    final creditedHistory = <String, dynamic>{};
+    final deductedHistory = <String, dynamic>{};
+    final deductibleHistory = <String, dynamic>{};
+    var deductible = 0.0;
+    var deductibleMonth = 0.0;
+    var deducted = 0.0;
+    var deductedMonth = 0.0;
 
-    var credit = 0.0;
-    var debit = 0.0;
-    final creditHistory = <String, double>{};
-    final deductedHistory = <String, double>{};
-    Timestamp? repairedUpdatedAt;
-    String driverNameFromTransactions = "";
+    void addToHistory(
+      Map<String, dynamic> history,
+      String monthKey,
+      double amount,
+    ) {
+      final nextValue = _toDouble(history[monthKey]) + amount;
+      if (nextValue <= 0) {
+        history.remove(monthKey);
+      } else {
+        history[monthKey] = nextValue;
+      }
+    }
 
-    for (final transactionDoc in transactionsSnapshot.docs) {
-      final transactionData = transactionDoc.data();
+    for (final doc in transactionsSnapshot.docs) {
+      final transactionData = doc.data();
       final amount = _toDouble(transactionData["amount"]);
       if (amount <= 0) {
         continue;
       }
-      driverNameFromTransactions = _firstNonEmptyText([
-        driverNameFromTransactions,
-        transactionData["name"],
-        driverData["driver_name"],
-        driverData["name"],
-      ]);
-      repairedUpdatedAt = _latestTimestamp(
-        repairedUpdatedAt,
-        transactionData["updated_at"] ?? transactionData["created_at"],
-      );
+      final isCredit = _isCreditTransaction(transactionData);
       final monthKey = _monthKeyFromData(transactionData);
-      if (_isCreditTransaction(transactionData)) {
-        credit += amount;
-        creditHistory[monthKey] = (creditHistory[monthKey] ?? 0) + amount;
+      if (isCredit) {
+        deductible += amount;
+        addToHistory(creditedHistory, monthKey, amount);
+        addToHistory(deductibleHistory, monthKey, amount);
+        if (monthKey == currentMonthKey) {
+          deductibleMonth += amount;
+        }
       } else {
-        debit += amount;
-        deductedHistory[monthKey] = (deductedHistory[monthKey] ?? 0) + amount;
+        deductible = max(deductible - amount, 0);
+        deducted += amount;
+        addToHistory(deductedHistory, monthKey, amount);
+        addToHistory(deductibleHistory, monthKey, -amount);
+        if (monthKey == currentMonthKey) {
+          deductibleMonth = max(deductibleMonth - amount, 0);
+          deductedMonth += amount;
+        }
       }
     }
 
-    final currentMonthKey = _monthKeyNow();
-    final deductedMonth = _toDouble(deductedHistory[currentMonthKey]);
-    final creditMonth = _toDouble(creditHistory[currentMonthKey]);
     final aggregateUpdate = {
       "driver_id": driverId,
-      "deductable_cash_markup_amount": max(credit - debit, 0),
-      "deductable_cash_markup_month_amount":
-          max(creditMonth - deductedMonth, 0),
-      "deducted_cash_markup_amount": debit,
+      "driver_name": _firstNonEmptyText([
+        currentDriverData["driver_name"],
+        driverData["driver_name"],
+        driverData["name"],
+      ]),
+      "deductible_cash_markup_amount": deductible,
+      "deductible_cash_markup_month_amount": deductibleMonth,
+      "deductible_cash_markup_history": deductibleHistory,
+      "deducted_cash_markup_amount": deducted,
       "deducted_cash_markup_month_amount": deductedMonth,
+      "monthly_credited_cash_markup_history": creditedHistory,
       "monthly_deducted_cash_markup_history": deductedHistory,
-      if (driverNameFromTransactions.isNotEmpty)
-        "driver_name": driverNameFromTransactions,
-      "updated_at": repairedUpdatedAt ?? _timestampNow(),
+      "updated_at": _timestampNow(),
     };
+
     final batch = fbStore.batch();
     batch.set(
       driverRef,
@@ -1904,6 +1981,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     final createdAt = _timestampFromValue(data["created_at"]) ?? timestamp;
     final createdAtDate = createdAt.toDate();
     final collection = partnerRef.collection("transactions_v2");
+    Map<String, dynamic>? previousTransactionData;
+    if (transactionId != null) {
+      final previousSnapshot = await collection.doc(transactionId).get();
+      previousTransactionData = previousSnapshot.data();
+    }
     final nextDocId = await _resolveTransactionV2DocId(
       collection: collection,
       baseId: _transactionV2DocIdFromDate(createdAtDate),
@@ -1927,7 +2009,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       batch.delete(partnerRef.collection("transactions_v2").doc(transactionId));
     }
     await batch.commit();
-    await _repairSinglePartnerAggregate(partnerId);
+    await _updatePartnerAggregateForTransactionChange(
+      partnerId: partnerId,
+      partnerData: partnerData,
+      oldTransactionData: previousTransactionData,
+      newTransactionData: normalized,
+    );
   }
 
   Future<void> _deletePartnerTransaction({
@@ -1935,10 +2022,19 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     required String transactionId,
   }) async {
     final partnerRef = fbStore.collection("partners").doc(partnerId);
+    final partnerSnapshot = await partnerRef.get();
+    final partnerData = partnerSnapshot.data() ?? {};
+    final transactionSnapshot =
+        await partnerRef.collection("transactions_v2").doc(transactionId).get();
+    final previousTransactionData = transactionSnapshot.data();
     final batch = fbStore.batch();
     batch.delete(partnerRef.collection("transactions_v2").doc(transactionId));
     await batch.commit();
-    await _repairSinglePartnerAggregate(partnerId);
+    await _updatePartnerAggregateForTransactionChange(
+      partnerId: partnerId,
+      partnerData: partnerData,
+      oldTransactionData: previousTransactionData,
+    );
   }
 
   Future<void> _saveDriverTransaction({
@@ -1956,6 +2052,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         _timestampFromValue(data["created_at"]) ?? _timestampNow();
     final driverRef = fbStore.collection("drivers").doc(driverId);
     final collection = driverRef.collection("transactions_v2");
+    Map<String, dynamic>? previousTransactionData;
+    if (transactionId != null) {
+      final previousSnapshot = await collection.doc(transactionId).get();
+      previousTransactionData = previousSnapshot.data();
+    }
     final nextDocId = await _resolveTransactionV2DocId(
       collection: collection,
       baseId: _transactionV2DocIdFromDate(createdAt.toDate()),
@@ -1980,7 +2081,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     }
     batch.set(transactionRef, normalized, SetOptions(merge: true));
     await batch.commit();
-    await _repairSingleDriverAggregate(driverId);
+    await _updateDriverAggregateForTransactionChange(
+      driverId: driverId,
+      driverData: driverData,
+      oldTransactionData: previousTransactionData,
+      newTransactionData: normalized,
+    );
   }
 
   Future<void> _deleteDriverTransaction({
@@ -1988,276 +2094,18 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     required String transactionId,
   }) async {
     final driverRef = fbStore.collection("drivers").doc(driverId);
+    final driverSnapshot = await driverRef.get();
+    final driverData = driverSnapshot.data() ?? {};
+    final transactionSnapshot =
+        await driverRef.collection("transactions_v2").doc(transactionId).get();
+    final previousTransactionData = transactionSnapshot.data();
     final batch = fbStore.batch();
     batch.delete(driverRef.collection("transactions_v2").doc(transactionId));
     await batch.commit();
-    await _repairSingleDriverAggregate(driverId);
-  }
-
-  Future<void> _showPartnerClaimDialog({
-    required String partnerId,
-    required Map<String, dynamic> partnerData,
-  }) async {
-    final amountTEC = TextEditingController();
-    final noteTEC = TextEditingController();
-    bool isSaving = false;
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 24,
-              ),
-              backgroundColor: Colors.white,
-              title: const Text(
-                "Record Claimed Amount",
-                style: TextStyle(
-                  color: Color(0xFF030744),
-                ),
-              ),
-              content: SizedBox(
-                width: min(
-                  MediaQuery.of(context).size.width,
-                  420,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildInfoLine(
-                      "Claimable",
-                      _formatMoney(
-                        partnerData["claimable_cash_markup_amount"],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFieldWidget(
-                      controller: amountTEC,
-                      labelText: "Claimed Amount",
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFieldWidget(
-                      controller: noteTEC,
-                      labelText: "Note",
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: const Text("Cancel"),
-                ),
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          setStateDialog(() {
-                            isSaving = true;
-                          });
-                          try {
-                            await _recordPartnerClaim(
-                              partnerId: partnerId,
-                              partnerData: partnerData,
-                              amount: _toDouble(amountTEC.text),
-                              note: noteTEC.text,
-                            );
-                            if (!mounted) {
-                              return;
-                            }
-                            Navigator.of(this.context).pop();
-                            _showSuccessSnack("Claim recorded.");
-                          } catch (e) {
-                            if (!mounted) {
-                              return;
-                            }
-                            _showErrorSnack("$e");
-                            setStateDialog(() {
-                              isSaving = false;
-                            });
-                          }
-                        },
-                  child: Text(
-                    isSaving ? "Saving..." : "Save",
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    amountTEC.dispose();
-    noteTEC.dispose();
-  }
-
-  Future<void> _recordDriverDeduction({
-    required String driverId,
-    required Map<String, dynamic> driverData,
-    required double amount,
-    String note = "",
-  }) async {
-    final deductible = _toDouble(driverData["deductable_cash_markup_amount"]);
-    if (amount <= 0) {
-      throw "Enter a valid deducted amount.";
-    }
-    if (amount > deductible) {
-      throw "Deducted amount is greater than the current deductible total.";
-    }
-
-    await _saveDriverTransaction(
+    await _updateDriverAggregateForTransactionChange(
       driverId: driverId,
       driverData: driverData,
-      data: {
-        "name": _firstNonEmptyText([
-          driverData["driver_name"],
-          driverData["name"],
-        ]),
-        "amount": amount,
-        "is_credit": false,
-        "created_at": DateTime.now().toIso8601String(),
-        "note": note.trim().isEmpty ? "Deducted" : note.trim(),
-      },
-    );
-  }
-
-  Future<void> _showDriverDeductionDialog({
-    required String driverId,
-    required Map<String, dynamic> driverData,
-  }) async {
-    final amountTEC = TextEditingController();
-    final noteTEC = TextEditingController();
-    bool isSaving = false;
-    final deductible = _toDouble(driverData["deductable_cash_markup_amount"]);
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 24,
-              ),
-              backgroundColor: Colors.white,
-              title: const Text(
-                "Record Deducted Amount",
-                style: TextStyle(
-                  color: Color(0xFF030744),
-                ),
-              ),
-              content: SizedBox(
-                width: min(
-                  MediaQuery.of(context).size.width,
-                  420,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildInfoLine(
-                      "Deductible",
-                      _formatMoney(deductible),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFieldWidget(
-                      controller: amountTEC,
-                      labelText: "Deducted Amount",
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFieldWidget(
-                      controller: noteTEC,
-                      labelText: "Note",
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: const Text("Cancel"),
-                ),
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          setStateDialog(() {
-                            isSaving = true;
-                          });
-                          try {
-                            await _recordDriverDeduction(
-                              driverId: driverId,
-                              driverData: driverData,
-                              amount: _toDouble(amountTEC.text),
-                              note: noteTEC.text,
-                            );
-                            if (!mounted) {
-                              return;
-                            }
-                            Navigator.of(this.context).pop();
-                            _showSuccessSnack("Deduction recorded.");
-                          } catch (e) {
-                            if (!mounted) {
-                              return;
-                            }
-                            _showErrorSnack("$e");
-                            setStateDialog(() {
-                              isSaving = false;
-                            });
-                          }
-                        },
-                  child: Text(
-                    isSaving ? "Saving..." : "Save",
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    amountTEC.dispose();
-    noteTEC.dispose();
-  }
-
-  Widget _buildInfoLine(String label, String value) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 280;
-        return Flex(
-          direction: isNarrow ? Axis.vertical : Axis.horizontal,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF030744),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (!isNarrow) const Spacer(),
-            if (isNarrow) const SizedBox(height: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF007BFF),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        );
-      },
+      oldTransactionData: previousTransactionData,
     );
   }
 
@@ -2531,7 +2379,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                   data["name"],
                   isCredit ? "Credit" : "Debit",
                 ]);
-                final transactionLabel = isCredit ? "Credit" : "Debit";
+                final transactionLabel = _firstNonEmptyText([
+                  data["note"],
+                ]);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Container(
@@ -2569,10 +2419,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                             const SizedBox(width: 12),
                             Text(
                               "${isCredit ? "+" : "-"} ${_formatMoney(amount)}",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 height: 1,
                                 fontSize: 14,
-                                color: Color(0xFF030744),
+                                color: isCredit
+                                    ? Colors.green.shade700
+                                    : Colors.red.shade600,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -2605,7 +2457,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                   child: Icon(
                                     Icons.delete_outline,
                                     size: 18,
-                                    color: Colors.red,
+                                    color: Color(0xFF030744),
                                   ),
                                 ),
                               ),
@@ -2664,11 +2516,13 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
               labelText: "Search Name or User ID",
               onChanged: (value) {
                 setState(() {
+                  _quickPartnerSearchVersion++;
                   _quickPartnerUserData = null;
                   _quickPartnerUserId = null;
                   _quickPartnerNameTEC.clear();
                   _markupTEC.clear();
                   _quickPaymentMode = "load";
+                  _quickPartnerSearchResults = [];
                 });
                 _queueQuickPartnerSearch(value);
               },
@@ -2790,6 +2644,21 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 controller: _quickPartnerNameTEC,
                 labelText: "Partner Name",
                 textCapitalization: TextCapitalization.words,
+                onChanged: (value) {
+                  setState(() {
+                    if (_quickPartnerUserData == null) {
+                      return;
+                    }
+                    final normalizedName = value.trim().isEmpty
+                        ? null
+                        : capitalizeWords(value, alt: value);
+                    _quickPartnerUserData = {
+                      ...?_quickPartnerUserData,
+                      "partner_name": normalizedName,
+                      "name": normalizedName,
+                    };
+                  });
+                },
               ),
               const SizedBox(height: _panelGap),
               TextFieldWidget(
@@ -2868,359 +2737,341 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
           stream: fbStore.collection("partners").snapshots(),
           builder: (context, partnerSnapshot) {
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: fbStore.collectionGroup("transactions_v2").snapshots(),
-              builder: (context, transactionSnapshot) {
-                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: fbStore
-                      .collection("users")
-                      .orderBy("partner_name")
-                      .startAt([""]).snapshots(),
-                  builder: (context, userSnapshot) {
-                    if ((partnerSnapshot.connectionState ==
-                                ConnectionState.waiting &&
-                            !partnerSnapshot.hasData) ||
-                        (transactionSnapshot.connectionState ==
-                                ConnectionState.waiting &&
-                            !transactionSnapshot.hasData) ||
-                        (userSnapshot.connectionState ==
-                                ConnectionState.waiting &&
-                            !userSnapshot.hasData)) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF007BFF),
-                          ),
-                        ),
-                      );
-                    }
+              stream: fbStore
+                  .collection("users")
+                  .orderBy("partner_name")
+                  .startAt([""]).snapshots(),
+              builder: (context, userSnapshot) {
+                if ((partnerSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        !partnerSnapshot.hasData) ||
+                    (userSnapshot.connectionState == ConnectionState.waiting &&
+                        !userSnapshot.hasData)) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF007BFF),
+                      ),
+                    ),
+                  );
+                }
 
-                    var entries = _buildPartnerEntries(
-                      partnerDocs: partnerSnapshot.hasData
-                          ? partnerSnapshot.data!.docs
-                          : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
-                      transactionDocs: transactionSnapshot.hasData
-                          ? transactionSnapshot.data!.docs
-                          : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
-                      userSettingDocs: userSnapshot.hasData
-                          ? userSnapshot.data!.docs
-                          : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
-                    );
+                var entries = _buildPartnerEntries(
+                  partnerDocs: partnerSnapshot.hasData
+                      ? partnerSnapshot.data!.docs
+                      : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+                  userSettingDocs: userSnapshot.hasData
+                      ? userSnapshot.data!.docs
+                      : <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+                );
 
-                    _ensurePartnerUsersLoadedAfterBuild(
-                      entries.map((entry) => "${entry["partnerId"]}").toList(),
-                    );
+                _ensurePartnerUsersLoadedAfterBuild(
+                  entries.map((entry) => "${entry["partnerId"]}").toList(),
+                );
 
-                    final query = _partnerListSearchTEC.text.trim();
-                    entries = entries.where((entry) {
-                      final partnerId = "${entry["partnerId"]}";
-                      final partnerData =
-                          entry["partnerData"] as Map<String, dynamic>? ?? {};
-                      final inferredUserData =
-                          entry["userData"] as Map<String, dynamic>?;
-                      final userData =
-                          inferredUserData ?? _partnerUserCache[partnerId];
-                      final displayName = _partnerDisplayName(
+                final query = _partnerListSearchTEC.text.trim();
+                entries = entries.where((entry) {
+                  final partnerId = "${entry["partnerId"]}";
+                  final partnerData =
+                      entry["partnerData"] as Map<String, dynamic>? ?? {};
+                  final inferredUserData =
+                      entry["userData"] as Map<String, dynamic>?;
+                  final userData =
+                      inferredUserData ?? _partnerUserCache[partnerId];
+                  final displayName = _partnerDisplayName(
+                    partnerId: partnerId,
+                    partnerData: partnerData,
+                    userData: userData,
+                  );
+                  if (query.isEmpty) {
+                    return true;
+                  }
+                  final haystack = [
+                    partnerId,
+                    "${partnerData["partner_name"] ?? ""}",
+                    "${userData?["name"] ?? ""}",
+                    "${userData?["partner_name"] ?? ""}",
+                    displayName,
+                  ].join(" ");
+                  return _matchesSearch(haystack, query);
+                }).toList();
+
+                final duplicateNameCounts = <String, int>{};
+                for (final entry in entries) {
+                  final partnerId = "${entry["partnerId"]}";
+                  final partnerData =
+                      entry["partnerData"] as Map<String, dynamic>? ?? {};
+                  final inferredUserData =
+                      entry["userData"] as Map<String, dynamic>?;
+                  final userData =
+                      inferredUserData ?? _partnerUserCache[partnerId];
+                  final normalizedName = _normalizePartnerName(
+                    _partnerDisplayName(
+                      partnerId: partnerId,
+                      partnerData: partnerData,
+                      userData: userData,
+                    ),
+                  );
+                  duplicateNameCounts[normalizedName] =
+                      (duplicateNameCounts[normalizedName] ?? 0) + 1;
+                }
+
+                if (entries.isEmpty) {
+                  return const Text(
+                    "No partners found.",
+                    style: TextStyle(
+                      color: Color(0xFF030744),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: entries.map((entry) {
+                    final partnerId = "${entry["partnerId"]}";
+                    final partnerData =
+                        entry["partnerData"] as Map<String, dynamic>? ?? {};
+                    final inferredUserData =
+                        entry["userData"] as Map<String, dynamic>?;
+                    final userData =
+                        inferredUserData ?? _partnerUserCache[partnerId];
+                    final isExpanded = _expandedPartnerIds.contains(partnerId);
+                    final normalizedName = _normalizePartnerName(
+                      _partnerDisplayName(
                         partnerId: partnerId,
                         partnerData: partnerData,
                         userData: userData,
-                      );
-                      if (query.isEmpty) {
-                        return true;
-                      }
-                      final haystack = [
-                        partnerId,
-                        "${partnerData["partner_name"] ?? ""}",
-                        "${userData?["name"] ?? ""}",
-                        "${userData?["partner_name"] ?? ""}",
-                        displayName,
-                      ].join(" ");
-                      return _matchesSearch(haystack, query);
-                    }).toList();
-
-                    final duplicateNameCounts = <String, int>{};
-                    for (final entry in entries) {
-                      final partnerId = "${entry["partnerId"]}";
-                      final partnerData =
-                          entry["partnerData"] as Map<String, dynamic>? ?? {};
-                      final inferredUserData =
-                          entry["userData"] as Map<String, dynamic>?;
-                      final userData =
-                          inferredUserData ?? _partnerUserCache[partnerId];
-                      final normalizedName = _normalizePartnerName(
-                        _partnerDisplayName(
-                          partnerId: partnerId,
-                          partnerData: partnerData,
-                          userData: userData,
-                        ),
-                      );
-                      duplicateNameCounts[normalizedName] =
-                          (duplicateNameCounts[normalizedName] ?? 0) + 1;
-                    }
-
-                    if (entries.isEmpty) {
-                      return const Text(
-                        "No partners found.",
-                        style: TextStyle(
-                          color: Color(0xFF030744),
-                        ),
-                      );
-                    }
-
-                    return Column(
-                      children: entries.map((entry) {
-                        final partnerId = "${entry["partnerId"]}";
-                        final partnerData =
-                            entry["partnerData"] as Map<String, dynamic>? ?? {};
-                        final inferredUserData =
-                            entry["userData"] as Map<String, dynamic>?;
-                        final userData =
-                            inferredUserData ?? _partnerUserCache[partnerId];
-                        final isExpanded =
-                            _expandedPartnerIds.contains(partnerId);
-                        final normalizedName = _normalizePartnerName(
-                          _partnerDisplayName(
-                            partnerId: partnerId,
-                            partnerData: partnerData,
-                            userData: userData,
+                      ),
+                    );
+                    final isDuplicate =
+                        (duplicateNameCounts[normalizedName] ?? 0) > 1;
+                    final accentColor = isDuplicate
+                        ? const Color(0xFFC62828)
+                        : const Color(0xFF030744);
+                    return Padding(
+                      key: ValueKey("partner-$partnerId"),
+                      padding: const EdgeInsets.only(bottom: _panelOuterGap),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(_panelRadius),
+                          border: Border.all(
+                            color: isDuplicate
+                                ? accentColor
+                                : const Color(0xFF030744)
+                                    .withValues(alpha: 0.08),
                           ),
-                        );
-                        final isDuplicate =
-                            (duplicateNameCounts[normalizedName] ?? 0) > 1;
-                        final accentColor = isDuplicate
-                            ? const Color(0xFFC62828)
-                            : const Color(0xFF030744);
-                        return Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: _panelOuterGap),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(_panelRadius),
-                              border: Border.all(
-                                color: isDuplicate
-                                    ? accentColor
-                                    : const Color(0xFF030744)
-                                        .withValues(alpha: 0.08),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildExpandableRow(
+                              title: _partnerDisplayName(
+                                partnerId: partnerId,
+                                partnerData: partnerData,
+                                userData: userData,
                               ),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildExpandableRow(
-                                  title: _partnerDisplayName(
-                                    partnerId: partnerId,
-                                    partnerData: partnerData,
-                                    userData: userData,
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
                                     children: [
-                                      Wrap(
-                                        children: [
-                                          _buildInlineStat(
-                                            "User ID",
-                                            partnerId,
-                                            color: accentColor,
-                                          ),
-                                          _buildInlineStat(
-                                            "Payment",
-                                            capitalizeWords(
-                                              "${userData?["payment_mode"] ?? "cash"}",
-                                            ),
-                                            color: accentColor,
-                                          ),
-                                          _buildInlineStat(
-                                            "Markup",
-                                            userData != null
-                                                ? _formatMoney(
-                                                    userData["markup_amount"],
-                                                  )
-                                                : _loadingPartnerUserIds
-                                                        .contains(partnerId)
-                                                    ? "Loading..."
-                                                    : _formatMoney(0),
-                                            color: accentColor,
-                                          ),
-                                          _buildInlineStat(
-                                            "Today",
-                                            _formatMoney(
-                                              partnerData["today_amount"],
-                                            ),
-                                            color: accentColor,
-                                          ),
-                                          _buildInlineStat(
-                                            _currentMonthLabel(),
-                                            _formatMoney(
-                                              partnerData["month_amount"],
-                                            ),
-                                            color: accentColor,
-                                          ),
-                                          _buildInlineStat(
-                                            "Claimable",
-                                            _formatMoney(
-                                              partnerData[
-                                                  "claimable_cash_markup_amount"],
-                                            ),
-                                            color: accentColor,
-                                          ),
-                                          _buildInlineStat(
-                                            "Claimed",
-                                            _formatMoney(
-                                              partnerData[
-                                                  "claimed_cash_markup_amount"],
-                                            ),
-                                            color: accentColor,
-                                          ),
-                                        ],
+                                      _buildInlineStat(
+                                        "User ID",
+                                        partnerId,
+                                        color: accentColor,
+                                      ),
+                                      _buildInlineStat(
+                                        "Payment",
+                                        capitalizeWords(
+                                          "${userData?["payment_mode"] ?? "cash"}",
+                                        ),
+                                        color: accentColor,
+                                      ),
+                                      _buildInlineStat(
+                                        "Markup",
+                                        userData != null
+                                            ? _formatMoney(
+                                                userData["markup_amount"],
+                                              )
+                                            : _loadingPartnerUserIds
+                                                    .contains(partnerId)
+                                                ? "Loading..."
+                                                : _formatMoney(0),
+                                        color: accentColor,
+                                      ),
+                                      _buildInlineStat(
+                                        "Today",
+                                        _formatMoney(
+                                          partnerData["today_amount"],
+                                        ),
+                                        color: accentColor,
+                                      ),
+                                      _buildInlineStat(
+                                        _currentMonthLabel(),
+                                        _formatMoney(
+                                          partnerData["month_amount"],
+                                        ),
+                                        color: accentColor,
+                                      ),
+                                      _buildInlineStat(
+                                        "All Time",
+                                        _formatMoney(
+                                          partnerData["total_amount"],
+                                        ),
+                                        color: accentColor,
+                                      ),
+                                      _buildInlineStat(
+                                        "Claimable",
+                                        _formatMoney(
+                                          partnerData[
+                                              "claimable_cash_markup_amount"],
+                                        ),
+                                        color: accentColor,
+                                      ),
+                                      _buildInlineStat(
+                                        "Claimed",
+                                        _formatMoney(
+                                          partnerData[
+                                              "claimed_cash_markup_amount"],
+                                        ),
+                                        color: accentColor,
                                       ),
                                     ],
                                   ),
-                                  isExpanded: isExpanded,
-                                  titleColor: accentColor,
-                                  iconColor: accentColor,
-                                  onTap: () {
-                                    setState(() {
-                                      if (isExpanded) {
-                                        _expandedPartnerIds.remove(partnerId);
-                                      } else {
-                                        _expandedPartnerIds.add(partnerId);
-                                      }
-                                    });
-                                  },
-                                ),
-                                if (isExpanded) ...[
-                                  Divider(
-                                    height: 1,
-                                    thickness: 1,
-                                    color: const Color(0xFF030744)
-                                        .withValues(alpha: 0.08),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      _panelOuterGap,
-                                      _panelGap,
-                                      _panelOuterGap,
-                                      _panelOuterGap,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        const SizedBox(height: 8),
-                                        _buildPrimaryButton(
-                                          text: "Edit Partner",
-                                          onTap: () {
-                                            _showEditPartnerDialog(
-                                              partnerId: partnerId,
-                                              partnerData: partnerData,
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildPrimaryButton(
-                                          text: "Record Claim",
-                                          onTap: () {
-                                            _showPartnerClaimDialog(
-                                              partnerId: partnerId,
-                                              partnerData: partnerData,
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(height: _panelGap),
-                                        _buildTransactionHistoryList(
-                                          title: "Transactions",
-                                          stream: fbStore
-                                              .collection("partners")
-                                              .doc(partnerId)
-                                              .collection("transactions_v2")
-                                              .snapshots(),
-                                          amountKey: "amount",
-                                          onAdd: () {
-                                            _showPartnerTransactionDialog(
-                                              title: "Add Partner Transaction",
-                                              partnerId: partnerId,
-                                              partnerData: partnerData,
-                                            );
-                                          },
-                                          onEdit: (transactionId, data) async {
-                                            await _showPartnerTransactionDialog(
-                                              title: "Edit Partner Transaction",
-                                              partnerId: partnerId,
-                                              partnerData: partnerData,
-                                              transactionId: transactionId,
-                                              initialData: data,
-                                            );
-                                          },
-                                          onDelete:
-                                              (transactionId, data) async {
-                                            final confirmed =
-                                                await showDialog<bool>(
-                                                      context: context,
-                                                      builder: (context) {
-                                                        return AlertDialog(
-                                                          backgroundColor:
-                                                              Colors.white,
-                                                          title: const Text(
-                                                            "Delete Transaction?",
-                                                          ),
-                                                          content: const Text(
-                                                            "This will remove the partner transaction and any linked claim record.",
-                                                          ),
-                                                          actions: [
-                                                            TextButton(
-                                                              style:
-                                                                  _darkBlueTextButtonStyle(),
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                context,
-                                                                false,
-                                                              ),
-                                                              child: const Text(
-                                                                "Cancel",
-                                                              ),
-                                                            ),
-                                                            TextButton(
-                                                              style:
-                                                                  _darkBlueTextButtonStyle(),
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                context,
-                                                                true,
-                                                              ),
-                                                              child: const Text(
-                                                                "Delete",
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        );
-                                                      },
-                                                    ) ??
-                                                    false;
-                                            if (!confirmed) {
-                                              return;
-                                            }
-                                            await _deletePartnerTransaction(
-                                              partnerId: partnerId,
-                                              transactionId: transactionId,
-                                            );
-                                            if (!mounted) {
-                                              return;
-                                            }
-                                            _showSuccessSnack(
-                                              "Partner transaction removed.",
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ],
-                              ],
+                              ),
+                              isExpanded: isExpanded,
+                              titleColor: accentColor,
+                              iconColor: accentColor,
+                              onTap: () {
+                                setState(() {
+                                  if (isExpanded) {
+                                    _expandedPartnerIds.remove(partnerId);
+                                  } else {
+                                    _expandedPartnerIds.add(partnerId);
+                                  }
+                                });
+                              },
                             ),
-                          ),
-                        );
-                      }).toList(),
+                            if (isExpanded) ...[
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.08),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  _panelOuterGap,
+                                  _panelGap,
+                                  _panelOuterGap,
+                                  _panelOuterGap,
+                                ),
+                                child: Column(
+                                  children: [
+                                    const SizedBox(height: 8),
+                                    _buildPrimaryButton(
+                                      text: "Edit Partner",
+                                      onTap: () {
+                                        _showEditPartnerDialog(
+                                          partnerId: partnerId,
+                                          partnerData: partnerData,
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: _panelGap),
+                                    _buildTransactionHistoryList(
+                                      title: "Transactions",
+                                      stream: fbStore
+                                          .collection("partners")
+                                          .doc(partnerId)
+                                          .collection("transactions_v2")
+                                          .snapshots(),
+                                      amountKey: "amount",
+                                      onAdd: () {
+                                        _showPartnerTransactionDialog(
+                                          title: "Add Partner Transaction",
+                                          partnerId: partnerId,
+                                          partnerData: partnerData,
+                                        );
+                                      },
+                                      onEdit: (transactionId, data) async {
+                                        await _showPartnerTransactionDialog(
+                                          title: "Edit Partner Transaction",
+                                          partnerId: partnerId,
+                                          partnerData: partnerData,
+                                          transactionId: transactionId,
+                                          initialData: data,
+                                        );
+                                      },
+                                      onDelete: (transactionId, data) async {
+                                        final confirmed =
+                                            await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    return AlertDialog(
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      title: const Text(
+                                                        "Delete Transaction?",
+                                                      ),
+                                                      content: const Text(
+                                                        "This will remove the partner transaction and any linked claim record.",
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          style:
+                                                              _darkBlueTextButtonStyle(),
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                            context,
+                                                            false,
+                                                          ),
+                                                          child: const Text(
+                                                            "Cancel",
+                                                          ),
+                                                        ),
+                                                        TextButton(
+                                                          style:
+                                                              _darkBlueTextButtonStyle(),
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                            context,
+                                                            true,
+                                                          ),
+                                                          child: const Text(
+                                                            "Delete",
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ) ??
+                                                false;
+                                        if (!confirmed) {
+                                          return;
+                                        }
+                                        await _deletePartnerTransaction(
+                                          partnerId: partnerId,
+                                          transactionId: transactionId,
+                                        );
+                                        if (!mounted) {
+                                          return;
+                                        }
+                                        _showSuccessSnack(
+                                          "Partner transaction removed.",
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     );
-                  },
+                  }).toList(),
                 );
               },
             );
@@ -3275,7 +3126,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     return false;
                   }
                   final deductible =
-                      _toDouble(data["deductable_cash_markup_amount"]);
+                      _toDouble(data["deductible_cash_markup_amount"]);
                   final deducted =
                       _toDouble(data["deducted_cash_markup_amount"]);
                   final hasMarkup = deductible > 0 || deducted > 0;
@@ -3296,9 +3147,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                   final aData = a.data();
                   final bData = b.data();
                   final aDeductible =
-                      _toDouble(aData["deductable_cash_markup_amount"]);
+                      _toDouble(aData["deductible_cash_markup_amount"]);
                   final bDeductible =
-                      _toDouble(bData["deductable_cash_markup_amount"]);
+                      _toDouble(bData["deductible_cash_markup_amount"]);
                   final deductibleDiff = bDeductible.compareTo(aDeductible);
                   if (deductibleDiff != 0) {
                     return deductibleDiff;
@@ -3355,11 +3206,12 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                           .collection("transactions_v2")
                           .snapshots(),
                       builder: (context, transactionSnapshot) {
+                        final deductible =
+                            _toDouble(data["deductible_cash_markup_amount"]);
                         final deducted =
                             _toDouble(data["deducted_cash_markup_amount"]);
-                        final deductible =
-                            _toDouble(data["deductable_cash_markup_amount"]);
                         return Padding(
+                          key: ValueKey("driver-$driverId"),
                           padding:
                               const EdgeInsets.only(bottom: _panelOuterGap),
                           child: Container(
@@ -3433,16 +3285,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                           text: "Edit Driver",
                                           onTap: () {
                                             _showEditDriverDialog(
-                                              driverId: driverId,
-                                              driverData: data,
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildPrimaryButton(
-                                          text: "Record Deduction",
-                                          onTap: () {
-                                            _showDriverDeductionDialog(
                                               driverId: driverId,
                                               driverData: data,
                                             );
@@ -3613,48 +3455,36 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 stream: fbStore.collection("partners").snapshots(),
                 builder: (context, partnerSnapshot) {
                   return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream:
-                        fbStore.collectionGroup("transactions_v2").snapshots(),
-                    builder: (context, transactionSnapshot) {
+                    stream: fbStore
+                        .collection("users")
+                        .orderBy("partner_name")
+                        .startAt([""]).snapshots(),
+                    builder: (context, userSnapshot) {
                       return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                        stream: fbStore
-                            .collection("users")
-                            .orderBy("partner_name")
-                            .startAt([""]).snapshots(),
-                        builder: (context, userSnapshot) {
-                          return StreamBuilder<
-                              QuerySnapshot<Map<String, dynamic>>>(
-                            stream: fbStore.collection("drivers").snapshots(),
-                            builder: (context, driverSnapshot) {
-                              final partnerDocs = partnerSnapshot.hasData
-                                  ? partnerSnapshot.data!.docs
-                                  : <QueryDocumentSnapshot<
-                                      Map<String, dynamic>>>[];
-                              final partnerEntries = _buildPartnerEntries(
-                                partnerDocs: partnerDocs,
-                                transactionDocs: transactionSnapshot.hasData
-                                    ? transactionSnapshot.data!.docs
-                                    : <QueryDocumentSnapshot<
-                                        Map<String, dynamic>>>[],
-                                userSettingDocs: userSnapshot.hasData
-                                    ? userSnapshot.data!.docs
-                                    : <QueryDocumentSnapshot<
-                                        Map<String, dynamic>>>[],
-                              );
-                              final partnerIds =
-                                  partnerDocs.map((doc) => doc.id).toSet();
-                              final driverCount = _visibleDriverCount(
-                                driverDocs: driverSnapshot.hasData
-                                    ? driverSnapshot.data!.docs
-                                    : <QueryDocumentSnapshot<
-                                        Map<String, dynamic>>>[],
-                                partnerIds: partnerIds,
-                              );
-                              return _buildSectionSwitch(
-                                partnerCount: partnerEntries.length,
-                                driverCount: driverCount,
-                              );
-                            },
+                        stream: fbStore.collection("drivers").snapshots(),
+                        builder: (context, driverSnapshot) {
+                          final partnerDocs = partnerSnapshot.hasData
+                              ? partnerSnapshot.data!.docs
+                              : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+                          final partnerEntries = _buildPartnerEntries(
+                            partnerDocs: partnerDocs,
+                            userSettingDocs: userSnapshot.hasData
+                                ? userSnapshot.data!.docs
+                                : <QueryDocumentSnapshot<
+                                    Map<String, dynamic>>>[],
+                          );
+                          final partnerIds =
+                              partnerDocs.map((doc) => doc.id).toSet();
+                          final driverCount = _visibleDriverCount(
+                            driverDocs: driverSnapshot.hasData
+                                ? driverSnapshot.data!.docs
+                                : <QueryDocumentSnapshot<
+                                    Map<String, dynamic>>>[],
+                            partnerIds: partnerIds,
+                          );
+                          return _buildSectionSwitch(
+                            partnerCount: partnerEntries.length,
+                            driverCount: driverCount,
                           );
                         },
                       );
@@ -3721,7 +3551,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       style: TextStyle(
                         height: 1,
                         fontSize: 25,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                         color: Color(0xFF030744),
                       ),
                     ),

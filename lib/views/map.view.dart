@@ -205,7 +205,7 @@ class _MapViewState extends State<MapView> {
                                   enableSuggestions: false,
                                   style: const TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.bold,
                                     color: Color(0xFF030744),
                                   ),
                                   decoration: InputDecoration(
@@ -213,7 +213,7 @@ class _MapViewState extends State<MapView> {
                                       fontSize: 14,
                                       color: const Color(0xFF030744)
                                           .withValues(alpha: 0.5),
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                     filled: true,
                                     fillColor: const Color(0xFF007BFF)
@@ -368,7 +368,7 @@ class _MapViewState extends State<MapView> {
                                                           color:
                                                               Color(0xFF030744),
                                                           fontWeight:
-                                                              FontWeight.w500,
+                                                              FontWeight.bold,
                                                           overflow: TextOverflow
                                                               .ellipsis,
                                                         ),
@@ -565,7 +565,7 @@ class _MapViewState extends State<MapView> {
                                                         height: 1.05,
                                                         fontSize: 14,
                                                         fontWeight:
-                                                            FontWeight.w500,
+                                                            FontWeight.bold,
                                                         color:
                                                             Color(0xFF030744),
                                                       ),
@@ -596,7 +596,7 @@ class _MapViewState extends State<MapView> {
                                                         mapUnavailable
                                                     ? const TextStyle(
                                                         fontWeight:
-                                                            FontWeight.w500,
+                                                            FontWeight.bold,
                                                         color: Color(
                                                           0xFF030744,
                                                         ),

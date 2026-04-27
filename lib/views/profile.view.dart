@@ -106,7 +106,7 @@ class _ProfileViewState extends State<ProfileView> {
                             style: TextStyle(
                               height: 1,
                               fontSize: 25,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.bold,
                               color: Color(0xFF030744),
                             ),
                           ),
@@ -326,7 +326,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   "${AuthService.currentUser!.name}",
                                 ),
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                   color: Color(0xFF030744),
                                 ),
                               ),
@@ -403,7 +403,7 @@ class _ProfileViewState extends State<ProfileView> {
                                           "${AuthService.currentUser?.code}",
                                         ),
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.bold,
                                           color: Color(0xFF030744),
                                         ),
                                       ),
@@ -460,7 +460,7 @@ class _ProfileViewState extends State<ProfileView> {
                               Text(
                                 "${AuthService.currentUser!.email}",
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                   color: Color(0xFF030744),
                                 ),
                               ),
@@ -508,7 +508,7 @@ class _ProfileViewState extends State<ProfileView> {
                                     Text(
                                       "${AuthService.currentUser!.phone}",
                                       style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.bold,
                                         color: Color(0xFF030744),
                                       ),
                                     ),
@@ -554,7 +554,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   "${AuthService.currentUser!.branchName} (${AuthService.currentUser!.branchID})",
                                 ),
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                   color: Color(0xFF030744),
                                 ),
                               ),
@@ -596,7 +596,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   "${AuthService.currentUser!.id}",
                                 ),
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                   color: Color(0xFF030744),
                                 ),
                               ),

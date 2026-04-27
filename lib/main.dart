@@ -1,11 +1,10 @@
 import 'dart:async';
-
 import 'package:get/get.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/views/splash.view.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:pwa/services/push.service.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:pwa/services/storage.service.dart';
 
 void main() async {
@@ -34,6 +33,15 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  Set<PointerDeviceKind> get _dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.invertedStylus,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.unknown,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +73,22 @@ class MyApp extends StatelessWidget {
         ).copyWith(
           secondary: Colors.blueAccent,
         ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          shadowColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          elevation: 0,
+        ),
+        snackBarTheme: const SnackBarThemeData(
+          contentTextStyle: TextStyle(
+            color: Colors.white,
+          ),
+          actionTextColor: Colors.white,
+        ),
+      ),
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: _dragDevices,
       ),
     );
   }

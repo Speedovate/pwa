@@ -93,7 +93,8 @@ class _ChatViewState extends State<ChatView> {
     String imageUrl,
   ) {
     final availableWidth = MediaQuery.of(context).size.width - 124;
-    final width = availableWidth < 250 ? availableWidth : 250.0;
+    final width = availableWidth < 240 ? availableWidth : 240.0;
+    final height = width * (260 / 240);
     return ClipRRect(
       borderRadius: const BorderRadius.all(
         Radius.circular(8),
@@ -101,7 +102,7 @@ class _ChatViewState extends State<ChatView> {
       child: NetworkImageWidget(
         imageUrl: imageUrl,
         width: width,
-        height: 300,
+        height: height,
         fit: BoxFit.cover,
         memCacheWidth: 900,
       ),
@@ -948,7 +949,7 @@ class _ChatViewState extends State<ChatView> {
                                   style: TextStyle(
                                     height: 1,
                                     fontSize: 25,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.bold,
                                     color: Color(
                                       0xFF030744,
                                     ),

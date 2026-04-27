@@ -174,7 +174,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
           height: 1,
           fontSize: widget.fontSize,
           fontFamily: "Inter",
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.bold,
           color: widget.readOnly ? Colors.grey : const Color(0xFF030744),
         ),
         maxLines: widget.maxLines,
@@ -194,7 +194,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
                 height: 1,
                 fontSize: widget.fontSize,
                 fontFamily: "Inter",
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.bold,
                 overflow: TextOverflow.ellipsis,
                 color: widget.readOnly
                     ? Colors.grey
@@ -204,7 +204,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
                 height: 1,
                 fontSize: widget.fontSize,
                 fontFamily: "Inter",
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.bold,
                 color: widget.readOnly
                     ? Colors.grey
                     : !isFocused
@@ -226,7 +226,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
                         height: 1.05,
                         fontSize: widget.fontSize,
                         fontFamily: "Inter",
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                         color: widget.readOnly
                             ? Colors.grey
                             : const Color(0xFF030744),

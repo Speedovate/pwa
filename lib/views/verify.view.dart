@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,6 @@ import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/view_models/verify.vm.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class VerifyView extends StatefulWidget {
   final String? name;
@@ -162,7 +162,7 @@ class _VerifyViewState extends State<VerifyView> {
                                 style: TextStyle(
                                   height: 1,
                                   fontSize: 25,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                   color: Color(0xFF030744),
                                 ),
                               ),
@@ -440,8 +440,9 @@ class _VerifyViewState extends State<VerifyView> {
                                       color: Color(0xFF007BFF),
                                     ),
                                     recognizer: TapGestureRecognizer()
-                                      ..onTap = () {
-                                        launchUrlString("sms://+639686410532");
+                                      ..onTap = () async {
+                                        await showFacebookSupportDialog(
+                                            context);
                                       },
                                   ),
                                   const TextSpan(
@@ -460,11 +461,9 @@ class _VerifyViewState extends State<VerifyView> {
                                       color: Color(0xFF007BFF),
                                     ),
                                     recognizer: TapGestureRecognizer()
-                                      ..onTap = () {
-                                        launchUrlString(
-                                          "https://www.facebook.com/ppctodaofficial",
-                                          mode: LaunchMode.externalApplication,
-                                        );
+                                      ..onTap = () async {
+                                        await showFacebookSupportDialog(
+                                            context);
                                       },
                                   ),
                                   const TextSpan(

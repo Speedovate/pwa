@@ -7,6 +7,7 @@ class User {
   int? branchID;
   int? prevBranchID;
   int? actualBranchID;
+  int? versionCodeInstalled;
   String? code;
   String? licenseNumber;
   String? franchiseNumber;
@@ -39,6 +40,7 @@ class User {
     this.branchID,
     this.prevBranchID,
     this.actualBranchID,
+    this.versionCodeInstalled = 0,
     this.code,
     this.licenseNumber,
     this.franchiseNumber,
@@ -89,6 +91,11 @@ class User {
           json?["actual_branch_id"] ?? json?["real_area_id"],
           "real_area_id",
         ),
+        versionCodeInstalled: parseInt(
+              json?["version_code_installed"],
+              "version_code_installed",
+            ) ??
+            0,
         code: parseString(
           json?["code"] ?? json?["referral_code"],
           "referral_code",
@@ -212,6 +219,7 @@ class User {
         "real_area_id": actualBranchID,
         "prev_branch_id": prevBranchID,
         "actual_branch_id": actualBranchID,
+        "version_code_installed": versionCodeInstalled ?? 0,
         "code": code,
         "referral_code": code,
         "license_number": licenseNumber,

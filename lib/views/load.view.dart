@@ -31,8 +31,7 @@ class _LoadViewState extends State<LoadView> {
   void initState() {
     super.initState();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent - 100 &&
+      if (_scrollController.position.extentAfter <= 80 &&
           !_isLoadingMore &&
           !vm.isBusy) {
         _loadMore();
@@ -40,20 +39,23 @@ class _LoadViewState extends State<LoadView> {
     });
   }
 
-  _loadMore() async {
+  Future<void> _loadMore() async {
     setState(() => _isLoadingMore = true);
-    await vm.getLoadBalance();
     await vm.getLoadTransactions(initialLoading: false);
     setState(() => _isLoadingMore = false);
   }
 
-  _refresh() async {
+  Future<void> _refresh() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
     vm.startListeningToPartnerMarkup();
     await vm.getLoadBalance();
     await vm.getLoadTransactions(initialLoading: true);
     setState(() => _isRefreshing = false);
+  }
+
+  Future<void> _openSupportChannel() async {
+    await showFacebookSupportDialog(context);
   }
 
   Widget _buildMarkupSummaryBar(LoadViewModel vm) {
@@ -88,9 +90,9 @@ class _LoadViewState extends State<LoadView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Claimable Partner Markup",
-                  style: TextStyle(
+                Text(
+                  vm.markupBalanceLabel,
+                  style: const TextStyle(
                     height: 1,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -99,7 +101,7 @@ class _LoadViewState extends State<LoadView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "₱${vm.claimablePartnerMarkupAmount.toStringAsFixed(0)}",
+                  "₱${vm.markupBalanceAmount.toStringAsFixed(0)}",
                   style: const TextStyle(
                     height: 0.95,
                     fontSize: 24,
@@ -115,42 +117,8 @@ class _LoadViewState extends State<LoadView> {
     );
   }
 
-  Widget _buildFilterButton({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      height: 42,
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFF030744) : Colors.transparent,
-        borderRadius: const BorderRadius.all(Radius.circular(1000)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: const BorderRadius.all(Radius.circular(1000)),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                height: 1,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: selected
-                    ? Colors.white
-                    : const Color(0xFF030744).withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildMarkupHistoryList(LoadViewModel vm) {
-    if (vm.partnerMarkupTransactions.isEmpty) {
+    if (vm.markupTransactions.isEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -171,7 +139,7 @@ class _LoadViewState extends State<LoadView> {
           ),
           const SizedBox(height: 4),
           Text(
-            "Your claimable partner markup history will appear here",
+            "Your claimable markup history will appear here",
             style: TextStyle(
               height: 1,
               color: const Color(0xFF030744).withValues(alpha: 0.5),
@@ -184,12 +152,11 @@ class _LoadViewState extends State<LoadView> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       physics: const BouncingScrollPhysics(),
-      itemCount: vm.partnerMarkupTransactions.length + 1,
+      itemCount: vm.markupTransactions.length + 1,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (index == 0) {
           return Container(
-            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.all(Radius.circular(12)),
@@ -198,23 +165,49 @@ class _LoadViewState extends State<LoadView> {
                 color: const Color(0xFF030744).withValues(alpha: 0.15),
               ),
             ),
-            child: Text(
-              "Claimable partner markup came from bookings paid in cash and can be claimed via request.",
-              style: TextStyle(
-                height: 1.25,
-                fontSize: 12,
-                color: const Color(0xFF030744).withValues(alpha: 0.7),
+            child: InkWell(
+              onTap: _openSupportChannel,
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      height: 1.25,
+                      fontSize: 12,
+                      color: const Color(0xFF030744).withValues(alpha: 0.7),
+                    ),
+                    children: const [
+                      TextSpan(
+                        text:
+                            "Claimable Partner Markups come from bookings that you paid via cash and can be claimed via ",
+                      ),
+                      TextSpan(
+                        text: "request.",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF007BFF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
         }
-        final transaction = vm.partnerMarkupTransactions[index - 1];
+        final transaction = vm.markupTransactions[index - 1];
         final createdAt = transaction["created_at"] as DateTime?;
-        final driverName = transaction["driver_name"]?.toString() ?? "Driver";
-        final orderId = transaction["order_id"];
-        final markup = (transaction["markup"] as num?)?.toDouble() ??
-            (transaction["amount"] as num?)?.toDouble() ??
-            0;
+        final name = transaction["name"]?.toString().trim();
+        final note = transaction["note"]?.toString().trim();
+        final markup = (transaction["amount"] as num?)?.toDouble() ?? 0;
+        final isCredit = isBool(transaction["is_credit"]);
+        final sourceType = "${transaction["source_type"] ?? ""}".trim();
+        final title = name == null || name.isEmpty || name == "null"
+            ? sourceType == "driver"
+                ? "Driver"
+                : "Partner"
+            : name;
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -231,7 +224,7 @@ class _LoadViewState extends State<LoadView> {
                 children: [
                   const SizedBox(width: 16),
                   Text(
-                    _shortenDriverName(driverName),
+                    title,
                     style: const TextStyle(
                       height: 1,
                       fontSize: 14,
@@ -240,11 +233,11 @@ class _LoadViewState extends State<LoadView> {
                   ),
                   const Expanded(child: SizedBox()),
                   Text(
-                    "+ ₱${markup.toStringAsFixed(0)}",
-                    style: const TextStyle(
+                    "${isCredit ? "+" : "-"} ₱${markup.toStringAsFixed(0)}",
+                    style: TextStyle(
                       height: 1,
                       fontSize: 14,
-                      color: Colors.green,
+                      color: isCredit ? Colors.green : Colors.red,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -257,7 +250,9 @@ class _LoadViewState extends State<LoadView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      orderId == null ? "-" : "Booking $orderId",
+                      note == null || note.isEmpty || note == "null"
+                          ? "-"
+                          : note,
                       style: const TextStyle(
                         height: 1,
                         fontSize: 14,
@@ -287,21 +282,77 @@ class _LoadViewState extends State<LoadView> {
     );
   }
 
-  String _shortenDriverName(String value) {
-    final parts = value
-        .split(RegExp(r'\s+'))
-        .where((part) => part.trim().isNotEmpty)
-        .toList();
-    if (parts.isEmpty) {
-      return value;
-    }
-    if (parts.length == 1) {
-      return parts.first;
-    }
-    return [
-      parts.first,
-      ...parts.skip(1).map((part) => part[0].toUpperCase()),
-    ].join(' ');
+  Widget _buildHistorySwitch() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF030744),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: WidgetButton(
+              onTap: () {
+                setState(() {
+                  _showMarkupHistory = false;
+                });
+              },
+              borderRadius: 6,
+              mainColor: !_showMarkupHistory
+                  ? const Color(0xFF030744)
+                  : Colors.transparent,
+              isTransparentColor: _showMarkupHistory,
+              useDefaultHoverColor: false,
+              child: SizedBox(
+                height: 40,
+                child: Center(
+                  child: Text(
+                    "Load History",
+                    style: TextStyle(
+                      color: !_showMarkupHistory
+                          ? Colors.white
+                          : const Color(0xFF030744),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: WidgetButton(
+              onTap: () {
+                setState(() {
+                  _showMarkupHistory = true;
+                });
+              },
+              borderRadius: 6,
+              mainColor: _showMarkupHistory
+                  ? const Color(0xFF030744)
+                  : Colors.transparent,
+              isTransparentColor: !_showMarkupHistory,
+              useDefaultHoverColor: false,
+              child: SizedBox(
+                height: 40,
+                child: Center(
+                  child: Text(
+                    "Markup History",
+                    style: TextStyle(
+                      color: _showMarkupHistory
+                          ? Colors.white
+                          : const Color(0xFF030744),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -353,7 +404,7 @@ class _LoadViewState extends State<LoadView> {
                         style: TextStyle(
                           height: 1,
                           fontSize: 25,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.bold,
                           color: Color(0xFF030744),
                         ),
                       ),
@@ -642,7 +693,7 @@ class _LoadViewState extends State<LoadView> {
                             style: const TextStyle(
                               height: 1,
                               fontSize: 25,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.bold,
                               color: Color(0xFF09244B),
                             ),
                           ),
@@ -658,51 +709,14 @@ class _LoadViewState extends State<LoadView> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (isBool(AuthService.currentUser?.isProvider))
+                if (isBool(AuthService.currentUser?.isProvider) ||
+                    vm.hasMarkupHistoryAccess)
                   _buildMarkupSummaryBar(vm),
-                if (isBool(AuthService.currentUser?.isProvider))
+                if (isBool(AuthService.currentUser?.isProvider) ||
+                    vm.hasMarkupHistoryAccess)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          width: 1,
-                          color:
-                              const Color(0xFF030744).withValues(alpha: 0.15),
-                        ),
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(1000)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _buildFilterButton(
-                              label: "Load History",
-                              selected: !_showMarkupHistory,
-                              onTap: () {
-                                setState(() {
-                                  _showMarkupHistory = false;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: _buildFilterButton(
-                              label: "Markup History",
-                              selected: _showMarkupHistory,
-                              onTap: () {
-                                setState(() {
-                                  _showMarkupHistory = true;
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: _buildHistorySwitch(),
                   ),
                 Divider(
                   height: 1,
@@ -710,7 +724,8 @@ class _LoadViewState extends State<LoadView> {
                   color: const Color(0xFF030744).withValues(alpha: 0.15),
                 ),
                 Expanded(
-                  child: isBool(AuthService.currentUser?.isProvider) &&
+                  child: (isBool(AuthService.currentUser?.isProvider) ||
+                              vm.hasMarkupHistoryAccess) &&
                           _showMarkupHistory
                       ? _buildMarkupHistoryList(vm)
                       : vm.isBusy

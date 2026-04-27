@@ -8,6 +8,7 @@ class MapMarkerData {
   final double width;
   final double height;
   final double rotationDegrees;
+  final int zIndex;
 
   const MapMarkerData({
     required this.id,
@@ -16,11 +17,13 @@ class MapMarkerData {
     required this.width,
     required this.height,
     this.rotationDegrees = 0,
+    this.zIndex = 0,
   });
 
   MapMarkerData copyWith({
     gmaps.LatLng? position,
     double? rotationDegrees,
+    int? zIndex,
   }) {
     return MapMarkerData(
       id: id,
@@ -29,6 +32,7 @@ class MapMarkerData {
       width: width,
       height: height,
       rotationDegrees: rotationDegrees ?? this.rotationDegrees,
+      zIndex: zIndex ?? this.zIndex,
     );
   }
 }

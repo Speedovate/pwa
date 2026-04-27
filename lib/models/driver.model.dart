@@ -13,6 +13,7 @@ class Driver extends User {
     super.branchID,
     super.prevBranchID,
     super.actualBranchID,
+    super.versionCodeInstalled = 0,
     super.code,
     super.licenseNumber,
     super.franchiseNumber,
@@ -63,6 +64,11 @@ class Driver extends User {
           json?['actual_branch_id'],
           'actual_branch_id',
         ),
+        versionCodeInstalled: parseInt(
+              json?['version_code_installed'],
+              'version_code_installed',
+            ) ??
+            0,
         code: parseString(
           json?['code'],
           'code',

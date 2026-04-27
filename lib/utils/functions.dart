@@ -18,6 +18,11 @@ import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
+import 'package:url_launcher/url_launcher.dart';
+
+const String facebookSupportUrl = "https://www.facebook.com/ppctodaofficial";
+const String telSupportUrl = "tel://+639686410532";
+const String smsSupportUrl = "sms://+639686410532";
 
 String browserUserAgent() => lowerCase(
       html.window.navigator.userAgent,
@@ -52,6 +57,235 @@ bool isIOSLikeBrowser() {
 bool isGoogleAuthLikelySupported() => !isIOSLikeBrowser();
 
 bool isWebPushLikelySupported() => html.window.navigator.serviceWorker != null;
+
+Future<void> openFacebookSupportChannel() async {
+  final facebookAppUri = Uri.parse(
+    "fb://facewebmodal/f?href=${Uri.encodeComponent(facebookSupportUrl)}",
+  );
+  final facebookWebUri = Uri.parse(facebookSupportUrl);
+  final smsUri = Uri.parse(smsSupportUrl);
+
+  try {
+    if (await canLaunchUrl(facebookAppUri) &&
+        await launchUrl(
+          facebookAppUri,
+          mode: LaunchMode.externalApplication,
+        )) {
+      return;
+    }
+  } catch (_) {}
+
+  try {
+    if (await launchUrl(
+      facebookWebUri,
+      mode: LaunchMode.externalApplication,
+    )) {
+      return;
+    }
+  } catch (_) {}
+
+  try {
+    await launchUrl(
+      smsUri,
+      mode: LaunchMode.externalApplication,
+    );
+  } catch (_) {}
+}
+
+Future<void> showFacebookSupportDialog(
+  BuildContext context, {
+  String title = "Need assistance?",
+}) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.8),
+    builder: (dialogContext) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: 28,
+          vertical: 24,
+        ),
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 800,
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(dialogContext).padding.top,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(20),
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFF030744).withValues(alpha: 0.08),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF030744).withValues(alpha: 0.18),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    title,
+                                    style: const TextStyle(
+                                      height: 1.05,
+                                      fontSize: 18,
+                                      fontFamily: "Inter",
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF030744),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                IconButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Color(0xFF030744),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        child: Column(
+                          children: [
+                            _supportDialogButton(
+                              label: "Message us on Facebook",
+                              icon: Icons.facebook,
+                              onTap: () async {
+                                Navigator.of(dialogContext).pop();
+                                await openFacebookSupportChannel();
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            _supportDialogButton(
+                              label: "Send us a message",
+                              icon: Icons.sms,
+                              onTap: () async {
+                                Navigator.of(dialogContext).pop();
+                                try {
+                                  await launchUrl(
+                                    Uri.parse(smsSupportUrl),
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                } catch (_) {}
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            _supportDialogButton(
+                              label: "Contact us",
+                              icon: Icons.call,
+                              onTap: () async {
+                                Navigator.of(dialogContext).pop();
+                                try {
+                                  await launchUrl(
+                                    Uri.parse(telSupportUrl),
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                } catch (_) {}
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Widget _supportDialogButton({
+  required String label,
+  required IconData icon,
+  required Future<void> Function() onTap,
+}) {
+  const color = Color(0xFF1877F2);
+  return SizedBox(
+    width: double.infinity,
+    height: 56,
+    child: Material(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: const BorderRadius.all(
+        Radius.circular(14),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(14),
+        ),
+        focusColor: Colors.black.withValues(alpha: 0.2),
+        hoverColor: Colors.black.withValues(alpha: 0.2),
+        splashColor: Colors.black.withValues(alpha: 0.2),
+        highlightColor: Colors.black.withValues(alpha: 0.2),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: color,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: color,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 String capitalizeWords(
   dynamic input, {
@@ -165,12 +399,16 @@ String travelTime(double distanceKm) {
   const double minSpeed = 25;
   const double maxSpeed = 40;
   int calculateSeconds(double speed) => ((distanceKm / speed) * 3600).round();
+  String rangeUnit(String singular, String plural, num start, num end) {
+    return start == 1 && end == 1 ? singular : plural;
+  }
+
   String formatTimeRange(int minSeconds, int maxSeconds) {
     if (maxSeconds < 60) {
       if (minSeconds.round() == maxSeconds.round()) {
         return "${maxSeconds.round()} sec${maxSeconds.round() != 1 ? "s" : ""}";
       } else {
-        return "${minSeconds.round()} - ${maxSeconds.round()} sec";
+        return "${minSeconds.round()} - ${maxSeconds.round()} ${rangeUnit("sec", "secs", minSeconds.round(), maxSeconds.round())}";
       }
     } else if (maxSeconds < 3600) {
       final minMinutes = (minSeconds / 60).ceil();
@@ -178,7 +416,7 @@ String travelTime(double distanceKm) {
       if (minMinutes.round() == maxMinutes.round()) {
         return "${maxMinutes.round()} min${maxMinutes.round() != 1 ? "s" : ""}";
       } else {
-        return "$minMinutes - $maxMinutes min";
+        return "$minMinutes - $maxMinutes ${rangeUnit("min", "mins", minMinutes, maxMinutes)}";
       }
     } else {
       final minHours = double.parse((minSeconds / 3600).toStringAsFixed(1));
@@ -186,7 +424,7 @@ String travelTime(double distanceKm) {
       if (minHours.round() == maxHours.round()) {
         return "${maxHours.round()} hr${maxHours.round() != 1 ? "s" : ""}";
       } else {
-        return "$minHours - $maxHours hr";
+        return "$minHours - $maxHours ${rangeUnit("hr", "hrs", minHours, maxHours)}";
       }
     }
   }
@@ -670,7 +908,7 @@ showError(Object error) {
         message,
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.bold,
         ),
       ),
     ),

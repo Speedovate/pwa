@@ -1,4 +1,5 @@
 import 'package:lottie/lottie.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
@@ -112,10 +113,8 @@ class UpgradeWidget extends StatelessWidget {
                             color: Color(0xFF007BFF),
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              launchUrlString(
-                                "sms://+639686410532",
-                              );
+                            ..onTap = () async {
+                              await showFacebookSupportDialog(context);
                             },
                         ),
                         TextSpan(
@@ -137,10 +136,8 @@ class UpgradeWidget extends StatelessWidget {
                             color: Color(0xFF007BFF),
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              launchUrlString(
-                                "https://www.facebook.com/ppctodaofficial",
-                              );
+                            ..onTap = () async {
+                              await showFacebookSupportDialog(context);
                             },
                         ),
                         TextSpan(

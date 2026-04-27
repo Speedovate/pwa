@@ -44,6 +44,13 @@ class GMapViewModel extends BaseViewModel {
   bool _hasActivatedBottomUi = false;
   bool get hasActivatedBottomUi => _hasActivatedBottomUi;
   bool get shouldSkipInitialMapCameraMove => false;
+  bool get shouldAutoFitMapToRoute => true;
+
+  List<MapMarkerData> _markersWithDriverOnTop(List<MapMarkerData> nextMarkers) {
+    final sorted = [...nextMarkers];
+    sorted.sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    return sorted;
+  }
 
   void _syncMapUiNotifiers() {
     if (showBottomUi.value != _hasActivatedBottomUi) {
@@ -189,24 +196,40 @@ class GMapViewModel extends BaseViewModel {
     return target;
   }
 
+  bool fitCurrentRouteBounds({
+    EdgeInsets padding = const EdgeInsets.all(48),
+  }) {
+    if (_map == null) {
+      return false;
+    }
+
+    final routePoints = <gmaps.LatLng>[
+      if (pickupAddress != null) pickupAddress!.latLng,
+      ...polylines.expand((polyline) => polyline.points),
+      if (dropoffAddress != null) dropoffAddress!.latLng,
+      ...markers.map((marker) => marker.position),
+    ];
+
+    if (routePoints.isEmpty) {
+      return false;
+    }
+
+    ignoreCameraMovesFor(
+      const Duration(milliseconds: 1200),
+    );
+    _map!.fitToCoordinates(
+      routePoints,
+      padding: padding,
+    );
+    return true;
+  }
+
   Future<void> recenterHomeMap() async {
     if (_map == null) {
       return;
     }
 
-    if (pickupAddress != null && dropoffAddress != null) {
-      final routePoints = <gmaps.LatLng>[
-        pickupAddress!.latLng,
-        ...polylines.expand((polyline) => polyline.points),
-        dropoffAddress!.latLng,
-      ];
-      ignoreCameraMovesFor(
-        const Duration(milliseconds: 1200),
-      );
-      _map!.fitToCoordinates(
-        routePoints,
-        padding: const EdgeInsets.all(48),
-      );
+    if (fitCurrentRouteBounds()) {
       return;
     }
 
@@ -332,7 +355,7 @@ class GMapViewModel extends BaseViewModel {
               address,
               animate: animateSelectedAddress,
             );
-            } catch (e) {
+          } catch (e) {
             if (generation != _cameraMoveGeneration) {
               return;
             }
@@ -478,20 +501,20 @@ class GMapViewModel extends BaseViewModel {
       const MapMarkerData(
         id: "pickupMarker",
         position: gmaps.LatLng(0, 0),
-        imageUrl:
-            'https://assets.ppc-toda.com/pickup.png',
+        imageUrl: 'https://assets.ppc-toda.com/pickup.png',
         width: 50,
         height: 50,
       ).copyWith(position: pickupLatLng),
       const MapMarkerData(
         id: "driverMarker",
         position: gmaps.LatLng(0, 0),
-        imageUrl:
-            'https://assets.ppc-toda.com/driver.png',
+        imageUrl: 'https://assets.ppc-toda.com/driver.png',
         width: 35,
         height: 35,
+        zIndex: 1000,
       ).copyWith(position: driverLatLng),
     ];
+    markers = _markersWithDriverOnTop(markers);
     polylines = [];
     try {
       final result = await geocoderService.getPolyline(
@@ -509,13 +532,15 @@ class GMapViewModel extends BaseViewModel {
           ),
         ];
         final allPoints = [driverLatLng, ...points, pickupLatLng];
-        ignoreCameraMovesFor(
-          const Duration(milliseconds: 1200),
-        );
-        _map!.fitToCoordinates(
-          allPoints,
-          padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
-        );
+        if (shouldAutoFitMapToRoute) {
+          ignoreCameraMovesFor(
+            const Duration(milliseconds: 1200),
+          );
+          _map!.fitToCoordinates(
+            allPoints,
+            padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+          );
+        }
       } else {
         debugPrint("No polyline points received from backend");
       }
@@ -536,16 +561,14 @@ class GMapViewModel extends BaseViewModel {
       const MapMarkerData(
         id: "pickupMarker",
         position: gmaps.LatLng(0, 0),
-        imageUrl:
-            'https://assets.ppc-toda.com/pickup.png',
+        imageUrl: 'https://assets.ppc-toda.com/pickup.png',
         width: 50,
         height: 50,
       ).copyWith(position: pickupLatLng),
       const MapMarkerData(
         id: "dropoffMarker",
         position: gmaps.LatLng(0, 0),
-        imageUrl:
-            'https://assets.ppc-toda.com/dropoff.png',
+        imageUrl: 'https://assets.ppc-toda.com/dropoff.png',
         width: 50,
         height: 50,
       ).copyWith(position: dropoffLatLng),
@@ -555,13 +578,14 @@ class GMapViewModel extends BaseViewModel {
         const MapMarkerData(
           id: "driverMarker",
           position: gmaps.LatLng(0, 0),
-          imageUrl:
-              'https://assets.ppc-toda.com/driver.png',
+          imageUrl: 'https://assets.ppc-toda.com/driver.png',
           width: 35,
           height: 35,
+          zIndex: 1000,
         ).copyWith(position: driverLatLng),
       );
     }
+    markers = _markersWithDriverOnTop(markers);
     polylines = [];
     try {
       final result = await geocoderService.getPolyline(
@@ -579,13 +603,15 @@ class GMapViewModel extends BaseViewModel {
           ),
         ];
         final allPoints = [pickupLatLng, ...points, dropoffLatLng];
-        ignoreCameraMovesFor(
-          const Duration(milliseconds: 1200),
-        );
-        _map!.fitToCoordinates(
-          allPoints,
-          padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
-        );
+        if (shouldAutoFitMapToRoute) {
+          ignoreCameraMovesFor(
+            const Duration(milliseconds: 1200),
+          );
+          _map!.fitToCoordinates(
+            allPoints,
+            padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+          );
+        }
       } else {
         debugPrint("No polyline points received from backend");
       }
@@ -611,19 +637,21 @@ class GMapViewModel extends BaseViewModel {
         MapMarkerData(
           id: 'driverMarker',
           position: position,
-          imageUrl:
-              'https://assets.ppc-toda.com/driver.png',
+          imageUrl: 'https://assets.ppc-toda.com/driver.png',
           width: 35,
           height: 35,
           rotationDegrees: rotationDegrees,
+          zIndex: 1000,
         ),
       );
     } else {
       markers[index] = markers[index].copyWith(
         position: position,
         rotationDegrees: rotationDegrees,
+        zIndex: 1000,
       );
     }
+    markers = _markersWithDriverOnTop(markers);
     notifyListeners();
   }
 

@@ -2,6 +2,8 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart'
+    show SetOptions, Timestamp;
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
@@ -10,6 +12,7 @@ import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/chat.view.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/constants/strings.dart';
+import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/view_models/gmap.vm.dart';
 import 'package:pwa/view_models/load.vm.dart';
@@ -37,7 +40,6 @@ class HomeViewModel extends GMapViewModel {
   double rating = 5.0;
   int vehicleIndex = 0;
   bool snackShown = true;
-  bool showReport = false;
   bool isDisabled = false;
   bool isPreparing = false;
   bool blockCamera = false;
@@ -53,13 +55,24 @@ class HomeViewModel extends GMapViewModel {
   StreamSubscription? partnerUpdateStream;
   StreamSubscription? orderUpdateStream;
   AuthRequest authRequest = AuthRequest();
-  TextEditingController reviewTEC = TextEditingController();
   Future<void>? _initialOngoingOrderFuture;
   bool isResolvingInitialOngoingOrder = false;
+  bool _isDraggingOngoingMap = false;
+  bool _isRefreshingPartnerTodayAmount = false;
 
   @override
   bool get shouldSkipInitialMapCameraMove =>
       isResolvingInitialOngoingOrder || ongoingOrder != null;
+
+  @override
+  bool get shouldAutoFitMapToRoute => !_isDraggingOngoingMap;
+
+  void setDraggingOngoingMap(bool value) {
+    if (_isDraggingOngoingMap == value) {
+      return;
+    }
+    _isDraggingOngoingMap = value;
+  }
 
   Future<void> ensureInitialOngoingOrderLoaded() async {
     if (!AuthService.isLoggedIn()) {
@@ -89,7 +102,7 @@ class HomeViewModel extends GMapViewModel {
     isAd1Seen = StorageService.prefs?.getBool("is_ad_1_seen") ??
         !AuthService.isLoggedIn();
     if (isBool(AuthService.currentUser?.isProvider)) {
-      paymentId = 8;
+      paymentId = providerPaymentId;
     }
     notifyListeners();
     if (AuthService.isLoggedIn()) {
@@ -122,55 +135,103 @@ class HomeViewModel extends GMapViewModel {
   @override
   Future<void> recenterHomeMap() async {
     cancelPendingCameraMove();
+    setDraggingOngoingMap(false);
+    final status = (ongoingOrder?.status ?? "").toLowerCase();
+    final pickupLatLng = ongoingOrder?.taxiOrder?.pickupLatLng;
+    final dropoffLatLng = ongoingOrder?.taxiOrder?.dropoffLatLng;
+    final driverLatLng = ongoingOrder?.driverLatLng;
+
     if (ongoingOrder != null &&
-        ongoingOrder?.status != "cancelled" &&
-        ongoingOrder?.status != "delivered" &&
-        ongoingOrder?.taxiOrder?.pickupLatLng != null &&
-        ongoingOrder?.taxiOrder?.dropoffLatLng != null) {
-      isPreparing = true;
-      notifyListeners();
-      await drawDropPolyLines(
-        "pickup-dropoff",
-        ongoingOrder!.taxiOrder!.pickupLatLng,
-        ongoingOrder!.taxiOrder!.dropoffLatLng,
-        ongoingOrder?.driverLatLng,
-      );
-      isPreparing = false;
-      notifyListeners();
-      return;
+        status != "cancelled" &&
+        status != "delivered" &&
+        pickupLatLng != null) {
+      if (_fitOngoingOrderBoundsByStatus(
+        status: status,
+        pickupLatLng: pickupLatLng,
+        dropoffLatLng: dropoffLatLng,
+        driverLatLng: driverLatLng,
+      )) {
+        return;
+      }
     }
 
-    if (pickupAddress != null &&
-        dropoffAddress != null &&
-        (ongoingOrder == null || ongoingOrder?.status == "cancelled")) {
-      isPreparing = true;
-      notifyListeners();
-      await drawDropPolyLines(
-        "pickup-dropoff",
-        ongoingOrder?.taxiOrder?.pickupLatLng ?? pickupAddress!.latLng,
-        ongoingOrder?.taxiOrder?.dropoffLatLng ?? dropoffAddress!.latLng,
-        ongoingOrder?.driverLatLng,
-      );
-      await fetchVehicleTypesPricing();
-      isPreparing = false;
-      notifyListeners();
-      return;
+    await super.recenterHomeMap();
+  }
+
+  bool _fitOngoingOrderBoundsByStatus({
+    required String status,
+    required gmaps.LatLng pickupLatLng,
+    gmaps.LatLng? dropoffLatLng,
+    gmaps.LatLng? driverLatLng,
+    EdgeInsets padding = const EdgeInsets.fromLTRB(75, 90, 75, 90),
+  }) {
+    final controller = map;
+    if (controller == null) {
+      return false;
     }
 
-    final target = await zoomToCurrentLocation();
-    if (disposed || target == null) {
-      return;
+    final points = <gmaps.LatLng>[];
+    if ((status == "pending" || status == "preparing" || status == "ready") &&
+        driverLatLng != null) {
+      points.add(driverLatLng);
+      points.add(pickupLatLng);
+    } else if (status == "enroute" && dropoffLatLng != null) {
+      points.add(pickupLatLng);
+      points.add(dropoffLatLng);
+    } else {
+      if (pickupLatLng.lat != 0 || pickupLatLng.lng != 0) {
+        points.add(pickupLatLng);
+      }
+      if (dropoffLatLng != null &&
+          (dropoffLatLng.lat != 0 || dropoffLatLng.lng != 0)) {
+        points.add(dropoffLatLng);
+      }
+      if (driverLatLng != null &&
+          (driverLatLng.lat != 0 || driverLatLng.lng != 0)) {
+        points.add(driverLatLng);
+      }
     }
 
-    final completion = Completer<void>();
-    await mapCameraMove(
-      "myLocation",
-      target,
-      animateSelectedAddress: false,
-      debounceDuration: Duration.zero,
-      completion: completion,
+    final uniquePoints = <String, gmaps.LatLng>{};
+    for (final point in points) {
+      uniquePoints["${point.lat},${point.lng}"] = point;
+    }
+    final targetPoints = uniquePoints.values.toList();
+    if (targetPoints.isEmpty) {
+      return false;
+    }
+
+    ignoreCameraMovesFor(
+      const Duration(milliseconds: 1200),
     );
-    await completion.future;
+    if (targetPoints.length == 1) {
+      controller.recenter(
+        targetPoints.first,
+        zoom: 16,
+      );
+    } else {
+      controller.fitToCoordinates(
+        targetPoints,
+        padding: padding,
+      );
+    }
+    return true;
+  }
+
+  void _centerOngoingOrderForStatusChange() {
+    final order = ongoingOrder;
+    final pickupLatLng = order?.taxiOrder?.pickupLatLng;
+    if (order == null || pickupLatLng == null) {
+      return;
+    }
+    setDraggingOngoingMap(false);
+    _fitOngoingOrderBoundsByStatus(
+      status: (order.status ?? "").toLowerCase(),
+      pickupLatLng: pickupLatLng,
+      dropoffLatLng: order.taxiOrder?.dropoffLatLng,
+      driverLatLng: order.driverLatLng,
+      padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+    );
   }
 
   void resetUnavailableLocationState() {
@@ -188,30 +249,75 @@ class HomeViewModel extends GMapViewModel {
     notifyListeners();
   }
 
+  double _normalizeWholePeso(double value) {
+    return value.floorToDouble();
+  }
+
+  double _normalizeStaffWholePeso(double value) {
+    return value.ceilToDouble();
+  }
+
   calculateTotalAmount() {
-    subTotal = selectedVehicle?.total ?? 0;
+    final rawSubTotal = selectedVehicle?.total ?? 0;
+    subTotal = rawSubTotal;
     if (isBool(AuthService.currentUser?.isProvider)) {
       if (providerRiderTypeId == 8) {
-        discount = (5 / 100) * subTotal!;
+        final grossTotal = rawSubTotal + 20;
+        final discountedTotal = _normalizeStaffWholePeso(grossTotal * 0.95);
+        final normalizedDiscount = grossTotal - discountedTotal;
+        discount = normalizedDiscount;
+        final normalizedSubTotal = discountedTotal + normalizedDiscount - 20;
+        subTotal = normalizedSubTotal < 0 ? 0 : normalizedSubTotal;
+        total = discountedTotal;
       } else {
         discount = 0;
+        total = _normalizeWholePeso(
+          rawSubTotal + providerMarkupAmount + 20,
+        );
       }
     } else {
       discount = 0;
-    }
-    total = (subTotal ?? 0) - (discount ?? 0);
-    if (isBool(AuthService.currentUser?.isProvider)) {
-      if (providerRiderTypeId != 8) {
-        total = total! + (user?["markup_amount"] ?? 0) + 20;
-      } else {
-        total = total! + 20;
-      }
+      total = (rawSubTotal) - (discount ?? 0);
     }
     notifyListeners();
   }
 
+  double get providerMarkupAmount {
+    final value = partner?["markup_amount"] ?? user?["markup_amount"] ?? 0;
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse("$value") ?? 0;
+  }
+
+  double get providerTodayAmount {
+    final value = user?["today_amount"] ?? partner?["today_amount"] ?? 0;
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse("$value") ?? 0;
+  }
+
+  double get providerMonthAmount {
+    final value = user?["month_amount"] ?? partner?["month_amount"] ?? 0;
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse("$value") ?? 0;
+  }
+
+  double get providerTotalAmount {
+    final value = user?["total_amount"] ?? partner?["total_amount"] ?? 0;
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse("$value") ?? 0;
+  }
+
   String get providerPaymentMode {
-    final paymentMode = "${user?["payment_mode"] ?? ""}".toLowerCase();
+    final paymentMode =
+        "${partner?["payment_mode"] ?? user?["payment_mode"] ?? ""}"
+            .toLowerCase();
     return paymentMode == "cash" ? "cash" : "load";
   }
 
@@ -219,6 +325,14 @@ class HomeViewModel extends GMapViewModel {
 
   void syncProviderPaymentMode() {
     if (!isBool(AuthService.currentUser?.isProvider)) {
+      if (paymentId != 1) {
+        paymentId = 1;
+        if (selectedVehicle != null) {
+          calculateTotalAmount();
+        } else {
+          notifyListeners();
+        }
+      }
       return;
     }
     final nextPaymentId = providerPaymentId;
@@ -247,6 +361,29 @@ class HomeViewModel extends GMapViewModel {
       );
     }
     calculateTotalAmount();
+  }
+
+  Future<void> previewSelectedRouteOnHome({
+    required Address pickup,
+    required Address dropoff,
+  }) async {
+    pickupAddress = pickup;
+    dropoffAddress = dropoff;
+    isPreparing = true;
+    notifyListeners();
+    await Future<void>.delayed(const Duration(milliseconds: 16));
+    await drawDropPolyLines(
+      "pickup-dropoff",
+      pickup.latLng,
+      dropoff.latLng,
+      null,
+    );
+    await fetchVehicleTypesPricing();
+    fitCurrentRouteBounds(
+      padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+    );
+    isPreparing = false;
+    notifyListeners();
   }
 
   fetchVehicleTypesPricing() async {
@@ -445,7 +582,7 @@ class HomeViewModel extends GMapViewModel {
                       style: TextStyle(
                         height: 1.05,
                         fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(
@@ -513,7 +650,7 @@ class HomeViewModel extends GMapViewModel {
             AlertService().showAppAlert(
               title: "Driver is Distant",
               content:
-                  'Ka-TODA, the nearest driver is\n${availableDriver?.pickupKm?.toStringAsFixed(1) ?? 0} km away. An additional fare of\n₱${availableDriver?.pickupChargeFee?.ceil().toStringAsFixed(0)} will apply for picking you up.\nThe new fare will be "₱${((availableDriver?.pickupChargeFee?.ceil() ?? 0) + total!).toStringAsFixed(0)}"',
+                  'Ka-TODA, the nearest driver is\n${availableDriver?.pickupKm?.toStringAsFixed(0) ?? 0} km away. An additional fare of\n₱${availableDriver?.pickupChargeFee?.ceil().toStringAsFixed(0)} will apply for picking you up.\nThe new fare will be "₱${((availableDriver?.pickupChargeFee?.ceil() ?? 0) + total!).toStringAsFixed(0)}"',
               hideCancel: false,
               confirmText: "Accept",
               confirmColor: Colors.red,
@@ -742,7 +879,7 @@ class HomeViewModel extends GMapViewModel {
                   AlertService().showAppAlert(
                     title: "Driver is Distant",
                     content:
-                        'Ka-TODA, the nearest driver is\n${availableDriver?.pickupKm?.toStringAsFixed(1) ?? 0} km away. An additional fare of\n₱${availableDriver?.pickupChargeFee?.ceil().toStringAsFixed(0)} will apply for picking you up.\nThe new fare will be "₱${((availableDriver?.pickupChargeFee?.ceil() ?? 0) + total!).toStringAsFixed(0)}"',
+                        'Ka-TODA, the nearest driver is\n${availableDriver?.pickupKm?.toStringAsFixed(0) ?? 0} km away. An additional fare of\n₱${availableDriver?.pickupChargeFee?.ceil().toStringAsFixed(0)} will apply for picking you up.\nThe new fare will be "₱${((availableDriver?.pickupChargeFee?.ceil() ?? 0) + total!).toStringAsFixed(0)}"',
                     hideCancel: false,
                     confirmText: "Accept",
                     confirmColor: Colors.red,
@@ -922,12 +1059,18 @@ class HomeViewModel extends GMapViewModel {
     lastStatus = null;
     cHeaders = null;
     vehicleTypes = [];
-    reviewTEC.clear();
     getOngoingOrder();
     clearGMapDetails();
     clearPickupDisplayState();
     Get.forceAppUpdate();
-    zoomToCurrentLocation();
+    final target = await zoomToCurrentLocation();
+    if (target != null) {
+      await mapCameraMove(
+        "closeOrder",
+        target,
+        debounceDuration: Duration.zero,
+      );
+    }
   }
 
   startHandlingOngoingOrder({bool forceStop = false}) async {
@@ -951,22 +1094,22 @@ class HomeViewModel extends GMapViewModel {
                 "Not Yet Synced";
             if (user != null &&
                 ongoingOrder?.discount == 0 &&
-                (user?["markup_amount"] ?? 0) != null &&
+                providerMarkupAmount > 0 &&
                 isBool(AuthService.currentUser?.isProvider) &&
                 event.data()?["markup_amount"] == null) {
               fbStore.collection("orders").doc(ongoingOrder?.code).update(
                 {
-                  "markup_amount": user?["markup_amount"],
+                  "markup_amount": providerMarkupAmount,
                 },
               );
             }
             if (ongoingOrder?.discount == 0 &&
-                user?["markup_amount"] != null &&
+                providerMarkupAmount > 0 &&
                 isBool(AuthService.currentUser?.isProvider) &&
                 event.data()?["markup_amount"] == null) {
               fbStore.collection("orders").doc(ongoingOrder?.code).update(
                 {
-                  "markup_amount": user?["markup_amount"],
+                  "markup_amount": providerMarkupAmount,
                 },
               );
             }
@@ -1039,6 +1182,7 @@ class HomeViewModel extends GMapViewModel {
                 ongoingOrder!.taxiOrder!.pickupLatLng,
                 ongoingOrder!.driverLatLng,
               );
+              _centerOngoingOrderForStatusChange();
             }
             break;
           case "preparing":
@@ -1050,6 +1194,7 @@ class HomeViewModel extends GMapViewModel {
                 ongoingOrder!.taxiOrder!.pickupLatLng,
                 ongoingOrder!.driverLatLng,
               );
+              _centerOngoingOrderForStatusChange();
             }
           case "ready":
             if (lastStatus != ongoingOrder?.status) {
@@ -1060,6 +1205,7 @@ class HomeViewModel extends GMapViewModel {
                 ongoingOrder!.taxiOrder!.pickupLatLng,
                 ongoingOrder!.driverLatLng,
               );
+              _centerOngoingOrderForStatusChange();
             }
             break;
           case "enroute":
@@ -1073,6 +1219,7 @@ class HomeViewModel extends GMapViewModel {
                     dropoffAddress!.latLng,
                 ongoingOrder?.driverLatLng,
               );
+              _centerOngoingOrderForStatusChange();
             }
             break;
           case "delivered":
@@ -1161,103 +1308,6 @@ class HomeViewModel extends GMapViewModel {
     }
   }
 
-  reportDriver() async {
-    if (reviewTEC.text == "" || reviewTEC.text == "null") {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please tell us what happened",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
-    } else if (reviewTEC.text.length <= 5) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please provide us the details",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
-    } else {
-      showReport = false;
-      notifyListeners();
-      AlertService().showAppAlert(
-        title: "Report Driver",
-        content: "Do you want to report driver?",
-        cancelText: "No",
-        confirmText: "Yes",
-        hideCancel: false,
-        confirmColor: Colors.red,
-        confirmAction: () async {
-          Get.back();
-          AlertService().showLoading();
-          try {
-            ApiResponse apiResponse = await taxiRequest.reportDriverRequest(
-              orderId: ongoingOrder?.id,
-              message: reviewTEC.text,
-            );
-            reviewTEC.clear();
-            AlertService().stopLoading(forceStop: true);
-            if (apiResponse.allGood) {
-              AlertService().showAppAlert(
-                asset: AppLotties.success,
-                title: "Report Submitted",
-                content: "Driver has been reported",
-              );
-            } else {
-              ScaffoldMessenger.of(Get.context!).clearSnackBars();
-              ScaffoldMessenger.of(
-                Get.context!,
-              ).showSnackBar(
-                SnackBar(
-                  backgroundColor: Colors.red,
-                  content: Text(
-                    apiResponse.message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              );
-            }
-          } catch (e) {
-            showReport = true;
-            notifyListeners();
-            AlertService().stopLoading(forceStop: true);
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(
-              Get.context!,
-            ).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  e.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            );
-          }
-        },
-      );
-    }
-  }
-
   syncDriverLocation({bool forceStop = false}) {
     if (ongoingOrder != null && AuthService.isLoggedIn()) {
       globalTimer?.cancel();
@@ -1315,7 +1365,6 @@ class HomeViewModel extends GMapViewModel {
               .update(
             {
               "today": DateFormat("MMMM d, yyyy").format(DateTime.now()),
-              "today_amount": 0,
             },
           );
         }
@@ -1327,7 +1376,6 @@ class HomeViewModel extends GMapViewModel {
               .update(
             {
               "month": DateFormat("MMMM").format(DateTime.now()),
-              "month_amount": 0,
             },
           );
         }
@@ -1338,6 +1386,7 @@ class HomeViewModel extends GMapViewModel {
             "Not Yet Synced";
         try {
           if (userSyncedAt != "${event.data()?["syncedAt"]}") {
+            final wasProvider = isBool(AuthService.currentUser?.isProvider);
             AuthService.currentUser = await authRequest.getUser();
             await AuthService().saveUserToStorage(
               jsonEncode(
@@ -1345,6 +1394,12 @@ class HomeViewModel extends GMapViewModel {
               ),
             );
             await AuthService.getUserFromStorage();
+            final isProvider = isBool(AuthService.currentUser?.isProvider);
+            syncProviderPaymentMode();
+            if (wasProvider != isProvider) {
+              calculateTotalAmount();
+              notifyListeners();
+            }
             StorageService.prefs?.setString(
               "userSyncedAt",
               "${event.data()?["syncedAt"]}",
@@ -1388,11 +1443,127 @@ class HomeViewModel extends GMapViewModel {
         .doc("${AuthService.currentUser?.id}")
         .snapshots()
         .listen(
-      (event) {
+      (event) async {
+        final previousPaymentMode = providerDisplayPaymentMode;
         partner = event.data();
+        await _refreshPartnerTodayAmountIfNeeded(partner);
+        syncProviderPaymentMode();
+        if (previousPaymentMode != providerDisplayPaymentMode &&
+            selectedVehicle != null) {
+          calculateTotalAmount();
+        }
         notifyListeners();
       },
     );
+  }
+
+  Future<void> _refreshPartnerTodayAmountIfNeeded(
+    Map<String, dynamic>? partnerData,
+  ) async {
+    if (!isBool(AuthService.currentUser?.isProvider) ||
+        partnerData == null ||
+        _isRefreshingPartnerTodayAmount) {
+      return;
+    }
+
+    final todayLabel = DateFormat("MMMM d, yyyy").format(DateTime.now());
+    final monthLabel = DateFormat("MMMM").format(DateTime.now());
+    final needsTodayRefresh = "${partnerData["today"] ?? ""}" != todayLabel;
+    final needsMonthRefresh = "${partnerData["month"] ?? ""}" != monthLabel;
+    if (!needsTodayRefresh && !needsMonthRefresh) {
+      return;
+    }
+
+    _isRefreshingPartnerTodayAmount = true;
+    try {
+      final partnerId = "${AuthService.currentUser?.id ?? ""}";
+      if (partnerId.isEmpty) {
+        return;
+      }
+
+      final transactionsSnapshot = await fbStore
+          .collection("partners")
+          .doc(partnerId)
+          .collection("transactions_v2")
+          .get();
+
+      final now = DateTime.now();
+      var todayTotal = 0.0;
+      var monthTotal = 0.0;
+      var totalAmount = 0.0;
+      final currentMonthKey = DateFormat("yyyy-MM").format(now);
+      for (final doc in transactionsSnapshot.docs) {
+        final data = doc.data();
+        final amount = (data["amount"] as num?)?.toDouble() ?? 0;
+        if (amount <= 0 || data["is_credit"] != true) {
+          continue;
+        }
+        totalAmount += amount;
+        final createdAt = _dateTimeFromPartnerTransactionValue(
+          data["created_at"],
+        );
+        if (createdAt == null) {
+          continue;
+        }
+        if (DateFormat("yyyy-MM").format(createdAt) == currentMonthKey) {
+          monthTotal += amount;
+        }
+        if (createdAt.year == now.year &&
+            createdAt.month == now.month &&
+            createdAt.day == now.day) {
+          todayTotal += amount;
+        }
+      }
+
+      final updatedAt = Timestamp.now();
+      final batch = fbStore.batch();
+      batch.set(
+        fbStore.collection("partners").doc(partnerId),
+        {
+          "today": todayLabel,
+          "month": monthLabel,
+          "today_amount": todayTotal,
+          "month_amount": monthTotal,
+          "total_amount": totalAmount,
+          "updated_at": updatedAt,
+        },
+        SetOptions(merge: true),
+      );
+      batch.set(
+        fbStore.collection("users").doc(partnerId),
+        {
+          "today_amount": todayTotal,
+          "month_amount": monthTotal,
+          "total_amount": totalAmount,
+          "updated_at": updatedAt,
+          if (partnerData.containsKey("markup_amount"))
+            "markup_amount": partnerData["markup_amount"],
+          if (partnerData.containsKey("payment_mode"))
+            "payment_mode": partnerData["payment_mode"],
+          if ("${partnerData["partner_name"] ?? ""}".trim().isNotEmpty)
+            "partner_name": partnerData["partner_name"],
+          if ("${partnerData["partner_name"] ?? ""}".trim().isNotEmpty)
+            "name": partnerData["partner_name"],
+        },
+        SetOptions(merge: true),
+      );
+      await batch.commit();
+    } finally {
+      _isRefreshingPartnerTodayAmount = false;
+    }
+  }
+
+  DateTime? _dateTimeFromPartnerTransactionValue(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 
   String get providerDisplayPaymentMode {

@@ -82,7 +82,7 @@ class _DeleteViewState extends State<DeleteView> {
                             style: TextStyle(
                               height: 1,
                               fontSize: 25,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.bold,
                               color: Color(0xFF030744),
                             ),
                           ),
