@@ -469,11 +469,14 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
       backgroundColor: Colors.black.withValues(alpha: 0.8),
       body: SafeArea(
         child: SizedBox.expand(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 const SizedBox(height: 24),
                 const Center(
                   child: Icon(
@@ -537,6 +540,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                     });
                   },
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
                         width: 20,
@@ -557,15 +561,12 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                       ),
                       const SizedBox(width: 12),
                       const Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 12),
-                          child: Text(
-                            "I'm aware the driver is distant and accept the additional fare voluntarily.",
-                            style: TextStyle(
-                              height: 1.35,
-                              fontSize: 14,
-                              color: Colors.white,
-                            ),
+                        child: Text(
+                          "I'm aware the driver is distant and accept the additional fare voluntarily.",
+                          style: TextStyle(
+                            height: 1.35,
+                            fontSize: 14,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -633,7 +634,9 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                   ],
                 ),
                 const SizedBox(height: 24),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),
