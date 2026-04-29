@@ -533,7 +533,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                         ),
                         const SizedBox(height: 12),
                         _DriverDistantMetricTile(
-                          icon: Icons.attach_money,
+                          icon: Icons.info,
                           label: "New Fare",
                           value: "$updatedFare pesos",
                         ),
@@ -657,12 +657,12 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
 
 class _DriverDistantMetricTile extends StatelessWidget {
   const _DriverDistantMetricTile({
-    required this.icon,
+    this.icon,
     required this.label,
     required this.value,
   });
 
-  final IconData icon;
+  final IconData? icon;
   final String label;
   final String value;
 
