@@ -527,13 +527,13 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                         ),
                         const SizedBox(height: 12),
                         _DriverDistantMetricTile(
-                          icon: Icons.add,
+                          icon: Icons.add_circle,
                           label: "Pickup Fare",
                           value: "$pickupFee pesos",
                         ),
                         const SizedBox(height: 12),
                         _DriverDistantMetricTile(
-                          icon: Icons.local_atm,
+                          icon: Icons.monetization_on,
                           label: "New Fare",
                           value: "$updatedFare pesos",
                         ),
@@ -684,8 +684,12 @@ class _DriverDistantMetricTile extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 1.4,
+              ),
             ),
             child: Icon(
               icon,
