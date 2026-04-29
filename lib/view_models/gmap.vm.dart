@@ -35,6 +35,7 @@ class GMapViewModel extends BaseViewModel {
   gmaps.LatLng? lastCenter;
   GeocoderService geocoderService = GeocoderService();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
+  ValueNotifier<double?> totalAmountNotifier = ValueNotifier(0.0);
   ValueNotifier<bool> clearPickupDisplay = ValueNotifier(false);
   ValueNotifier<bool> showBottomUi = ValueNotifier(false);
   ValueNotifier<bool> showMapLoadingIndicator = ValueNotifier(false);
@@ -135,12 +136,20 @@ class GMapViewModel extends BaseViewModel {
     _debounce?.cancel();
     _debounce = null;
     selectedAddress.dispose();
+    totalAmountNotifier.dispose();
     clearPickupDisplay.dispose();
     showBottomUi.dispose();
     showMapLoadingIndicator.dispose();
     showPartnerButtons.dispose();
     _map = null;
     super.dispose();
+  }
+
+  void syncTotalAmountNotifier() {
+    if (totalAmountNotifier.value == total) {
+      return;
+    }
+    totalAmountNotifier.value = total;
   }
 
   setMap(AppMapController map) {

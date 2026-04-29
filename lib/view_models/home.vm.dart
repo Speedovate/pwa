@@ -243,6 +243,7 @@ class HomeViewModel extends GMapViewModel {
     total = 0;
     subTotal = 0;
     discount = 0;
+    syncTotalAmountNotifier();
     locUnavailable = false;
     clearPickupDisplayState();
     restorePickupDisplay();
@@ -255,7 +256,7 @@ class HomeViewModel extends GMapViewModel {
     }
     await AlertService().showDriverDistantDialog(
       availableDriver: availableDriver!,
-      totalAmount: total!,
+      totalAmountListenable: totalAmountNotifier,
       onAccept: () {
         placeNewOrder();
       },
@@ -292,6 +293,7 @@ class HomeViewModel extends GMapViewModel {
       discount = 0;
       total = (rawSubTotal) - (discount ?? 0);
     }
+    syncTotalAmountNotifier();
     notifyListeners();
   }
 
@@ -421,6 +423,7 @@ class HomeViewModel extends GMapViewModel {
           total = 0;
           subTotal = 0;
           discount = 0;
+          syncTotalAmountNotifier();
           notifyListeners();
           return;
         }

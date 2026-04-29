@@ -278,7 +278,7 @@ class AlertService {
 
   Future<bool?> showDriverDistantDialog({
     required AvailableDriver availableDriver,
-    required double totalAmount,
+    required ValueNotifier<double?> totalAmountListenable,
     required FutureOr<void> Function() onAccept,
     VoidCallback? onCancel,
   }) {
@@ -292,7 +292,7 @@ class AlertService {
           onPopInvokedWithResult: (didPop, result) async {},
           child: _DriverDistantDialog(
             availableDriver: availableDriver,
-            totalAmount: totalAmount,
+            totalAmountListenable: totalAmountListenable,
             onAccept: onAccept,
             onCancel: onCancel,
           ),
@@ -384,13 +384,13 @@ class AlertService {
 class _DriverDistantDialog extends StatefulWidget {
   const _DriverDistantDialog({
     required this.availableDriver,
-    required this.totalAmount,
+    required this.totalAmountListenable,
     required this.onAccept,
     this.onCancel,
   });
 
   final AvailableDriver availableDriver;
-  final double totalAmount;
+  final ValueNotifier<double?> totalAmountListenable;
   final FutureOr<void> Function() onAccept;
   final VoidCallback? onCancel;
 
@@ -462,185 +462,192 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
     final pickupFee =
         widget.availableDriver.pickupChargeFee?.ceil().toStringAsFixed(0) ??
             "0";
-    final updatedFare = ((widget.availableDriver.pickupChargeFee?.ceil() ?? 0) +
-            widget.totalAmount)
-        .toStringAsFixed(0);
-    return Scaffold(
-      backgroundColor: Colors.black.withValues(alpha: 0.8),
-      body: SafeArea(
-        child: SizedBox.expand(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                const SizedBox(height: 24),
-                const Center(
-                  child: Icon(
-                    Icons.warning_rounded,
-                    size: 80,
-                    color: Colors.red,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Center(
-                  child: Text(
-                    "Driver is Distant",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      height: 1.05,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  "Ka-TODA, the nearest driver is $pickupKm km away. An additional fare of ₱$pickupFee will apply for picking you up. The new fare will be ₱$updatedFare.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    height: 1.4,
-                    fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.92),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _DriverDistantMetricTile(
-                  icon: Icons.location_on_outlined,
-                  label: "Driver Distance",
-                  value: "$pickupKm kilometer${pickupKmValue <= 1 ? "" : "s"}",
-                ),
-                const SizedBox(height: 12),
-                _DriverDistantMetricTile(
-                  icon: Icons.receipt_long_outlined,
-                  label: "Original Fare",
-                  value: "${widget.totalAmount.toStringAsFixed(0)} pesos",
-                ),
-                const SizedBox(height: 12),
-                _DriverDistantMetricTile(
-                  icon: Icons.add,
-                  label: "Pickup Fare",
-                  value: "$pickupFee pesos",
-                ),
-                const SizedBox(height: 12),
-                _DriverDistantMetricTile(
-                  icon: Icons.payments_outlined,
-                  label: "New Fare",
-                  value: "$updatedFare pesos",
-                ),
-                const Expanded(child: SizedBox()),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _acknowledged = !_acknowledged;
-                    });
-                  },
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Checkbox(
-                          value: _acknowledged,
-                          activeColor: const Color(0xFF007BFF),
-                          side: const BorderSide(
-                            color: Colors.white,
-                            width: 1.5,
+    return ValueListenableBuilder<double?>(
+      valueListenable: widget.totalAmountListenable,
+      builder: (context, totalAmount, _) {
+        final baseTotal = totalAmount ?? 0;
+        final updatedFare =
+            ((widget.availableDriver.pickupChargeFee?.ceil() ?? 0) + baseTotal)
+                .toStringAsFixed(0);
+        return Scaffold(
+          backgroundColor: Colors.black.withValues(alpha: 0.8),
+          body: SafeArea(
+            child: SizedBox.expand(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 24),
+                        const Center(
+                          child: Icon(
+                            Icons.warning_rounded,
+                            size: 80,
+                            color: Colors.red,
                           ),
-                          onChanged: (value) {
+                        ),
+                        const SizedBox(height: 12),
+                        const Center(
+                          child: Text(
+                            "Driver is Distant",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              height: 1.05,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          "Ka-TODA, the nearest driver is $pickupKm km away. An additional fare of ₱$pickupFee will apply for picking you up. The new fare will be ₱$updatedFare.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            height: 1.4,
+                            fontSize: 16,
+                            color: Colors.white.withValues(alpha: 0.92),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _DriverDistantMetricTile(
+                          icon: Icons.location_on_outlined,
+                          label: "Driver Distance",
+                          value:
+                              "$pickupKm kilometer${pickupKmValue <= 1 ? "" : "s"}",
+                        ),
+                        const SizedBox(height: 12),
+                        _DriverDistantMetricTile(
+                          icon: Icons.receipt_long_outlined,
+                          label: "Original Fare",
+                          value: "${baseTotal.toStringAsFixed(0)} pesos",
+                        ),
+                        const SizedBox(height: 12),
+                        _DriverDistantMetricTile(
+                          icon: Icons.add,
+                          label: "Pickup Fare",
+                          value: "$pickupFee pesos",
+                        ),
+                        const SizedBox(height: 12),
+                        _DriverDistantMetricTile(
+                          icon: Icons.payments_outlined,
+                          label: "New Fare",
+                          value: "$updatedFare pesos",
+                        ),
+                        const Expanded(child: SizedBox()),
+                        GestureDetector(
+                          onTap: () {
                             setState(() {
-                              _acknowledged = value ?? false;
+                              _acknowledged = !_acknowledged;
                             });
                           },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          "I'm aware the driver is distant and accept the additional fare voluntarily.",
-                          style: TextStyle(
-                            height: 1.35,
-                            fontSize: 14,
-                            color: Colors.white,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: Checkbox(
+                                  value: _acknowledged,
+                                  activeColor: const Color(0xFF007BFF),
+                                  side: const BorderSide(
+                                    color: Colors.white,
+                                    width: 1.5,
+                                  ),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _acknowledged = value ?? false;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  "I'm aware the driver is distant and accept the additional fare voluntarily.",
+                                  style: TextStyle(
+                                    height: 1.35,
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ActionButton(
+                                height: 52,
+                                text: "Cancel",
+                                mainColor: Colors.white.withValues(alpha: 0.12),
+                                borderColor: Colors.white.withValues(alpha: 0.4),
+                                style: const TextStyle(
+                                  height: 1,
+                                  fontSize: 15,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                onTap: widget.onCancel ?? () => Get.back(),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ActionButton(
+                                height: 52,
+                                text: _secondsLeft == 0
+                                    ? "Accept"
+                                    : "Accept ($_secondsLeft)",
+                                mainColor: canAccept
+                                    ? Colors.red
+                                    : Colors.red.withValues(alpha: 0.45),
+                                borderColor: canAccept
+                                    ? null
+                                    : Colors.red.withValues(alpha: 0.8),
+                                style: const TextStyle(
+                                  height: 1,
+                                  fontSize: 15,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                onTap: () async {
+                                  if (_secondsLeft > 0) {
+                                    _showValidationSnackBar(
+                                      "Take time to read. Please try again after $_secondsLeft second${_secondsLeft == 1 ? "" : "s"}!",
+                                    );
+                                    return;
+                                  }
+                                  if (!_acknowledged) {
+                                    _showValidationSnackBar(
+                                      "Please confirm that you're aware the driver is distant and accept the additional fare voluntarily.",
+                                    );
+                                    return;
+                                  }
+                                  setState(() {
+                                    _submitting = true;
+                                  });
+                                  Get.back();
+                                  await widget.onAccept();
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ActionButton(
-                        height: 52,
-                        text: "Cancel",
-                        mainColor: Colors.white.withValues(alpha: 0.12),
-                        borderColor: Colors.white.withValues(alpha: 0.4),
-                        style: const TextStyle(
-                          height: 1,
-                          fontSize: 15,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onTap: widget.onCancel ?? () => Get.back(),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ActionButton(
-                        height: 52,
-                        text: _secondsLeft == 0
-                            ? "Accept"
-                            : "Accept ($_secondsLeft)",
-                        mainColor: canAccept
-                            ? Colors.red
-                            : Colors.red.withValues(alpha: 0.45),
-                        borderColor: canAccept
-                            ? null
-                            : Colors.red.withValues(alpha: 0.8),
-                        style: const TextStyle(
-                          height: 1,
-                          fontSize: 15,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onTap: () async {
-                          if (_secondsLeft > 0) {
-                            _showValidationSnackBar(
-                              "Take time to read. Please try again after $_secondsLeft second${_secondsLeft == 1 ? "" : "s"}!",
-                            );
-                            return;
-                          }
-                          if (!_acknowledged) {
-                            _showValidationSnackBar(
-                              "Please confirm that you're aware the driver is distant and accept the additional fare voluntarily.",
-                            );
-                            return;
-                          }
-                          setState(() {
-                            _submitting = true;
-                          });
-                          Get.back();
-                          await widget.onAccept();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                  ],
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
