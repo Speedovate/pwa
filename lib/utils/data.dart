@@ -68,13 +68,10 @@ RegExp nameRegex = RegExp(
 
 int bookingId = 0;
 int rebookSecs = 0;
-Timer? pickupCountdownTimer;
 Timer? resendCountdownTimer;
 Timer? rebookCountdownTimer;
-int pickupSecs = defaultPickupSeconds;
 int resendSecs = defaultCountdownSeconds;
 int maxResendSeconds = defaultCountdownSeconds;
-int defaultPickupSeconds = 4;
 int defaultCountdownSeconds =
     AppStrings.homeSettingsObject?["code_countdown_seconds"] ?? 120;
 

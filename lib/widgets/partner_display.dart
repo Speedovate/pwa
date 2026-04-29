@@ -52,7 +52,14 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
 
     return Positioned.fill(
       child: GestureDetector(
-        onTap: widget.onClose,
+        onTap: () {
+          setState(() {
+            showBranch = false;
+            selectedBranch = 0;
+            bannerIndex = 0;
+          });
+          widget.onClose();
+        },
         child: Container(
           color: Colors.black.withValues(alpha: 0.5),
           child: SafeArea(
@@ -302,8 +309,9 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
                 "${widget.partnerName} ${branch.name}",
               );
               setState(() {
-                selectedBranch = 0;
                 showBranch = false;
+                selectedBranch = 0;
+                bannerIndex = 0;
               });
               await StorageService.prefs?.setBool("is_ad_seen", true);
               await StorageService.prefs?.setBool("is_ad_1_seen", true);

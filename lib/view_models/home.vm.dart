@@ -249,6 +249,19 @@ class HomeViewModel extends GMapViewModel {
     notifyListeners();
   }
 
+  Future<void> _showDriverDistantDialog() async {
+    if (availableDriver == null || total == null) {
+      return;
+    }
+    await AlertService().showDriverDistantDialog(
+      availableDriver: availableDriver!,
+      totalAmount: total!,
+      onAccept: () {
+        placeNewOrder();
+      },
+    );
+  }
+
   double _normalizeWholePeso(double value) {
     return value.floorToDouble();
   }
@@ -646,38 +659,7 @@ class HomeViewModel extends GMapViewModel {
               (selectedVehicle?.pickupKmLimit ?? 0.0)) {
             placeNewOrder();
           } else {
-            startPickupCountDown();
-            AlertService().showAppAlert(
-              title: "Driver is Distant",
-              content:
-                  'Ka-TODA, the nearest driver is\n${availableDriver?.pickupKm?.toStringAsFixed(0) ?? 0} km away. An additional fare of\n₱${availableDriver?.pickupChargeFee?.ceil().toStringAsFixed(0)} will apply for picking you up.\nThe new fare will be "₱${((availableDriver?.pickupChargeFee?.ceil() ?? 0) + total!).toStringAsFixed(0)}"',
-              hideCancel: false,
-              confirmText: "Accept",
-              confirmColor: Colors.red,
-              confirmAction: () {
-                if (pickupSecs != 0) {
-                  ScaffoldMessenger.of(
-                    Get.context!,
-                  ).clearSnackBars();
-                  ScaffoldMessenger.of(
-                    Get.context!,
-                  ).showSnackBar(
-                    SnackBar(
-                      backgroundColor: Colors.red,
-                      content: Text(
-                        "Take time to read. Please wait for $pickupSecs second${pickupSecs == 1 ? "" : "s"}!",
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  );
-                } else {
-                  Get.back();
-                  placeNewOrder();
-                }
-              },
-            );
+            _showDriverDistantDialog();
           }
         } else {
           if (!snackShown) {
@@ -875,38 +857,7 @@ class HomeViewModel extends GMapViewModel {
                     (selectedVehicle?.pickupKmLimit ?? 0.0)) {
                   placeNewOrder();
                 } else {
-                  startPickupCountDown();
-                  AlertService().showAppAlert(
-                    title: "Driver is Distant",
-                    content:
-                        'Ka-TODA, the nearest driver is\n${availableDriver?.pickupKm?.toStringAsFixed(0) ?? 0} km away. An additional fare of\n₱${availableDriver?.pickupChargeFee?.ceil().toStringAsFixed(0)} will apply for picking you up.\nThe new fare will be "₱${((availableDriver?.pickupChargeFee?.ceil() ?? 0) + total!).toStringAsFixed(0)}"',
-                    hideCancel: false,
-                    confirmText: "Accept",
-                    confirmColor: Colors.red,
-                    confirmAction: () {
-                      if (pickupSecs != 0) {
-                        ScaffoldMessenger.of(
-                          Get.context!,
-                        ).clearSnackBars();
-                        ScaffoldMessenger.of(
-                          Get.context!,
-                        ).showSnackBar(
-                          SnackBar(
-                            backgroundColor: Colors.red,
-                            content: Text(
-                              "Take time to read. Please wait for $pickupSecs second${pickupSecs == 1 ? "" : "s"}!",
-                              style: const TextStyle(
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        );
-                      } else {
-                        Get.back();
-                        placeNewOrder();
-                      }
-                    },
-                  );
+                  _showDriverDistantDialog();
                 }
               } else {
                 if (!snackShown) {
@@ -1639,25 +1590,6 @@ class HomeViewModel extends GMapViewModel {
       (timer) {
         if (rebookSecs > 0) {
           rebookSecs -= 1;
-          notifyListeners();
-        } else {
-          timer.cancel();
-        }
-      },
-    );
-  }
-
-  void startPickupCountDown() {
-    pickupSecs = defaultPickupSeconds;
-    notifyListeners();
-    if (pickupCountdownTimer != null && pickupCountdownTimer!.isActive) {
-      return;
-    }
-    pickupCountdownTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
-        if (pickupSecs > 0) {
-          pickupSecs -= 1;
           notifyListeners();
         } else {
           timer.cancel();

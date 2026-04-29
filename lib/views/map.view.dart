@@ -335,22 +335,10 @@ class _MapViewState extends State<MapView> {
                                               items: gSpots.map((spot) {
                                                 return WidgetButton(
                                                   onTap: () async {
-                                                    setState(() {
-                                                      vm.skipCamera = true;
-                                                    });
-                                                    await vm.addressSelected(
+                                                    await vm.selectSpotAddress(
                                                       spot,
-                                                      animate: true,
                                                       isPickup: widget.isPickup,
                                                     );
-                                                    await Future.delayed(
-                                                      const Duration(
-                                                        milliseconds: 500,
-                                                      ),
-                                                    );
-                                                    setState(() {
-                                                      vm.skipCamera = false;
-                                                    });
                                                   },
                                                   child: Center(
                                                     child: Padding(
