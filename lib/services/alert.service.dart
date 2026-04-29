@@ -533,7 +533,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                         ),
                         const SizedBox(height: 12),
                         _DriverDistantMetricTile(
-                          icon: Icons.monetization_on,
+                          icon: Icons.attach_money,
                           label: "New Fare",
                           value: "$updatedFare pesos",
                         ),
