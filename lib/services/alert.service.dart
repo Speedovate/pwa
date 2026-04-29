@@ -550,18 +550,20 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                               SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: Checkbox(
-                                  value: _acknowledged,
-                                  activeColor: const Color(0xFF007BFF),
-                                  side: const BorderSide(
-                                    color: Colors.white,
-                                    width: 1.5,
+                                child: Center(
+                                  child: Checkbox(
+                                    value: _acknowledged,
+                                    activeColor: const Color(0xFF007BFF),
+                                    side: const BorderSide(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _acknowledged = value ?? false;
+                                      });
+                                    },
                                   ),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _acknowledged = value ?? false;
-                                    });
-                                  },
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -586,7 +588,8 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                                 height: 52,
                                 text: "Cancel",
                                 mainColor: Colors.white.withValues(alpha: 0.12),
-                                borderColor: Colors.white.withValues(alpha: 0.4),
+                                borderColor:
+                                    Colors.white.withValues(alpha: 0.4),
                                 style: const TextStyle(
                                   height: 1,
                                   fontSize: 15,
