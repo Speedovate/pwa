@@ -484,7 +484,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                         const SizedBox(height: 24),
                         const Center(
                           child: Icon(
-                            Icons.warning_rounded,
+                            Icons.warning,
                             size: 80,
                             color: Colors.red,
                           ),
@@ -514,14 +514,14 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                         ),
                         const SizedBox(height: 24),
                         _DriverDistantMetricTile(
-                          icon: Icons.location_on_outlined,
+                          icon: Icons.place,
                           label: "Driver Distance",
                           value:
                               "$pickupKm kilometer${pickupKmValue <= 1 ? "" : "s"}",
                         ),
                         const SizedBox(height: 12),
                         _DriverDistantMetricTile(
-                          icon: Icons.receipt_long_outlined,
+                          icon: Icons.receipt,
                           label: "Original Fare",
                           value: "${baseTotal.toStringAsFixed(0)} pesos",
                         ),
@@ -533,7 +533,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                         ),
                         const SizedBox(height: 12),
                         _DriverDistantMetricTile(
-                          icon: Icons.payments_outlined,
+                          icon: Icons.attach_money,
                           label: "New Fare",
                           value: "$updatedFare pesos",
                         ),
