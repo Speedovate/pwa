@@ -944,9 +944,9 @@ class _ChatViewState extends State<ChatView> {
                                   ),
                                 ),
                                 const SizedBox(width: 2),
-                                const Text(
-                                  "Chat Driver",
-                                  style: TextStyle(
+                                Text(
+                                  "#${widget.order.id}",
+                                  style: const TextStyle(
                                     height: 1,
                                     fontSize: 25,
                                     fontWeight: FontWeight.bold,
