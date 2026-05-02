@@ -30,6 +30,7 @@ class SettingsViewModel extends BaseViewModel {
     final apiResponse = await authRequest.logoutRequest();
     if (apiResponse.allGood) {
       await AuthService().logout();
+      return;
     } else {
       AlertService().stopLoading(forceStop: true);
       AlertService().showAppAlert(

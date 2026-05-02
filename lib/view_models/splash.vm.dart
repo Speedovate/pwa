@@ -25,6 +25,7 @@ class SplashViewModel extends BaseViewModel {
 
   Future<void> initialise() async {
     await getAppUser();
+    await AuthService().syncStoredTopicsForCurrentSession();
     await AppStrings.getAppSettingsFromStorage();
     await AppStrings.getHomeSettingsFromStorage();
     if (AppStrings.appSettingsObject == null) {
@@ -55,8 +56,8 @@ class SplashViewModel extends BaseViewModel {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.34";
-      versionCode = "54";
+      version = "1.0.31";
+      versionCode = "51";
     } catch (e) {
       debugPrint(
         "getAppInfo error: $e",

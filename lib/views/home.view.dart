@@ -32,6 +32,7 @@ import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:pwa/widgets/quick_chat_pills.widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -114,8 +115,193 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
-  Future<void> _openSupportChannel() async {
-    await showFacebookSupportDialog(context);
+  Future<void> _openSupportChannel([HomeViewModel? vm]) async {
+    final canRequestCancellation = vm != null &&
+        vm.ongoingOrder != null &&
+        !vm.isEnrouteOrBeyondStatus(vm.ongoingOrder?.status);
+    await showFacebookSupportDialog(
+      context,
+      showRequestCancellation: canRequestCancellation,
+      onRequestCancellation: !canRequestCancellation
+          ? null
+          : () async {
+              await vm.sendQuickChatMessage(
+                "Request cancellation",
+                isRequestCancellation: true,
+                openChatAfter: true,
+              );
+            },
+    );
+  }
+
+  bool _canShowRequestCancellationPill(String? status) {
+    final normalized = (status ?? "").trim().toLowerCase();
+    return ![
+      "enroute",
+      "delivered",
+      "completed",
+      "successful",
+      "cancelled",
+    ].contains(normalized);
+  }
+
+  String? _homeRequestMessageType(String? message) {
+    final normalized = (message ?? "").trim().toLowerCase();
+    if (normalized == "request cancellation") {
+      return "cancellation";
+    }
+    if (normalized == "request pass") {
+      return "pass";
+    }
+    return null;
+  }
+
+  Widget _buildHomeQuickChatPills(HomeViewModel vm) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: userQuickChatDoc.snapshots(),
+      builder: (context, snapshot) {
+        final options = parseQuickChatOptions(snapshot.data?.data());
+        if (options.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: QuickChatPills(
+            options: options,
+            horizontalPadding: 20,
+            showRequestCancellation: _canShowRequestCancellationPill(
+              vm.ongoingOrder?.status,
+            ),
+            onSelected: (option) async {
+              await vm.sendQuickChatMessage(option);
+            },
+            onRequestCancellation: () async {
+              await vm.sendQuickChatMessage(
+                "Request cancellation",
+                isRequestCancellation: true,
+                openChatAfter: true,
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHomeRequestCancellationActions(HomeViewModel vm) {
+    return _buildHomeRequestActions(
+      vm,
+      requestType: "cancellation",
+      color: const Color(0xFFFF3B30),
+    );
+  }
+
+  Widget _buildHomeRequestPassActions(HomeViewModel vm) {
+    return _buildHomeRequestActions(
+      vm,
+      requestType: "pass",
+      color: const Color(0xFF007BFF),
+    );
+  }
+
+  Widget _buildHomeRequestActions(
+    HomeViewModel vm, {
+    required String requestType,
+    required Color color,
+  }) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream:
+          fbStore.collection("orders").doc(vm.ongoingOrder?.code).snapshots(),
+      builder: (context, snapshot) {
+        Widget buildPill({
+          required String label,
+          required Future<void> Function() onTap,
+        }) {
+          return Material(
+            color: Colors.transparent,
+            child: Ink(
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.08),
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(1000),
+                ),
+                border: Border.all(
+                  color: color.withValues(alpha: 0.18),
+                ),
+              ),
+              child: InkWell(
+                onTap: requestType == "cancellation"
+                    ? vm.isUpdatingRequestCancellation
+                        ? null
+                        : () async => onTap()
+                    : vm.isUpdatingRequestPass
+                        ? null
+                        : () async => onTap(),
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(1000),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 0,
+                    ),
+                    child: (requestType == "cancellation"
+                            ? vm.isUpdatingRequestCancellation
+                            : vm.isUpdatingRequestPass)
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: color,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: SizedBox(
+            height: 45,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: 2,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return buildPill(
+                    label: "Accept",
+                    onTap: () => requestType == "cancellation"
+                        ? vm.updateRequestCancellationStatus("accepted")
+                        : vm.updateRequestPassStatus("accepted"),
+                  );
+                }
+                return buildPill(
+                  label: "Reject",
+                  onTap: () => requestType == "cancellation"
+                      ? vm.updateRequestCancellationStatus("rejected")
+                      : vm.updateRequestPassStatus("rejected"),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildHomeDrawer(HomeViewModel vm, {bool useScaffoldDrawer = false}) {
@@ -370,7 +556,7 @@ class _HomeViewState extends State<HomeView> {
             ),
             onTap: () {
               _closeIOSMenu();
-              _openSupportChannel();
+              _openSupportChannel(homeViewModel);
             },
           ),
           if (AuthService.isLoggedIn())
@@ -786,7 +972,7 @@ class _HomeViewState extends State<HomeView> {
               final currentCenter = _homeMapCenter;
               final hasActiveOngoingOrder = vm.ongoingOrder != null &&
                   vm.ongoingOrder?.status != "cancelled" &&
-                  vm.ongoingOrder?.status != "delivered";
+                  !vm.isCompletedReceiptStatus(vm.ongoingOrder?.status);
               if (currentCenter == null ||
                   (_sameLatLng(currentCenter, defaultLatLng) &&
                       !_sameLatLng(resolvedCenter, defaultLatLng))) {
@@ -824,6 +1010,9 @@ class _HomeViewState extends State<HomeView> {
                                       }
                                       await vm
                                           .ensureInitialOngoingOrderLoaded();
+                                      await vm.loadUIByOngoingOrderStatus(
+                                        forceStop: true,
+                                      );
                                       await LoadViewModel().getLoadBalance();
                                     });
                                   },
@@ -3020,8 +3209,15 @@ class _HomeViewState extends State<HomeView> {
                                                           text: (() {
                                                             final order =
                                                                 vm.ongoingOrder;
+                                                            if (vm
+                                                                .isOngoingOrderStatusUncertain) {
+                                                              return "REPORT";
+                                                            }
                                                             final status =
-                                                                order?.status;
+                                                                (order?.status ??
+                                                                        "")
+                                                                    .trim()
+                                                                    .toLowerCase();
                                                             if (order == null ||
                                                                 status ==
                                                                     "cancelled") {
@@ -3030,10 +3226,7 @@ class _HomeViewState extends State<HomeView> {
                                                                 "enroute") {
                                                               return "REPORT";
                                                             } else if (vm
-                                                                        .dvrMessage ==
-                                                                    null ||
-                                                                vm.dvrMessage ==
-                                                                    "null") {
+                                                                .canOpenCancelFlow) {
                                                               return "CANCEL";
                                                             } else if (status ==
                                                                     "pending" ||
@@ -3045,7 +3238,7 @@ class _HomeViewState extends State<HomeView> {
                                                                     "delivered") {
                                                               return "REPORT";
                                                             }
-                                                            return "CANCEL";
+                                                            return "REPORT";
                                                           })(),
                                                           mainColor: vm
                                                                   .isPreparing
@@ -3088,6 +3281,12 @@ class _HomeViewState extends State<HomeView> {
                                                                   .instance
                                                                   .primaryFocus
                                                                   ?.unfocus();
+                                                              if (vm
+                                                                  .isOngoingOrderStatusUncertain) {
+                                                                _openSupportChannel(
+                                                                    vm);
+                                                                return;
+                                                              }
                                                               if (vm.isPreparing ||
                                                                   vm.ongoingOrder
                                                                           ?.status ==
@@ -3126,27 +3325,32 @@ class _HomeViewState extends State<HomeView> {
                                                                       .ongoingOrder
                                                                       ?.status ==
                                                                   "enroute") {
-                                                                _openSupportChannel();
+                                                                _openSupportChannel(
+                                                                    vm);
                                                               } else if (vm
-                                                                          .dvrMessage ==
-                                                                      null ||
-                                                                  vm.dvrMessage ==
-                                                                      "null") {
+                                                                  .canOpenCancelFlow) {
                                                                 vm.cancelOrder();
                                                               } else {
-                                                                if (vm.ongoingOrder?.status == "pending" ||
-                                                                    vm.ongoingOrder
-                                                                            ?.status ==
+                                                                final status = (vm
+                                                                            .ongoingOrder
+                                                                            ?.status ??
+                                                                        "")
+                                                                    .trim()
+                                                                    .toLowerCase();
+                                                                if (status == "pending" ||
+                                                                    status ==
                                                                         "enroute" ||
-                                                                    vm.ongoingOrder
-                                                                            ?.status ==
+                                                                    status ==
                                                                         "preparing" ||
-                                                                    vm.ongoingOrder
-                                                                            ?.status ==
-                                                                        "delivered") {
-                                                                  _openSupportChannel();
+                                                                    status ==
+                                                                        "delivered" ||
+                                                                    status
+                                                                        .isEmpty) {
+                                                                  _openSupportChannel(
+                                                                      vm);
                                                                 } else {
-                                                                  vm.cancelOrder();
+                                                                  _openSupportChannel(
+                                                                      vm);
                                                                 }
                                                               }
                                                             }
@@ -3300,8 +3504,10 @@ class _HomeViewState extends State<HomeView> {
                     vm.ongoingOrder == null ||
                             vm.ongoingOrder?.status == "cancelled"
                         ? const SizedBox.shrink()
-                        : vm.lastStatus != "delivered" ||
-                                vm.ongoingOrder?.status != "delivered"
+                        : !vm.isCompletedReceiptStatus(vm.lastStatus) ||
+                                !vm.isCompletedReceiptStatus(
+                                  vm.ongoingOrder?.status,
+                                )
                             ? const SizedBox.shrink()
                             : bookingId != vm.ongoingOrder?.id
                                 ? const SizedBox.shrink()
@@ -3520,8 +3726,10 @@ class _HomeViewState extends State<HomeView> {
                                                                     return Colors
                                                                         .red
                                                                         .shade100;
-                                                                  } else if (status ==
-                                                                      "delivered") {
+                                                                  } else if (vm
+                                                                      .isCompletedReceiptStatus(
+                                                                    status,
+                                                                  )) {
                                                                     return Colors
                                                                         .green
                                                                         .shade100;
@@ -3569,8 +3777,10 @@ class _HomeViewState extends State<HomeView> {
                                                                     } else if (status ==
                                                                         "cancelled") {
                                                                       return "Cancelled";
-                                                                    } else if (status ==
-                                                                        "delivered") {
+                                                                    } else if (vm
+                                                                        .isCompletedReceiptStatus(
+                                                                      status,
+                                                                    )) {
                                                                       return "Completed";
                                                                     } else {
                                                                       return "Connecting";
@@ -3612,8 +3822,10 @@ class _HomeViewState extends State<HomeView> {
                                                                           "cancelled") {
                                                                         return Colors
                                                                             .red;
-                                                                      } else if (status ==
-                                                                          "delivered") {
+                                                                      } else if (vm
+                                                                          .isCompletedReceiptStatus(
+                                                                        status,
+                                                                      )) {
                                                                         return Colors
                                                                             .green;
                                                                       } else {
@@ -4256,17 +4468,23 @@ class _HomeViewState extends State<HomeView> {
                                     ),
                                   ),
                                   Divider(
-                                    color: Colors.grey.shade300,
+                                    color: const Color(
+                                      0xFF030744,
+                                    ).withValues(
+                                      alpha: 0.15,
+                                    ),
                                     thickness: 1,
                                     height: 1,
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Text(
-                                      "Message: ${"${vm.dvrMessage}".contains("https") ? "Sent a photo" : "${vm.dvrMessage}"}",
-                                    ),
-                                  ),
-                                  !"${vm.dvrMessage}".contains("https")
+                                  isPhotoUrlMessage(vm.dvrMessage)
+                                      ? const SizedBox.shrink()
+                                      : Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Text(
+                                            "Message: ${vm.dvrMessage}",
+                                          ),
+                                        ),
+                                  !isPhotoUrlMessage(vm.dvrMessage)
                                       ? const SizedBox()
                                       : GestureDetector(
                                           onTap: () {
@@ -4316,6 +4534,29 @@ class _HomeViewState extends State<HomeView> {
                                             ),
                                           ),
                                         ),
+                                  Builder(
+                                    builder: (_) {
+                                      final requestMessageType =
+                                          _homeRequestMessageType(
+                                        vm.dvrMessage,
+                                      );
+                                      if (isPhotoUrlMessage(vm.dvrMessage)) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      if (requestMessageType ==
+                                          "cancellation") {
+                                        return _buildHomeRequestCancellationActions(
+                                          vm,
+                                        );
+                                      }
+                                      if (requestMessageType == "pass") {
+                                        return _buildHomeRequestPassActions(
+                                          vm,
+                                        );
+                                      }
+                                      return _buildHomeQuickChatPills(vm);
+                                    },
+                                  ),
                                   Padding(
                                     padding: const EdgeInsets.only(
                                       left: 20,
@@ -4514,6 +4755,8 @@ class _HomeViewState extends State<HomeView> {
                         return PartnerDisplayWidget(
                           show: !isAdSeen &&
                               vm.ongoingOrder == null &&
+                              pickupAddress == null &&
+                              dropoffAddress == null &&
                               isBool(
                                 AppStrings.homeSettingsObject?["show_ad"] ??
                                     true,
@@ -4586,6 +4829,8 @@ class _HomeViewState extends State<HomeView> {
                         return PartnerDisplayWidget(
                           show: !isAd1Seen &&
                               vm.ongoingOrder == null &&
+                              pickupAddress == null &&
+                              dropoffAddress == null &&
                               isBool(
                                   AppStrings.homeSettingsObject?["show_ad_1"] ??
                                       true),

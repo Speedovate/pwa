@@ -17,6 +17,48 @@ Uint8List? webChatBytes;
 Uint8List? webProfileBytes;
 Uint8List? pickedImageBytes;
 
+Future<Uint8List> normalizeImageToJpegWeb(
+  Uint8List imageBytes, {
+  bool mirror = false,
+}) async {
+  final img = html.ImageElement();
+  final completer = Completer<Uint8List>();
+  final imageUrl = html.Url.createObjectUrlFromBlob(html.Blob([imageBytes]));
+
+  img.onLoad.listen((_) async {
+    try {
+      final canvas = html.CanvasElement(width: img.width!, height: img.height!);
+      final ctx = canvas.context2D;
+      if (mirror) {
+        ctx.translate(img.width!.toDouble(), 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(img, 0, 0);
+      final blob = await canvas.toBlob('image/jpeg', 0.92);
+      final reader = html.FileReader();
+      reader.onLoad.listen((_) {
+        completer.complete(reader.result as Uint8List);
+      });
+      reader.onError.listen((_) {
+        completer.completeError("Unable to read processed image.");
+      });
+      reader.readAsArrayBuffer(blob);
+    } catch (e) {
+      completer.completeError(e);
+    } finally {
+      html.Url.revokeObjectUrl(imageUrl);
+    }
+  });
+
+  img.onError.listen((_) {
+    html.Url.revokeObjectUrl(imageUrl);
+    completer.completeError("Unsupported image format.");
+  });
+
+  img.src = imageUrl;
+  return completer.future;
+}
+
 class CameraWidget extends StatefulWidget {
   final bool isEdit;
   String cameraType;
@@ -667,7 +709,7 @@ class CameraImageWidget extends StatelessWidget {
         });
         reader.readAsArrayBuffer(blob);
       });
-      chatFile = await completer.future;
+      setChatFile(await completer.future);
       Get.back();
       Get.back();
     } else {

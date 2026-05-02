@@ -8,11 +8,14 @@ import 'package:pwa/views/intro.view.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/models/user.model.dart';
 import 'package:pwa/services/push.service.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/services/storage.service.dart';
 
 class AuthService {
   static String? bearerToken;
   static User? currentUser;
+
+  static const List<String> _guestTopics = ["all"];
 
   static bool isLoggedIn() {
     return currentUser != null &&
@@ -38,13 +41,7 @@ class AuthService {
       AppStrings.userKey,
       stringMap,
     );
-    await subscribeToTopic("c");
-    await subscribeToTopic("all");
-    await subscribeToTopic("client");
-    await subscribeToTopic("${currentUser?.id}");
-    await subscribeToTopic("c_${currentUser?.id}");
-    await subscribeToTopic("client_${currentUser?.id}");
-    await subscribeToTopic("branch_${currentUser?.branchID}");
+    await syncStoredTopicsForCurrentSession();
     await PushService.syncTokenWithServer();
     return currentUser;
   }
@@ -80,6 +77,7 @@ class AuthService {
         "getUserFromStorage: null",
       );
     }
+    await AuthService().syncStoredTopicsForCurrentSession();
     return currentUser;
   }
 
@@ -113,18 +111,22 @@ class AuthService {
   }
 
   logout() async {
-    await unsubscribeFromTopic("c");
-    await unsubscribeFromTopic("client");
-    await unsubscribeFromTopic("${currentUser?.id}");
-    await unsubscribeFromTopic("c_${currentUser?.id}");
-    await unsubscribeFromTopic("client_${currentUser?.id}");
-    await unsubscribeFromTopic("branch_${currentUser?.branchID}");
+    AlertService().stopLoading(forceStop: true);
+    final currentContext = Get.context;
+    if (currentContext != null) {
+      ScaffoldMessenger.maybeOf(currentContext)?.clearSnackBars();
+    }
+    if (Get.isDialogOpen == true) {
+      Get.back();
+    }
     await StorageService.rxPrefs?.clear();
     await StorageService.prefs?.clear();
+    await StorageService.prefs?.setStringList("topics", _guestTopics);
+    await StorageService.prefs?.remove(AppStrings.lastPushTopicSignature);
     dropoffAddress = null;
     pickupAddress = null;
     currentUser = null;
-    await PushService.syncTokenWithServer();
+    await PushService.syncTokenWithServer(forceSync: true);
     if (!AuthService.inReviewMode()) {
       Navigator.pushAndRemoveUntil(
         Get.context!,
@@ -140,6 +142,7 @@ class AuthService {
         ),
         (route) => false,
       );
+      return;
     } else {
       Navigator.pushAndRemoveUntil(
         Get.context!,
@@ -155,6 +158,7 @@ class AuthService {
         ),
         (route) => false,
       );
+      return;
     }
   }
 
@@ -209,5 +213,36 @@ class AuthService {
 
   Future<List<String>> getSubscribedTopics() async {
     return StorageService.prefs?.getStringList("topics") ?? [];
+  }
+
+  Future<void> syncStoredTopicsForCurrentSession() async {
+    final topics = isLoggedIn()
+        ? _buildLoggedInTopics()
+        : _guestTopics;
+    await StorageService.prefs?.setStringList(
+      "topics",
+      topics,
+    );
+  }
+
+  List<String> _buildLoggedInTopics() {
+    final topics = <String>[
+      "all",
+      "c",
+      "client",
+      if ("${currentUser?.id}".trim().isNotEmpty &&
+          "${currentUser?.id}" != "null")
+        "${currentUser?.id}",
+      if ("${currentUser?.id}".trim().isNotEmpty &&
+          "${currentUser?.id}" != "null")
+        "c_${currentUser?.id}",
+      if ("${currentUser?.id}".trim().isNotEmpty &&
+          "${currentUser?.id}" != "null")
+        "client_${currentUser?.id}",
+      if ("${currentUser?.branchID}".trim().isNotEmpty &&
+          "${currentUser?.branchID}" != "null")
+        "branch_${currentUser?.branchID}",
+    ];
+    return topics.toSet().toList();
   }
 }

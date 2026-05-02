@@ -10,6 +10,8 @@ import 'package:pwa/utils/data.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 
+BuildContext? _loadingDialogContext;
+
 class AlertService {
   Future<bool?> showAppAlert({
     String? title,
@@ -279,6 +281,8 @@ class AlertService {
   Future<bool?> showDriverDistantDialog({
     required AvailableDriver availableDriver,
     required ValueNotifier<double?> totalAmountListenable,
+    double? originalFare,
+    double? newBaseFare,
     required FutureOr<void> Function() onAccept,
     VoidCallback? onCancel,
   }) {
@@ -293,6 +297,8 @@ class AlertService {
           child: _DriverDistantDialog(
             availableDriver: availableDriver,
             totalAmountListenable: totalAmountListenable,
+            originalFare: originalFare,
+            newBaseFare: newBaseFare,
             onAccept: onAccept,
             onCancel: onCancel,
           ),
@@ -305,11 +311,17 @@ class AlertService {
     Color? bg,
     bool dismissible = false,
   }) {
-    FocusManager.instance.primaryFocus?.unfocus();
-    isLoadingDialogOpen = true;
+    if (isLoadingDialogOpen) {
+      return;
+    }
+    if (!isChatViewOpen) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    setLoadingDialogOpen(true);
     showDialog(
       context: Get.context!,
       builder: (BuildContext context) {
+        _loadingDialogContext = context;
         return PopScope(
           canPop: dismissible,
           onPopInvokedWithResult: (
@@ -366,18 +378,33 @@ class AlertService {
       },
       barrierColor: bg ?? Colors.black.withValues(alpha: 0.5),
     ).whenComplete(() {
-      isLoadingDialogOpen = false;
+      _loadingDialogContext = null;
+      setLoadingDialogOpen(false);
     });
   }
 
   stopLoading({bool forceStop = false}) {
     if (!forceStop) {
-      if (!isLoadingDialogOpen || Get.isDialogOpen != true) {
+      if (!isLoadingDialogOpen) {
         return;
       }
     }
-    FocusManager.instance.primaryFocus?.unfocus();
-    Get.back();
+    if (!isChatViewOpen) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    final dialogContext = _loadingDialogContext;
+    _loadingDialogContext = null;
+    setLoadingDialogOpen(false);
+    if (dialogContext != null) {
+      final navigator = Navigator.of(dialogContext, rootNavigator: true);
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+      return;
+    }
+    if (Get.isDialogOpen == true) {
+      Get.back();
+    }
   }
 }
 
@@ -385,12 +412,16 @@ class _DriverDistantDialog extends StatefulWidget {
   const _DriverDistantDialog({
     required this.availableDriver,
     required this.totalAmountListenable,
+    this.originalFare,
+    this.newBaseFare,
     required this.onAccept,
     this.onCancel,
   });
 
   final AvailableDriver availableDriver;
   final ValueNotifier<double?> totalAmountListenable;
+  final double? originalFare;
+  final double? newBaseFare;
   final FutureOr<void> Function() onAccept;
   final VoidCallback? onCancel;
 
@@ -465,9 +496,11 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
     return ValueListenableBuilder<double?>(
       valueListenable: widget.totalAmountListenable,
       builder: (context, totalAmount, _) {
-        final baseTotal = totalAmount ?? 0;
+        final originalFare = widget.originalFare ?? totalAmount ?? 0;
+        final newBaseFare = widget.newBaseFare ?? totalAmount ?? 0;
         final updatedFare =
-            ((widget.availableDriver.pickupChargeFee?.ceil() ?? 0) + baseTotal)
+            ((widget.availableDriver.pickupChargeFee?.ceil() ?? 0) +
+                    newBaseFare)
                 .toStringAsFixed(0);
         return Scaffold(
           backgroundColor: Colors.black.withValues(alpha: 0.8),
@@ -544,7 +577,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                                       icon: Icons.description,
                                       label: "Original Fare",
                                       value:
-                                          "${baseTotal.toStringAsFixed(0)} pesos",
+                                          "${originalFare.toStringAsFixed(0)} pesos",
                                     ),
                                     SizedBox(height: tileSpacing),
                                     _DriverDistantMetricTile(

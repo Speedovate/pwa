@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -92,15 +91,14 @@ class DeleteViewModel extends BaseViewModel {
             );
             if (apiResponse.allGood) {
               await AuthService().logout();
-              AlertService().showAppAlert(
-                asset: AppLotties.success,
-                title: "Account Deleted",
-                content: "Your account has been deleted",
-              );
+              return;
             } else {
               throw apiResponse.message;
             }
           } catch (e) {
+            if (!AuthService.isLoggedIn()) {
+              return;
+            }
             AlertService().stopLoading();
             ScaffoldMessenger.of(Get.context!).clearSnackBars();
             ScaffoldMessenger.of(

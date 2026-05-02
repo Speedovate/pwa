@@ -344,6 +344,27 @@ class TaxiRequest extends HttpService {
     }
   }
 
+  Future<ApiResponse> passOrderRequest({
+    required int id,
+    required int targetDriverId,
+    String? reason,
+  }) async {
+    try {
+      final apiResult = await post(
+        "${Api.baseUrl}/booking/order/$id/pass",
+        {
+          "target_driver_id": targetDriverId,
+          "reason": reason ?? "pass",
+        },
+      ).timeout(
+        const Duration(seconds: 30),
+      );
+      return ApiResponse.fromResponse(apiResult);
+    } catch (e) {
+      throw "$e";
+    }
+  }
+
   Future<ApiResponse> rateDriverRequest({
     required int? orderId,
     required int? driverId,

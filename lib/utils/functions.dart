@@ -95,6 +95,8 @@ Future<void> openFacebookSupportChannel() async {
 Future<void> showFacebookSupportDialog(
   BuildContext context, {
   String title = "Need assistance?",
+  bool showRequestCancellation = false,
+  Future<void> Function()? onRequestCancellation,
 }) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await showDialog(
@@ -217,6 +219,20 @@ Future<void> showFacebookSupportDialog(
                                 } catch (_) {}
                               },
                             ),
+                            !showRequestCancellation
+                                ? const SizedBox.shrink()
+                                : const SizedBox(height: 12),
+                            !showRequestCancellation
+                                ? const SizedBox.shrink()
+                                : _supportDialogButton(
+                                    label: "Request cancellation",
+                                    icon: Icons.cancel,
+                                    color: const Color(0xFFFF3B30),
+                                    onTap: () async {
+                                      Navigator.of(dialogContext).pop();
+                                      await onRequestCancellation?.call();
+                                    },
+                                  ),
                           ],
                         ),
                       ),
@@ -236,8 +252,8 @@ Widget _supportDialogButton({
   required String label,
   required IconData icon,
   required Future<void> Function() onTap,
+  Color color = const Color(0xFF1877F2),
 }) {
-  const color = Color(0xFF1877F2);
   return SizedBox(
     width: double.infinity,
     height: 56,
@@ -268,14 +284,14 @@ Widget _supportDialogButton({
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     color: color,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 color: color,
               ),
@@ -769,12 +785,12 @@ openWebview(String title, String url) {
   );
 }
 
-showCameraSource({
+Future<dynamic> showCameraSource({
   bool isEdit = false,
   String cameraType = "profile",
 }) async {
   try {
-    Navigator.push(
+    return Navigator.push(
       Get.context!,
       PageRouteBuilder(
         reverseTransitionDuration: Duration.zero,
@@ -795,6 +811,7 @@ showCameraSource({
       title: "Error",
       content: e.toString(),
     );
+    return null;
   }
 }
 

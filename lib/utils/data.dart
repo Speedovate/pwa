@@ -19,6 +19,7 @@ String? version;
 String? fcmToken;
 Timer? globalTimer;
 Uint8List? chatFile;
+final ValueNotifier<Uint8List?> chatFileListenable = ValueNotifier(null);
 bool agreed = false;
 int orderDriver = 0;
 String? versionCode;
@@ -29,6 +30,7 @@ bool isAd1Seen = false;
 bool isSharing = false;
 bool isChatViewOpen = false;
 bool isLoadingDialogOpen = false;
+final ValueNotifier<bool> isLoadingDialogOpenListenable = ValueNotifier(false);
 Address? pickupAddress;
 bool isTourist = false;
 bool showBranch = false;
@@ -80,4 +82,66 @@ List<Banner> gBanners = [];
 List<VehicleType> gVehicleTypes = [];
 
 final fbStore = FirebaseFirestore.instance;
+final userQuickChatDoc = fbStore.collection("quick_chat").doc("user");
 var geolocation = html.window.navigator.geolocation;
+
+void setLoadingDialogOpen(bool isOpen) {
+  if (isLoadingDialogOpen == isOpen &&
+      isLoadingDialogOpenListenable.value == isOpen) {
+    return;
+  }
+  isLoadingDialogOpen = isOpen;
+  isLoadingDialogOpenListenable.value = isOpen;
+}
+
+void setChatFile(Uint8List? fileBytes) {
+  if (identical(chatFile, fileBytes) &&
+      identical(chatFileListenable.value, fileBytes)) {
+    return;
+  }
+  chatFile = fileBytes;
+  chatFileListenable.value = fileBytes;
+}
+
+void setChatViewOpen(bool isOpen) {
+  isChatViewOpen = isOpen;
+}
+
+Future<void> waitForLoadingDialogToClose() {
+  if (!isLoadingDialogOpen) {
+    return Future.value();
+  }
+
+  final completer = Completer<void>();
+
+  void listener() {
+    if (isLoadingDialogOpenListenable.value) {
+      return;
+    }
+    isLoadingDialogOpenListenable.removeListener(listener);
+    if (!completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
+  isLoadingDialogOpenListenable.addListener(listener);
+  listener();
+  return completer.future;
+}
+
+List<String> parseQuickChatOptions(Map<String, dynamic>? data) {
+  final rawOptions = data?["options"];
+  if (rawOptions is! List) {
+    return const [];
+  }
+
+  return rawOptions
+      .map((option) => "$option".trim())
+      .where((option) => option.isNotEmpty && option.toLowerCase() != "null")
+      .toList();
+}
+
+bool isPhotoUrlMessage(String? message) {
+  final value = (message ?? "").trim().toLowerCase();
+  return value.startsWith("https://") || value.startsWith("http://");
+}
