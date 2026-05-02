@@ -943,7 +943,6 @@ class HomeViewModel extends GMapViewModel {
                 notifyListeners();
                 clearGMapDetails();
                 ongoingOrder = null;
-
                 clearGMapDetails();
                 AlertService().showAppAlert(
                   dismissible: false,

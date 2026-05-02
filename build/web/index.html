@@ -29,6 +29,63 @@
   <script>
   window.__redirectGuard?.markAppReady();
 </script>
+  <script>
+    (function () {
+      async function reportPwaClientState() {
+        if (!("serviceWorker" in navigator)) {
+          return;
+        }
+
+        const isStandalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true;
+
+        let isInstalled = isStandalone;
+        const manifestUrl = new URL("manifest.json", window.location.href).href;
+
+        try {
+          if (navigator.getInstalledRelatedApps) {
+            const relatedApps = await navigator.getInstalledRelatedApps();
+            isInstalled =
+              isInstalled ||
+              relatedApps.some(function (app) {
+                return app.platform === "webapp" && app.url === manifestUrl;
+              });
+          }
+        } catch (error) {
+          console.debug("getInstalledRelatedApps check failed:", error);
+        }
+
+        const registrations = await navigator.serviceWorker.getRegistrations().catch(function () {
+          return [];
+        });
+
+        registrations.forEach(function (registration) {
+          [registration.active, registration.waiting, registration.installing]
+            .filter(Boolean)
+            .forEach(function (worker) {
+              worker.postMessage({
+                type: "PWA_CLIENT_STATE",
+                isInstalled: isInstalled,
+                isStandalone: isStandalone,
+              });
+            });
+        });
+      }
+
+      window.addEventListener("load", function () {
+        reportPwaClientState().catch(function (error) {
+          console.debug("PWA client state reporting failed:", error);
+        });
+      });
+
+      window.addEventListener("appinstalled", function () {
+        reportPwaClientState().catch(function (error) {
+          console.debug("PWA install state refresh failed:", error);
+        });
+      });
+    })();
+  </script>
 
 
   <!-- Base & Charset -->

@@ -9,8 +9,7 @@ class ChatService {
     );
     final otherPeer = chatEntity.peers[otherPeerKey];
     final apiResponse = await ChatRequest().sendNotification(
-      title:
-          "${chatEntity.mainUser?.name} (Passenger)${message.contains("https") ? "" : " sent a message"}",
+      title: "${chatEntity.mainUser?.name}",
       body: message.contains("https") ? "Sent a photo" : message,
       topic: otherPeer!.id,
       path: chatEntity.path,
