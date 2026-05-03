@@ -170,8 +170,9 @@ class _HomeViewState extends State<HomeView> {
             options: options,
             horizontalPadding: 20,
             showRequestCancellation: _canShowRequestCancellationPill(
-              vm.ongoingOrder?.status,
-            ),
+                  vm.ongoingOrder?.status,
+                ) &&
+                !vm.hasAcceptedCancelRequest,
             onSelected: (option) async {
               await vm.sendQuickChatMessage(option);
             },
@@ -3424,7 +3425,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             : "${vm.ongoingOrder!.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(0)} km"
                                                                         : vm.isPreparing
                                                                             ? "•••"
-                                                                            : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${((vm.ongoingOrder?.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && (vm.ongoingOrder?.discount ?? 0) == 0 ? vm.providerMarkupAmount : 0)).toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
+                                                                            : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.displayedOngoingOrderPayableFare.toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
                                                                     : vm.selectedVehicle == null
                                                                         ? AuthService.inReviewMode()
                                                                             ? vm.isPreparing
@@ -4160,7 +4161,7 @@ class _HomeViewState extends State<HomeView> {
                                                                       .shrink(),
                                                                 ),
                                                                 Text(
-                                                                  "₱${((vm.ongoingOrder?.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && (vm.ongoingOrder?.discount ?? 0) == 0 ? vm.providerMarkupAmount : 0)).toStringAsFixed(0)}",
+                                                                  "₱${vm.displayedOngoingOrderPayableFare.toStringAsFixed(0)}",
                                                                   style:
                                                                       const TextStyle(
                                                                     color:
@@ -4752,15 +4753,15 @@ class _HomeViewState extends State<HomeView> {
                           ),
                     () {
                       try {
+                        final showMnb = !isAdSeen &&
+                            vm.ongoingOrder == null &&
+                            pickupAddress == null &&
+                            dropoffAddress == null &&
+                            isBool(
+                              AppStrings.homeSettingsObject?["show_ad"] ?? true,
+                            );
                         return PartnerDisplayWidget(
-                          show: !isAdSeen &&
-                              vm.ongoingOrder == null &&
-                              pickupAddress == null &&
-                              dropoffAddress == null &&
-                              isBool(
-                                AppStrings.homeSettingsObject?["show_ad"] ??
-                                    true,
-                              ),
+                          show: showMnb,
                           onClose: () async {
                             await StorageService.prefs?.setBool(
                               "is_ad_seen",
@@ -4826,14 +4827,16 @@ class _HomeViewState extends State<HomeView> {
                     }(),
                     () {
                       try {
+                        final showSbb = !isAd1Seen &&
+                            vm.ongoingOrder == null &&
+                            pickupAddress == null &&
+                            dropoffAddress == null &&
+                            isBool(
+                              AppStrings.homeSettingsObject?["show_ad_1"] ??
+                                  true,
+                            );
                         return PartnerDisplayWidget(
-                          show: !isAd1Seen &&
-                              vm.ongoingOrder == null &&
-                              pickupAddress == null &&
-                              dropoffAddress == null &&
-                              isBool(
-                                  AppStrings.homeSettingsObject?["show_ad_1"] ??
-                                      true),
+                          show: showSbb,
                           onClose: () async {
                             await StorageService.prefs
                                 ?.setBool("is_ad_1_seen", true);

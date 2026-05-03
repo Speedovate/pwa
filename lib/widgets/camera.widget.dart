@@ -134,7 +134,7 @@ class _CameraWidgetState extends State<CameraWidget> {
       if (vw <= 0 || vh <= 0) throw 'Camera not ready';
       final canvas = html.CanvasElement(width: vw, height: vh);
       final ctx = canvas.context2D;
-      if (widget.cameraType == 'profile' || widget.cameraType == 'chat') {
+      if (widget.cameraType == 'profile') {
         ctx.translate(vw.toDouble(), 0);
         ctx.scale(-1, 1);
       }
@@ -533,7 +533,7 @@ class CameraImageWidget extends StatelessWidget {
                 alignment: Alignment.center,
                 transform: Matrix4.identity()
                   ..scaleByDouble(
-                    cameraType != "profile" ? -1.0 : 1.0,
+                    cameraType == "profile" ? -1.0 : 1.0,
                     1.0,
                     1.0,
                     1.0,
@@ -692,24 +692,7 @@ class CameraImageWidget extends StatelessWidget {
 
   _onConfirm() async {
     if (cameraType == "chat") {
-      final img = html.ImageElement();
-      final completer = Completer<Uint8List>();
-      img.src = html.Url.createObjectUrlFromBlob(html.Blob([imageBytes]));
-      img.onLoad.listen((_) async {
-        final canvas =
-            html.CanvasElement(width: img.width!, height: img.height!);
-        final ctx = canvas.context2D;
-        ctx.translate(img.width!.toDouble(), 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(img, 0, 0);
-        final blob = await canvas.toBlob('image/jpeg', 0.92);
-        final reader = html.FileReader();
-        reader.onLoad.listen((e) {
-          completer.complete(reader.result as Uint8List);
-        });
-        reader.readAsArrayBuffer(blob);
-      });
-      setChatFile(await completer.future);
+      setChatFile(imageBytes);
       Get.back();
       Get.back();
     } else {

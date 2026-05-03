@@ -590,6 +590,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                                       icon: Icons.warning,
                                       label: "New Fare",
                                       value: "$updatedFare pesos",
+                                      containerColor: Colors.red,
                                     ),
                                     SizedBox(height: sectionSpacing),
                                   ],
@@ -611,7 +612,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
                                     child: Center(
                                       child: Checkbox(
                                         value: _acknowledged,
-                                        activeColor: const Color(0xFF007BFF),
+                                        activeColor: Colors.red,
                                         side: const BorderSide(
                                           color: Colors.white,
                                           width: 1.5,
@@ -721,22 +722,27 @@ class _DriverDistantMetricTile extends StatelessWidget {
     this.icon,
     required this.label,
     required this.value,
+    this.containerColor,
   });
 
   final IconData? icon;
   final String label;
   final String value;
+  final Color? containerColor;
 
   @override
   Widget build(BuildContext context) {
+    const effectiveAccentColor = Colors.white;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: containerColor?.withValues(alpha: 0.14) ??
+            Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.14),
+          color: containerColor?.withValues(alpha: 0.22) ??
+              Colors.white.withValues(alpha: 0.14),
         ),
       ),
       child: Row(
@@ -748,13 +754,13 @@ class _DriverDistantMetricTile extends StatelessWidget {
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: effectiveAccentColor.withValues(alpha: 0.35),
                 width: 1.4,
               ),
             ),
             child: Icon(
               icon,
-              color: Colors.white,
+              color: effectiveAccentColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -768,7 +774,7 @@ class _DriverDistantMetricTile extends StatelessWidget {
                     height: 1.05,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: effectiveAccentColor,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -777,7 +783,7 @@ class _DriverDistantMetricTile extends StatelessWidget {
                   style: TextStyle(
                     height: 1.05,
                     fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.72),
+                    color: effectiveAccentColor.withValues(alpha: 0.82),
                   ),
                 ),
               ],

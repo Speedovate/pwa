@@ -40,6 +40,7 @@ class HomeViewModel extends GMapViewModel {
   String? dvrMessage;
   String? lastStatus;
   String cancelRequestStatus = "";
+  String passRequestStatus = "";
   Order? ongoingOrder;
   double rating = 5.0;
   int vehicleIndex = 0;
@@ -67,6 +68,8 @@ class HomeViewModel extends GMapViewModel {
   bool _isRefreshingPartnerTodayAmount = false;
   bool _isSyncingDriverLocation = false;
   bool hasHydratedOngoingOrderMeta = false;
+  double? _pendingBookingFareOverride;
+  double? _pendingOngoingOrderFareOverride;
   String? _driverLocationSyncOrderCode;
   gmaps.LatLng? _latestSyncedDriverLatLng;
 
@@ -92,6 +95,9 @@ class HomeViewModel extends GMapViewModel {
 
   bool get hasAcceptedCancelRequest =>
       cancelRequestStatus.trim().toLowerCase() == "accepted";
+
+  bool get hasAcceptedPassRequest =>
+      passRequestStatus.trim().toLowerCase() == "accepted";
 
   bool get hasDriverChatMessage {
     final message = (dvrMessage ?? "").trim().toLowerCase();
@@ -135,6 +141,23 @@ class HomeViewModel extends GMapViewModel {
     return totalAmountNotifier.value ?? total ?? selectedVehicle?.total ?? 0.0;
   }
 
+  double get currentOngoingOrderPayableFare {
+    final ongoingTotal = ongoingOrder?.total ?? 0;
+    if (isBool(AuthService.currentUser?.isProvider) &&
+        (ongoingOrder?.discount ?? 0) == 0) {
+      return ongoingTotal + providerMarkupAmount;
+    }
+    return ongoingTotal;
+  }
+
+  double get displayedOngoingOrderPayableFare {
+    final overrideFare = _pendingOngoingOrderFareOverride;
+    if (overrideFare != null && overrideFare > currentOngoingOrderPayableFare) {
+      return overrideFare;
+    }
+    return currentOngoingOrderPayableFare;
+  }
+
   gmaps.LatLng get _effectiveDriverLatLng {
     return _latestSyncedDriverLatLng ?? ongoingOrder!.driverLatLng;
   }
@@ -145,6 +168,99 @@ class HomeViewModel extends GMapViewModel {
       return;
     }
     driverDistantFareNotifier.value = nextFare;
+  }
+
+  void _applyPendingDriverDistantFareOverride() {
+    if (ongoingOrder == null || availableDriver == null) {
+      return;
+    }
+    final pickupFee =
+        (availableDriver?.pickupChargeFee?.ceil() ?? 0).toDouble();
+    if (pickupFee <= 0) {
+      return;
+    }
+    _pendingOngoingOrderFareOverride = _driverDistantPayableFare + pickupFee;
+    _applyPendingDriverDistantFareToOngoingOrder();
+    notifyListeners();
+  }
+
+  void _applyAcceptedDriverDistantFareToBookingTotal() {
+    if (ongoingOrder != null || availableDriver == null) {
+      return;
+    }
+    final pickupFee =
+        (availableDriver?.pickupChargeFee?.ceil() ?? 0).toDouble();
+    if (pickupFee <= 0) {
+      return;
+    }
+    final acceptedFare = _driverDistantPayableFare + pickupFee;
+    if (acceptedFare <= 0) {
+      return;
+    }
+    _pendingBookingFareOverride = acceptedFare;
+    total = acceptedFare;
+    if (!isBool(AuthService.currentUser?.isProvider)) {
+      selectedVehicle?.total = acceptedFare;
+      subTotal = acceptedFare;
+    }
+    syncTotalAmountNotifier();
+    _syncDriverDistantFareNotifier();
+    notifyListeners();
+  }
+
+  void _reapplyPendingDriverDistantBookingFareOverride() {
+    final overrideFare = _pendingBookingFareOverride;
+    if (overrideFare == null) {
+      return;
+    }
+    if (ongoingOrder != null) {
+      _pendingBookingFareOverride = null;
+      return;
+    }
+    if (overrideFare <= 0) {
+      _pendingBookingFareOverride = null;
+      return;
+    }
+    if ((total ?? 0) < overrideFare) {
+      total = overrideFare;
+    }
+  }
+
+  double get _resolvedBookingPayableFare {
+    return _pendingBookingFareOverride ??
+        totalAmountNotifier.value ??
+        total ??
+        selectedVehicle?.total ??
+        0.0;
+  }
+
+  void _applyPendingDriverDistantFareToOngoingOrder() {
+    final overrideFare = _pendingOngoingOrderFareOverride;
+    if (ongoingOrder == null || overrideFare == null) {
+      return;
+    }
+    final normalizedTotal = isBool(AuthService.currentUser?.isProvider) &&
+            (ongoingOrder?.discount ?? 0) == 0
+        ? overrideFare - providerMarkupAmount
+        : overrideFare;
+    if (normalizedTotal <= 0) {
+      return;
+    }
+    if ((ongoingOrder?.total ?? 0) < normalizedTotal) {
+      ongoingOrder?.total = normalizedTotal;
+    }
+  }
+
+  void _reconcilePendingOngoingOrderFareOverride() {
+    final overrideFare = _pendingOngoingOrderFareOverride;
+    if (overrideFare == null) {
+      return;
+    }
+    if (ongoingOrder == null ||
+        (ongoingOrder?.status ?? "").trim().toLowerCase() == "cancelled" ||
+        currentOngoingOrderPayableFare >= overrideFare) {
+      _pendingOngoingOrderFareOverride = null;
+    }
   }
 
   bool get canOpenCancelFlow =>
@@ -346,6 +462,7 @@ class HomeViewModel extends GMapViewModel {
     dropoffAddress = null;
     selectedVehicle = null;
     vehicleTypes = [];
+    _pendingBookingFareOverride = null;
     total = 0;
     subTotal = 0;
     discount = 0;
@@ -367,7 +484,15 @@ class HomeViewModel extends GMapViewModel {
     await AlertService().showDriverDistantDialog(
       availableDriver: availableDriver!,
       totalAmountListenable: driverDistantFareNotifier,
-      onAccept: onAccept ?? () => placeNewOrder(),
+      onAccept: () async {
+        _applyAcceptedDriverDistantFareToBookingTotal();
+        _applyPendingDriverDistantFareOverride();
+        if (onAccept != null) {
+          onAccept();
+        } else {
+          await placeNewOrder();
+        }
+      },
     );
   }
 
@@ -461,6 +586,7 @@ class HomeViewModel extends GMapViewModel {
       discount = 0;
       total = (rawSubTotal) - (discount ?? 0);
     }
+    _reapplyPendingDriverDistantBookingFareOverride();
     syncTotalAmountNotifier();
     _syncDriverDistantFareNotifier();
     notifyListeners();
@@ -589,6 +715,7 @@ class HomeViewModel extends GMapViewModel {
         );
         if (vehicleTypes.isEmpty) {
           selectedVehicle = null;
+          _pendingBookingFareOverride = null;
           total = 0;
           subTotal = 0;
           discount = 0;
@@ -623,6 +750,9 @@ class HomeViewModel extends GMapViewModel {
     try {
       ongoingOrder = (await taxiRequest.ongoingOrderRequest())!;
       hasHydratedOngoingOrderMeta = false;
+      _pendingBookingFareOverride = null;
+      _applyPendingDriverDistantFareToOngoingOrder();
+      _reconcilePendingOngoingOrderFareOverride();
       notifyListeners();
       if (ongoingOrder != null) {
         if (ongoingOrder?.status == "pending" ||
@@ -860,10 +990,11 @@ class HomeViewModel extends GMapViewModel {
   placeNewOrder({
     bool manageLoading = true,
   }) async {
+    final resolvedBookingPayableFare = _resolvedBookingPayableFare;
     dynamic params = isBool(AuthService.currentUser?.isProvider)
         ? {
             "tip": 0.0,
-            "total": total,
+            "total": resolvedBookingPayableFare,
             "is_pautos": false,
             "is_delivery": false,
             "has_luggage": false,
@@ -904,8 +1035,8 @@ class HomeViewModel extends GMapViewModel {
             "coupon_code": null,
             "payment_method": null,
             "payment_method_id": paymentId,
-            "total": selectedVehicle?.total,
-            "sub_total": selectedVehicle?.total,
+            "total": resolvedBookingPayableFare,
+            "sub_total": resolvedBookingPayableFare,
             "vehicle_type_id": selectedVehicle?.id,
             "vehicle_type": selectedVehicle?.encrypted,
             "actual": {
@@ -1209,6 +1340,8 @@ class HomeViewModel extends GMapViewModel {
       }
       AlertService().stopLoading(forceStop: true);
     } catch (e) {
+      _pendingOngoingOrderFareOverride = null;
+      notifyListeners();
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(Get.context!).showSnackBar(
         SnackBar(
@@ -1254,6 +1387,8 @@ class HomeViewModel extends GMapViewModel {
     globalTimer?.cancel();
     globalTimer = null;
     hasHydratedOngoingOrderMeta = false;
+    _pendingBookingFareOverride = null;
+    _pendingOngoingOrderFareOverride = null;
     _driverLocationSyncOrderCode = null;
     _isSyncingDriverLocation = false;
     _latestSyncedDriverLatLng = null;
@@ -1268,8 +1403,11 @@ class HomeViewModel extends GMapViewModel {
     lastCenter = null;
     lastStatus = null;
     cancelRequestStatus = "";
+    passRequestStatus = "";
     dvrMessage = null;
     hasHydratedOngoingOrderMeta = false;
+    _pendingBookingFareOverride = null;
+    _pendingOngoingOrderFareOverride = null;
     cHeaders = null;
     vehicleTypes = [];
     getOngoingOrder();
@@ -1350,6 +1488,9 @@ class HomeViewModel extends GMapViewModel {
               dvrMessage = "${event.data()?["driverMessage"]}";
               cancelRequestStatus =
                   "${event.data()?["cancel_request_status"] ?? ""}";
+              passRequestStatus =
+                  "${event.data()?["pass_request_status"] ?? ""}";
+              _reconcilePendingOngoingOrderFareOverride();
               final previousHydratedOrderMeta = hasHydratedOngoingOrderMeta;
               hasHydratedOngoingOrderMeta = true;
               if (previousUserSeen != userSeen ||
@@ -1874,6 +2015,16 @@ class HomeViewModel extends GMapViewModel {
     if (trimmedMessage.isEmpty || ongoingOrder == null) {
       return;
     }
+    final normalizedMessage = trimmedMessage.toLowerCase();
+    final isCancellationRequest =
+        isRequestCancellation || normalizedMessage == "request cancellation";
+    final isPassRequest = isRequestPass || normalizedMessage == "request pass";
+    if (isCancellationRequest && hasAcceptedCancelRequest) {
+      return;
+    }
+    if (isPassRequest && hasAcceptedPassRequest) {
+      return;
+    }
 
     final chatEntity = _buildUserChatEntity();
     if (chatEntity == null) {
@@ -1884,11 +2035,8 @@ class HomeViewModel extends GMapViewModel {
       {
         "driverSeen": false,
         "userMessage": trimmedMessage,
-        if (isRequestCancellation ||
-            trimmedMessage.toLowerCase() == "request cancellation")
-          "cancel_request_status": "pending",
-        if (isRequestPass || trimmedMessage.toLowerCase() == "request pass")
-          "pass_request_status": "pending",
+        if (isCancellationRequest) "cancel_request_status": "pending",
+        if (isPassRequest) "pass_request_status": "pending",
       },
     );
 

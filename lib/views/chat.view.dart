@@ -41,15 +41,10 @@ class ChatView extends StatefulWidget {
 }
 
 class _ChatViewState extends State<ChatView> {
-  var _index = 0;
   bool isMediaLoading = false;
   bool _isUpdatingRequestCancellation = false;
   bool _isUpdatingRequestPass = false;
   late TextEditingController _controller;
-
-  Key _getKey() => Key('selectable-text-$_index');
-
-  _removeSelection() => setState(() => _index++);
 
   @override
   void initState() {
@@ -108,13 +103,32 @@ class _ChatViewState extends State<ChatView> {
         trimmedMessage == "null") {
       return;
     }
+    final normalizedMessage = trimmedMessage.toLowerCase();
+    final isCancellationRequest =
+        isRequestCancellation || normalizedMessage == "request cancellation";
+    final isPassRequest = isRequestPass || normalizedMessage == "request pass";
+    if (isCancellationRequest || isPassRequest) {
+      final orderSnapshot =
+          await fbStore.collection("orders").doc(widget.order.code).get();
+      final data = orderSnapshot.data();
+      final cancelStatus =
+          "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
+      final passStatus =
+          "${data?["pass_request_status"] ?? ""}".trim().toLowerCase();
+      if (isCancellationRequest && cancelStatus == "accepted") {
+        return;
+      }
+      if (isPassRequest && passStatus == "accepted") {
+        return;
+      }
+    }
 
     await fbStore.collection("orders").doc(widget.order.code).update(
       {
         "driverSeen": false,
         "userMessage": trimmedMessage,
-        if (isRequestCancellation) "cancel_request_status": "pending",
-        if (isRequestPass) "pass_request_status": "pending",
+        if (isCancellationRequest) "cancel_request_status": "pending",
+        if (isPassRequest) "pass_request_status": "pending",
       },
     );
     await vm.sendMessage(
@@ -598,7 +612,6 @@ class _ChatViewState extends State<ChatView> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
-                                _removeSelection();
                                 FocusManager.instance.primaryFocus?.unfocus();
                               },
                               child: ListView.builder(
@@ -820,7 +833,7 @@ class _ChatViewState extends State<ChatView> {
                                                                   CrossAxisAlignment
                                                                       .start,
                                                               children: [
-                                                                SelectableText(
+                                                                Text(
                                                                   message.text,
                                                                   style:
                                                                       TextStyle(
@@ -838,8 +851,6 @@ class _ChatViewState extends State<ChatView> {
                                                                         : FontWeight
                                                                             .w400,
                                                                   ),
-                                                                  key:
-                                                                      _getKey(),
                                                                 ),
                                                                 const SizedBox(
                                                                   height: 5,
@@ -997,7 +1008,7 @@ class _ChatViewState extends State<ChatView> {
                                                               CrossAxisAlignment
                                                                   .end,
                                                           children: [
-                                                            SelectableText(
+                                                            Text(
                                                               message.text,
                                                               style: TextStyle(
                                                                 fontSize: 14,
@@ -1012,7 +1023,6 @@ class _ChatViewState extends State<ChatView> {
                                                                     : FontWeight
                                                                         .w400,
                                                               ),
-                                                              key: _getKey(),
                                                             ),
                                                             const SizedBox(
                                                               height: 5,
@@ -1094,42 +1104,61 @@ class _ChatViewState extends State<ChatView> {
                                                 return const SizedBox.shrink();
                                               }
 
-                                              return Column(
-                                                children: [
-                                                  const SizedBox(height: 12),
-                                                  QuickChatPills(
-                                                    options: options,
-                                                    horizontalPadding: 12,
-                                                    enabled: !vm.isBusy,
-                                                    showRequestCancellation:
-                                                        _canShowRequestCancellationPill(
-                                                      widget.order.status,
-                                                    ),
-                                                    onSelected: (option) async {
-                                                      _removeSelection();
-                                                      FocusManager
-                                                          .instance.primaryFocus
-                                                          ?.unfocus();
-                                                      await _sendQuickChatText(
-                                                        vm,
-                                                        option,
-                                                      );
-                                                    },
-                                                    onRequestCancellation:
-                                                        () async {
-                                                      _removeSelection();
-                                                      FocusManager
-                                                          .instance.primaryFocus
-                                                          ?.unfocus();
-                                                      await _sendQuickChatText(
-                                                        vm,
-                                                        "Request cancellation",
-                                                        isRequestCancellation:
-                                                            true,
-                                                      );
-                                                    },
-                                                  ),
-                                                ],
+                                              return StreamBuilder<
+                                                  DocumentSnapshot<
+                                                      Map<String, dynamic>>>(
+                                                stream: fbStore
+                                                    .collection("orders")
+                                                    .doc(widget.order.code)
+                                                    .snapshots(),
+                                                builder:
+                                                    (context, orderSnapshot) {
+                                                  final cancelStatus =
+                                                      "${orderSnapshot.data?.data()?["cancel_request_status"] ?? ""}"
+                                                          .trim()
+                                                          .toLowerCase();
+                                                  return Column(
+                                                    children: [
+                                                      const SizedBox(
+                                                        height: 12,
+                                                      ),
+                                                      QuickChatPills(
+                                                        options: options,
+                                                        horizontalPadding: 12,
+                                                        enabled: !vm.isBusy,
+                                                        showRequestCancellation:
+                                                            _canShowRequestCancellationPill(
+                                                                  widget.order
+                                                                      .status,
+                                                                ) &&
+                                                                cancelStatus !=
+                                                                    "accepted",
+                                                        onSelected:
+                                                            (option) async {
+                                                          FocusManager.instance
+                                                              .primaryFocus
+                                                              ?.unfocus();
+                                                          await _sendQuickChatText(
+                                                            vm,
+                                                            option,
+                                                          );
+                                                        },
+                                                        onRequestCancellation:
+                                                            () async {
+                                                          FocusManager.instance
+                                                              .primaryFocus
+                                                              ?.unfocus();
+                                                          await _sendQuickChatText(
+                                                            vm,
+                                                            "Request cancellation",
+                                                            isRequestCancellation:
+                                                                true,
+                                                          );
+                                                        },
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
                                               );
                                             },
                                           ),
@@ -1155,7 +1184,6 @@ class _ChatViewState extends State<ChatView> {
                                                     height: 38,
                                                     child: WidgetButton(
                                                       onTap: () async {
-                                                        _removeSelection();
                                                         FocusManager.instance
                                                             .primaryFocus
                                                             ?.unfocus();
@@ -1184,7 +1212,6 @@ class _ChatViewState extends State<ChatView> {
                                                     height: 38,
                                                     child: WidgetButton(
                                                       onTap: () async {
-                                                        _removeSelection();
                                                         FocusManager.instance
                                                             .primaryFocus
                                                             ?.unfocus();
@@ -1248,9 +1275,6 @@ class _ChatViewState extends State<ChatView> {
                                                   fillColor:
                                                       Colors.grey.shade200,
                                                 ),
-                                                onTap: () {
-                                                  _removeSelection();
-                                                },
                                                 onSubmitted: (message) async {
                                                   await _sendTextMessage(
                                                     vm,
@@ -1486,7 +1510,6 @@ class _ChatViewState extends State<ChatView> {
                     right: 0,
                     child: GestureDetector(
                       onTap: () {
-                        _removeSelection();
                         FocusManager.instance.primaryFocus?.unfocus();
                       },
                       child: Container(
