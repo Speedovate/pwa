@@ -141,6 +141,14 @@ class HomeViewModel extends GMapViewModel {
     return totalAmountNotifier.value ?? total ?? selectedVehicle?.total ?? 0.0;
   }
 
+  double get _driverDistantDialogBaseFare {
+    final ongoingSubTotal = ongoingOrder?.subTotal ?? 0;
+    if (ongoingSubTotal > 0) {
+      return ongoingSubTotal;
+    }
+    return _driverDistantPayableFare;
+  }
+
   double get currentOngoingOrderPayableFare {
     final ongoingTotal = ongoingOrder?.total ?? 0;
     if (isBool(AuthService.currentUser?.isProvider) &&
@@ -179,7 +187,7 @@ class HomeViewModel extends GMapViewModel {
     if (pickupFee <= 0) {
       return;
     }
-    _pendingOngoingOrderFareOverride = _driverDistantPayableFare + pickupFee;
+    _pendingOngoingOrderFareOverride = _driverDistantDialogBaseFare + pickupFee;
     _applyPendingDriverDistantFareToOngoingOrder();
     notifyListeners();
   }
@@ -239,10 +247,13 @@ class HomeViewModel extends GMapViewModel {
     if (ongoingOrder == null || overrideFare == null) {
       return;
     }
-    final normalizedTotal = isBool(AuthService.currentUser?.isProvider) &&
-            (ongoingOrder?.discount ?? 0) == 0
-        ? overrideFare - providerMarkupAmount
-        : overrideFare;
+    final hasOrderSubTotal = (ongoingOrder?.subTotal ?? 0) > 0;
+    final normalizedTotal = hasOrderSubTotal
+        ? overrideFare
+        : isBool(AuthService.currentUser?.isProvider) &&
+                (ongoingOrder?.discount ?? 0) == 0
+            ? overrideFare - providerMarkupAmount
+            : overrideFare;
     if (normalizedTotal <= 0) {
       return;
     }
@@ -484,6 +495,8 @@ class HomeViewModel extends GMapViewModel {
     await AlertService().showDriverDistantDialog(
       availableDriver: availableDriver!,
       totalAmountListenable: driverDistantFareNotifier,
+      originalFare: _driverDistantDialogBaseFare,
+      newBaseFare: _driverDistantDialogBaseFare,
       onAccept: () async {
         _applyAcceptedDriverDistantFareToBookingTotal();
         _applyPendingDriverDistantFareOverride();
