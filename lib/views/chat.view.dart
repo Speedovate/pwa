@@ -1076,251 +1076,268 @@ class _ChatViewState extends State<ChatView> {
                           ValueListenableBuilder<Uint8List?>(
                             valueListenable: chatFileListenable,
                             builder: (context, selectedChatFile, _) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: const Color(
-                                        0xFF030744,
-                                      ).withValues(alpha: 0.15),
-                                    ),
-                                  ),
+                              final keyboardInset =
+                                  MediaQuery.of(context).viewInsets.bottom;
+                              return AnimatedPadding(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeOut,
+                                padding: EdgeInsets.only(
+                                  bottom: selectedChatFile == null
+                                      ? keyboardInset
+                                      : 0,
                                 ),
-                                child: Column(
-                                  children: [
-                                    selectedChatFile != null
-                                        ? const SizedBox.shrink()
-                                        : StreamBuilder<
-                                            DocumentSnapshot<
-                                                Map<String, dynamic>>>(
-                                            stream:
-                                                userQuickChatDoc.snapshots(),
-                                            builder: (context, snapshot) {
-                                              final options =
-                                                  parseQuickChatOptions(
-                                                snapshot.data?.data(),
-                                              );
-                                              if (options.isEmpty) {
-                                                return const SizedBox.shrink();
-                                              }
-
-                                              return StreamBuilder<
-                                                  DocumentSnapshot<
-                                                      Map<String, dynamic>>>(
-                                                stream: fbStore
-                                                    .collection("orders")
-                                                    .doc(widget.order.code)
-                                                    .snapshots(),
-                                                builder:
-                                                    (context, orderSnapshot) {
-                                                  final cancelStatus =
-                                                      "${orderSnapshot.data?.data()?["cancel_request_status"] ?? ""}"
-                                                          .trim()
-                                                          .toLowerCase();
-                                                  return Column(
-                                                    children: [
-                                                      const SizedBox(
-                                                        height: 12,
-                                                      ),
-                                                      QuickChatPills(
-                                                        options: options,
-                                                        horizontalPadding: 12,
-                                                        enabled: !vm.isBusy,
-                                                        showRequestCancellation:
-                                                            _canShowRequestCancellationPill(
-                                                                  widget.order
-                                                                      .status,
-                                                                ) &&
-                                                                cancelStatus !=
-                                                                    "accepted",
-                                                        onSelected:
-                                                            (option) async {
-                                                          FocusManager.instance
-                                                              .primaryFocus
-                                                              ?.unfocus();
-                                                          await _sendQuickChatText(
-                                                            vm,
-                                                            option,
-                                                          );
-                                                        },
-                                                        onRequestCancellation:
-                                                            () async {
-                                                          FocusManager.instance
-                                                              .primaryFocus
-                                                              ?.unfocus();
-                                                          await _sendQuickChatText(
-                                                            vm,
-                                                            "Request cancellation",
-                                                            isRequestCancellation:
-                                                                true,
-                                                          );
-                                                        },
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              );
-                                            },
-                                          ),
-                                    SizedBox(
-                                      height: selectedChatFile == null
-                                          ? null
-                                          : MediaQuery.of(context).size.width,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            _controller.text != "" &&
-                                                    _controller.text != "null"
-                                                ? const SizedBox(width: 16)
-                                                : const SizedBox(width: 8),
-                                            _controller.text != "" &&
-                                                    _controller.text != "null"
-                                                ? const SizedBox.shrink()
-                                                : SizedBox(
-                                                    width: 38,
-                                                    height: 38,
-                                                    child: WidgetButton(
-                                                      onTap: () async {
-                                                        FocusManager.instance
-                                                            .primaryFocus
-                                                            ?.unfocus();
-                                                        await showCameraSource(
-                                                          cameraType: "chat",
-                                                        );
-                                                      },
-                                                      borderRadius: 8,
-                                                      child: const Center(
-                                                        child: Icon(
-                                                          Icons
-                                                              .camera_alt_outlined,
-                                                          size: 30,
-                                                          color: Color(
-                                                            0xFF007BFF,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                            _controller.text != "" &&
-                                                    _controller.text != "null"
-                                                ? const SizedBox.shrink()
-                                                : SizedBox(
-                                                    width: 38,
-                                                    height: 38,
-                                                    child: WidgetButton(
-                                                      onTap: () async {
-                                                        FocusManager.instance
-                                                            .primaryFocus
-                                                            ?.unfocus();
-                                                        try {
-                                                          final ImagePicker
-                                                              picker =
-                                                              ImagePicker();
-                                                          final XFile? image =
-                                                              await picker
-                                                                  .pickImage(
-                                                            source: ImageSource
-                                                                .gallery,
-                                                          );
-                                                          if (image != null) {
-                                                            setChatFile(
-                                                              await normalizeImageToJpegWeb(
-                                                                await image
-                                                                    .readAsBytes(),
-                                                              ),
-                                                            );
-                                                          }
-                                                        } catch (e) {
-                                                          if (showParseText) {
-                                                            debugPrint(
-                                                              "Error picking image: $e",
-                                                            );
-                                                          }
-                                                        }
-                                                      },
-                                                      borderRadius: 8,
-                                                      child: const Center(
-                                                        child: Icon(
-                                                          Icons.image_outlined,
-                                                          size: 30,
-                                                          color: Color(
-                                                            0xFF007BFF,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                            _controller.text != "" &&
-                                                    _controller.text != "null"
-                                                ? const SizedBox.shrink()
-                                                : const SizedBox(width: 8),
-                                            Expanded(
-                                              child: TextField(
-                                                controller: _controller,
-                                                decoration: InputDecoration(
-                                                  filled: true,
-                                                  border:
-                                                      const OutlineInputBorder(
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(
-                                                        8,
-                                                      ),
-                                                    ),
-                                                    borderSide: BorderSide.none,
-                                                  ),
-                                                  fillColor:
-                                                      Colors.grey.shade200,
-                                                ),
-                                                onSubmitted: (message) async {
-                                                  await _sendTextMessage(
-                                                    vm,
-                                                    message,
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: 55,
-                                              height: 55,
-                                              child: WidgetButton(
-                                                onTap: () async {
-                                                  await _sendTextMessage(
-                                                    vm,
-                                                    _controller.text,
-                                                  );
-                                                },
-                                                borderRadius: 8,
-                                                child: Center(
-                                                  child: vm.isBusy
-                                                      ? const CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        )
-                                                      : Icon(
-                                                          Icons.send,
-                                                          size: 30,
-                                                          color: _controller
-                                                                          .text ==
-                                                                      "" ||
-                                                                  _controller
-                                                                          .text ==
-                                                                      "null"
-                                                              ? Colors.grey
-                                                              : const Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                        ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      top: BorderSide(
+                                        color: const Color(
+                                          0xFF030744,
+                                        ).withValues(alpha: 0.15),
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      selectedChatFile != null
+                                          ? const SizedBox.shrink()
+                                          : StreamBuilder<
+                                              DocumentSnapshot<
+                                                  Map<String, dynamic>>>(
+                                              stream:
+                                                  userQuickChatDoc.snapshots(),
+                                              builder: (context, snapshot) {
+                                                final options =
+                                                    parseQuickChatOptions(
+                                                  snapshot.data?.data(),
+                                                );
+                                                if (options.isEmpty) {
+                                                  return const SizedBox
+                                                      .shrink();
+                                                }
+
+                                                return StreamBuilder<
+                                                    DocumentSnapshot<
+                                                        Map<String, dynamic>>>(
+                                                  stream: fbStore
+                                                      .collection("orders")
+                                                      .doc(widget.order.code)
+                                                      .snapshots(),
+                                                  builder:
+                                                      (context, orderSnapshot) {
+                                                    final cancelStatus =
+                                                        "${orderSnapshot.data?.data()?["cancel_request_status"] ?? ""}"
+                                                            .trim()
+                                                            .toLowerCase();
+                                                    return Column(
+                                                      children: [
+                                                        const SizedBox(
+                                                          height: 12,
+                                                        ),
+                                                        QuickChatPills(
+                                                          options: options,
+                                                          horizontalPadding: 12,
+                                                          enabled: !vm.isBusy,
+                                                          showRequestCancellation:
+                                                              _canShowRequestCancellationPill(
+                                                                    widget.order
+                                                                        .status,
+                                                                  ) &&
+                                                                  cancelStatus !=
+                                                                      "accepted",
+                                                          onSelected:
+                                                              (option) async {
+                                                            FocusManager
+                                                                .instance
+                                                                .primaryFocus
+                                                                ?.unfocus();
+                                                            await _sendQuickChatText(
+                                                              vm,
+                                                              option,
+                                                            );
+                                                          },
+                                                          onRequestCancellation:
+                                                              () async {
+                                                            FocusManager
+                                                                .instance
+                                                                .primaryFocus
+                                                                ?.unfocus();
+                                                            await _sendQuickChatText(
+                                                              vm,
+                                                              "Request cancellation",
+                                                              isRequestCancellation:
+                                                                  true,
+                                                            );
+                                                          },
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                            ),
+                                      SizedBox(
+                                        height: selectedChatFile == null
+                                            ? null
+                                            : MediaQuery.of(context).size.width,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              _controller.text != "" &&
+                                                      _controller.text != "null"
+                                                  ? const SizedBox(width: 16)
+                                                  : const SizedBox(width: 8),
+                                              _controller.text != "" &&
+                                                      _controller.text != "null"
+                                                  ? const SizedBox.shrink()
+                                                  : SizedBox(
+                                                      width: 38,
+                                                      height: 38,
+                                                      child: WidgetButton(
+                                                        onTap: () async {
+                                                          FocusManager.instance
+                                                              .primaryFocus
+                                                              ?.unfocus();
+                                                          await showCameraSource(
+                                                            cameraType: "chat",
+                                                          );
+                                                        },
+                                                        borderRadius: 8,
+                                                        child: const Center(
+                                                          child: Icon(
+                                                            Icons
+                                                                .camera_alt_outlined,
+                                                            size: 30,
+                                                            color: Color(
+                                                              0xFF007BFF,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                              _controller.text != "" &&
+                                                      _controller.text != "null"
+                                                  ? const SizedBox.shrink()
+                                                  : SizedBox(
+                                                      width: 38,
+                                                      height: 38,
+                                                      child: WidgetButton(
+                                                        onTap: () async {
+                                                          FocusManager.instance
+                                                              .primaryFocus
+                                                              ?.unfocus();
+                                                          try {
+                                                            final ImagePicker
+                                                                picker =
+                                                                ImagePicker();
+                                                            final XFile? image =
+                                                                await picker
+                                                                    .pickImage(
+                                                              source:
+                                                                  ImageSource
+                                                                      .gallery,
+                                                            );
+                                                            if (image != null) {
+                                                              setChatFile(
+                                                                await normalizeImageToJpegWeb(
+                                                                  await image
+                                                                      .readAsBytes(),
+                                                                ),
+                                                              );
+                                                            }
+                                                          } catch (e) {
+                                                            if (showParseText) {
+                                                              debugPrint(
+                                                                "Error picking image: $e",
+                                                              );
+                                                            }
+                                                          }
+                                                        },
+                                                        borderRadius: 8,
+                                                        child: const Center(
+                                                          child: Icon(
+                                                            Icons
+                                                                .image_outlined,
+                                                            size: 30,
+                                                            color: Color(
+                                                              0xFF007BFF,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                              _controller.text != "" &&
+                                                      _controller.text != "null"
+                                                  ? const SizedBox.shrink()
+                                                  : const SizedBox(width: 8),
+                                              Expanded(
+                                                child: TextField(
+                                                  controller: _controller,
+                                                  decoration: InputDecoration(
+                                                    filled: true,
+                                                    border:
+                                                        const OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.all(
+                                                        Radius.circular(
+                                                          8,
+                                                        ),
+                                                      ),
+                                                      borderSide:
+                                                          BorderSide.none,
+                                                    ),
+                                                    fillColor:
+                                                        Colors.grey.shade200,
+                                                  ),
+                                                  onSubmitted: (message) async {
+                                                    await _sendTextMessage(
+                                                      vm,
+                                                      message,
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: 55,
+                                                height: 55,
+                                                child: WidgetButton(
+                                                  onTap: () async {
+                                                    await _sendTextMessage(
+                                                      vm,
+                                                      _controller.text,
+                                                    );
+                                                  },
+                                                  borderRadius: 8,
+                                                  child: Center(
+                                                    child: vm.isBusy
+                                                        ? const CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          )
+                                                        : Icon(
+                                                            Icons.send,
+                                                            size: 30,
+                                                            color: _controller
+                                                                            .text ==
+                                                                        "" ||
+                                                                    _controller
+                                                                            .text ==
+                                                                        "null"
+                                                                ? Colors.grey
+                                                                : const Color(
+                                                                    0xFF007BFF,
+                                                                  ),
+                                                          ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },

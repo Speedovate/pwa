@@ -3425,7 +3425,7 @@ class _HomeViewState extends State<HomeView> {
                                                                             : "${vm.ongoingOrder!.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(0)} km"
                                                                         : vm.isPreparing
                                                                             ? "•••"
-                                                                            : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.displayedOngoingOrderPayableFare.toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
+                                                                            : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.displayedPendingDriverOngoingOrderFare.toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
                                                                     : vm.selectedVehicle == null
                                                                         ? AuthService.inReviewMode()
                                                                             ? vm.isPreparing
@@ -4161,7 +4161,7 @@ class _HomeViewState extends State<HomeView> {
                                                                       .shrink(),
                                                                 ),
                                                                 Text(
-                                                                  "₱${vm.displayedOngoingOrderPayableFare.toStringAsFixed(0)}",
+                                                                  "₱${vm.displayedPendingDriverOngoingOrderFare.toStringAsFixed(0)}",
                                                                   style:
                                                                       const TextStyle(
                                                                     color:

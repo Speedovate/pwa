@@ -166,6 +166,25 @@ class HomeViewModel extends GMapViewModel {
     return currentOngoingOrderPayableFare;
   }
 
+  double get displayedPendingDriverOngoingOrderFare {
+    if (ongoingOrder == null || ongoingOrder?.driver != null) {
+      return displayedOngoingOrderPayableFare;
+    }
+    final candidates = <double>[
+      displayedOngoingOrderPayableFare,
+      _pendingOngoingOrderFareOverride ?? 0,
+      _pendingBookingFareOverride ?? 0,
+      total ?? 0,
+    ];
+    var resolvedFare = 0.0;
+    for (final candidate in candidates) {
+      if (candidate > resolvedFare) {
+        resolvedFare = candidate;
+      }
+    }
+    return resolvedFare > 0 ? resolvedFare : displayedOngoingOrderPayableFare;
+  }
+
   gmaps.LatLng get _effectiveDriverLatLng {
     return _latestSyncedDriverLatLng ?? ongoingOrder!.driverLatLng;
   }
@@ -1119,16 +1138,34 @@ class HomeViewModel extends GMapViewModel {
   }
 
   cancelOrder() {
-    final remainingCancelSeconds = _remainingCancelSecondsForOrder(
-      ongoingOrder,
-    );
-    final remainingRebookSeconds = _remainingRebookSecondsForOrder(
-      ongoingOrder,
-    );
+    int remainingCancelSeconds() {
+      return _remainingCancelSecondsForOrder(ongoingOrder);
+    }
+
+    int remainingRebookSeconds() {
+      return _remainingRebookSecondsForOrder(ongoingOrder);
+    }
+
+    void showWaitSnackBar(int seconds) {
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "Please wait for $seconds second${seconds == 1 ? "" : "s"}!",
+            style: const TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final initialRemainingRebookSeconds = remainingRebookSeconds();
     if (!canOpenCancelFlow) {
       final message = hasDriverChatMessage
           ? "Cancellation is unavailable once the driver has already sent a chat."
-          : "Please wait for $remainingRebookSeconds second${remainingRebookSeconds == 1 ? "" : "s"}!";
+          : "Please wait for $initialRemainingRebookSeconds second${initialRemainingRebookSeconds == 1 ? "" : "s"}!";
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(Get.context!).showSnackBar(
         SnackBar(
@@ -1154,23 +1191,9 @@ class HomeViewModel extends GMapViewModel {
       confirmText: "Yes",
       confirmColor: Colors.red,
       thirdAction: () async {
-        if (!canCancelWithAcceptedRequest && remainingRebookSeconds > 0) {
-          ScaffoldMessenger.of(
-            Get.context!,
-          ).clearSnackBars();
-          ScaffoldMessenger.of(
-            Get.context!,
-          ).showSnackBar(
-            SnackBar(
-              backgroundColor: Colors.red,
-              content: Text(
-                "Please wait for $remainingRebookSeconds second${remainingRebookSeconds == 1 ? "" : "s"}!",
-                style: const TextStyle(
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          );
+        final latestRemainingRebookSeconds = remainingRebookSeconds();
+        if (!canCancelWithAcceptedRequest && latestRemainingRebookSeconds > 0) {
+          showWaitSnackBar(latestRemainingRebookSeconds);
         } else {
           Get.until((route) => route.isFirst);
           try {
@@ -1226,23 +1249,9 @@ class HomeViewModel extends GMapViewModel {
         Get.back();
       },
       confirmAction: () async {
-        if (!canCancelWithAcceptedRequest && remainingCancelSeconds > 0) {
-          ScaffoldMessenger.of(
-            Get.context!,
-          ).clearSnackBars();
-          ScaffoldMessenger.of(
-            Get.context!,
-          ).showSnackBar(
-            SnackBar(
-              backgroundColor: Colors.red,
-              content: Text(
-                "Please wait for $remainingCancelSeconds second${remainingCancelSeconds == 1 ? "" : "s"}!",
-                style: const TextStyle(
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          );
+        final latestRemainingCancelSeconds = remainingCancelSeconds();
+        if (!canCancelWithAcceptedRequest && latestRemainingCancelSeconds > 0) {
+          showWaitSnackBar(latestRemainingCancelSeconds);
         } else {
           Get.back();
           if (AuthService.inReviewMode()) {

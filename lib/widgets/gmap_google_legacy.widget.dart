@@ -109,7 +109,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
               final mapOptions = gmaps.MapOptions()
                 ..zoom = 16
                 ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
-                ..clickableIcons = true
+                ..clickableIcons = false
                 ..disableDefaultUI = true
                 ..gestureHandling = widget.enableGestures ? 'greedy' : 'none'
                 ..disableDoubleClickZoom = true
