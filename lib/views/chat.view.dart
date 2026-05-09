@@ -78,6 +78,9 @@ class _ChatViewState extends State<ChatView> {
   }
 
   void _handleComposerChanged() {
+    if (!_messageFocusNode.hasFocus && _webKeyboardInset != 0) {
+      _webKeyboardInset = 0;
+    }
     if (mounted) {
       setState(() {});
     }
@@ -1138,8 +1141,7 @@ class _ChatViewState extends State<ChatView> {
                                   _messageFocusNode.hasFocus;
                               final showQuickChatPills =
                                   selectedChatFile == null &&
-                                  !isComposerFocused &&
-                                  keyboardInset <= 0;
+                                  !isComposerFocused;
                               final imagePreviewHeight = MediaQuery.of(context)
                                   .size
                                   .width
