@@ -1129,6 +1129,9 @@ class _ChatViewState extends State<ChatView> {
                                   mediaKeyboardInset > _webKeyboardInset
                                       ? mediaKeyboardInset
                                       : _webKeyboardInset;
+                              final showQuickChatPills =
+                                  selectedChatFile == null &&
+                                  keyboardInset <= 0;
                               final imagePreviewHeight = MediaQuery.of(context)
                                   .size
                                   .width
@@ -1153,7 +1156,7 @@ class _ChatViewState extends State<ChatView> {
                                   ),
                                   child: Column(
                                     children: [
-                                      selectedChatFile != null
+                                      !showQuickChatPills
                                           ? const SizedBox.shrink()
                                           : StreamBuilder<
                                               DocumentSnapshot<
