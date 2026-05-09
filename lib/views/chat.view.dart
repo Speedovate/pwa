@@ -49,12 +49,15 @@ class _ChatViewState extends State<ChatView> {
   StreamSubscription? _visualViewportResizeSub;
   StreamSubscription? _visualViewportScrollSub;
   late TextEditingController _controller;
+  late FocusNode _messageFocusNode;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
+    _messageFocusNode = FocusNode();
     _controller.addListener(_handleComposerChanged);
+    _messageFocusNode.addListener(_handleComposerChanged);
     if (chatFileListenable.value != chatFile) {
       chatFileListenable.value = chatFile;
     }
@@ -68,7 +71,9 @@ class _ChatViewState extends State<ChatView> {
     _visualViewportResizeSub?.cancel();
     _visualViewportScrollSub?.cancel();
     _controller.removeListener(_handleComposerChanged);
+    _messageFocusNode.removeListener(_handleComposerChanged);
     _controller.dispose();
+    _messageFocusNode.dispose();
     super.dispose();
   }
 
@@ -1129,8 +1134,11 @@ class _ChatViewState extends State<ChatView> {
                                   mediaKeyboardInset > _webKeyboardInset
                                       ? mediaKeyboardInset
                                       : _webKeyboardInset;
+                              final isComposerFocused =
+                                  _messageFocusNode.hasFocus;
                               final showQuickChatPills =
                                   selectedChatFile == null &&
+                                  !isComposerFocused &&
                                   keyboardInset <= 0;
                               final imagePreviewHeight = MediaQuery.of(context)
                                   .size
@@ -1334,6 +1342,7 @@ class _ChatViewState extends State<ChatView> {
                                                   : const SizedBox(width: 8),
                                               Expanded(
                                                 child: TextField(
+                                                  focusNode: _messageFocusNode,
                                                   controller: _controller,
                                                   decoration: InputDecoration(
                                                     filled: true,
