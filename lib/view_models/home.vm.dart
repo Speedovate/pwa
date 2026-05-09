@@ -67,10 +67,13 @@ class HomeViewModel extends GMapViewModel {
   bool _isDraggingOngoingMap = false;
   bool _isRefreshingPartnerTodayAmount = false;
   bool _isSyncingDriverLocation = false;
+  bool _isShowingTerminalOrderDialog = false;
+  bool _isHandlingCancelledOrderTransition = false;
   bool hasHydratedOngoingOrderMeta = false;
   double? _pendingBookingFareOverride;
   double? _pendingOngoingOrderFareOverride;
   String? _driverLocationSyncOrderCode;
+  String? _lastShownTerminalOrderDialogKey;
   gmaps.LatLng? _latestSyncedDriverLatLng;
 
   bool isEnrouteOrBeyondStatus(String? status) {
@@ -548,44 +551,85 @@ class HomeViewModel extends GMapViewModel {
     notifyListeners();
   }
 
-  Future<void> _handleCancelledOrderState(
-    Order? cancelledOrder,
-  ) async {
-    final reason = (cancelledOrder?.reason ?? "").toLowerCase();
-    final shouldRestorePreview = reason != "rebook";
-    final shouldShowAlert = reason != "rebook";
+  Future<void> _showTerminalOrderDialogOnce({
+    required Order? order,
+    required String terminalDialogType,
+    required String reason,
+  }) async {
+    final resolvedOrderId = order?.id ?? bookingId;
+    final dialogKey = "$resolvedOrderId|$terminalDialogType";
 
-    cHeaders = null;
-    ongoingOrder = null;
-    bookingId = 0;
-    snackShown = true;
-    notifyListeners();
-    stopAllListeners();
-
-    if (shouldRestorePreview) {
-      unawaited(_restoreCancelledBookingRoutePreview());
-    }
-
-    if (!shouldShowAlert) {
+    if (_lastShownTerminalOrderDialogKey == dialogKey ||
+        _isShowingTerminalOrderDialog) {
       return;
     }
+
+    _lastShownTerminalOrderDialogKey = dialogKey;
+    _isShowingTerminalOrderDialog = true;
 
     if (!isChatViewOpen) {
       Get.until((route) => route.isFirst);
     }
 
-    AlertService().showAppAlert(
-      dismissible: false,
-      title: "Booking ${reason == "pass" ? "Passed" : "Cancelled"}",
-      asset: reason == "pass" ? AppLotties.success : AppLotties.error,
-      content:
-          "Your booking has been ${reason == "pass" ? "passed" : "cancelled"}",
-      confirmAction: () async {
-        if (!isChatViewOpen) {
-          Get.until((route) => route.isFirst);
-        }
-      },
-    );
+    try {
+      await AlertService().showAppAlert(
+        dismissible: false,
+        title: "Booking ${reason == "pass" ? "Passed" : "Cancelled"}",
+        asset: reason == "pass" ? AppLotties.success : AppLotties.error,
+        content:
+            "Your booking has been ${reason == "pass" ? "passed" : "cancelled"}",
+        confirmAction: () async {
+          Navigator.of(Get.context!, rootNavigator: true).pop();
+          if (isChatViewOpen) {
+            Future.microtask(() {
+              Navigator.of(Get.context!, rootNavigator: true).popUntil(
+                (route) => route.isFirst,
+              );
+            });
+          }
+        },
+      );
+    } finally {
+      _isShowingTerminalOrderDialog = false;
+    }
+  }
+
+  Future<void> _handleCancelledOrderState(
+    Order? cancelledOrder,
+  ) async {
+    if (_isHandlingCancelledOrderTransition) {
+      return;
+    }
+    _isHandlingCancelledOrderTransition = true;
+
+    final reason = (cancelledOrder?.reason ?? "").toLowerCase();
+    final shouldRestorePreview = reason != "rebook";
+    final shouldShowAlert = reason != "rebook";
+
+    try {
+      cHeaders = null;
+      ongoingOrder = null;
+      bookingId = 0;
+      snackShown = true;
+      notifyListeners();
+      stopAllListeners();
+
+      if (shouldRestorePreview) {
+        unawaited(_restoreCancelledBookingRoutePreview());
+      }
+
+      if (!shouldShowAlert) {
+        return;
+      }
+
+      await _showTerminalOrderDialogOnce(
+        order: cancelledOrder,
+        terminalDialogType: reason == "pass" ? "passed" : "cancelled",
+        reason: reason,
+      );
+    } finally {
+      _isHandlingCancelledOrderTransition = false;
+    }
   }
 
   double _normalizeWholePeso(double value) {
@@ -785,6 +829,10 @@ class HomeViewModel extends GMapViewModel {
       _pendingBookingFareOverride = null;
       _applyPendingDriverDistantFareToOngoingOrder();
       _reconcilePendingOngoingOrderFareOverride();
+      userSeen = true;
+      dvrMessage = null;
+      cancelRequestStatus = "";
+      passRequestStatus = "";
       notifyListeners();
       if (ongoingOrder != null) {
         if (ongoingOrder?.status == "pending" ||
@@ -1138,34 +1186,15 @@ class HomeViewModel extends GMapViewModel {
   }
 
   cancelOrder() {
-    int remainingCancelSeconds() {
-      return _remainingCancelSecondsForOrder(ongoingOrder);
-    }
-
     int remainingRebookSeconds() {
       return _remainingRebookSecondsForOrder(ongoingOrder);
-    }
-
-    void showWaitSnackBar(int seconds) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(Get.context!).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please wait for $seconds second${seconds == 1 ? "" : "s"}!",
-            style: const TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
     }
 
     final initialRemainingRebookSeconds = remainingRebookSeconds();
     if (!canOpenCancelFlow) {
       final message = hasDriverChatMessage
           ? "Cancellation is unavailable once the driver has already sent a chat."
-          : "Please wait for $initialRemainingRebookSeconds second${initialRemainingRebookSeconds == 1 ? "" : "s"}!";
+          : "Please wait for $initialRemainingRebookSeconds second${initialRemainingRebookSeconds == 1 ? "" : "s"} or get a new driver now!";
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(Get.context!).showSnackBar(
         SnackBar(
@@ -1191,110 +1220,183 @@ class HomeViewModel extends GMapViewModel {
       confirmText: "Yes",
       confirmColor: Colors.red,
       thirdAction: () async {
-        final latestRemainingRebookSeconds = remainingRebookSeconds();
-        if (!canCancelWithAcceptedRequest && latestRemainingRebookSeconds > 0) {
-          showWaitSnackBar(latestRemainingRebookSeconds);
-        } else {
-          Get.until((route) => route.isFirst);
-          try {
-            AlertService().showLoading();
-            await _findAvailableDriverForRebook();
-            AlertService().stopLoading(forceStop: true);
-            if (availableDriver?.driver != null &&
-                availableDriver!.kmDistance != 0) {
-              if ((availableDriver?.pickupKm ?? 0.0) <=
-                  _driverSearchPickupKmLimit) {
-                await _placeRebookOrder();
-              } else {
-                await _showDriverDistantDialog(
-                  onAccept: () {
-                    _placeRebookOrder();
-                  },
-                );
-              }
-            } else {
-              if (!snackShown) {
-                ScaffoldMessenger.of(Get.context!).clearSnackBars();
-                ScaffoldMessenger.of(
-                  Get.context!,
-                ).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: Colors.red,
-                    content: Text(
-                      "No driver found. Try again later",
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-                snackShown = true;
-              }
-            }
-          } catch (e) {
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(Get.context!).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  e.toString(),
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            );
-          }
-        }
+        await processAcceptedCancelRequestRebook();
       },
       cancelAction: () async {
         Get.back();
       },
       confirmAction: () async {
-        final latestRemainingCancelSeconds = remainingCancelSeconds();
-        if (!canCancelWithAcceptedRequest && latestRemainingCancelSeconds > 0) {
-          showWaitSnackBar(latestRemainingCancelSeconds);
+        Get.back();
+        await processAcceptedCancelRequestCancel();
+      },
+    );
+  }
+
+  void _showCancelFlowWaitSnackBar(int seconds) {
+    ScaffoldMessenger.of(Get.context!).clearSnackBars();
+    ScaffoldMessenger.of(Get.context!).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+          "Please wait for $seconds second${seconds == 1 ? "" : "s"} or get a new driver now!",
+            style: const TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ),
+    );
+  }
+
+  Future<void> processAcceptedCancelRequestRebook() async {
+    final latestRemainingRebookSeconds =
+        _remainingRebookSecondsForOrder(ongoingOrder);
+    if (!canCancelWithAcceptedRequest && latestRemainingRebookSeconds > 0) {
+      _showCancelFlowWaitSnackBar(latestRemainingRebookSeconds);
+      return;
+    }
+
+    Get.until((route) => route.isFirst);
+    try {
+      AlertService().showLoading();
+      await _findAvailableDriverForRebook();
+      AlertService().stopLoading(forceStop: true);
+      if (availableDriver?.driver != null && availableDriver!.kmDistance != 0) {
+        if ((availableDriver?.pickupKm ?? 0.0) <= _driverSearchPickupKmLimit) {
+          await _placeRebookOrder();
         } else {
-          Get.back();
-          if (AuthService.inReviewMode()) {
-            Get.back();
-          } else {
-            AlertService().showLoading();
-            try {
-              ApiResponse apiResponse = await taxiRequest.cancelOrderRequest(
-                id: ongoingOrder!.id!,
-                reason: "initiated by passenger",
-                rebook: false,
-              );
-              if (!isChatViewOpen) {
-                Get.until((route) => route.isFirst);
-              }
-              if (apiResponse.allGood) {
-                ongoingOrder = null;
-                AlertService().stopLoading(forceStop: true);
-                await loadUIByOngoingOrderStatus();
-              } else {
-                if (apiResponse.message.contains("cancel")) {
-                  clearGMapDetails();
-                } else {
-                  throw apiResponse.message;
-                }
-              }
-            } catch (e) {
-              if (!isChatViewOpen) {
-                Get.until((route) => route.isFirst);
-              }
-              ScaffoldMessenger.of(Get.context!).clearSnackBars();
-              ScaffoldMessenger.of(Get.context!).showSnackBar(
-                SnackBar(
-                  backgroundColor: Colors.red,
-                  content: Text(
-                    e.toString(),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              );
-            }
-          }
+          await _showDriverDistantDialog(
+            onAccept: () {
+              _placeRebookOrder();
+            },
+          );
         }
+      } else {
+        if (!snackShown) {
+          ScaffoldMessenger.of(Get.context!).clearSnackBars();
+          ScaffoldMessenger.of(
+            Get.context!,
+          ).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              content: Text(
+                "No driver found. Try again later",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          );
+          snackShown = true;
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            e.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> processAcceptedCancelRequestCancel() async {
+    final latestRemainingCancelSeconds =
+        _remainingCancelSecondsForOrder(ongoingOrder);
+    if (!canCancelWithAcceptedRequest && latestRemainingCancelSeconds > 0) {
+      _showCancelFlowWaitSnackBar(latestRemainingCancelSeconds);
+      return;
+    }
+
+    if (AuthService.inReviewMode()) {
+      Get.back();
+      return;
+    }
+
+    AlertService().showLoading();
+    try {
+      ApiResponse apiResponse = await taxiRequest.cancelOrderRequest(
+        id: ongoingOrder!.id!,
+        reason: "initiated by passenger",
+        rebook: false,
+      );
+      final orderCode = ongoingOrder?.code?.trim();
+      if (!isChatViewOpen) {
+        Get.until((route) => route.isFirst);
+      }
+      if (apiResponse.allGood) {
+        if (orderCode != null && orderCode.isNotEmpty) {
+          await fbStore.collection("orders").doc(orderCode).update(
+            {
+              "userSeen": true,
+            },
+          );
+        }
+        userSeen = true;
+        ongoingOrder = null;
+        AlertService().stopLoading(forceStop: true);
+        await loadUIByOngoingOrderStatus();
+      } else {
+        if (apiResponse.message.contains("cancel")) {
+          clearGMapDetails();
+        } else {
+          throw apiResponse.message;
+        }
+      }
+    } catch (e) {
+      if (!isChatViewOpen) {
+        Get.until((route) => route.isFirst);
+      }
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            e.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+  }
+
+  void confirmAcceptedCancelRequestCancel() {
+    AlertService().showAppAlert(
+      asset: AppLotties.confirm,
+      title: "Are you sure?",
+      content: "Do you want to cancel this booking?",
+      hideCancel: false,
+      cancelText: "No",
+      confirmText: "Yes",
+      confirmColor: Colors.red,
+      cancelAction: () async {
+        Get.back();
+      },
+      confirmAction: () async {
+        Get.back();
+        await processAcceptedCancelRequestCancel();
+      },
+    );
+  }
+
+  void confirmAcceptedCancelRequestRebook() {
+    AlertService().showAppAlert(
+      asset: AppLotties.confirm,
+      title: "Are you sure?",
+      content: "Do you want to get a new driver now?",
+      hideCancel: false,
+      cancelText: "No",
+      confirmText: "Yes",
+      confirmColor: const Color(0xFF007BFF),
+      cancelAction: () async {
+        Get.back();
+      },
+      confirmAction: () async {
+        Get.back();
+        await processAcceptedCancelRequestRebook();
       },
     );
   }
@@ -1329,6 +1431,13 @@ class HomeViewModel extends GMapViewModel {
       if (!apiResponse.allGood) {
         throw apiResponse.message;
       }
+      if (ongoingOrder != null && availableDriver?.driver != null) {
+        ongoingOrder!.driver = availableDriver!.driver;
+        ongoingOrder!.driverId = availableDriver!.driver!.id;
+        _latestSyncedDriverLatLng = ongoingOrder!.driverLatLng;
+        driverPositionRotation = 0;
+        notifyListeners();
+      }
       final orderCode = ongoingOrder?.code?.trim();
       if (orderCode != null && orderCode.isNotEmpty) {
         await fbStore.collection("orders").doc(orderCode).update(
@@ -1336,9 +1445,11 @@ class HomeViewModel extends GMapViewModel {
             "driver_accept_id": null,
             "driver_accept_latitude": null,
             "driver_accept_longitude": null,
+            "userSeen": true,
           },
         );
       }
+      userSeen = true;
       final chatEntity = _buildUserChatEntity();
       final currentUserName = (ongoingOrder?.user?.name ?? "User").trim();
       final newDriverName = (availableDriver?.driver?.name ?? "Driver").trim();
@@ -1450,88 +1561,83 @@ class HomeViewModel extends GMapViewModel {
     if (dbTimer != null && dbTimer!.isActive) {
       dbTimer?.cancel();
     }
+    dbTimer = null;
     orderUpdateStream?.cancel();
-    dbTimer = Timer(
-      const Duration(milliseconds: 3000),
-      () async {
-        orderUpdateStream = fbStore
-            .collection("orders")
-            .doc("${ongoingOrder?.code}")
-            .snapshots()
-            .listen(
-          (event) async {
-            order = event.data();
-            String orderSyncedAt = StorageService.prefs?.getString(
-                  "orderSyncedAt",
-                ) ??
-                "Not Yet Synced";
-            if (user != null &&
-                ongoingOrder?.discount == 0 &&
-                providerMarkupAmount > 0 &&
-                isBool(AuthService.currentUser?.isProvider) &&
-                event.data()?["markup_amount"] == null) {
-              fbStore.collection("orders").doc(ongoingOrder?.code).update(
-                {
-                  "markup_amount": providerMarkupAmount,
-                },
-              );
+    orderUpdateStream = fbStore
+        .collection("orders")
+        .doc("${ongoingOrder?.code}")
+        .snapshots()
+        .listen(
+      (event) async {
+        order = event.data();
+        String orderSyncedAt = StorageService.prefs?.getString(
+              "orderSyncedAt",
+            ) ??
+            "Not Yet Synced";
+        if (user != null &&
+            ongoingOrder?.discount == 0 &&
+            providerMarkupAmount > 0 &&
+            isBool(AuthService.currentUser?.isProvider) &&
+            event.data()?["markup_amount"] == null) {
+          fbStore.collection("orders").doc(ongoingOrder?.code).update(
+            {
+              "markup_amount": providerMarkupAmount,
+            },
+          );
+        }
+        if (ongoingOrder?.discount == 0 &&
+            providerMarkupAmount > 0 &&
+            isBool(AuthService.currentUser?.isProvider) &&
+            event.data()?["markup_amount"] == null) {
+          fbStore.collection("orders").doc(ongoingOrder?.code).update(
+            {
+              "markup_amount": providerMarkupAmount,
+            },
+          );
+        }
+        try {
+          final previousUserSeen = userSeen;
+          final previousDriverMessage = dvrMessage;
+          final previousCancelRequestStatus = cancelRequestStatus;
+          final nextStatus = "${event.data()?["status"]}";
+          if ((orderSyncedAt != "${event.data()?["syncedAt"]}" &&
+                  !isCompletedReceiptStatus(nextStatus)) ||
+              (ongoingOrder?.status != nextStatus &&
+                  !isCompletedReceiptStatus(nextStatus))) {
+            await getOngoingOrder(forceStop: forceStop);
+          } else {
+            if (isCompletedReceiptStatus(nextStatus)) {
+              await clearGMapDetails();
             }
-            if (ongoingOrder?.discount == 0 &&
-                providerMarkupAmount > 0 &&
-                isBool(AuthService.currentUser?.isProvider) &&
-                event.data()?["markup_amount"] == null) {
-              fbStore.collection("orders").doc(ongoingOrder?.code).update(
-                {
-                  "markup_amount": providerMarkupAmount,
-                },
-              );
-            }
-            try {
-              final previousUserSeen = userSeen;
-              final previousDriverMessage = dvrMessage;
-              final previousCancelRequestStatus = cancelRequestStatus;
-              final nextStatus = "${event.data()?["status"]}";
-              if ((orderSyncedAt != "${event.data()?["syncedAt"]}" &&
-                      !isCompletedReceiptStatus(nextStatus)) ||
-                  (ongoingOrder?.status != nextStatus &&
-                      !isCompletedReceiptStatus(nextStatus))) {
-                await getOngoingOrder(forceStop: forceStop);
-              } else {
-                if (isCompletedReceiptStatus(nextStatus)) {
-                  await clearGMapDetails();
-                }
-              }
-              if ("cancelled" == nextStatus ||
-                  isCompletedReceiptStatus(nextStatus)) {
-                ongoingOrder?.status = nextStatus;
-                notifyListeners();
-              }
-              userSeen = isBool(event.data()?["userSeen"]);
-              dvrMessage = "${event.data()?["driverMessage"]}";
-              cancelRequestStatus =
-                  "${event.data()?["cancel_request_status"] ?? ""}";
-              passRequestStatus =
-                  "${event.data()?["pass_request_status"] ?? ""}";
-              _reconcilePendingOngoingOrderFareOverride();
-              final previousHydratedOrderMeta = hasHydratedOngoingOrderMeta;
-              hasHydratedOngoingOrderMeta = true;
-              if (previousUserSeen != userSeen ||
-                  previousDriverMessage != dvrMessage ||
-                  previousCancelRequestStatus != cancelRequestStatus ||
-                  previousHydratedOrderMeta != hasHydratedOngoingOrderMeta) {
-                notifyListeners();
-              }
-              StorageService.prefs?.setString(
-                "orderSyncedAt",
-                "${event.data()?["syncedAt"]}",
-              );
-            } catch (_) {}
-            loadUIByOngoingOrderStatus(forceStop: forceStop);
-          },
-        );
-        syncDriverLocation(forceStop: forceStop);
+          }
+          if ("cancelled" == nextStatus ||
+              isCompletedReceiptStatus(nextStatus)) {
+            ongoingOrder?.status = nextStatus;
+            notifyListeners();
+          }
+          userSeen = isBool(event.data()?["userSeen"]);
+          dvrMessage = "${event.data()?["driverMessage"]}";
+          cancelRequestStatus =
+              "${event.data()?["cancel_request_status"] ?? ""}";
+          passRequestStatus = "${event.data()?["pass_request_status"] ?? ""}";
+          _reconcilePendingOngoingOrderFareOverride();
+          final previousHydratedOrderMeta = hasHydratedOngoingOrderMeta;
+          hasHydratedOngoingOrderMeta = true;
+          if (previousUserSeen != userSeen ||
+              previousDriverMessage != dvrMessage ||
+              previousCancelRequestStatus != cancelRequestStatus ||
+              previousHydratedOrderMeta != hasHydratedOngoingOrderMeta) {
+            notifyListeners();
+          }
+          StorageService.prefs?.setString(
+            "orderSyncedAt",
+            "${event.data()?["syncedAt"]}",
+          );
+        } catch (_) {}
+        loadUIByOngoingOrderStatus(forceStop: forceStop);
       },
     );
+    syncDriverLocation(forceStop: forceStop);
   }
 
   loadUIByOngoingOrderStatus({

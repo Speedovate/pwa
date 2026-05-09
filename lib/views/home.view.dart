@@ -50,6 +50,7 @@ class _HomeViewState extends State<HomeView> {
   late Future<gmaps.LatLng?> _initialCenterFuture;
   gmaps.LatLng? _homeMapCenter;
   bool _isIOSMenuOpen = false;
+  String? _activePartnerDisplay;
 
   @override
   void initState() {
@@ -115,6 +116,59 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
+  void _showPartnerDisplay(String partner) {
+    setState(() {
+      isAdSeen = true;
+      isAd1Seen = true;
+      if (partner == "mnb") {
+        isAdSeen = false;
+      } else if (partner == "sbb") {
+        isAd1Seen = false;
+      }
+      showBranch = false;
+      _activePartnerDisplay = partner;
+    });
+  }
+
+  void _clearPartnerDisplay() {
+    setState(() {
+      _activePartnerDisplay = null;
+      showBranch = false;
+    });
+  }
+
+  String _driverImageUrlWithCacheBust(HomeViewModel vm) {
+    final rawUrl = (vm.ongoingOrder?.driver?.cPhoto ?? "").trim();
+    final driverId = vm.ongoingOrder?.driver?.id;
+    if (rawUrl.isEmpty || driverId == null) {
+      return rawUrl;
+    }
+
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return rawUrl;
+    }
+
+    return uri.replace(
+      queryParameters: {
+        ...uri.queryParameters,
+        "driver_id": "$driverId",
+      },
+    ).toString();
+  }
+
+  List<BannerModel> _partnerBanners(int startIndex, int count) {
+    if (startIndex >= gBanners.length || count <= 0) {
+      return [];
+    }
+
+    final endIndex = (startIndex + count).clamp(startIndex, gBanners.length);
+    return gBanners
+        .sublist(startIndex, endIndex)
+        .map((banner) => BannerModel(photo: banner.photo ?? ""))
+        .toList();
+  }
+
   Future<void> _openSupportChannel([HomeViewModel? vm]) async {
     final canRequestCancellation = vm != null &&
         vm.ongoingOrder != null &&
@@ -154,6 +208,12 @@ class _HomeViewState extends State<HomeView> {
       return "pass";
     }
     return null;
+  }
+
+  bool _shouldShowAcceptedCancelRequestActions(String? message) {
+    final normalized = (message ?? "").trim().toLowerCase();
+    return normalized.contains("has accepted") &&
+        normalized.contains("cancel request");
   }
 
   Widget _buildHomeQuickChatPills(HomeViewModel vm) {
@@ -205,6 +265,82 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  Widget _buildHomeAcceptedCancelRequestActions(HomeViewModel vm) {
+    Widget buildPill({
+      required String label,
+      required Color color,
+      required Future<void> Function() onTap,
+    }) {
+      return Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: const BorderRadius.all(
+              Radius.circular(1000),
+            ),
+            border: Border.all(
+              color: color.withValues(alpha: 0.18),
+            ),
+          ),
+          child: InkWell(
+            onTap: () async => onTap(),
+            borderRadius: const BorderRadius.all(
+              Radius.circular(1000),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 0,
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: SizedBox(
+        height: 45,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: 2,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return buildPill(
+                label: "Cancel",
+                color: const Color(0xFFFF3B30),
+                onTap: () async {
+                  vm.confirmAcceptedCancelRequestCancel();
+                },
+              );
+            }
+            return buildPill(
+              label: "Get a new driver now!",
+              color: const Color(0xFF007BFF),
+              onTap: () async {
+                vm.confirmAcceptedCancelRequestRebook();
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildHomeRequestActions(
     HomeViewModel vm, {
     required String requestType,
@@ -250,12 +386,12 @@ class _HomeViewState extends State<HomeView> {
                     child: (requestType == "cancellation"
                             ? vm.isUpdatingRequestCancellation
                             : vm.isUpdatingRequestPass)
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: color,
                             ),
                           )
                         : Text(
@@ -1013,6 +1149,7 @@ class _HomeViewState extends State<HomeView> {
                                           .ensureInitialOngoingOrderLoaded();
                                       await vm.loadUIByOngoingOrderStatus(
                                         forceStop: true,
+                                        forceRedraw: true,
                                       );
                                       await LoadViewModel().getLoadBalance();
                                     });
@@ -1252,10 +1389,7 @@ class _HomeViewState extends State<HomeView> {
                                                       await SplashViewModel()
                                                           .getBanners();
                                                     }
-                                                    setState(() {
-                                                      isAdSeen = false;
-                                                      showBranch = false;
-                                                    });
+                                                    _showPartnerDisplay("mnb");
                                                   },
                                                 ),
                                                 const SizedBox(
@@ -1269,10 +1403,7 @@ class _HomeViewState extends State<HomeView> {
                                                       await SplashViewModel()
                                                           .getBanners();
                                                     }
-                                                    setState(() {
-                                                      isAd1Seen = false;
-                                                      showBranch = false;
-                                                    });
+                                                    _showPartnerDisplay("sbb");
                                                   },
                                                 ),
                                               ],
@@ -2176,7 +2307,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                     child: SizedBox(
                                                                                       height: MediaQuery.of(context).size.width - 70,
                                                                                       child: NetworkImageWidget(
-                                                                                        imageUrl: vm.ongoingOrder?.driver?.cPhoto ?? "",
+                                                                                        imageUrl: _driverImageUrlWithCacheBust(vm),
                                                                                         memCacheWidth: 600,
                                                                                         fit: BoxFit.cover,
                                                                                       ),
@@ -2191,7 +2322,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                   child: NetworkImageWidget(
                                                                                     fit: BoxFit.cover,
                                                                                     memCacheWidth: 600,
-                                                                                    imageUrl: vm.ongoingOrder?.driver?.cPhoto ?? "",
+                                                                                    imageUrl: _driverImageUrlWithCacheBust(vm),
                                                                                     progressIndicatorBuilder: (
                                                                                       context,
                                                                                       imageUrl,
@@ -3212,7 +3343,7 @@ class _HomeViewState extends State<HomeView> {
                                                                 vm.ongoingOrder;
                                                             if (vm
                                                                 .isOngoingOrderStatusUncertain) {
-                                                              return "REPORT";
+                                                              return "CANCEL";
                                                             }
                                                             final status =
                                                                 (order?.status ??
@@ -3225,7 +3356,7 @@ class _HomeViewState extends State<HomeView> {
                                                               return "BOOK";
                                                             } else if (status ==
                                                                 "enroute") {
-                                                              return "REPORT";
+                                                              return "CANCEL";
                                                             } else if (vm
                                                                 .canOpenCancelFlow) {
                                                               return "CANCEL";
@@ -3237,9 +3368,9 @@ class _HomeViewState extends State<HomeView> {
                                                                     "preparing" ||
                                                                 status ==
                                                                     "delivered") {
-                                                              return "REPORT";
+                                                              return "CANCEL";
                                                             }
-                                                            return "REPORT";
+                                                            return "CANCEL";
                                                           })(),
                                                           mainColor: vm
                                                                   .isPreparing
@@ -3247,16 +3378,31 @@ class _HomeViewState extends State<HomeView> {
                                                                   0xFF030744,
                                                                 ).withValues(
                                                                   alpha: 0.2)
-                                                              : vm.ongoingOrder !=
-                                                                          null &&
+                                                              : vm.ongoingOrder ==
+                                                                          null ||
                                                                       vm.ongoingOrder!
-                                                                              .status !=
+                                                                              .status ==
                                                                           "cancelled"
-                                                                  ? Colors.red
-                                                                      .shade100
-                                                                  : const Color(
+                                                                  ? const Color(
                                                                       0xFF007BFF,
-                                                                    ),
+                                                                    )
+                                                                  : vm.isOngoingOrderStatusUncertain
+                                                                      ? const Color(
+                                                                          0xFF007BFF,
+                                                                        ).withValues(
+                                                                          alpha:
+                                                                              0.1,
+                                                                        )
+                                                                      : vm.canOpenCancelFlow
+                                                                          ? Colors
+                                                                              .red
+                                                                              .shade100
+                                                                          : const Color(
+                                                                              0xFF007BFF,
+                                                                            ).withValues(
+                                                                              alpha:
+                                                                                  0.1,
+                                                                            ),
                                                           onTap: () async {
                                                             if (!AuthService
                                                                 .isLoggedIn()) {
@@ -3364,14 +3510,22 @@ class _HomeViewState extends State<HomeView> {
                                                                             .status !=
                                                                         "cancelled"
                                                                 ? null
-                                                                : 16,
-                                                            color: vm.ongoingOrder !=
-                                                                        null &&
+                                                                : 16.0,
+                                                            color: vm.ongoingOrder ==
+                                                                        null ||
                                                                     vm.ongoingOrder!
-                                                                            .status !=
+                                                                            .status ==
                                                                         "cancelled"
-                                                                ? Colors.red
-                                                                : Colors.white,
+                                                                ? Colors.white
+                                                                : vm.isOngoingOrderStatusUncertain
+                                                                    ? const Color(
+                                                                        0xFF007BFF,
+                                                                      )
+                                                                    : vm.canOpenCancelFlow
+                                                                        ? Colors.red
+                                                                        : const Color(
+                                                                            0xFF007BFF,
+                                                                          ),
                                                             fontWeight:
                                                                 FontWeight.bold,
                                                           ),
@@ -4319,9 +4473,10 @@ class _HomeViewState extends State<HomeView> {
                                                           .width -
                                                       70,
                                                   child: NetworkImageWidget(
-                                                    imageUrl: vm.ongoingOrder
-                                                            ?.driver?.cPhoto ??
-                                                        "",
+                                                    imageUrl:
+                                                        _driverImageUrlWithCacheBust(
+                                                      vm,
+                                                    ),
                                                     memCacheWidth: 600,
                                                     fit: BoxFit.cover,
                                                   ),
@@ -4336,9 +4491,10 @@ class _HomeViewState extends State<HomeView> {
                                               child: NetworkImageWidget(
                                                 fit: BoxFit.cover,
                                                 memCacheWidth: 600,
-                                                imageUrl: vm.ongoingOrder
-                                                        ?.driver?.cPhoto ??
-                                                    "",
+                                                imageUrl:
+                                                    _driverImageUrlWithCacheBust(
+                                                  vm,
+                                                ),
                                                 progressIndicatorBuilder: (
                                                   context,
                                                   imageUrl,
@@ -4550,6 +4706,13 @@ class _HomeViewState extends State<HomeView> {
                                           vm,
                                         );
                                       }
+                                      if (_shouldShowAcceptedCancelRequestActions(
+                                        vm.dvrMessage,
+                                      )) {
+                                        return _buildHomeAcceptedCancelRequestActions(
+                                          vm,
+                                        );
+                                      }
                                       if (requestMessageType == "pass") {
                                         return _buildHomeRequestPassActions(
                                           vm,
@@ -4754,12 +4917,14 @@ class _HomeViewState extends State<HomeView> {
                     () {
                       try {
                         final showMnb = !isAdSeen &&
-                            vm.ongoingOrder == null &&
-                            pickupAddress == null &&
-                            dropoffAddress == null &&
-                            isBool(
-                              AppStrings.homeSettingsObject?["show_ad"] ?? true,
-                            );
+                                vm.ongoingOrder == null &&
+                                pickupAddress == null &&
+                                dropoffAddress == null &&
+                                isBool(
+                                  AppStrings.homeSettingsObject?["show_ad"] ??
+                                      true,
+                                ) ||
+                            _activePartnerDisplay == "mnb";
                         return PartnerDisplayWidget(
                           show: showMnb,
                           onClose: () async {
@@ -4769,6 +4934,7 @@ class _HomeViewState extends State<HomeView> {
                             );
                             setState(() {
                               isAdSeen = true;
+                              _activePartnerDisplay = null;
                               showBranch = false;
                             });
                           },
@@ -4791,14 +4957,9 @@ class _HomeViewState extends State<HomeView> {
                               null,
                             );
                             vm.fetchVehicleTypesPricing();
-                            setState(() {
-                              showBranch = false;
-                            });
+                            _clearPartnerDisplay();
                           },
-                          banners: [
-                            BannerModel(photo: gBanners[0].photo ?? ""),
-                            BannerModel(photo: gBanners[1].photo ?? ""),
-                          ],
+                          banners: _partnerBanners(0, 2),
                           partnerName: "Max & Bunny",
                           partnerDescription: "Dine in and help a driver earn!",
                           partnerImage: AppImages.mnb,
@@ -4828,13 +4989,14 @@ class _HomeViewState extends State<HomeView> {
                     () {
                       try {
                         final showSbb = !isAd1Seen &&
-                            vm.ongoingOrder == null &&
-                            pickupAddress == null &&
-                            dropoffAddress == null &&
-                            isBool(
-                              AppStrings.homeSettingsObject?["show_ad_1"] ??
-                                  true,
-                            );
+                                vm.ongoingOrder == null &&
+                                pickupAddress == null &&
+                                dropoffAddress == null &&
+                                isBool(
+                                  AppStrings.homeSettingsObject?["show_ad_1"] ??
+                                      true,
+                                ) ||
+                            _activePartnerDisplay == "sbb";
                         return PartnerDisplayWidget(
                           show: showSbb,
                           onClose: () async {
@@ -4842,6 +5004,7 @@ class _HomeViewState extends State<HomeView> {
                                 ?.setBool("is_ad_1_seen", true);
                             setState(() {
                               isAd1Seen = true;
+                              _activePartnerDisplay = null;
                               showBranch = false;
                             });
                           },
@@ -4864,14 +5027,9 @@ class _HomeViewState extends State<HomeView> {
                               null,
                             );
                             vm.fetchVehicleTypesPricing();
-                            setState(() {
-                              showBranch = false;
-                            });
+                            _clearPartnerDisplay();
                           },
-                          banners: [
-                            BannerModel(photo: gBanners[2].photo ?? ""),
-                            BannerModel(photo: gBanners[3].photo ?? ""),
-                          ],
+                          banners: _partnerBanners(2, 2),
                           partnerName: "Sabie Bakes",
                           partnerDescription: "Dine in and help a driver earn!",
                           partnerImage: AppImages.sbb,

@@ -141,7 +141,7 @@ Future<void> showFacebookSupportDialog(
                     children: [
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
@@ -191,7 +191,7 @@ Future<void> showFacebookSupportDialog(
                                 await openFacebookSupportChannel();
                               },
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             _supportDialogButton(
                               label: "Send us a message",
                               icon: Icons.sms,
@@ -205,7 +205,7 @@ Future<void> showFacebookSupportDialog(
                                 } catch (_) {}
                               },
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             _supportDialogButton(
                               label: "Contact us",
                               icon: Icons.call,
@@ -221,7 +221,7 @@ Future<void> showFacebookSupportDialog(
                             ),
                             !showRequestCancellation
                                 ? const SizedBox.shrink()
-                                : const SizedBox(height: 12),
+                                : const SizedBox(height: 8),
                             !showRequestCancellation
                                 ? const SizedBox.shrink()
                                 : _supportDialogButton(
