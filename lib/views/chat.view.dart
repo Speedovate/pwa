@@ -1,8 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'dart:async';
-import 'dart:html' as html;
-import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
+import 'dart:js_interop';
+
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
@@ -22,8 +21,11 @@ import 'package:pwa/requests/order.request.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/models/chat_entity.model.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
-import 'package:pwa/widgets/quick_chat_pills.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:pwa/widgets/quick_chat_pills.widget.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
+
+import 'package:web/web.dart' as web;
 
 class ChatView extends StatefulWidget {
   const ChatView(
@@ -46,8 +48,8 @@ class _ChatViewState extends State<ChatView> {
   bool _isUpdatingRequestCancellation = false;
   bool _isUpdatingRequestPass = false;
   double _webKeyboardInset = 0;
-  StreamSubscription? _visualViewportResizeSub;
-  StreamSubscription? _visualViewportScrollSub;
+  JSFunction? _visualViewportResizeListener;
+  JSFunction? _visualViewportScrollListener;
   late TextEditingController _controller;
   late FocusNode _messageFocusNode;
 
@@ -68,8 +70,7 @@ class _ChatViewState extends State<ChatView> {
   @override
   void dispose() {
     setChatViewOpen(false);
-    _visualViewportResizeSub?.cancel();
-    _visualViewportScrollSub?.cancel();
+    _stopVisualViewportListener();
     _controller.removeListener(_handleComposerChanged);
     _messageFocusNode.removeListener(_handleComposerChanged);
     _controller.dispose();
@@ -88,18 +89,41 @@ class _ChatViewState extends State<ChatView> {
 
   void _startVisualViewportListener() {
     try {
-      final viewport = html.window.visualViewport;
+      final viewport = web.window.visualViewport;
       if (viewport == null) {
         return;
       }
+      _stopVisualViewportListener();
       _syncWebKeyboardInset();
-      _visualViewportResizeSub = viewport.onResize.listen((_) {
+      _visualViewportResizeListener = ((web.Event _) {
         _syncWebKeyboardInset();
-      });
-      _visualViewportScrollSub = viewport.onScroll.listen((_) {
+      }).toJS;
+      _visualViewportScrollListener = ((web.Event _) {
         _syncWebKeyboardInset();
-      });
+      }).toJS;
+      viewport.addEventListener("resize", _visualViewportResizeListener);
+      viewport.addEventListener("scroll", _visualViewportScrollListener);
     } catch (_) {}
+  }
+
+  void _stopVisualViewportListener() {
+    try {
+      final viewport = web.window.visualViewport;
+      if (viewport == null) {
+        return;
+      }
+      if (_visualViewportResizeListener != null) {
+        viewport.removeEventListener("resize", _visualViewportResizeListener);
+      }
+      if (_visualViewportScrollListener != null) {
+        viewport.removeEventListener("scroll", _visualViewportScrollListener);
+      }
+    } catch (_) {
+      // no-op
+    } finally {
+      _visualViewportResizeListener = null;
+      _visualViewportScrollListener = null;
+    }
   }
 
   void _syncWebKeyboardInset() {
@@ -107,15 +131,14 @@ class _ChatViewState extends State<ChatView> {
       return;
     }
     try {
-      final viewport = html.window.visualViewport;
+      final viewport = web.window.visualViewport;
       if (viewport == null) {
         return;
       }
-      final innerHeight = html.window.innerHeight?.toDouble() ?? 0;
-      final viewportHeight = viewport.height?.toDouble() ?? innerHeight;
-      final viewportOffsetTop = viewport.offsetTop?.toDouble() ?? 0;
-      final double overlap =
-          innerHeight - viewportHeight - viewportOffsetTop;
+      final innerHeight = web.window.innerHeight.toDouble();
+      final viewportHeight = viewport.height;
+      final viewportOffsetTop = viewport.offsetTop;
+      final double overlap = innerHeight - viewportHeight - viewportOffsetTop;
       final double nextInset = overlap > 0 ? overlap : 0;
       if ((_webKeyboardInset - nextInset).abs() < 1) {
         return;
@@ -1141,7 +1164,7 @@ class _ChatViewState extends State<ChatView> {
                                   _messageFocusNode.hasFocus;
                               final showQuickChatPills =
                                   selectedChatFile == null &&
-                                  !isComposerFocused;
+                                      !isComposerFocused;
                               final imagePreviewHeight = MediaQuery.of(context)
                                   .size
                                   .width
@@ -1425,10 +1448,8 @@ class _ChatViewState extends State<ChatView> {
                       if (selectedChatFile == null) {
                         return const SizedBox.shrink();
                       }
-                      final imagePreviewHeight = MediaQuery.of(context)
-                          .size
-                          .width
-                          .clamp(0.0, 450.0);
+                      final imagePreviewHeight =
+                          MediaQuery.of(context).size.width.clamp(0.0, 450.0);
                       return Positioned(
                         left: 0,
                         right: 0,
