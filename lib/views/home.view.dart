@@ -23,6 +23,7 @@ import 'package:pwa/view_models/home.vm.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/widgets/text_field.widget.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/view_models/splash.vm.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -919,6 +920,280 @@ class _HomeViewState extends State<HomeView> {
       return "Please keep device location enabled. Or use the default location to continue right away.";
     }
     return "Please wait. Or use the default location to continue right away.";
+  }
+
+  Widget _buildSelectionDialogOption({
+    required String title,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return WidgetButton(
+      borderRadius: 12,
+      useDefaultHoverColor: false,
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFFEFF6FF)
+              : Colors.white,
+          borderRadius: const BorderRadius.all(
+            Radius.circular(12),
+          ),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF007BFF)
+                : const Color(0xFF030744),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  height: 1,
+                  fontWeight: FontWeight.bold,
+                  color: selected
+                      ? const Color(0xFF007BFF)
+                      : const Color(0xFF030744),
+                ),
+              ),
+            ),
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: selected
+                  ? const Color(0xFF007BFF)
+                  : const Color(0xFF030744),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPaymentMethodDialog(HomeViewModel vm) {
+    int selectedPaymentId = vm.paymentId;
+    AlertService().showAppAlert(
+      isCustom: true,
+      customWidget: StatefulBuilder(
+        builder: (context, dialogSetState) {
+          return Container(
+            width: (MediaQuery.of(context).size.width - 70).clamp(0, 420),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.all(
+                Radius.circular(16),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Select Payment Method",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      height: 1,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSelectionDialogOption(
+                    title: "Cash",
+                    selected: selectedPaymentId == 1,
+                    onTap: () {
+                      dialogSetState(() {
+                        selectedPaymentId = 1;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSelectionDialogOption(
+                    title: "Load",
+                    selected: selectedPaymentId == 8,
+                    onTap: () {
+                      dialogSetState(() {
+                        selectedPaymentId = 8;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: WidgetButton(
+                      borderRadius: 12,
+                      mainColor: const Color(0xFF007BFF),
+                      useDefaultHoverColor: false,
+                      onTap: () {
+                        vm.applyPaymentMethodSelection(selectedPaymentId);
+                        Navigator.of(context, rootNavigator: true).pop();
+                      },
+                      child: const Center(
+                        child: Text(
+                          "Apply",
+                          style: TextStyle(
+                            height: 1,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPromoDialog(HomeViewModel vm) {
+    bool isApplyingPromo = false;
+    vm.promoCodeTEC.text = vm.appliedCoupon?.code ?? vm.promoCodeTEC.text;
+    AlertService().showAppAlert(
+      isCustom: true,
+      customWidget: StatefulBuilder(
+        builder: (context, dialogSetState) {
+          return Container(
+            width: (MediaQuery.of(context).size.width - 70).clamp(0, 420),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.all(
+                Radius.circular(16),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Enter Promo Code",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      height: 1,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF030744),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFieldWidget(
+                    controller: vm.promoCodeTEC,
+                    floatLabel: false,
+                    hintText: "Promo Code",
+                    labelText: "Promo Code",
+                    textCapitalization: TextCapitalization.characters,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.done,
+                    obscureText: false,
+                    showPrefix: false,
+                    showSuffix: vm.appliedCoupon != null,
+                    suffixIcon: Icons.close,
+                    onChanged: (value) {
+                      final upperValue = value.toUpperCase();
+                      if (value == upperValue) {
+                        return;
+                      }
+                      vm.promoCodeTEC.value = TextEditingValue(
+                        text: upperValue,
+                        selection: TextSelection.collapsed(
+                          offset: upperValue.length,
+                        ),
+                      );
+                    },
+                    onSuffixTap: () {
+                      dialogSetState(() {
+                        vm.clearAppliedPromo();
+                      });
+                    },
+                    autoFocus: true,
+                    maxLines: 1,
+                    minLines: 1,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: WidgetButton(
+                      borderRadius: 12,
+                      mainColor: vm.appliedCoupon != null
+                          ? Colors.red
+                          : isApplyingPromo
+                              ? const Color(0xFF007BFF).withValues(alpha: 0.6)
+                              : const Color(0xFF007BFF),
+                      useDefaultHoverColor: false,
+                      onTap: () async {
+                        if (isApplyingPromo) {
+                          return;
+                        }
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        if (vm.appliedCoupon != null) {
+                          dialogSetState(() {
+                            vm.clearAppliedPromo();
+                          });
+                          return;
+                        }
+                        dialogSetState(() {
+                          isApplyingPromo = true;
+                        });
+                        try {
+                          await vm.applyPromoCode(vm.promoCodeTEC.text);
+                          if (!mounted) {
+                            return;
+                          }
+                          Get.back();
+                        } catch (e) {
+                          dialogSetState(() {
+                            isApplyingPromo = false;
+                          });
+                          ScaffoldMessenger.of(Get.context!).clearSnackBars();
+                          ScaffoldMessenger.of(Get.context!).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.red,
+                              content: Text(
+                                "$e",
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Center(
+                        child: Text(
+                          vm.appliedCoupon != null
+                              ? "Remove"
+                              : isApplyingPromo
+                                  ? "Applying..."
+                                  : "Apply",
+                          style: const TextStyle(
+                            height: 1,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -2593,11 +2868,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                                 0xFF007BFF,
                                                                                               )
                                                                                             : Colors.white
-                                                                                        : vm.paymentId == 1
-                                                                                            ? const Color(
-                                                                                                0xFF007BFF,
-                                                                                              )
-                                                                                            : Colors.white,
+                                                                                        : Colors.white,
                                                                                     useDefaultHoverColor: false,
                                                                                     child: Container(
                                                                                       decoration: BoxDecoration(
@@ -2618,7 +2889,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                             AuthService.currentUser?.isProvider,
                                                                                           )
                                                                                               ? "Guest"
-                                                                                              : "Cash",
+                                                                                              : vm.paymentMethodLabel,
                                                                                           textAlign: TextAlign.center,
                                                                                           style: TextStyle(
                                                                                             fontWeight: FontWeight.bold,
@@ -2630,16 +2901,14 @@ class _HomeViewState extends State<HomeView> {
                                                                                                     : const Color(
                                                                                                         0xFF007BFF,
                                                                                                       )
-                                                                                                : vm.paymentId == 1
-                                                                                                    ? Colors.white
-                                                                                                    : const Color(
-                                                                                                        0xFF007BFF,
-                                                                                                      ),
+                                                                                                : const Color(
+                                                                                                    0xFF007BFF,
+                                                                                                  ),
                                                                                           ),
                                                                                         ),
                                                                                       ),
                                                                                     ),
-                                                                                    onTap: () {
+                                                                                    onTap: () async {
                                                                                       if (!AuthService.isLoggedIn()) {
                                                                                         Navigator.push(
                                                                                           Get.context!,
@@ -2663,12 +2932,11 @@ class _HomeViewState extends State<HomeView> {
                                                                                               1,
                                                                                             );
                                                                                           });
-                                                                                          return;
+                                                                                        } else {
+                                                                                          _showPaymentMethodDialog(
+                                                                                            vm,
+                                                                                          );
                                                                                         }
-                                                                                        setState(() {
-                                                                                          vm.paymentId = 1;
-                                                                                        });
-                                                                                        vm.calculateTotalAmount();
                                                                                       }
                                                                                     },
                                                                                   ),
@@ -2687,11 +2955,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                                 0xFF007BFF,
                                                                                               )
                                                                                             : Colors.white
-                                                                                        : vm.paymentId != 1
-                                                                                            ? const Color(
-                                                                                                0xFF007BFF,
-                                                                                              )
-                                                                                            : Colors.white,
+                                                                                        : Colors.white,
                                                                                     useDefaultHoverColor: false,
                                                                                     child: Container(
                                                                                       decoration: BoxDecoration(
@@ -2712,7 +2976,7 @@ class _HomeViewState extends State<HomeView> {
                                                                                             AuthService.currentUser?.isProvider,
                                                                                           )
                                                                                               ? "Staff"
-                                                                                              : "Load",
+                                                                                              : vm.promoSelectionLabel,
                                                                                           textAlign: TextAlign.center,
                                                                                           style: TextStyle(
                                                                                             fontWeight: FontWeight.bold,
@@ -2724,16 +2988,14 @@ class _HomeViewState extends State<HomeView> {
                                                                                                     : const Color(
                                                                                                         0xFF007BFF,
                                                                                                       )
-                                                                                                : vm.paymentId != 1
-                                                                                                    ? Colors.white
-                                                                                                    : const Color(
-                                                                                                        0xFF007BFF,
-                                                                                                      ),
+                                                                                                : const Color(
+                                                                                                    0xFF007BFF,
+                                                                                                  ),
                                                                                           ),
                                                                                         ),
                                                                                       ),
                                                                                     ),
-                                                                                    onTap: () {
+                                                                                    onTap: () async {
                                                                                       if (!AuthService.isLoggedIn()) {
                                                                                         Navigator.push(
                                                                                           Get.context!,
@@ -2752,17 +3014,38 @@ class _HomeViewState extends State<HomeView> {
                                                                                         if (isBool(
                                                                                           AuthService.currentUser?.isProvider,
                                                                                         )) {
-                                                                                          setState(() {
-                                                                                            vm.setProviderRiderType(
-                                                                                              8,
+                                                                                          AlertService().showLoading();
+                                                                                          try {
+                                                                                            await vm.applyProviderStaffPromoCode();
+                                                                                            AlertService().stopLoading(
+                                                                                              forceStop: true,
                                                                                             );
-                                                                                          });
-                                                                                          return;
+                                                                                          } catch (e) {
+                                                                                            AlertService().stopLoading(
+                                                                                              forceStop: true,
+                                                                                            );
+                                                                                            ScaffoldMessenger.of(
+                                                                                              Get.context!,
+                                                                                            ).clearSnackBars();
+                                                                                            ScaffoldMessenger.of(
+                                                                                              Get.context!,
+                                                                                            ).showSnackBar(
+                                                                                              SnackBar(
+                                                                                                backgroundColor: Colors.red,
+                                                                                                content: Text(
+                                                                                                  "$e",
+                                                                                                  style: const TextStyle(
+                                                                                                    color: Colors.white,
+                                                                                                  ),
+                                                                                                ),
+                                                                                              ),
+                                                                                            );
+                                                                                          }
+                                                                                        } else {
+                                                                                          _showPromoDialog(
+                                                                                            vm,
+                                                                                          );
                                                                                         }
-                                                                                        setState(() {
-                                                                                          vm.paymentId = 8;
-                                                                                        });
-                                                                                        vm.calculateTotalAmount();
                                                                                       }
                                                                                     },
                                                                                   ),

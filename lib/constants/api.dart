@@ -7,6 +7,7 @@ class Api {
 
   /// Config
   static const banners = "/banners";
+  static const coupons = "/coupons";
   static const appConfigs = "/config/app";
   static const homeConfigs = "/config/home";
 

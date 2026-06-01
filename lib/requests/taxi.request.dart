@@ -8,6 +8,7 @@ import 'package:pwa/constants/api.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/models/driver.model.dart';
 import 'package:pwa/models/address.model.dart';
+import 'package:pwa/models/coupon.model.dart';
 import 'package:pwa/models/vehicle.model.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/http.service.dart';
@@ -16,6 +17,17 @@ import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/models/available_driver.model.dart';
 
 class TaxiRequest extends HttpService {
+  String _normalizeCouponMessage(String message) {
+    return message
+        .replaceAll("Coupons", "Promo Codes")
+        .replaceAll("Coupon", "Promo Code")
+        .replaceAll("coupons", "promo codes")
+        .replaceAll("coupon", "promo code")
+        .replaceAll("code code", "code")
+        .replaceAll("codes code", "codes")
+        .replaceAll("code codes", "codes");
+  }
+
   Future<ApiResponse> locationAvailableRequest(
     double latitude,
     double longitude,
@@ -191,6 +203,27 @@ class TaxiRequest extends HttpService {
       }
     } catch (e) {
       throw e.toString();
+    }
+  }
+
+  Future<Coupon> coupon(String code) async {
+    try {
+      final apiResult = await get(
+        "${Api.coupons}/$code",
+        queryParameters: {},
+      ).timeout(
+        const Duration(
+          seconds: 30,
+        ),
+      );
+      final apiResponse = ApiResponse.fromResponse(apiResult);
+      if (apiResponse.allGood) {
+        return Coupon.fromJson(apiResponse.body);
+      } else {
+        throw _normalizeCouponMessage(apiResponse.message);
+      }
+    } catch (e) {
+      throw _normalizeCouponMessage(e.toString());
     }
   }
 

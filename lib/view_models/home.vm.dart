@@ -22,6 +22,7 @@ import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/chat.service.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/models/chat.model.dart';
+import 'package:pwa/models/coupon.model.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/models/peer_user.model.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -37,6 +38,8 @@ class HomeViewModel extends GMapViewModel {
   Timer? dbTimer;
   int paymentId = 1;
   int providerRiderTypeId = 1;
+  Coupon? appliedCoupon;
+  Coupon? providerStaffCoupon;
   String? dvrMessage;
   String? lastStatus;
   String cancelRequestStatus = "";
@@ -75,6 +78,7 @@ class HomeViewModel extends GMapViewModel {
   String? _driverLocationSyncOrderCode;
   String? _lastShownTerminalOrderDialogKey;
   gmaps.LatLng? _latestSyncedDriverLatLng;
+  final TextEditingController promoCodeTEC = TextEditingController();
 
   bool isEnrouteOrBeyondStatus(String? status) {
     final normalized = (status ?? "").trim().toLowerCase();
@@ -495,6 +499,9 @@ class HomeViewModel extends GMapViewModel {
     dropoffAddress = null;
     selectedVehicle = null;
     vehicleTypes = [];
+    appliedCoupon = null;
+    providerStaffCoupon = null;
+    promoCodeTEC.clear();
     _pendingBookingFareOverride = null;
     total = 0;
     subTotal = 0;
@@ -640,6 +647,102 @@ class HomeViewModel extends GMapViewModel {
     return value.ceilToDouble();
   }
 
+  String get paymentMethodLabel => paymentId == 1 ? "Cash" : "Load";
+
+  String get promoSelectionLabel {
+    if (isBool(AuthService.currentUser?.isProvider)) {
+      return providerRiderTypeId == 8 ? "Staff" : "Guest";
+    }
+    final coupon = appliedCoupon;
+    if (coupon == null) {
+      return "Code";
+    }
+    if (coupon.usesPercentageDiscount) {
+      return "${coupon.discountValue.toStringAsFixed(0)}% OFF";
+    }
+    if (coupon.discountValue > 0) {
+      return "Promo On";
+    }
+    final code = (coupon.code ?? "").trim();
+    return code.isEmpty ? "Promo On" : code.toUpperCase();
+  }
+
+  void applyPaymentMethodSelection(int nextPaymentId) {
+    if (isBool(AuthService.currentUser?.isProvider)) {
+      syncProviderPaymentMode();
+      notifyListeners();
+      return;
+    }
+    if (paymentId == nextPaymentId) {
+      return;
+    }
+    paymentId = nextPaymentId;
+    calculateTotalAmount();
+  }
+
+  Future<void> applyPromoCode(String rawCode) async {
+    if (isBool(AuthService.currentUser?.isProvider)) {
+      throw "Promo codes are not available for provider bookings";
+    }
+    final code = rawCode.trim();
+    if (code.isEmpty) {
+      throw "Please enter a promo code";
+    }
+    final coupon = await taxiRequest.coupon(code);
+    if (!(coupon.isActive ?? false)) {
+      throw "Promo is inactive";
+    }
+    if ((coupon.useLeft ?? 0) <= 0) {
+      throw "Promo use limit exceeded";
+    }
+    if (coupon.isExpired) {
+      throw "Promo has expired";
+    }
+
+    if (pickupAddress == null) {
+      throw "Please set your pickup address";
+    }
+    if (dropoffAddress == null) {
+      throw "Please set your dropoff address";
+    }
+    if ((pickupAddress?.latLng == dropoffAddress?.latLng ||
+            travelTime(selectedVehicle?.kmDistance ?? 0) == "0 secs") &&
+        !AuthService.inReviewMode()) {
+      throw locUnavailable
+          ? "Please try another location"
+          : "Pickup and dropoff must differ";
+    }
+    if (selectedVehicle == null) {
+      throw locUnavailable
+          ? "Please try another location"
+          : "Please select a vehicle";
+    }
+
+    final rawSubTotal = selectedVehicle?.total ?? 0;
+    if (rawSubTotal > 0) {
+      double estimatedDiscount;
+      if (coupon.usesPercentageDiscount) {
+        estimatedDiscount = rawSubTotal * (coupon.discountValue / 100);
+      } else {
+        estimatedDiscount = coupon.discountValue;
+      }
+      coupon.validateDiscount(rawSubTotal, estimatedDiscount);
+    }
+
+    appliedCoupon = coupon;
+    promoCodeTEC.text = code.toUpperCase();
+    calculateTotalAmount();
+  }
+
+  void clearAppliedPromo() {
+    if (appliedCoupon == null && promoCodeTEC.text.isEmpty) {
+      return;
+    }
+    appliedCoupon = null;
+    promoCodeTEC.clear();
+    calculateTotalAmount();
+  }
+
   calculateTotalAmount() {
     final rawSubTotal = selectedVehicle?.total ?? 0;
     subTotal = rawSubTotal;
@@ -659,8 +762,34 @@ class HomeViewModel extends GMapViewModel {
         );
       }
     } else {
-      discount = 0;
-      total = (rawSubTotal) - (discount ?? 0);
+      var nextDiscount = 0.0;
+      final coupon = appliedCoupon;
+      if (rawSubTotal <= 0) {
+        discount = 0;
+        total = 0;
+        _reapplyPendingDriverDistantBookingFareOverride();
+        syncTotalAmountNotifier();
+        _syncDriverDistantFareNotifier();
+        notifyListeners();
+        return;
+      }
+      if (coupon != null) {
+        try {
+          final rawDiscount = coupon.usesPercentageDiscount
+              ? rawSubTotal * (coupon.discountValue / 100)
+              : coupon.discountValue;
+          nextDiscount = coupon.validateDiscount(rawSubTotal, rawDiscount);
+        } catch (_) {
+          appliedCoupon = null;
+          promoCodeTEC.clear();
+          nextDiscount = 0.0;
+        }
+      }
+      discount = nextDiscount;
+      total = rawSubTotal - nextDiscount;
+      if ((total ?? 0) < 0) {
+        total = 0;
+      }
     }
     _reapplyPendingDriverDistantBookingFareOverride();
     syncTotalAmountNotifier();
@@ -736,7 +865,31 @@ class HomeViewModel extends GMapViewModel {
         providerRiderTypeId == riderTypeId) {
       return;
     }
+    if (riderTypeId != 8) {
+      providerStaffCoupon = null;
+    }
     providerRiderTypeId = riderTypeId;
+    calculateTotalAmount();
+  }
+
+  Future<void> applyProviderStaffPromoCode() async {
+    if (!isBool(AuthService.currentUser?.isProvider)) {
+      return;
+    }
+    final coupon = await taxiRequest.coupon("staff");
+    if (!(coupon.isActive ?? false)) {
+      throw "Promo code is inactive";
+    }
+    if ((coupon.useLeft ?? 0) <= 0) {
+      throw "Promo code use limit exceeded";
+    }
+    if (coupon.isExpired) {
+      throw "Promo code has expired";
+    }
+    providerStaffCoupon = coupon;
+    if (providerRiderTypeId != 8) {
+      providerRiderTypeId = 8;
+    }
     calculateTotalAmount();
   }
 
@@ -1087,7 +1240,11 @@ class HomeViewModel extends GMapViewModel {
             "includes_shower_cap": true,
             "vehicle_type_id": selectedVehicle?.id,
             "vehicle_type": selectedVehicle?.encrypted,
-            "coupon_code": providerRiderTypeId == 8 ? "employee" : null,
+            "coupon_code": providerRiderTypeId == 8
+                ? providerStaffCoupon?.code?.trim().isNotEmpty == true
+                    ? providerStaffCoupon!.code
+                    : "staff"
+                : null,
             "actual": {
               "lat": initLatLng?.lat,
               "lng": initLatLng?.lng,
@@ -1111,12 +1268,12 @@ class HomeViewModel extends GMapViewModel {
             "includes_ride_cover": false,
             "includes_shower_cap": false,
             "tip": 0.0,
-            "discount": 0.0,
-            "coupon_code": null,
+            "discount": discount,
+            "coupon_code": appliedCoupon?.code,
             "payment_method": null,
             "payment_method_id": paymentId,
             "total": resolvedBookingPayableFare,
-            "sub_total": resolvedBookingPayableFare,
+            "sub_total": subTotal,
             "vehicle_type_id": selectedVehicle?.id,
             "vehicle_type": selectedVehicle?.encrypted,
             "actual": {
@@ -1898,6 +2055,11 @@ class HomeViewModel extends GMapViewModel {
             final isProvider = isBool(AuthService.currentUser?.isProvider);
             syncProviderPaymentMode();
             if (wasProvider != isProvider) {
+              if (isProvider) {
+                appliedCoupon = null;
+                providerStaffCoupon = null;
+                promoCodeTEC.clear();
+              }
               calculateTotalAmount();
             }
             _syncDriverDistantFareNotifier();
@@ -2085,6 +2247,7 @@ class HomeViewModel extends GMapViewModel {
     _isSyncingDriverLocation = false;
     _latestSyncedDriverLatLng = null;
     driverDistantFareNotifier.dispose();
+    promoCodeTEC.dispose();
     super.dispose();
   }
 
@@ -2312,4 +2475,5 @@ class HomeViewModel extends GMapViewModel {
     );
     setChatViewOpen(false);
   }
+
 }
