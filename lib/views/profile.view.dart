@@ -19,7 +19,7 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
-  static final DateTime _phpStyleProfilePhotoStartDate = DateTime(2026, 6, 4);
+  static final DateTime _phpStyleProfilePhotoStartDate = DateTime(2026, 6, 6);
   static const double _currentUserTopHalfVisibleFractionWeb = 0.55;
   static const double _currentUserTopHalfVisibleFractionMobile = 0.60;
   ProfileViewModel profileViewModel = ProfileViewModel();

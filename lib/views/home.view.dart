@@ -51,7 +51,7 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
-  static final DateTime _phpStyleProfilePhotoStartDate = DateTime(2026, 6, 4);
+  static final DateTime _phpStyleProfilePhotoStartDate = DateTime(2026, 6, 6);
   static const double _currentUserTopHalfVisibleFractionWeb = 0.55;
   static const double _currentUserTopHalfVisibleFractionMobile = 0.60;
   static const Duration _homeMapDragUnlockDelay = Duration(seconds: 1);
