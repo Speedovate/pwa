@@ -31,6 +31,7 @@ import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
 import 'package:pwa/models/api_response.model.dart';
+import 'package:pwa/requests/settings.request.dart';
 
 class HomeViewModel extends GMapViewModel {
   final ValueNotifier<double?> driverDistantFareNotifier = ValueNotifier(0.0);
@@ -65,6 +66,7 @@ class HomeViewModel extends GMapViewModel {
   StreamSubscription? partnerUpdateStream;
   StreamSubscription? orderUpdateStream;
   AuthRequest authRequest = AuthRequest();
+  SettingsRequest settingsRequest = SettingsRequest();
   Future<void>? _initialOngoingOrderFuture;
   bool isResolvingInitialOngoingOrder = false;
   bool _isDraggingOngoingMap = false;
@@ -72,13 +74,23 @@ class HomeViewModel extends GMapViewModel {
   bool _isSyncingDriverLocation = false;
   bool _isShowingTerminalOrderDialog = false;
   bool _isHandlingCancelledOrderTransition = false;
+  bool _isPollingOngoingOrderWithoutDriver = false;
   bool hasHydratedOngoingOrderMeta = false;
   double? _pendingBookingFareOverride;
   double? _pendingOngoingOrderFareOverride;
+  String? _activeOrderStreamCode;
+  String? _lastProcessedOrderSnapshotKey;
+  String? _latestFirestoreDriverId;
+  String? _latestFirestoreStatus;
   String? _driverLocationSyncOrderCode;
   String? _lastShownTerminalOrderDialogKey;
   gmaps.LatLng? _latestSyncedDriverLatLng;
   final TextEditingController promoCodeTEC = TextEditingController();
+
+  void _debugOngoingOrderLog(
+    String tag, {
+    Map<String, dynamic>? data,
+  }) {}
 
   bool isEnrouteOrBeyondStatus(String? status) {
     final normalized = (status ?? "").trim().toLowerCase();
@@ -109,6 +121,21 @@ class HomeViewModel extends GMapViewModel {
   bool get hasDriverChatMessage {
     final message = (dvrMessage ?? "").trim().toLowerCase();
     return message.isNotEmpty && message != "null";
+  }
+
+  String _normalizeOrderStatus(String? status) {
+    final normalized = (status ?? "").trim().toLowerCase();
+    switch (normalized) {
+      case "ongoing":
+        return "enroute";
+      default:
+        return normalized;
+    }
+  }
+
+  bool _isMeaningfulOrderStatus(String? status) {
+    final normalized = _normalizeOrderStatus(status);
+    return normalized.isNotEmpty && normalized != "null";
   }
 
   bool get canCancelAfterWaitWithoutDriverChat =>
@@ -193,7 +220,12 @@ class HomeViewModel extends GMapViewModel {
   }
 
   gmaps.LatLng get _effectiveDriverLatLng {
-    return _latestSyncedDriverLatLng ?? ongoingOrder!.driverLatLng;
+    final syncedDriverLatLng = _latestSyncedDriverLatLng;
+    if (syncedDriverLatLng != null &&
+        (syncedDriverLatLng.lat != 0 || syncedDriverLatLng.lng != 0)) {
+      return syncedDriverLatLng;
+    }
+    return ongoingOrder!.driverLatLng;
   }
 
   void _syncDriverDistantFareNotifier() {
@@ -240,6 +272,53 @@ class HomeViewModel extends GMapViewModel {
     syncTotalAmountNotifier();
     _syncDriverDistantFareNotifier();
     notifyListeners();
+  }
+
+  Future<void> _applyDriverAssignmentFromFirestore(String nextDriverId) async {
+    final parsedDriverId = int.tryParse(nextDriverId);
+    if (parsedDriverId == null || ongoingOrder == null) {
+      return;
+    }
+
+    ongoingOrder?.driverId = parsedDriverId;
+    if (ongoingOrder?.driver?.id == parsedDriverId) {
+      return;
+    }
+
+    try {
+      final driver = await taxiRequest.getDriverInfo(parsedDriverId);
+      ongoingOrder?.driver = driver;
+      ongoingOrder?.driverId = driver.id ?? parsedDriverId;
+      _latestSyncedDriverLatLng = driver.latLng;
+      driverPositionRotation = 0;
+    } catch (_) {}
+  }
+
+  Future<void> _reconcileOrderWithLatestFirestoreState({
+    required String nextOrderCode,
+  }) async {
+    if (ongoingOrder == null) {
+      return;
+    }
+
+    final currentCode = (ongoingOrder?.code ?? "").trim();
+    if (currentCode.isEmpty || currentCode != nextOrderCode) {
+      return;
+    }
+
+    final firestoreStatus = _normalizeOrderStatus(_latestFirestoreStatus);
+    if (_isMeaningfulOrderStatus(firestoreStatus)) {
+      ongoingOrder?.status = firestoreStatus;
+    }
+
+    final firestoreDriverId = (_latestFirestoreDriverId ?? "").trim();
+    final currentDriverId =
+        "${ongoingOrder?.driverId ?? ongoingOrder?.driver?.id ?? ""}".trim();
+    if (firestoreDriverId.isNotEmpty &&
+        firestoreDriverId.toLowerCase() != "null" &&
+        firestoreDriverId != currentDriverId) {
+      await _applyDriverAssignmentFromFirestore(firestoreDriverId);
+    }
   }
 
   void _reapplyPendingDriverDistantBookingFareOverride() {
@@ -312,10 +391,13 @@ class HomeViewModel extends GMapViewModel {
     if (ongoingOrder == null) {
       return false;
     }
-    if (!hasHydratedOngoingOrderMeta) {
-      return true;
-    }
+    final code = (ongoingOrder?.code ?? "").trim();
     final status = (ongoingOrder?.status ?? "").trim().toLowerCase();
+    final hasStableOrderIdentity = code.isNotEmpty;
+    final hasStableStatus = status.isNotEmpty && status != "null";
+    if (!hasHydratedOngoingOrderMeta) {
+      return !(hasStableOrderIdentity && hasStableStatus);
+    }
     return status.isEmpty || status == "null";
   }
 
@@ -392,13 +474,16 @@ class HomeViewModel extends GMapViewModel {
   }
 
   @override
-  Future<void> recenterHomeMap() async {
+  Future<void> recenterHomeMap({
+    gmaps.LatLng? fallbackTarget,
+    bool allowSinglePointFit = true,
+  }) async {
     cancelPendingCameraMove();
     setDraggingOngoingMap(false);
     final status = (ongoingOrder?.status ?? "").toLowerCase();
     final pickupLatLng = ongoingOrder?.taxiOrder?.pickupLatLng;
     final dropoffLatLng = ongoingOrder?.taxiOrder?.dropoffLatLng;
-    final driverLatLng = ongoingOrder?.driverLatLng;
+    final driverLatLng = _latestSyncedDriverLatLng ?? ongoingOrder?.driverLatLng;
 
     if (ongoingOrder != null &&
         status != "cancelled" &&
@@ -414,7 +499,17 @@ class HomeViewModel extends GMapViewModel {
       }
     }
 
-    await super.recenterHomeMap();
+    final hasPickupOnlySelection = ongoingOrder == null &&
+        pickupAddress != null &&
+        dropoffAddress == null &&
+        fallbackTarget == null;
+    final effectiveAllowSinglePointFit =
+        hasPickupOnlySelection ? false : allowSinglePointFit;
+
+    await super.recenterHomeMap(
+      fallbackTarget: fallbackTarget,
+      allowSinglePointFit: effectiveAllowSinglePointFit,
+    );
   }
 
   bool _fitOngoingOrderBoundsByStatus({
@@ -422,12 +517,13 @@ class HomeViewModel extends GMapViewModel {
     required gmaps.LatLng pickupLatLng,
     gmaps.LatLng? dropoffLatLng,
     gmaps.LatLng? driverLatLng,
-    EdgeInsets padding = const EdgeInsets.fromLTRB(75, 90, 75, 90),
+    EdgeInsets? padding,
   }) {
     final controller = map;
     if (controller == null) {
       return false;
     }
+    final effectivePadding = padding ?? routeBoundsPadding;
 
     final points = <gmaps.LatLng>[];
     if ((status == "pending" || status == "preparing" || status == "ready") &&
@@ -471,7 +567,7 @@ class HomeViewModel extends GMapViewModel {
     } else {
       controller.fitToCoordinates(
         targetPoints,
-        padding: padding,
+        padding: effectivePadding,
       );
     }
     return true;
@@ -488,8 +584,8 @@ class HomeViewModel extends GMapViewModel {
       status: (order.status ?? "").toLowerCase(),
       pickupLatLng: pickupLatLng,
       dropoffLatLng: order.taxiOrder?.dropoffLatLng,
-      driverLatLng: order.driverLatLng,
-      padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+      driverLatLng: _latestSyncedDriverLatLng ?? order.driverLatLng,
+      padding: routeBoundsPadding,
     );
   }
 
@@ -544,16 +640,15 @@ class HomeViewModel extends GMapViewModel {
     }
     isPreparing = true;
     notifyListeners();
+    unawaited(fetchVehicleTypesPricing());
     await drawDropPolyLines(
       "pickup-dropoff",
       pickupAddress!.latLng,
       dropoffAddress!.latLng,
       null,
+      autoFitMap: true,
+      autoFitAnimated: true,
     );
-    fitCurrentRouteBounds(
-      padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
-    );
-    await fetchVehicleTypesPricing();
     isPreparing = false;
     notifyListeners();
   }
@@ -905,27 +1000,26 @@ class HomeViewModel extends GMapViewModel {
   Future<void> previewSelectedRouteOnHome({
     required Address pickup,
     required Address dropoff,
+    bool animateMap = true,
   }) async {
     pickupAddress = pickup;
     dropoffAddress = dropoff;
     isPreparing = true;
     notifyListeners();
-    await Future<void>.delayed(const Duration(milliseconds: 16));
+    unawaited(fetchVehicleTypesPricing());
     await drawDropPolyLines(
       "pickup-dropoff",
       pickup.latLng,
       dropoff.latLng,
       null,
-    );
-    await fetchVehicleTypesPricing();
-    fitCurrentRouteBounds(
-      padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+      autoFitMap: true,
+      autoFitAnimated: animateMap,
     );
     isPreparing = false;
     notifyListeners();
   }
 
-  fetchVehicleTypesPricing() async {
+  Future<void> fetchVehicleTypesPricing() async {
     setBusyForObject(vehicleTypes, true);
     try {
       ApiResponse apiResponse = await taxiRequest.locationAvailableRequest(
@@ -976,20 +1070,80 @@ class HomeViewModel extends GMapViewModel {
       lastStatus = null;
       notifyListeners();
     }
+    final previousOrderCode = ongoingOrder?.code?.trim() ?? "";
+    final previousOrderStatus = _normalizeOrderStatus(ongoingOrder?.status);
+    final previousDriverId = ongoingOrder?.driverId ?? ongoingOrder?.driver?.id;
+    final previousCancelRequestStatus = cancelRequestStatus;
+    final previousPassRequestStatus = passRequestStatus;
+    final previousHydratedOrderMeta = hasHydratedOngoingOrderMeta;
+    _debugOngoingOrderLog(
+      "getOngoingOrder:start",
+      data: {
+        "refresh": refresh,
+        "showSnack": showSnack,
+        "forceStop": forceStop,
+        "prevCode": previousOrderCode,
+        "prevStatus": previousOrderStatus,
+        "prevDriverId": previousDriverId,
+      },
+    );
     try {
       ongoingOrder = (await taxiRequest.ongoingOrderRequest())!;
-      hasHydratedOngoingOrderMeta = false;
       _pendingBookingFareOverride = null;
       _applyPendingDriverDistantFareToOngoingOrder();
       _reconcilePendingOngoingOrderFareOverride();
+      ongoingOrder?.status = _normalizeOrderStatus(ongoingOrder?.status);
+      final nextOrderCode = ongoingOrder?.code?.trim() ?? "";
+      final isSameOngoingOrder =
+          nextOrderCode.isNotEmpty && nextOrderCode == previousOrderCode;
+      await _reconcileOrderWithLatestFirestoreState(
+        nextOrderCode: nextOrderCode,
+      );
+      ongoingOrder?.status = _normalizeOrderStatus(ongoingOrder?.status);
+      final nextOrderStatus = _normalizeOrderStatus(ongoingOrder?.status);
+      final nextDriverId = ongoingOrder?.driverId ?? ongoingOrder?.driver?.id;
+      hasHydratedOngoingOrderMeta =
+          isSameOngoingOrder &&
+                  previousHydratedOrderMeta &&
+                  nextOrderStatus.isNotEmpty &&
+                  nextOrderStatus != "null"
+              ? true
+              : false;
+      _debugOngoingOrderLog(
+        "getOngoingOrder:response",
+        data: {
+          "nextCode": nextOrderCode,
+          "nextStatus": nextOrderStatus,
+          "nextDriverId": nextDriverId,
+          "sameOrder": isSameOngoingOrder,
+          "hydratedMeta": hasHydratedOngoingOrderMeta,
+        },
+      );
       userSeen = true;
       dvrMessage = null;
-      cancelRequestStatus = "";
-      passRequestStatus = "";
+      cancelRequestStatus =
+          isSameOngoingOrder ? previousCancelRequestStatus : "";
+      passRequestStatus = isSameOngoingOrder ? previousPassRequestStatus : "";
       notifyListeners();
       if (ongoingOrder != null) {
-        if (ongoingOrder?.status == "pending" ||
-            ongoingOrder?.status == "preparing") {
+        final shouldResetPendingRedraw =
+            (nextOrderStatus == "pending" || nextOrderStatus == "preparing") &&
+                (!isSameOngoingOrder ||
+                    previousOrderStatus != nextOrderStatus ||
+                    previousDriverId != nextDriverId);
+        _debugOngoingOrderLog(
+          "getOngoingOrder:pendingRedrawDecision",
+          data: {
+            "shouldReset": shouldResetPendingRedraw,
+            "nextStatus": nextOrderStatus,
+            "sameOrder": isSameOngoingOrder,
+            "prevStatus": previousOrderStatus,
+            "nextStatus2": nextOrderStatus,
+            "prevDriverId": previousDriverId,
+            "nextDriverId": nextDriverId,
+          },
+        );
+        if (shouldResetPendingRedraw) {
           lastStatus = null;
           notifyListeners();
         }
@@ -1141,7 +1295,7 @@ class HomeViewModel extends GMapViewModel {
                       height: 15,
                     ),
                     const Text(
-                      "PPC TODA (Beta) is searching for tricycle drivers near you. If this takes too long, there might be no available tricycle drivers near your current area.",
+                      "PPC TODA is searching for tricycle drivers near you. If this takes too long, there might be no available tricycle drivers near your current area.",
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(
@@ -1485,6 +1639,7 @@ class HomeViewModel extends GMapViewModel {
         Get.until((route) => route.isFirst);
       }
       if (apiResponse.allGood) {
+        AlertService().stopLoading(forceStop: true);
         if (orderCode != null && orderCode.isNotEmpty) {
           await fbStore.collection("orders").doc(orderCode).update(
             {
@@ -1494,7 +1649,6 @@ class HomeViewModel extends GMapViewModel {
         }
         userSeen = true;
         ongoingOrder = null;
-        AlertService().stopLoading(forceStop: true);
         await loadUIByOngoingOrderStatus();
       } else {
         if (apiResponse.message.contains("cancel")) {
@@ -1676,6 +1830,10 @@ class HomeViewModel extends GMapViewModel {
     partnerUpdateStream?.cancel();
     globalTimer?.cancel();
     globalTimer = null;
+    _activeOrderStreamCode = null;
+    _lastProcessedOrderSnapshotKey = null;
+    _latestFirestoreDriverId = null;
+    _latestFirestoreStatus = null;
     hasHydratedOngoingOrderMeta = false;
     _pendingBookingFareOverride = null;
     _pendingOngoingOrderFareOverride = null;
@@ -1695,6 +1853,8 @@ class HomeViewModel extends GMapViewModel {
     cancelRequestStatus = "";
     passRequestStatus = "";
     dvrMessage = null;
+    _latestFirestoreDriverId = null;
+    _latestFirestoreStatus = null;
     hasHydratedOngoingOrderMeta = false;
     _pendingBookingFareOverride = null;
     _pendingOngoingOrderFareOverride = null;
@@ -1704,33 +1864,52 @@ class HomeViewModel extends GMapViewModel {
     clearGMapDetails();
     clearPickupDisplayState();
     Get.forceAppUpdate();
-    final target = await zoomToCurrentLocation();
-    if (target != null) {
-      await mapCameraMove(
-        "closeOrder",
-        target,
-        debounceDuration: Duration.zero,
-      );
-    }
+    await reseedPickupFromCurrentLocation();
   }
 
   startHandlingOngoingOrder({bool forceStop = false}) async {
+    final orderCode = ongoingOrder?.code?.trim() ?? "";
+    if (orderCode.isEmpty) {
+      return;
+    }
+    final isSameActiveOrderStream =
+        _activeOrderStreamCode == orderCode &&
+        orderUpdateStream != null;
     if (dbTimer != null && dbTimer!.isActive) {
       dbTimer?.cancel();
     }
     dbTimer = null;
-    orderUpdateStream?.cancel();
-    orderUpdateStream = fbStore
+    if (!isSameActiveOrderStream) {
+      orderUpdateStream?.cancel();
+      _lastProcessedOrderSnapshotKey = null;
+      _activeOrderStreamCode = orderCode;
+      orderUpdateStream = fbStore
         .collection("orders")
-        .doc("${ongoingOrder?.code}")
+        .doc(orderCode)
         .snapshots()
         .listen(
       (event) async {
         order = event.data();
-        String orderSyncedAt = StorageService.prefs?.getString(
-              "orderSyncedAt",
-            ) ??
-            "Not Yet Synced";
+        final snapshotKey = [
+          orderCode,
+          "${event.data()?["syncedAt"] ?? ""}",
+          "${event.data()?["status"] ?? ""}",
+          "${event.data()?["driver_id"] ?? ""}",
+          "${event.data()?["userSeen"] ?? ""}",
+          "${event.data()?["driverMessage"] ?? ""}",
+          "${event.data()?["cancel_request_status"] ?? ""}",
+          "${event.data()?["pass_request_status"] ?? ""}",
+        ].join("|");
+        if (_lastProcessedOrderSnapshotKey == snapshotKey) {
+          _debugOngoingOrderLog(
+            "orderSnapshot:duplicateSkipped",
+            data: {
+              "snapshotKey": snapshotKey,
+            },
+          );
+          return;
+        }
+        _lastProcessedOrderSnapshotKey = snapshotKey;
         if (user != null &&
             ongoingOrder?.discount == 0 &&
             providerMarkupAmount > 0 &&
@@ -1756,11 +1935,144 @@ class HomeViewModel extends GMapViewModel {
           final previousUserSeen = userSeen;
           final previousDriverMessage = dvrMessage;
           final previousCancelRequestStatus = cancelRequestStatus;
-          final nextStatus = "${event.data()?["status"]}";
-          if ((orderSyncedAt != "${event.data()?["syncedAt"]}" &&
-                  !isCompletedReceiptStatus(nextStatus)) ||
-              (ongoingOrder?.status != nextStatus &&
-                  !isCompletedReceiptStatus(nextStatus))) {
+          final previousOrderSyncedAt = StorageService.prefs?.getString(
+                "orderSyncedAt",
+              ) ??
+              "";
+          final nextOrderSyncedAt = "${event.data()?["syncedAt"] ?? ""}";
+          final nextStatus =
+              _normalizeOrderStatus("${event.data()?["status"]}");
+          final hasMeaningfulNextStatus =
+              _isMeaningfulOrderStatus(nextStatus);
+          final nextDriverId =
+              "${event.data()?["driver_id"] ?? ""}".trim();
+          final currentDriverId =
+              "${ongoingOrder?.driverId ?? ongoingOrder?.driver?.id ?? ""}"
+                  .trim();
+          final currentStatus =
+              _normalizeOrderStatus(ongoingOrder?.status);
+          _debugOngoingOrderLog(
+            "orderSnapshot",
+            data: {
+              "syncedAt": "${event.data()?["syncedAt"]}",
+              "nextStatus": nextStatus,
+              "currentStatus": currentStatus,
+              "fsDriverId": nextDriverId,
+              "localDriverId": currentDriverId,
+            },
+          );
+          if (hasMeaningfulNextStatus) {
+            _latestFirestoreStatus = nextStatus;
+          }
+          _latestFirestoreDriverId = nextDriverId;
+          if (hasMeaningfulNextStatus &&
+              nextStatus == "cancelled" &&
+              ongoingOrder != null) {
+            ongoingOrder?.status = "cancelled";
+            final nextReason = "${event.data()?["reason"] ?? ""}".trim();
+            if (nextReason.isNotEmpty && nextReason.toLowerCase() != "null") {
+              ongoingOrder?.reason = nextReason;
+            }
+            final nextCancelledByWho =
+                "${event.data()?["cancelled_by_who"] ?? ""}".trim();
+            if (nextCancelledByWho.isNotEmpty &&
+                nextCancelledByWho.toLowerCase() != "null") {
+              ongoingOrder?.cancelledByWho = nextCancelledByWho;
+            }
+            StorageService.prefs?.setString(
+              "orderSyncedAt",
+              "${event.data()?["syncedAt"]}",
+            );
+            await _handleCancelledOrderState(ongoingOrder);
+            return;
+          }
+          final hasStatusChange =
+              hasMeaningfulNextStatus && currentStatus != nextStatus;
+          final hasDriverAssignmentChange =
+              nextDriverId.isNotEmpty &&
+                  nextDriverId.toLowerCase() != "null" &&
+                  nextDriverId != currentDriverId;
+          final hasSyncedAtChange =
+              nextOrderSyncedAt.isNotEmpty &&
+              nextOrderSyncedAt != previousOrderSyncedAt;
+          _debugOngoingOrderLog(
+            "orderSnapshot:refreshDecision",
+            data: {
+              "hasStatusChange": hasStatusChange,
+              "hasDriverAssignmentChange": hasDriverAssignmentChange,
+              "hasSyncedAtChange": hasSyncedAtChange,
+              "hasMeaningfulNextStatus": hasMeaningfulNextStatus,
+              "nextStatus": nextStatus,
+              "currentStatus": currentStatus,
+              "fsDriverId": nextDriverId,
+              "localDriverId": currentDriverId,
+            },
+          );
+          if (!isCompletedReceiptStatus(nextStatus) &&
+              hasStatusChange &&
+              !hasDriverAssignmentChange) {
+            ongoingOrder?.status = nextStatus;
+            _reconcilePendingOngoingOrderFareOverride();
+            notifyListeners();
+            await loadUIByOngoingOrderStatus(
+              forceStop: forceStop,
+              forceRedraw: true,
+            );
+            _debugOngoingOrderLog(
+              "orderSnapshot:callingGetOngoingOrder",
+              data: {
+                "reason": "status-change-reconcile-driver-id",
+              },
+            );
+            await getOngoingOrder(forceStop: forceStop);
+          } else if (!isCompletedReceiptStatus(nextStatus) &&
+              hasDriverAssignmentChange) {
+            if (hasStatusChange) {
+              ongoingOrder?.status = nextStatus;
+            }
+            _debugOngoingOrderLog(
+              "orderSnapshot:applyingDriverAssignment",
+              data: {
+                "nextDriverId": nextDriverId,
+                "nextStatus": nextStatus,
+                "hasStatusChange": hasStatusChange,
+              },
+            );
+            await _applyDriverAssignmentFromFirestore(nextDriverId);
+            _reconcilePendingOngoingOrderFareOverride();
+            notifyListeners();
+            await loadUIByOngoingOrderStatus(
+              forceStop: forceStop,
+              forceRedraw: true,
+            );
+          } else if (!isCompletedReceiptStatus(nextStatus) &&
+              (hasStatusChange || hasDriverAssignmentChange)) {
+            if (hasStatusChange) {
+              ongoingOrder?.status = nextStatus;
+            }
+            if (hasDriverAssignmentChange) {
+              _debugOngoingOrderLog(
+                "orderSnapshot:applyingDriverAssignment",
+                data: {
+                  "nextDriverId": nextDriverId,
+                },
+              );
+              await _applyDriverAssignmentFromFirestore(nextDriverId);
+            }
+            _reconcilePendingOngoingOrderFareOverride();
+            notifyListeners();
+            await loadUIByOngoingOrderStatus(
+              forceStop: forceStop,
+              forceRedraw: true,
+            );
+          } else if (!isCompletedReceiptStatus(nextStatus) &&
+              hasSyncedAtChange) {
+            _debugOngoingOrderLog(
+              "orderSnapshot:callingGetOngoingOrder",
+              data: {
+                "reason": "syncedAt-change-reconcile-details",
+              },
+            );
             await getOngoingOrder(forceStop: forceStop);
           } else {
             if (isCompletedReceiptStatus(nextStatus)) {
@@ -1788,12 +2100,13 @@ class HomeViewModel extends GMapViewModel {
           }
           StorageService.prefs?.setString(
             "orderSyncedAt",
-            "${event.data()?["syncedAt"]}",
+            nextOrderSyncedAt,
           );
         } catch (_) {}
         loadUIByOngoingOrderStatus(forceStop: forceStop);
       },
     );
+    }
     syncDriverLocation(forceStop: forceStop);
   }
 
@@ -1802,22 +2115,91 @@ class HomeViewModel extends GMapViewModel {
     bool forceRedraw = false,
   }) async {
     if (ongoingOrder != null) {
+      final currentDriverId =
+          "${ongoingOrder?.driverId ?? ongoingOrder?.driver?.id ?? ""}".trim();
+      if (ongoingOrder?.driver == null &&
+          currentDriverId.isNotEmpty &&
+          currentDriverId.toLowerCase() != "null") {
+        _debugOngoingOrderLog(
+          "loadUI:hydrateDriverFromDriverId",
+          data: {
+            "status": ongoingOrder?.status,
+            "code": ongoingOrder?.code,
+            "driverId": currentDriverId,
+          },
+        );
+        await _applyDriverAssignmentFromFirestore(currentDriverId);
+      }
       if (ongoingOrder?.driver == null) {
+        final polledOrderCode = ongoingOrder?.code?.trim() ?? "";
+        _debugOngoingOrderLog(
+          "loadUI:noDriver",
+          data: {
+            "status": ongoingOrder?.status,
+            "code": ongoingOrder?.code,
+            "isPolling": _isPollingOngoingOrderWithoutDriver,
+          },
+        );
+        if (_isPollingOngoingOrderWithoutDriver) {
+          _debugOngoingOrderLog(
+            "loadUI:noDriverSkipped",
+            data: {
+              "reason": "poll-already-running",
+            },
+          );
+          return;
+        }
+        _isPollingOngoingOrderWithoutDriver = true;
         final shouldShowLoading = !isChatViewOpen;
         if (shouldShowLoading) {
           AlertService().showLoading();
         }
-        await Future.delayed(
-          const Duration(seconds: 5),
-        );
-        await getOngoingOrder(
-          showSnack: true,
-          forceStop: forceStop,
-        );
-        if (shouldShowLoading) {
-          AlertService().stopLoading(forceStop: forceStop);
+        try {
+          await Future.delayed(
+            const Duration(seconds: 5),
+          );
+          final currentOrderCode = ongoingOrder?.code?.trim() ?? "";
+          final currentDriverId =
+              "${ongoingOrder?.driverId ?? ongoingOrder?.driver?.id ?? ""}"
+                  .trim();
+          final shouldSkipPolling =
+              polledOrderCode.isEmpty ||
+              currentOrderCode != polledOrderCode ||
+              ongoingOrder?.driver != null ||
+              (currentDriverId.isNotEmpty &&
+                  currentDriverId.toLowerCase() != "null");
+          if (shouldSkipPolling) {
+            _debugOngoingOrderLog(
+              "loadUI:noDriverPollingSkipped",
+              data: {
+                "reason": "driver-or-order-changed",
+                "polledOrderCode": polledOrderCode,
+                "currentOrderCode": currentOrderCode,
+                "hasDriver": ongoingOrder?.driver != null,
+                "currentDriverId": currentDriverId,
+              },
+            );
+            return;
+          }
+          _debugOngoingOrderLog(
+            "loadUI:noDriverPollingGetOngoingOrder",
+            data: {
+              "status": ongoingOrder?.status,
+              "code": ongoingOrder?.code,
+            },
+          );
+          await getOngoingOrder(
+            showSnack: true,
+            forceStop: forceStop,
+          );
+        } finally {
+          _isPollingOngoingOrderWithoutDriver = false;
+          if (shouldShowLoading) {
+            AlertService().stopLoading(forceStop: forceStop);
+          }
         }
       } else {
+        _isPollingOngoingOrderWithoutDriver = false;
         pickupAddress = Address(
           addressLine: ongoingOrder?.taxiOrder?.pickupAddress,
           coordinates: Coordinates(
@@ -1963,14 +2345,36 @@ class HomeViewModel extends GMapViewModel {
 
       _isSyncingDriverLocation = true;
       try {
+        _debugOngoingOrderLog(
+          "syncDriverLocation:tick",
+          data: {
+            "orderCode": orderCode,
+            "status": ongoingOrder?.status,
+          },
+        );
         ApiResponse apiResponse = await taxiRequest.syncDriverLocationRequest();
         unawaited(loadUIByOngoingOrderStatus(forceStop: forceStop));
         if (apiResponse.allGood) {
-          ongoingOrder?.driver?.lat = apiResponse.body['lat'];
-          ongoingOrder?.driver?.lng = apiResponse.body['long'];
+          final currentDriver = ongoingOrder?.driver;
+          if (currentDriver == null) {
+            _latestSyncedDriverLatLng = null;
+            return;
+          }
+          final nextLat = apiResponse.body['lat'] is num
+              ? (apiResponse.body['lat'] as num).toDouble()
+              : double.tryParse("${apiResponse.body['lat']}") ?? 0.0;
+          final nextLng = apiResponse.body['long'] is num
+              ? (apiResponse.body['long'] as num).toDouble()
+              : double.tryParse("${apiResponse.body['long']}") ?? 0.0;
+          currentDriver.lat = nextLat;
+          currentDriver.lng = nextLng;
+          if (nextLat == 0.0 && nextLng == 0.0) {
+            _latestSyncedDriverLatLng = null;
+            return;
+          }
           _latestSyncedDriverLatLng = gmaps.LatLng(
-            ongoingOrder?.driver?.lat ?? 0.0,
-            ongoingOrder?.driver?.lng ?? 0.0,
+            nextLat,
+            nextLng,
           );
           driverPositionRotation = apiResponse.body['rotation'] ?? 0;
           updateDriverMarkerPosition(
@@ -2045,13 +2449,28 @@ class HomeViewModel extends GMapViewModel {
         try {
           if (userSyncedAt != "${event.data()?["syncedAt"]}") {
             final wasProvider = isBool(AuthService.currentUser?.isProvider);
-            AuthService.currentUser = await authRequest.getUser();
+            final fetchedUser = await authRequest.getUser();
             await AuthService().saveUserToStorage(
               jsonEncode(
-                AuthService.currentUser,
+                fetchedUser,
               ),
             );
             await AuthService.getUserFromStorage();
+            try {
+              final homeSettingsResponse =
+                  await settingsRequest.homeSettingsRequest();
+              await AppStrings.saveHomeSettingsToStorage(
+                jsonEncode(homeSettingsResponse.body),
+              );
+              await AppStrings.getHomeSettingsFromStorage();
+
+              final appSettingsResponse =
+                  await settingsRequest.appSettingsRequest();
+              await AppStrings.saveAppSettingsToStorage(
+                jsonEncode(appSettingsResponse.body),
+              );
+              await AppStrings.getAppSettingsFromStorage();
+            } catch (_) {}
             final isProvider = isBool(AuthService.currentUser?.isProvider);
             syncProviderPaymentMode();
             if (wasProvider != isProvider) {
@@ -2068,9 +2487,6 @@ class HomeViewModel extends GMapViewModel {
               "userSyncedAt",
               "${event.data()?["syncedAt"]}",
             );
-            debugPrint(
-              "home userSyncedAt success",
-            );
             Get.forceAppUpdate();
           }
         } catch (e) {
@@ -2078,9 +2494,6 @@ class HomeViewModel extends GMapViewModel {
             await AuthService().logout();
             return;
           }
-          debugPrint(
-            "home userSyncedAt error: $e",
-          );
         }
       },
     );

@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/intro.view.dart';
 import 'package:pwa/constants/strings.dart';
@@ -10,10 +12,13 @@ import 'package:pwa/models/user.model.dart';
 import 'package:pwa/services/push.service.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/services/storage.service.dart';
+import 'package:pwa/utils/browser_utils.dart';
 
 class AuthService {
   static String? bearerToken;
   static User? currentUser;
+  static bool _upgradeDismissedForSession = false;
+  static String? _dismissedUpgradeRuleSignature;
 
   static const List<String> _guestTopics = ["all"];
 
@@ -34,12 +39,32 @@ class AuthService {
   }
 
   Future<User?> saveUserToStorage(String stringMap) async {
+    final decoded = jsonDecode(stringMap);
+    Map<String, dynamic> normalizedMap;
+    if (decoded is Map<String, dynamic>) {
+      normalizedMap = Map<String, dynamic>.from(decoded);
+    } else if (decoded is Map) {
+      normalizedMap = Map<String, dynamic>.from(decoded);
+    } else {
+      normalizedMap = {};
+    }
+
+    final previousUser = currentUser;
+    if (normalizedMap["created_at"] == null &&
+        previousUser?.createdAt != null) {
+      normalizedMap["created_at"] = previousUser!.createdAt!.toIso8601String();
+    }
+
     currentUser = User.fromJson(
-      jsonDecode(stringMap),
+      normalizedMap,
     );
+    final normalizedStringMap = jsonEncode(normalizedMap);
     await StorageService.prefs?.setString(
       AppStrings.userKey,
-      stringMap,
+      normalizedStringMap,
+    );
+    debugPrint(
+      '[PushDebug][Auth:saveUser] userId=${currentUser?.id} branchId=${currentUser?.branchID}',
     );
     await syncStoredTopicsForCurrentSession();
     await PushService.syncTokenWithServer();
@@ -56,11 +81,7 @@ class AuthService {
       } else {
         throw "null";
       }
-    } catch (_) {
-      debugPrint(
-        "getTokenFromStorage: null",
-      );
-    }
+    } catch (_) {}
     return bearerToken;
   }
 
@@ -69,14 +90,14 @@ class AuthService {
       final stringMap = StorageService.prefs?.getString(
         AppStrings.userKey,
       );
+      final decoded = jsonDecode(stringMap!);
       currentUser = User.fromJson(
-        jsonDecode(stringMap!),
+        decoded,
       );
-    } catch (_) {
-      debugPrint(
-        "getUserFromStorage: null",
-      );
-    }
+    } catch (_) {}
+    debugPrint(
+      '[PushDebug][Auth:getUserFromStorage] userId=${currentUser?.id} branchId=${currentUser?.branchID}',
+    );
     await AuthService().syncStoredTopicsForCurrentSession();
     return currentUser;
   }
@@ -93,7 +114,9 @@ class AuthService {
       final userSnapshot = await userRef.get();
       final userData = userSnapshot.data();
       final currentName = "${userData?["name"] ?? ""}".trim();
-      if (!userSnapshot.exists || currentName.isEmpty || currentName == "null") {
+      if (!userSnapshot.exists ||
+          currentName.isEmpty ||
+          currentName == "null") {
         await userRef.set(
           {
             "id": currentUser?.id,
@@ -105,12 +128,13 @@ class AuthService {
           ),
         );
       }
-    } catch (e) {
-      debugPrint("ensureUserNameInFirestore error: $e");
+    } catch (_) {
+      // Ignore Firestore sync failures for this best-effort update.
     }
   }
 
   logout() async {
+    final shouldOpenReviewHome = AuthService.inReviewMode();
     AlertService().stopLoading(forceStop: true);
     final currentContext = Get.context;
     if (currentContext != null) {
@@ -121,13 +145,14 @@ class AuthService {
     }
     await StorageService.rxPrefs?.clear();
     await StorageService.prefs?.clear();
-    await StorageService.prefs?.setStringList("topics", _guestTopics);
-    await StorageService.prefs?.remove(AppStrings.lastPushTopicSignature);
     dropoffAddress = null;
     pickupAddress = null;
     currentUser = null;
+    debugPrint('[PushDebug][Auth:logout] reset-to-guest');
+    await syncStoredTopicsForCurrentSession();
+    await StorageService.prefs?.remove(AppStrings.lastPushTopicSignature);
     await PushService.syncTokenWithServer(forceSync: true);
-    if (!AuthService.inReviewMode()) {
+    if (!shouldOpenReviewHome) {
       Navigator.pushAndRemoveUntil(
         Get.context!,
         PageRouteBuilder(
@@ -143,71 +168,195 @@ class AuthService {
         (route) => false,
       );
       return;
-    } else {
-      Navigator.pushAndRemoveUntil(
-        Get.context!,
-        PageRouteBuilder(
-          reverseTransitionDuration: Duration.zero,
-          transitionDuration: Duration.zero,
-          pageBuilder: (
-            context,
-            a,
-            b,
-          ) =>
-              const HomeView(),
-        ),
-        (route) => false,
-      );
-      return;
     }
+    Navigator.pushAndRemoveUntil(
+      Get.context!,
+      PageRouteBuilder(
+        reverseTransitionDuration: Duration.zero,
+        transitionDuration: Duration.zero,
+        pageBuilder: (
+          context,
+          a,
+          b,
+        ) =>
+            const HomeView(),
+      ),
+      (route) => false,
+    );
   }
 
-  static String device() => "huawei";
+  static String device() {
+    if (kIsWeb) {
+      return isHuaweiLikeBrowser() ? "huawei" : "web";
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return "ios";
+      case TargetPlatform.android:
+        return "android";
+      default:
+        return "web";
+    }
+  }
 
   static bool inReviewMode() {
-    bool disable = false;
-    if (AppStrings.homeSettingsObject != null) {
-      if (device() == "huawei" &&
-          "${AppStrings.homeSettingsObject?["disable_hbn"]}" == versionCode) {
-        disable = true;
-      }
+    final reviewVersionKey = switch (device()) {
+      "ios" => "disable_ibn",
+      "web" => "disable_wbn",
+      "huawei" => "disable_hbn",
+      "android" => "disable_gbn",
+      _ => null,
+    };
+    if (reviewVersionKey == null || AppStrings.homeSettingsObject == null) {
+      return false;
     }
-    return disable;
+    return "${AppStrings.homeSettingsObject?[reviewVersionKey]}" == versionCode;
   }
 
-  static bool shouldUpgrade() {
-    try {
-      final webNewVersion = int.parse(
-        "${AppStrings.appSettingsObject?["strings"]?["upgrade"]?["customer"]?["huawei"] ?? 0}",
+  static Map<String, dynamic>? _upgradeConfigFor(String appKey) {
+    final upgradeConfig =
+        AppStrings.appSettingsObject?["strings"]?["upgrade"]?[appKey];
+    if (upgradeConfig is Map<String, dynamic>) {
+      return upgradeConfig;
+    }
+    if (upgradeConfig is Map) {
+      return Map<String, dynamic>.from(upgradeConfig);
+    }
+    return null;
+  }
+
+  static int _upgradeVersionForDeviceFrom(Map<String, dynamic>? upgradeConfig) {
+    final versionByDevice = switch (device()) {
+      "ios" => upgradeConfig?["ios"],
+      "android" => upgradeConfig?["android"],
+      _ => upgradeConfig?["huawei"],
+    };
+    return int.tryParse("${versionByDevice ?? 0}") ?? 0;
+  }
+
+  static ({int version, bool force}) _effectiveUpgradeRule() {
+    final customerConfig = _upgradeConfigFor("customer");
+    final vendorConfig = _upgradeConfigFor("vendor");
+    final customerVersion = _upgradeVersionForDeviceFrom(customerConfig);
+    final vendorVersion = _upgradeVersionForDeviceFrom(vendorConfig);
+
+    if (vendorVersion > customerVersion) {
+      final vendorForce = "${vendorConfig?["force"] ?? "0"}".toLowerCase();
+      return (
+        version: vendorVersion,
+        force: vendorForce == "1" || vendorForce == "true",
       );
+    }
+
+    final customerForce = "${customerConfig?["force"] ?? "0"}".toLowerCase();
+    final vendorForce = "${vendorConfig?["force"] ?? "0"}".toLowerCase();
+    return (
+      version: customerVersion,
+      force: customerVersion == vendorVersion
+          ? (customerForce == "1" ||
+              customerForce == "true" ||
+              vendorForce == "1" ||
+              vendorForce == "true")
+          : (customerForce == "1" || customerForce == "true"),
+    );
+  }
+
+  static bool _shouldUpgradeForCurrentRule() {
+    try {
       final currentVersion = int.parse("${versionCode ?? 0}");
-      return currentVersion < webNewVersion;
+      return currentVersion < _effectiveUpgradeRule().version;
     } catch (e) {
       return false;
     }
   }
 
+  static String _currentUpgradeRuleSignature() {
+    final rule = _effectiveUpgradeRule();
+    return "${device()}|${rule.version}|${rule.force}|${upgradeDownloadLink()}";
+  }
+
+  static void syncUpgradeDismissalForCurrentConfig() {
+    final shouldUpgradeNow = _shouldUpgradeForCurrentRule();
+    final nextSignature = _currentUpgradeRuleSignature();
+    if (!shouldUpgradeNow) {
+      _upgradeDismissedForSession = false;
+      _dismissedUpgradeRuleSignature = null;
+      return;
+    }
+    if (_dismissedUpgradeRuleSignature != null &&
+        _dismissedUpgradeRuleSignature != nextSignature) {
+      _upgradeDismissedForSession = false;
+      _dismissedUpgradeRuleSignature = null;
+    }
+  }
+
+  static bool shouldUpgrade() {
+    syncUpgradeDismissalForCurrentConfig();
+    return _shouldUpgradeForCurrentRule();
+  }
+
+  static bool isUpgradeForced() {
+    return _effectiveUpgradeRule().force;
+  }
+
+  static bool isUpgradeDismissed() {
+    syncUpgradeDismissalForCurrentConfig();
+    return _upgradeDismissedForSession;
+  }
+
+  static void dismissUpgradeForSession() {
+    _upgradeDismissedForSession = true;
+    _dismissedUpgradeRuleSignature = _currentUpgradeRuleSignature();
+  }
+
+  static void resetUpgradeDismissal() {
+    _upgradeDismissedForSession = false;
+    _dismissedUpgradeRuleSignature = null;
+  }
+
+  static String upgradeDownloadLink() {
+    final resolvedLink = switch (device()) {
+      "ios" => AppStrings.iOSDownloadLink,
+      "android" => AppStrings.androidDownloadLink,
+      _ => AppStrings.huaweiDownloadLink,
+    };
+    if (resolvedLink.trim().isNotEmpty) {
+      return resolvedLink;
+    }
+    return "https://ppctoda.com";
+  }
+
   subscribeToTopic(String topic) async {
     try {
+      debugPrint('[PushDebug][Topic:subscribe:start] $topic');
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       if (!topics.contains(topic)) {
         topics.add(topic);
         await StorageService.prefs?.setStringList("topics", topics);
       }
-      debugPrint("Subscribed to topic: $topic (web pseudo)");
-    } catch (e) {
-      debugPrint("Error subscribing to topic $topic: $e");
+      if (!kIsWeb) {
+        await FirebaseMessaging.instance.subscribeToTopic(topic);
+      }
+      debugPrint('[PushDebug][Topic:subscribe:done] $topic');
+    } catch (_) {
+      debugPrint('[PushDebug][Topic:subscribe:error] $topic');
+      // Ignore topic persistence failures.
     }
   }
 
   unsubscribeFromTopic(String topic) async {
     try {
+      debugPrint('[PushDebug][Topic:unsubscribe:start] $topic');
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       topics.remove(topic);
       await StorageService.prefs?.setStringList("topics", topics);
-      debugPrint("Unsubscribed from topic: $topic (web pseudo)");
-    } catch (e) {
-      debugPrint("Error unsubscribing from topic $topic: $e");
+      if (!kIsWeb) {
+        await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
+      }
+      debugPrint('[PushDebug][Topic:unsubscribe:done] $topic');
+    } catch (_) {
+      debugPrint('[PushDebug][Topic:unsubscribe:error] $topic');
+      // Ignore topic persistence failures.
     }
   }
 
@@ -216,13 +365,31 @@ class AuthService {
   }
 
   Future<void> syncStoredTopicsForCurrentSession() async {
-    final topics = isLoggedIn()
-        ? _buildLoggedInTopics()
-        : _guestTopics;
+    final topics = _normalizedTopicsForCurrentSession();
     await StorageService.prefs?.setStringList(
       "topics",
       topics,
     );
+    debugPrint('[PushDebug][Topic:sync] topics=$topics');
+    if (!kIsWeb) {
+      for (final topic in topics) {
+        try {
+          await FirebaseMessaging.instance.subscribeToTopic(topic);
+          debugPrint('[PushDebug][Topic:sync:subscribed] $topic');
+        } catch (_) {
+          debugPrint('[PushDebug][Topic:sync:subscribe:error] $topic');
+          // Ignore best-effort topic subscribe failures.
+        }
+      }
+    }
+  }
+
+  List<String> _normalizedTopicsForCurrentSession() {
+    final topics = isLoggedIn() ? _buildLoggedInTopics() : _guestTopics;
+    if (!topics.contains("all")) {
+      topics.add("all");
+    }
+    return topics.toSet().toList();
   }
 
   List<String> _buildLoggedInTopics() {
@@ -230,6 +397,7 @@ class AuthService {
       "all",
       "c",
       "client",
+      "customer",
       if ("${currentUser?.id}".trim().isNotEmpty &&
           "${currentUser?.id}" != "null")
         "${currentUser?.id}",
@@ -239,9 +407,18 @@ class AuthService {
       if ("${currentUser?.id}".trim().isNotEmpty &&
           "${currentUser?.id}" != "null")
         "client_${currentUser?.id}",
+      if ("${currentUser?.id}".trim().isNotEmpty &&
+          "${currentUser?.id}" != "null")
+        "customer_${currentUser?.id}",
       if ("${currentUser?.branchID}".trim().isNotEmpty &&
           "${currentUser?.branchID}" != "null")
         "branch_${currentUser?.branchID}",
+      if ("${currentUser?.branchID}".trim().isNotEmpty &&
+          "${currentUser?.branchID}" != "null")
+        "branch_${currentUser?.branchID}_client",
+      if ("${currentUser?.branchID}".trim().isNotEmpty &&
+          "${currentUser?.branchID}" != "null")
+        "branch_${currentUser?.branchID}_customer",
     ];
     return topics.toSet().toList();
   }

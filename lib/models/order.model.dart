@@ -1,6 +1,5 @@
 import "dart:convert";
 import "package:pwa/utils/data.dart";
-import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 import "package:pwa/models/user.model.dart";
 import "package:pwa/models/driver.model.dart";
@@ -67,7 +66,6 @@ class Order {
   factory Order.fromJson(Map<String, dynamic>? json) {
     try {
       if (showParseText) {
-        debugPrint("Parsing Order from JSON...");
       }
       return Order(
         id: parseInt(json?["id"], "id"),
@@ -103,8 +101,6 @@ class Order {
       );
     } catch (e) {
       if (showParseText) {
-        debugPrint("Error parsing Order: $e");
-        debugPrint("Order: $json");
       }
       return Order();
     }

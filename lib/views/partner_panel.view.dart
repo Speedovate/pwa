@@ -33,6 +33,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   final TextEditingController _partnerListSearchTEC = TextEditingController();
   final TextEditingController _driverListSearchTEC = TextEditingController();
   Timer? _quickPartnerSearchDebounce;
+  Timer? _partnerListSearchDebounce;
+  Timer? _driverListSearchDebounce;
   bool _isSavingQuickSettings = false;
   bool _isSearchingQuickPartner = false;
   Map<String, dynamic>? _quickPartnerUserData;
@@ -49,6 +51,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   @override
   void dispose() {
     _quickPartnerSearchDebounce?.cancel();
+    _partnerListSearchDebounce?.cancel();
+    _driverListSearchDebounce?.cancel();
     _userIdTEC.dispose();
     _quickPartnerNameTEC.dispose();
     _markupTEC.dispose();
@@ -594,6 +598,24 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         ),
       ),
     );
+  }
+
+  void _scheduleListSearchRefresh({required bool isDriver}) {
+    final timer = isDriver
+        ? _driverListSearchDebounce
+        : _partnerListSearchDebounce;
+    timer?.cancel();
+    final nextTimer = Timer(const Duration(milliseconds: 160), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    });
+    if (isDriver) {
+      _driverListSearchDebounce = nextTimer;
+    } else {
+      _partnerListSearchDebounce = nextTimer;
+    }
   }
 
   Future<void> _showJsonEditorDialog({
@@ -2710,12 +2732,13 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   Widget _buildCompactListControls({
     required TextEditingController controller,
     required String hintText,
+    required bool isDriver,
   }) {
     return TextFieldWidget(
       controller: controller,
       labelText: hintText,
       onChanged: (_) {
-        setState(() {});
+        _scheduleListSearchRefresh(isDriver: isDriver);
       },
     );
   }
@@ -2731,6 +2754,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         _buildCompactListControls(
           controller: _partnerListSearchTEC,
           hintText: "Search partners",
+          isDriver: false,
         ),
         const SizedBox(height: _panelGap),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -3088,6 +3112,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         _buildCompactListControls(
           controller: _driverListSearchTEC,
           hintText: "Search drivers",
+          isDriver: true,
         ),
         const SizedBox(height: _panelGap),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -3199,192 +3224,180 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       data["name"],
                       "Driver",
                     ]);
-                    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      stream: fbStore
-                          .collection("drivers")
-                          .doc(driverId)
-                          .collection("transactions_v2")
-                          .snapshots(),
-                      builder: (context, transactionSnapshot) {
-                        final deductible =
-                            _toDouble(data["deductible_cash_markup_amount"]);
-                        final deducted =
-                            _toDouble(data["deducted_cash_markup_amount"]);
-                        return Padding(
-                          key: ValueKey("driver-$driverId"),
-                          padding:
-                              const EdgeInsets.only(bottom: _panelOuterGap),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(_panelRadius),
-                              border: Border.all(
-                                color: const Color(0xFF030744)
-                                    .withValues(alpha: 0.08),
+                    final deductible =
+                        _toDouble(data["deductible_cash_markup_amount"]);
+                    final deducted =
+                        _toDouble(data["deducted_cash_markup_amount"]);
+                    return Padding(
+                      key: ValueKey("driver-$driverId"),
+                      padding: const EdgeInsets.only(bottom: _panelOuterGap),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(_panelRadius),
+                          border: Border.all(
+                            color: const Color(0xFF030744)
+                                .withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildExpandableRow(
+                              title: capitalizeWords(
+                                driverName,
                               ),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildExpandableRow(
-                                  title: capitalizeWords(
-                                    driverName,
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                              subtitle: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
                                     children: [
-                                      Wrap(
-                                        children: [
-                                          _buildInlineStat(
-                                            "Driver ID",
-                                            driverId,
-                                          ),
-                                          _buildInlineStat(
-                                            "Deductible",
-                                            _formatMoney(deductible),
-                                          ),
-                                          _buildInlineStat(
-                                            "Deducted",
-                                            _formatMoney(deducted),
-                                          ),
-                                        ],
+                                      _buildInlineStat(
+                                        "Driver ID",
+                                        driverId,
+                                      ),
+                                      _buildInlineStat(
+                                        "Deductible",
+                                        _formatMoney(deductible),
+                                      ),
+                                      _buildInlineStat(
+                                        "Deducted",
+                                        _formatMoney(deducted),
                                       ),
                                     ],
                                   ),
-                                  isExpanded:
-                                      _expandedDriverIds.contains(driverId),
-                                  onTap: () {
-                                    setState(() {
-                                      if (_expandedDriverIds
-                                          .contains(driverId)) {
-                                        _expandedDriverIds.remove(driverId);
-                                      } else {
-                                        _expandedDriverIds.add(driverId);
-                                      }
-                                    });
-                                  },
-                                ),
-                                if (_expandedDriverIds.contains(driverId)) ...[
-                                  Divider(
-                                    height: 1,
-                                    thickness: 1,
-                                    color: const Color(0xFF030744)
-                                        .withValues(alpha: 0.08),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      _panelOuterGap,
-                                      _panelGap,
-                                      _panelOuterGap,
-                                      _panelOuterGap,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        const SizedBox(height: 8),
-                                        _buildPrimaryButton(
-                                          text: "Edit Driver",
-                                          onTap: () {
-                                            _showEditDriverDialog(
-                                              driverId: driverId,
-                                              driverData: data,
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(height: _panelGap),
-                                        _buildTransactionHistoryList(
-                                          title: "Transactions",
-                                          stream: fbStore
-                                              .collection("drivers")
-                                              .doc(driverId)
-                                              .collection("transactions_v2")
-                                              .snapshots(),
-                                          amountKey: "amount",
-                                          onAdd: () {
-                                            _showDriverTransactionDialog(
-                                              title: "Add Driver Transaction",
-                                              driverId: driverId,
-                                              driverData: data,
-                                            );
-                                          },
-                                          onEdit:
-                                              (transactionId, txData) async {
-                                            await _showDriverTransactionDialog(
-                                              title: "Edit Driver Transaction",
-                                              driverId: driverId,
-                                              driverData: data,
-                                              transactionId: transactionId,
-                                              initialData: txData,
-                                            );
-                                          },
-                                          onDelete:
-                                              (transactionId, txData) async {
-                                            final confirmed =
-                                                await showDialog<bool>(
-                                                      context: context,
-                                                      builder: (context) {
-                                                        return AlertDialog(
-                                                          backgroundColor:
-                                                              Colors.white,
-                                                          title: const Text(
-                                                            "Delete Transaction?",
-                                                          ),
-                                                          content: const Text(
-                                                            "This will remove the driver transaction and any linked received/deducted record.",
-                                                          ),
-                                                          actions: [
-                                                            TextButton(
-                                                              style:
-                                                                  _darkBlueTextButtonStyle(),
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                context,
-                                                                false,
-                                                              ),
-                                                              child: const Text(
-                                                                "Cancel",
-                                                              ),
-                                                            ),
-                                                            TextButton(
-                                                              style:
-                                                                  _darkBlueTextButtonStyle(),
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                context,
-                                                                true,
-                                                              ),
-                                                              child: const Text(
-                                                                "Delete",
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        );
-                                                      },
-                                                    ) ??
-                                                    false;
-                                            if (!confirmed) {
-                                              return;
-                                            }
-                                            await _deleteDriverTransaction(
-                                              driverId: driverId,
-                                              transactionId: transactionId,
-                                            );
-                                            if (!mounted) {
-                                              return;
-                                            }
-                                            _showSuccessSnack(
-                                              "Driver transaction removed.",
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ],
-                              ],
+                              ),
+                              isExpanded:
+                                  _expandedDriverIds.contains(driverId),
+                              onTap: () {
+                                setState(() {
+                                  if (_expandedDriverIds.contains(driverId)) {
+                                    _expandedDriverIds.remove(driverId);
+                                  } else {
+                                    _expandedDriverIds.add(driverId);
+                                  }
+                                });
+                              },
                             ),
-                          ),
-                        );
-                      },
+                            if (_expandedDriverIds.contains(driverId)) ...[
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: const Color(0xFF030744)
+                                    .withValues(alpha: 0.08),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  _panelOuterGap,
+                                  _panelGap,
+                                  _panelOuterGap,
+                                  _panelOuterGap,
+                                ),
+                                child: Column(
+                                  children: [
+                                    const SizedBox(height: 8),
+                                    _buildPrimaryButton(
+                                      text: "Edit Driver",
+                                      onTap: () {
+                                        _showEditDriverDialog(
+                                          driverId: driverId,
+                                          driverData: data,
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: _panelGap),
+                                    _buildTransactionHistoryList(
+                                      title: "Transactions",
+                                      stream: fbStore
+                                          .collection("drivers")
+                                          .doc(driverId)
+                                          .collection("transactions_v2")
+                                          .snapshots(),
+                                      amountKey: "amount",
+                                      onAdd: () {
+                                        _showDriverTransactionDialog(
+                                          title: "Add Driver Transaction",
+                                          driverId: driverId,
+                                          driverData: data,
+                                        );
+                                      },
+                                      onEdit: (transactionId, txData) async {
+                                        await _showDriverTransactionDialog(
+                                          title: "Edit Driver Transaction",
+                                          driverId: driverId,
+                                          driverData: data,
+                                          transactionId: transactionId,
+                                          initialData: txData,
+                                        );
+                                      },
+                                      onDelete:
+                                          (transactionId, txData) async {
+                                        final confirmed =
+                                            await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    return AlertDialog(
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      title: const Text(
+                                                        "Delete Transaction?",
+                                                      ),
+                                                      content: const Text(
+                                                        "This will remove the driver transaction and any linked received/deducted record.",
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          style:
+                                                              _darkBlueTextButtonStyle(),
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                            context,
+                                                            false,
+                                                          ),
+                                                          child: const Text(
+                                                            "Cancel",
+                                                          ),
+                                                        ),
+                                                        TextButton(
+                                                          style:
+                                                              _darkBlueTextButtonStyle(),
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                            context,
+                                                            true,
+                                                          ),
+                                                          child: const Text(
+                                                            "Delete",
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ) ??
+                                                false;
+                                        if (!confirmed) {
+                                          return;
+                                        }
+                                        await _deleteDriverTransaction(
+                                          driverId: driverId,
+                                          transactionId: transactionId,
+                                        );
+                                        if (!mounted) {
+                                          return;
+                                        }
+                                        _showSuccessSnack(
+                                          "Driver transaction removed.",
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     );
                   }).toList(),
                 );
@@ -3504,6 +3517,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
     return GestureDetector(
       onTap: () {
         FocusManager.instance.primaryFocus?.unfocus();
@@ -3517,7 +3531,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         body: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 12),
+              SizedBox(
+                height: (GetPlatform.isAndroid || GetPlatform.isIOS)
+                    ? mediaQuery.padding.top + 36
+                    : 12,
+              ),
               Row(
                 children: [
                   const SizedBox(width: 4),

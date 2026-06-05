@@ -10,15 +10,9 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -43,10 +37,31 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyA3tvPnJN8hy3HksAFLDkMHDAC6wMeXS-Q',
-    appId: '1:599344409686:web:ae1f18c90ac11007675ff7',
+    appId: '1:599344409686:web:7aa57f72d04043dd675ff7',
     messagingSenderId: '599344409686',
     projectId: 'toda-pal',
     authDomain: 'toda-pal.firebaseapp.com',
+    databaseURL: 'https://toda-pal-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'toda-pal.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBHcAtnBrEkVH02BeJAmHjPrsNvb-IH8A4',
+    appId: '1:599344409686:ios:b4aa716656b3f1ae675ff7',
+    messagingSenderId: '599344409686',
+    projectId: 'toda-pal',
+    databaseURL: 'https://toda-pal-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'toda-pal.firebasestorage.app',
+    androidClientId: '599344409686-3alqrv69852jucodqisl520nuobc54pr.apps.googleusercontent.com',
+    iosClientId: '599344409686-a71jhf47m4sd1ps1pct4n4je16g3vjvk.apps.googleusercontent.com',
+    iosBundleId: 'com.ppctoda.customer',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyCgliGikPT6MdeProBdKeN71Mrhqe4zahc',
+    appId: '1:599344409686:android:31790a591e798524675ff7',
+    messagingSenderId: '599344409686',
+    projectId: 'toda-pal',
     databaseURL: 'https://toda-pal-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'toda-pal.firebasestorage.app',
   );

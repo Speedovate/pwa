@@ -7,6 +7,9 @@ class ListViewWidget<T> extends StatelessWidget {
   final bool isLoadingMore;
   final Function()? onRefresh;
   final int currentPage;
+  final bool removeFirstItemTopPadding;
+  final EdgeInsetsGeometry? padding;
+  final bool removeLastItemBottomPadding;
 
   const ListViewWidget({
     super.key,
@@ -16,6 +19,9 @@ class ListViewWidget<T> extends StatelessWidget {
     this.isLoadingMore = false,
     this.onRefresh,
     this.currentPage = 1,
+    this.removeFirstItemTopPadding = false,
+    this.padding,
+    this.removeLastItemBottomPadding = false,
   });
 
   @override
@@ -27,7 +33,8 @@ class ListViewWidget<T> extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: EdgeInsets.fromLTRB(20, 8, 20, computedBottomPadding),
+      padding:
+          padding ?? EdgeInsets.fromLTRB(20, 8, 20, computedBottomPadding),
       itemCount: items.length + (isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= items.length) {
@@ -48,8 +55,10 @@ class ListViewWidget<T> extends StatelessWidget {
         final item = items[index];
         return Padding(
           padding: EdgeInsets.only(
-            top: index == 0 ? 12 : 0,
-            bottom: 12,
+            top: index == 0 && !removeFirstItemTopPadding ? 12 : 0,
+            bottom: removeLastItemBottomPadding && index == items.length - 1
+                ? 0
+                : 12,
           ),
           child: itemBuilder(context, item, index),
         );

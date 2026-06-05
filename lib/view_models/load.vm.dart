@@ -217,7 +217,11 @@ class LoadViewModel extends BaseViewModel {
   initiateLoadTopUp(String amount) async {
     try {
       final link = await loadRequest.loadTopupRequest(amount);
-      openWebview("Buy Load", link);
+      openWebview(
+        "Buy Load",
+        link,
+        isFromWallet: true,
+      );
     } catch (_) {}
   }
 }

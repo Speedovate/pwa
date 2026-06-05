@@ -1,5 +1,6 @@
 class AppImages {
   static const baseUrl = "https://assets.ppc-toda.com/";
+  static const assetBasePath = "assets/images/";
   static const sbb = "${baseUrl}sbb.png";
   static const mnb = "${baseUrl}mnb.png";
   static const load = "${baseUrl}load.png";
@@ -8,9 +9,9 @@ class AppImages {
   static const logo = "${baseUrl}logo.png";
   static const trike = "${baseUrl}trike.png";
   static const google = "${baseUrl}google.png";
-  static const camera = "${baseUrl}camera.png";
+  static const camera = "${assetBasePath}camera.png";
   static const driver = "${baseUrl}driver.png";
-  static const selfie = "${baseUrl}selfie.png";
+  static const selfie = "${assetBasePath}selfie.png";
   static const verify = "${baseUrl}verify.png";
   static const splash = "${baseUrl}splash.png";
   static const splash12 = "${baseUrl}splash12.png";

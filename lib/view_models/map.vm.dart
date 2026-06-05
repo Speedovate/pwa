@@ -17,11 +17,14 @@ class MapViewModel extends BaseViewModel {
   AppMapController? _map;
   Timer? _debounce;
   Timer? _manualSelectionGuard;
+  Timer? _cameraMoveVisualGuard;
   bool _isResolvingCameraMove = false;
+  bool _awaitingInitialProgrammaticCameraCallback = false;
   DateTime? _ignoreCameraMoveUntil;
   int _selectionGeneration = 0;
   bool isHolding = false;
   bool isLoading = false;
+  bool showLoadingVisual = false;
   bool skipCamera = false;
   TaxiRequest taxiRequest = TaxiRequest();
   FocusNode searchFocusNode = FocusNode();
@@ -29,6 +32,7 @@ class MapViewModel extends BaseViewModel {
   GeocoderService geocoderService = GeocoderService();
   TextEditingController searchTEC = TextEditingController();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
+  ValueNotifier<Address?> visualPlaceholderAddress = ValueNotifier(null);
 
   void _clearSearchAfterBuild() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,23 +56,45 @@ class MapViewModel extends BaseViewModel {
     selectedAddress.value = address;
   }
 
+  void _setVisualPlaceholderSafely(Address? address) {
+    final schedulerPhase = SchedulerBinding.instance.schedulerPhase;
+    final shouldDefer = schedulerPhase == SchedulerPhase.transientCallbacks ||
+        schedulerPhase == SchedulerPhase.midFrameMicrotasks ||
+        schedulerPhase == SchedulerPhase.persistentCallbacks;
+    if (shouldDefer) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (disposed) return;
+        visualPlaceholderAddress.value = address;
+      });
+      return;
+    }
+    visualPlaceholderAddress.value = address;
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
     _debounce = null;
     _manualSelectionGuard?.cancel();
     _manualSelectionGuard = null;
+    _cameraMoveVisualGuard?.cancel();
+    _cameraMoveVisualGuard = null;
     searchFocusNode.dispose();
     searchTEC.dispose();
     selectedAddress.dispose();
+    visualPlaceholderAddress.dispose();
     _map = null;
     super.dispose();
   }
 
   void _beginManualSelectionGuard() {
     _manualSelectionGuard?.cancel();
+    _cameraMoveVisualGuard?.cancel();
+    _cameraMoveVisualGuard = null;
     skipCamera = true;
     isLoading = false;
+    showLoadingVisual = false;
+    _setVisualPlaceholderSafely(null);
     _debounce?.cancel();
     _debounce = null;
     _selectionGeneration++;
@@ -88,13 +114,47 @@ class MapViewModel extends BaseViewModel {
     });
   }
 
+  void beginCameraMoveVisual() {
+    if (_isResolvingCameraMove ||
+        skipCamera ||
+        isIgnoringCameraMove ||
+        _awaitingInitialProgrammaticCameraCallback) {
+      return;
+    }
+    _cameraMoveVisualGuard?.cancel();
+    if (!showLoadingVisual) {
+      showLoadingVisual = true;
+      notifyListeners();
+    }
+    _cameraMoveVisualGuard = Timer(
+      const Duration(milliseconds: 450),
+      () {
+        if (disposed || _isResolvingCameraMove || isLoading) {
+          return;
+        }
+        if (showLoadingVisual) {
+          showLoadingVisual = false;
+          notifyListeners();
+        }
+      },
+    );
+  }
+
+  bool get isIgnoringCameraMove {
+    final ignoreUntil = _ignoreCameraMoveUntil;
+    return ignoreUntil != null && DateTime.now().isBefore(ignoreUntil);
+  }
+
   initialise({required bool isPickup}) {
     if (isPickup && pickupAddress != null) {
       _setSelectedAddressSafely(pickupAddress);
-    } else if (!isPickup && pickupAddress != null && dropoffAddress == null) {
-      _setSelectedAddressSafely(pickupAddress);
+      _setVisualPlaceholderSafely(null);
     } else if (!isPickup && dropoffAddress != null) {
       _setSelectedAddressSafely(dropoffAddress);
+      _setVisualPlaceholderSafely(null);
+    } else if (!isPickup && pickupAddress != null) {
+      _setSelectedAddressSafely(null);
+      _setVisualPlaceholderSafely(pickupAddress);
     }
   }
 
@@ -103,8 +163,8 @@ class MapViewModel extends BaseViewModel {
     required AppMapController map,
   }) async {
     _map = map;
+    _awaitingInitialProgrammaticCameraCallback = true;
     lastCenter = map.center;
-    debugPrint("Map set - MapViewModel");
     final fallbackCenter = initLatLng ?? defaultLatLng;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (disposed || _map != map) {
@@ -127,23 +187,49 @@ class MapViewModel extends BaseViewModel {
           return;
         }
 
+        final shouldResolveFallbackDropoff =
+            !isPickup && pickupAddress == null && dropoffAddress == null;
+        if (shouldResolveFallbackDropoff) {
+          _ignoreCameraMoveUntil = DateTime.now().add(
+            const Duration(milliseconds: 800),
+          );
+          map.move(
+            fallbackCenter,
+            map.zoom,
+          );
+          await mapCameraMove(
+            fallbackCenter,
+            isPickup: isPickup,
+            debounceDuration: Duration.zero,
+          );
+          return;
+        }
+
+        final shouldUsePickupAsDropoffSeed =
+            !isPickup && pickupAddress != null && dropoffAddress == null;
         final initialAddress = isPickup
             ? pickupAddress!
             : dropoffAddress ??
-                pickupAddress ??
                 Address(
-                  addressLine:
-                      dropoffAddress?.addressLine ?? pickupAddress?.addressLine,
+                  addressLine: dropoffAddress?.addressLine,
                   coordinates: Coordinates(
                     double.parse(
-                        "${dropoffAddress?.latLng.lat ?? pickupAddress?.latLng.lat ?? fallbackCenter.lat}"),
+                        "${dropoffAddress?.latLng.lat ?? fallbackCenter.lat}"),
                     double.parse(
-                        "${dropoffAddress?.latLng.lng ?? pickupAddress?.latLng.lng ?? fallbackCenter.lng}"),
+                        "${dropoffAddress?.latLng.lng ?? fallbackCenter.lng}"),
                   ),
                 );
-        _setSelectedAddressSafely(initialAddress);
+        if (shouldUsePickupAsDropoffSeed) {
+          _setSelectedAddressSafely(null);
+          _setVisualPlaceholderSafely(pickupAddress);
+        } else {
+          _setSelectedAddressSafely(initialAddress);
+          _setVisualPlaceholderSafely(null);
+        }
         _clearSearchAfterBuild();
-        final initialCenter = initialAddress.latLng;
+        final initialCenter = shouldUsePickupAsDropoffSeed
+            ? pickupAddress!.latLng
+            : initialAddress.latLng;
         lastCenter = initialCenter;
         _ignoreCameraMoveUntil = DateTime.now().add(
           const Duration(milliseconds: 800),
@@ -213,8 +299,11 @@ class MapViewModel extends BaseViewModel {
     _debounce?.cancel();
     final requestGeneration = _selectionGeneration;
     if (!skipSelectedAddress) {
+      _cameraMoveVisualGuard?.cancel();
+      _cameraMoveVisualGuard = null;
       _setSelectedAddressSafely(null);
-      isLoading = true;
+      _setVisualPlaceholderSafely(null);
+      showLoadingVisual = true;
       notifyListeners();
     }
     _debounce = Timer(
@@ -224,84 +313,89 @@ class MapViewModel extends BaseViewModel {
           return;
         }
         _isResolvingCameraMove = true;
+        isLoading = true;
+        notifyListeners();
         setBusyForObject(selectedAddress.value, true);
         try {
-          List<Address> addresses =
-              await geocoderService.findAddressesFromCoordinates(
-            Coordinates(
-              double.parse("${target.lat}"),
-              double.parse("${target.lng}"),
-            ),
-          );
-          final Address address = Address(
-            addressLine: addresses.first.addressLine,
-            countryName: addresses.first.countryName,
-            countryCode: addresses.first.countryCode,
-            featureName: addresses.first.featureName,
-            postalCode: addresses.first.postalCode,
-            adminArea: addresses.first.adminArea,
-            subAdminArea: addresses.first.subAdminArea,
-            subLocality: addresses.first.subLocality,
-            thoroughfare: addresses.first.thoroughfare,
-            subThoroughfare: addresses.first.subThoroughfare,
-            gMapPlaceId: addresses.first.gMapPlaceId,
-            coordinates: Coordinates(
-              double.parse("${target.lat}"),
-              double.parse("${target.lng}"),
-            ),
-          );
-          if (requestGeneration != _selectionGeneration) {
-            return;
-          }
-          await addressSelected(
-            address,
-            animate: true,
-            isPickup: isPickup,
-            shouldAdvanceGeneration: false,
-          );
-        } catch (e) {
-          if (requestGeneration != _selectionGeneration) {
-            return;
-          }
-          _setSelectedAddressSafely(Address(
-            coordinates: Coordinates(
-              double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
-              double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
-            ),
-          ));
-          ApiResponse apiResponse = await taxiRequest.locationAvailableRequest(
-            double.parse("${target.lat}"),
-            double.parse("${target.lng}"),
-          );
-          if (!apiResponse.allGood) {
-            mapUnavailable = true;
-          }
-          ScaffoldMessenger.of(Get.context!).clearSnackBars();
-          ScaffoldMessenger.of(Get.context!).showSnackBar(
-            SnackBar(
-              backgroundColor: Colors.red,
-              content: Text(
-                apiResponse.message.contains("service")
-                    ? "Please try another location"
-                    : e.toString(),
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          );
-        }
-        if (gVehicleTypes.isEmpty) {
           try {
-            gVehicleTypes = await taxiRequest.vehicleTypesRequest();
-            debugPrint("gmap vehicleTypesRequest success");
+            List<Address> addresses =
+                await geocoderService.findAddressesFromCoordinates(
+              Coordinates(
+                double.parse("${target.lat}"),
+                double.parse("${target.lng}"),
+              ),
+            );
+            final Address address = Address(
+              addressLine: addresses.first.addressLine,
+              countryName: addresses.first.countryName,
+              countryCode: addresses.first.countryCode,
+              featureName: addresses.first.featureName,
+              postalCode: addresses.first.postalCode,
+              adminArea: addresses.first.adminArea,
+              subAdminArea: addresses.first.subAdminArea,
+              subLocality: addresses.first.subLocality,
+              thoroughfare: addresses.first.thoroughfare,
+              subThoroughfare: addresses.first.subThoroughfare,
+              gMapPlaceId: addresses.first.gMapPlaceId,
+              coordinates: Coordinates(
+                double.parse("${target.lat}"),
+                double.parse("${target.lng}"),
+              ),
+            );
+            if (requestGeneration != _selectionGeneration) {
+              return;
+            }
+            await addressSelected(
+              address,
+              animate: true,
+              isPickup: isPickup,
+              shouldAdvanceGeneration: false,
+            );
           } catch (e) {
-            debugPrint("gmap vehicleTypesRequest error: $e");
+            if (requestGeneration != _selectionGeneration) {
+              return;
+            }
+            _setSelectedAddressSafely(Address(
+              coordinates: Coordinates(
+                double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
+                double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
+              ),
+            ));
+            _setVisualPlaceholderSafely(null);
+            ApiResponse apiResponse = await taxiRequest.locationAvailableRequest(
+              double.parse("${target.lat}"),
+              double.parse("${target.lng}"),
+            );
+            if (!apiResponse.allGood) {
+              mapUnavailable = true;
+            }
+            ScaffoldMessenger.of(Get.context!).clearSnackBars();
+            ScaffoldMessenger.of(Get.context!).showSnackBar(
+              SnackBar(
+                backgroundColor: Colors.red,
+                content: Text(
+                  apiResponse.message.contains("service")
+                      ? "Please try another location"
+                      : e.toString(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            );
           }
+          if (gVehicleTypes.isEmpty) {
+            try {
+              gVehicleTypes = await taxiRequest.vehicleTypesRequest();
+            } catch (e) {
+              // Vehicle types can retry on the next map move.
+            }
+          }
+        } finally {
+          setBusyForObject(selectedAddress.value, false);
+          isLoading = false;
+          showLoadingVisual = false;
+          notifyListeners();
+          _isResolvingCameraMove = false;
         }
-
-        setBusyForObject(selectedAddress.value, false);
-        isLoading = false;
-        notifyListeners();
-        _isResolvingCameraMove = false;
       },
     );
   }
@@ -323,10 +417,11 @@ class MapViewModel extends BaseViewModel {
         try {
           resolvedAddress = await geocoderService.fetchPlaceDetails(address);
         } catch (e) {
-          debugPrint("Error in fetchPlaceDetails: $e");
+          // Fall back to the provided place summary when details fail.
         }
       }
       _setSelectedAddressSafely(resolvedAddress);
+      _setVisualPlaceholderSafely(null);
       if (isPickup) {
         pickupAddress = resolvedAddress;
       } else {
@@ -347,9 +442,11 @@ class MapViewModel extends BaseViewModel {
         _map!.move(nextCenter, currentZoom);
       }
     } catch (e) {
-      debugPrint("Error in addressSelected: $e");
+      // Ignore temporary map-selection failures.
     } finally {
       setBusyForObject(selectedAddress.value, false);
+      showLoadingVisual = false;
+      notifyListeners();
     }
   }
 
@@ -375,6 +472,11 @@ class MapViewModel extends BaseViewModel {
   }
 
   bool shouldProcessCameraMove(gmaps.LatLng center) {
+    if (_awaitingInitialProgrammaticCameraCallback) {
+      lastCenter = center;
+      _awaitingInitialProgrammaticCameraCallback = false;
+      return false;
+    }
     final ignoreUntil = _ignoreCameraMoveUntil;
     if (ignoreUntil != null && DateTime.now().isBefore(ignoreUntil)) {
       lastCenter = center;

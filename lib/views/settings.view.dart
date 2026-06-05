@@ -23,6 +23,8 @@ class _SettingsViewState extends State<SettingsView> {
       viewModelBuilder: () => settingsViewModel,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
         return GestureDetector(
           onTap: () {
             FocusManager.instance.primaryFocus?.unfocus();
@@ -36,7 +38,9 @@ class _SettingsViewState extends State<SettingsView> {
             body: SafeArea(
               child: Column(
                 children: [
-                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: isMobile ? mediaQuery.padding.top + 36 : 12,
+                  ),
                   Row(
                     children: [
                       const SizedBox(width: 4),

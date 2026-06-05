@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
-import 'package:flutter/material.dart';
 import 'package:pwa/models/chat.model.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:pwa/models/chat_entity.model.dart';
@@ -23,7 +22,7 @@ class ChatViewModel extends BaseViewModel {
       await loadAllMessages();
       listenToNewMessages();
     } catch (e) {
-      debugPrint('Error initializing ChatViewModel: $e');
+      // Ignore chat bootstrap errors and leave the screen recoverable.
     }
     notifyListeners();
     setBusy(false);
@@ -46,7 +45,7 @@ class ChatViewModel extends BaseViewModel {
         messageKeys.insert(0, msgId);
       }
     } catch (e) {
-      debugPrint('Error loading messages: $e');
+      // Ignore transient load failures; the stream can still recover.
     } finally {
       setBusy(false);
       notifyListeners();
@@ -81,7 +80,7 @@ class ChatViewModel extends BaseViewModel {
           notifyListeners();
         }
       },
-      onError: (error) => debugPrint('Error in message listener: $error'),
+      onError: (_) {},
     );
   }
 
@@ -98,7 +97,7 @@ class ChatViewModel extends BaseViewModel {
         chatEntity,
       );
     } catch (e) {
-      debugPrint('Error sending message: $e');
+      // Ignore send failures here; upstream UI handles retries and loading.
     } finally {
       setBusy(false);
     }

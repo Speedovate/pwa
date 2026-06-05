@@ -1,25 +1,30 @@
 name: pwa
-description: "PPC TODA (Beta)"
+description: "PPC TODA"
 publish_to: 'none'
-version: 1.0.39+59
+version: 1.0.40+60
 environment:
   sdk: ^3.5.0
 
 dependencies:
   flutter:
     sdk: flutter
+  camera: ^0.12.0+1
   get: ^4.6.6
   dio: ^5.9.0
   lottie: ^3.2.0
   stacked: ^3.4.4
   georange: ^1.0.0
+  geolocator: ^13.0.2
   pinch_zoom: ^2.0.1
   dash_chat_2: ^0.0.21
+  share_plus: ^10.1.4
   url_launcher: ^6.3.1
   image_picker: ^1.1.2
   firebase_auth: ^5.7.0
   firebase_core: ^3.10.0
   google_sign_in: ^6.2.2
+  package_info_plus: ^8.3.1
+  permission_handler: ^11.4.0
   cupertino_icons: ^1.0.8
   cloud_firestore: ^5.6.1
   carousel_slider: ^5.1.1
@@ -28,9 +33,14 @@ dependencies:
   dio_http_cache_lts: ^0.4.2
   singleton: ^0.0.3-nullsafety
   firebase_messaging: ^15.2.10
+  flutter_local_notifications: ^17.2.4
   image_picker_for_web: ^3.0.6
   rx_shared_preferences: ^4.0.0
   pull_to_refresh_flutter3: ^2.0.2
+  webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.10.1
+  webview_flutter_wkwebview: ^3.18.4
+  google_maps_flutter: 2.10.0
   google_maps: ^8.2.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
@@ -43,8 +53,15 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+dependency_overrides:
+  google_maps_flutter_android: 2.14.13
+  google_maps_flutter_ios: 2.13.2
+  google_maps_flutter_platform_interface: 2.10.0
+  google_maps_flutter_web: 0.5.10
+
 flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/
     - assets/json/

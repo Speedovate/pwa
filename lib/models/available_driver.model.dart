@@ -1,7 +1,6 @@
 import "package:pwa/models/driver.model.dart";
 import "package:pwa/utils/data.dart";
 import "package:pwa/utils/functions.dart";
-import "package:flutter/material.dart";
 
 class AvailableDriver {
   double? kmDistance;
@@ -29,7 +28,6 @@ class AvailableDriver {
   factory AvailableDriver.fromJson(Map<String, dynamic>? json) {
     try {
       if (showParseText) {
-        debugPrint("Parsing AvailableDriver from JSON...");
       }
       return AvailableDriver(
         kmDistance: parseDouble(
@@ -70,8 +68,6 @@ class AvailableDriver {
       );
     } catch (e) {
       if (showParseText) {
-        debugPrint("Error parsing AvailableDriver: $e");
-        debugPrint("AvailableDriver: $json");
       }
       return AvailableDriver();
     }

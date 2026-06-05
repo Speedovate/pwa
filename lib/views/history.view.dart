@@ -11,10 +11,12 @@ import 'package:pwa/widgets/order_list_item.widget.dart';
 class HistoryView extends StatefulWidget {
   const HistoryView(
     this.hvm, {
+    this.onUseHistoryRoute,
     super.key,
   });
 
   final HomeViewModel hvm;
+  final VoidCallback? onUseHistoryRoute;
 
   @override
   State<HistoryView> createState() => _HistoryViewState();
@@ -57,6 +59,8 @@ class _HistoryViewState extends State<HistoryView> {
       viewModelBuilder: () => vm,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
         return Scaffold(
           backgroundColor: Colors.white,
           appBar: AppBar(
@@ -66,7 +70,9 @@ class _HistoryViewState extends State<HistoryView> {
           body: SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 12),
+                SizedBox(
+                  height: isMobile ? mediaQuery.padding.top + 36 : 12,
+                ),
                 Row(
                   children: [
                     const SizedBox(width: 4),
@@ -139,6 +145,8 @@ class _HistoryViewState extends State<HistoryView> {
                                     return OrderListItem(
                                       order: order,
                                       hvm: widget.hvm,
+                                      onUseHistoryRoute:
+                                          widget.onUseHistoryRoute,
                                       onTap: () {
                                         if (!AuthService.inReviewMode()) {
                                           vm.openOrderDetails(order: order);

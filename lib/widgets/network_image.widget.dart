@@ -74,18 +74,37 @@ class NetworkImageWidget extends StatelessWidget {
     super.key,
   });
 
+  Widget _buildFramedState(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final resolvedWidth = width ??
+            (constraints.hasBoundedWidth ? constraints.maxWidth : null);
+        final resolvedHeight = height ??
+            (constraints.hasBoundedHeight ? constraints.maxHeight : null);
+
+        return SizedBox(
+          width: resolvedWidth,
+          height: resolvedHeight,
+          child: Center(
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final safeImageUrl = sanitizeImageUrl(imageUrl);
 
     if (safeImageUrl.isEmpty) {
-      return errorWidget != null
-          ? errorWidget!(context, imageUrl, "Invalid image URL")
-          : SizedBox(
-              width: width,
-              height: height,
-              child: const Center(child: Icon(Icons.error)),
-            );
+      return _buildFramedState(
+        errorWidget != null
+            ? errorWidget!(context, imageUrl, "Invalid image URL")
+            : const Center(
+                child: Icon(Icons.error),
+              ),
+      );
     }
 
     return Image.network(
@@ -97,19 +116,17 @@ class NetworkImageWidget extends StatelessWidget {
       fit: fit,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-        return progressIndicatorBuilder != null
-            ? progressIndicatorBuilder!(
-                context,
-                safeImageUrl,
-                loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                    : null,
-              )
-            : SizedBox(
-                width: width,
-                height: height,
-                child: Center(
+        return _buildFramedState(
+          progressIndicatorBuilder != null
+              ? progressIndicatorBuilder!(
+                  context,
+                  safeImageUrl,
+                  loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                )
+              : Center(
                   child: CircularProgressIndicator(
                     strokeCap: StrokeCap.round,
                     color: const Color(
@@ -120,16 +137,16 @@ class NetworkImageWidget extends StatelessWidget {
                     ).withValues(alpha: 0.25),
                   ),
                 ),
-              );
+        );
       },
       errorBuilder: (context, error, stackTrace) {
-        return errorWidget != null
-            ? errorWidget!(context, safeImageUrl, error)
-            : SizedBox(
-                width: width,
-                height: height,
-                child: const Center(child: Icon(Icons.error)),
-              );
+        return _buildFramedState(
+          errorWidget != null
+              ? errorWidget!(context, safeImageUrl, error)
+              : const Center(
+                  child: Icon(Icons.error),
+                ),
+        );
       },
     );
   }

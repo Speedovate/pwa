@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/constants/api.dart';
 import 'package:pwa/models/user.model.dart';
@@ -9,6 +10,36 @@ import 'package:pwa/services/http.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 
 class AuthRequest extends HttpService {
+  static const int _mobileUploadMaxLongSide = 1080;
+
+  String _selfieUploadFilename({
+    bool mobileProfileUpdate = false,
+  }) {
+    if (mobileProfileUpdate && selfieFileFromMobileCamera) {
+      final ext = selfieFileNeedsHorizontalFlip ? "png" : "jpg";
+      return "mobile_${Random().nextInt(900000)}.$ext";
+    }
+    final ext = selfieFileNeedsHorizontalFlip ? "png" : "jpg";
+    return "image_${Random().nextInt(900000)}.$ext";
+  }
+
+  Future<Uint8List?> _effectiveSelfieUploadBytes() async {
+    if (selfieFile == null) {
+      return null;
+    }
+    Uint8List effectiveBytes = selfieFile!;
+    if (selfieFileNeedsHorizontalFlip) {
+      effectiveBytes = await _flipImageBytesHorizontally(effectiveBytes);
+    }
+    if (!kIsWeb) {
+      effectiveBytes = await _resizeImageBytesForUpload(
+        effectiveBytes,
+        maxLongSide: _mobileUploadMaxLongSide,
+      );
+    }
+    return effectiveBytes;
+  }
+
   Future<ApiResponse> fcmRequest({
     required String token,
     required List<String> topics,
@@ -186,19 +217,21 @@ class AuthRequest extends HttpService {
         "email": email,
         "phone": phone,
         "role": "client",
+        if (!kIsWeb) "provider": "phone",
         "birthday": birthday,
         "password": password,
         "country_code": countryCode,
       };
       List<File> files = [];
       FormData formData = FormData.fromMap(body);
-      if (selfieFile != null) {
+      final effectiveSelfieFile = await _effectiveSelfieUploadBytes();
+      if (effectiveSelfieFile != null) {
         formData.files.add(
           MapEntry(
             "profile",
             MultipartFile.fromBytes(
-              selfieFile!,
-              filename: "image_${Random().nextInt(900000)}.jpg",
+              effectiveSelfieFile,
+              filename: _selfieUploadFilename(),
             ),
           ),
         );
@@ -206,8 +239,8 @@ class AuthRequest extends HttpService {
           MapEntry(
             "customizable_photo",
             MultipartFile.fromBytes(
-              selfieFile!,
-              filename: "image_${Random().nextInt(900000)}.jpg",
+              effectiveSelfieFile,
+              filename: _selfieUploadFilename(),
             ),
           ),
         );
@@ -266,13 +299,14 @@ class AuthRequest extends HttpService {
       };
       List<File> files = [];
       FormData formData = FormData.fromMap(body);
-      if (selfieFile != null) {
+      final effectiveSelfieFile = await _effectiveSelfieUploadBytes();
+      if (effectiveSelfieFile != null) {
         formData.files.add(
           MapEntry(
             "profile",
             MultipartFile.fromBytes(
-              selfieFile!,
-              filename: "image_${Random().nextInt(900000)}.jpg",
+              effectiveSelfieFile,
+              filename: _selfieUploadFilename(),
             ),
           ),
         );
@@ -280,8 +314,8 @@ class AuthRequest extends HttpService {
           MapEntry(
             "customizable_photo",
             MultipartFile.fromBytes(
-              selfieFile!,
-              filename: "image_${Random().nextInt(900000)}.jpg",
+              effectiveSelfieFile,
+              filename: _selfieUploadFilename(),
             ),
           ),
         );
@@ -420,8 +454,10 @@ class AuthRequest extends HttpService {
           "photo": photo == null
               ? null
               : MultipartFile.fromBytes(
-                  selfieFile!,
-                  filename: "image_${Random().nextInt(900000)}.jpg",
+                  await _effectiveSelfieUploadBytes() ?? photo,
+                  filename: _selfieUploadFilename(
+                    mobileProfileUpdate: true,
+                  ),
                 ),
         },
       ).timeout(
@@ -434,4 +470,65 @@ class AuthRequest extends HttpService {
       throw e.toString();
     }
   }
+}
+
+Future<Uint8List> _flipImageBytesHorizontally(Uint8List bytes) async {
+  final codec = await ui.instantiateImageCodec(bytes);
+  final frame = await codec.getNextFrame();
+  final image = frame.image;
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  final paint = ui.Paint();
+
+  canvas.translate(image.width.toDouble(), 0);
+  canvas.scale(-1, 1);
+  canvas.drawImage(image, ui.Offset.zero, paint);
+
+  final picture = recorder.endRecording();
+  final flippedImage = await picture.toImage(image.width, image.height);
+  final byteData = await flippedImage.toByteData(
+    format: ui.ImageByteFormat.png,
+  );
+
+  if (byteData == null) {
+    return bytes;
+  }
+
+  return byteData.buffer.asUint8List();
+}
+
+Future<Uint8List> _resizeImageBytesForUpload(
+  Uint8List bytes, {
+  required int maxLongSide,
+}) async {
+  final codec = await ui.instantiateImageCodec(bytes);
+  final frame = await codec.getNextFrame();
+  final image = frame.image;
+  final width = image.width;
+  final height = image.height;
+  final longSide = max(width, height);
+
+  if (longSide <= maxLongSide) {
+    return bytes;
+  }
+
+  final scale = maxLongSide / longSide;
+  final targetWidth = max(1, (width * scale).round());
+  final targetHeight = max(1, (height * scale).round());
+  final resizedCodec = await ui.instantiateImageCodec(
+    bytes,
+    targetWidth: targetWidth,
+    targetHeight: targetHeight,
+  );
+  final resizedFrame = await resizedCodec.getNextFrame();
+  final resizedImage = resizedFrame.image;
+  final byteData = await resizedImage.toByteData(
+    format: ui.ImageByteFormat.png,
+  );
+
+  if (byteData == null) {
+    return bytes;
+  }
+
+  return byteData.buffer.asUint8List();
 }

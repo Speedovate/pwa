@@ -1,5 +1,4 @@
 import "package:pwa/utils/data.dart";
-import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 
 class User {
@@ -16,6 +15,7 @@ class User {
   String? phone;
   String? rawPhone;
   String? countryCode;
+  DateTime? createdAt;
   String? photo;
   List<String>? bookingServices;
   String? branchName;
@@ -49,6 +49,7 @@ class User {
     this.phone,
     this.rawPhone,
     this.countryCode,
+    this.createdAt,
     this.photo,
     this.bookingServices,
     this.branchName,
@@ -72,7 +73,6 @@ class User {
   factory User.fromJson(Map<String, dynamic>? json) {
     try {
       if (showParseText) {
-        debugPrint("Parsing User from JSON...");
       }
       return User(
         id: parseInt(
@@ -131,6 +131,10 @@ class User {
         countryCode: parseString(
           json?["country_code"] ?? json?["area_code"],
           "area_code",
+        ),
+        createdAt: parseDateTime(
+          json?["created_at"],
+          "created_at",
         ),
         photo: parseString(
           json?["photo"] ?? json?["real_photo"],
@@ -204,8 +208,6 @@ class User {
       );
     } catch (e) {
       if (showParseText) {
-        debugPrint("Error parsing User: $e");
-        debugPrint("User: $json");
       }
       return User();
     }
@@ -233,6 +235,7 @@ class User {
         "zero_phone": rawPhone,
         "area_code": countryCode,
         "country_code": countryCode,
+        "created_at": createdAt?.toIso8601String(),
         "photo": photo,
         "real_photo": photo,
         "features": bookingServices,

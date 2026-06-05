@@ -1,62 +1,28 @@
-// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
+export 'browser_utils.dart';
+export 'location_helper.dart';
 
 import 'dart:convert';
-import 'dart:html' as html;
-import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/utils/browser_utils.dart';
 import 'package:pwa/widgets/camera.widget.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/web_view.widget.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:url_launcher/url_launcher.dart';
 
 const String facebookSupportUrl = "https://www.facebook.com/ppctodaofficial";
-const String telSupportUrl = "tel://+639686410532";
-const String smsSupportUrl = "sms://+639686410532";
-
-String browserUserAgent() => lowerCase(
-      html.window.navigator.userAgent,
-      alt: "",
-    );
-
-bool isHuaweiLikeBrowser() {
-  final userAgent = browserUserAgent();
-  return userAgent.contains("huaweibrowser") || userAgent.contains("hmscore");
-}
-
-bool isIOSLikeBrowser() {
-  final userAgent = browserUserAgent();
-  if (userAgent.contains("iphone") ||
-      userAgent.contains("ipad") ||
-      userAgent.contains("ipod")) {
-    return true;
-  }
-  if (userAgent.contains("macintosh")) {
-    try {
-      final touchPoints = globalContext
-          .getProperty<JSObject>('navigator'.toJS)
-          .getProperty<JSNumber?>('maxTouchPoints'.toJS);
-      return (touchPoints?.toDartInt ?? 0) > 1;
-    } catch (_) {
-      return false;
-    }
-  }
-  return false;
-}
-
-bool isGoogleAuthLikelySupported() => !isIOSLikeBrowser();
-
-bool isWebPushLikelySupported() => html.window.navigator.serviceWorker != null;
+const String telSupportUrl = "tel:+639686410532";
+const String smsSupportUrl = "sms:+639686410532";
 
 Future<void> openFacebookSupportChannel() async {
   final facebookAppUri = Uri.parse(
@@ -481,9 +447,6 @@ parseDouble(dynamic value, String fieldName) {
   try {
     if (value == null) {
       if (showParseText) {
-        debugPrint(
-          "Error: '$fieldName' is null.",
-        );
       }
       return null;
     }
@@ -496,9 +459,6 @@ parseDouble(dynamic value, String fieldName) {
     return double.parse(value.toString());
   } catch (e) {
     if (showParseText) {
-      debugPrint(
-        "Error '$fieldName': $e",
-      );
     }
     return 0.0;
   }
@@ -508,9 +468,6 @@ parseString(dynamic value, String fieldName) {
   try {
     if (value == null) {
       if (showParseText) {
-        debugPrint(
-          "Error: '$fieldName' is null.",
-        );
       }
       return null;
     }
@@ -522,9 +479,6 @@ parseString(dynamic value, String fieldName) {
     return value.toString();
   } catch (e) {
     if (showParseText) {
-      debugPrint(
-        "Error '$fieldName': $e",
-      );
     }
     return "";
   }
@@ -534,9 +488,6 @@ parseInt(dynamic value, String fieldName) {
   try {
     if (value == null) {
       if (showParseText) {
-        debugPrint(
-          "Error: '$fieldName' is null.",
-        );
       }
       return null;
     }
@@ -549,9 +500,6 @@ parseInt(dynamic value, String fieldName) {
     return int.parse(value.toString());
   } catch (e) {
     if (showParseText) {
-      debugPrint(
-        "Error '$fieldName': $e",
-      );
     }
     return 0;
   }
@@ -561,9 +509,6 @@ bool parseBool(dynamic value, String fieldName) {
   try {
     if (value == null) {
       if (showParseText) {
-        debugPrint(
-          "Error: '$fieldName' is null",
-        );
       }
       return false;
     }
@@ -579,9 +524,6 @@ bool parseBool(dynamic value, String fieldName) {
     return false;
   } catch (e) {
     if (showParseText) {
-      debugPrint(
-        "Error '$fieldName': $e",
-      );
     }
     return false;
   }
@@ -591,9 +533,6 @@ parseDateTime(dynamic value, String fieldName) {
   try {
     if (value == null) {
       if (showParseText) {
-        debugPrint(
-          "Error: '$fieldName' is null.",
-        );
       }
       return null;
     }
@@ -606,9 +545,6 @@ parseDateTime(dynamic value, String fieldName) {
     return null;
   } catch (e) {
     if (showParseText) {
-      debugPrint(
-        "Error '$fieldName': $e",
-      );
     }
     return null;
   }
@@ -622,9 +558,6 @@ List<T>? parseList<T>(
   try {
     if (value == null) {
       if (showParseText) {
-        debugPrint(
-          "Error: '$fieldName' is null.",
-        );
       }
       return null;
     }
@@ -637,139 +570,20 @@ List<T>? parseList<T>(
     return null;
   } catch (e) {
     if (showParseText) {
-      debugPrint(
-        "Error '$fieldName': $e",
-      );
     }
     return null;
   }
 }
 
-Future<gmaps.LatLng?> getMyLatLng({
-  bool forceFresh = false,
-}) async {
-  final useFastTimeout =
-      !forceFresh && hasRealLocationFix && lastKnownRealLatLng != null;
-  try {
-    lastGeolocationErrorMessage = null;
-    final position = await _requestCurrentPosition(
-      enableHighAccuracy: true,
-      timeout: useFastTimeout ? const Duration(seconds: 5) : null,
-      maximumAge: useFastTimeout ? const Duration(seconds: 30) : Duration.zero,
-    );
-    return _storeRealLatLng(position);
-  } catch (e, stackTrace) {
-    final permissionDenied = await _isGeolocationDenied();
-    if (!permissionDenied) {
-      try {
-        final relaxedPosition = await _requestCurrentPosition(
-          enableHighAccuracy: false,
-          timeout: const Duration(seconds: 10),
-          maximumAge: const Duration(seconds: 30),
-        );
-        lastGeolocationErrorMessage = null;
-        return _storeRealLatLng(relaxedPosition);
-      } catch (retryError) {
-        debugPrint(
-          "Retry location fetch failed: ${_describeGeolocationError(retryError)}",
-        );
-        lastGeolocationErrorMessage = _describeGeolocationError(retryError);
-      }
-    }
-    final existingLocation =
-        _nonDefaultLatLng(lastKnownRealLatLng) ?? _nonDefaultLatLng(initLatLng);
-    initLatLng = existingLocation ?? (permissionDenied ? defaultLatLng : null);
-    lastGeolocationErrorMessage ??= _describeGeolocationError(e);
-    debugPrint(
-      "Failed to fetch location: ${_describeGeolocationError(e)}\n$stackTrace\nusing fallback $initLatLng",
-    );
-    return initLatLng;
-  }
-}
-
-Future<html.Geoposition> _requestCurrentPosition({
-  required bool enableHighAccuracy,
-  required Duration? timeout,
-  required Duration maximumAge,
+openWebview(
+  String title,
+  String url, {
+  bool isFromWallet = false,
 }) {
-  return geolocation.getCurrentPosition(
-    enableHighAccuracy: enableHighAccuracy,
-    timeout: timeout,
-    maximumAge: maximumAge,
-  );
-}
-
-gmaps.LatLng _storeRealLatLng(html.Geoposition position) {
-  final lat = position.coords?.latitude;
-  final lng = position.coords?.longitude;
-  if (lat == null || lng == null) {
-    throw "Location coordinates are unavailable";
-  }
-  final nextLatLng = gmaps.LatLng(
-    lat.toDouble(),
-    lng.toDouble(),
-  );
-  initLatLng = nextLatLng;
-  lastKnownRealLatLng = nextLatLng;
-  hasRealLocationFix = true;
-  debugPrint("Location fetched: $initLatLng");
-  return nextLatLng;
-}
-
-gmaps.LatLng? _nonDefaultLatLng(gmaps.LatLng? value) {
-  if (value == null) {
-    return null;
-  }
-  if (value.lat == defaultLatLng.lat && value.lng == defaultLatLng.lng) {
-    return null;
-  }
-  return value;
-}
-
-String _describeGeolocationError(Object error) {
-  try {
-    final jsError = error as JSObject;
-    final code = jsError.getProperty<JSAny?>('code'.toJS)?.dartify();
-    final message = jsError.getProperty<JSAny?>('message'.toJS)?.dartify();
-    final normalizedCode = '$code';
-    final readableCode = switch (normalizedCode) {
-      '1' => 'PERMISSION_DENIED',
-      '2' => 'POSITION_UNAVAILABLE',
-      '3' => 'TIMEOUT',
-      _ => 'UNKNOWN_ERROR',
-    };
-    return '$readableCode: $message';
-  } catch (_) {
-    return '$error';
-  }
-}
-
-Future<bool> _isGeolocationDenied() async {
-  try {
-    final permissions = globalContext
-        .getProperty<JSObject>('navigator'.toJS)
-        .getProperty<JSObject?>('permissions'.toJS);
-    if (permissions == null) {
-      return false;
-    }
-    final queryPromise = permissions.callMethod<JSPromise<JSObject?>>(
-      'query'.toJS,
-      {
-        'name': 'geolocation',
-      }.jsify(),
-    );
-    final status = await queryPromise.toDart;
-    final state = status?.getProperty<JSString?>('state'.toJS)?.toDart;
-    return '$state' == 'denied';
-  } catch (_) {
-    return false;
-  }
-}
-
-openWebview(String title, String url) {
+  bool isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
   bool isExternal = Uri.tryParse(url)?.host != Uri.base.host;
-  if (isExternal) {
-    html.window.open(url, '_blank');
+  if (!isMobile && isExternal && !isFromWallet) {
+    openExternalUrl(url);
     return;
   }
   Navigator.push(
@@ -779,6 +593,7 @@ openWebview(String title, String url) {
       transitionDuration: Duration.zero,
       pageBuilder: (context, a, b) => WebViewWidget(
         title: title,
+        isFromWallet: isFromWallet,
         selectedUrl: Uri.parse(url),
       ),
     ),
@@ -789,7 +604,7 @@ Future<dynamic> showCameraSource({
   bool isEdit = false,
   String cameraType = "profile",
 }) async {
-  try {
+  Future<dynamic> openCameraView() {
     return Navigator.push(
       Get.context!,
       PageRouteBuilder(
@@ -806,6 +621,35 @@ Future<dynamic> showCameraSource({
         ),
       ),
     );
+  }
+
+  try {
+    if (GetPlatform.isAndroid || GetPlatform.isIOS) {
+      if (await Permission.camera.isPermanentlyDenied &&
+          !AuthService.inReviewMode()) {
+        AlertService().showAppAlert(
+          asset: AppLotties.error,
+          title: "Permission Denied",
+          content: 'Go to Settings > Apps > PPC TODA > '
+              'Permissions and allow "Camera"',
+          confirmAction: () {
+            Get.back();
+            openAppSettings();
+          },
+        );
+        return null;
+      } else if (await Permission.camera.isDenied) {
+        PermissionStatus status = await Permission.camera.request();
+        if (status.isGranted) {
+          return openCameraView();
+        }
+        return null;
+      } else {
+        return openCameraView();
+      }
+    }
+
+    return openCameraView();
   } catch (e) {
     AlertService().showAppAlert(
       title: "Error",
@@ -850,13 +694,11 @@ Future<dynamic> showImageSource({
                         await picker.pickImage(source: ImageSource.gallery);
                     if (image != null) {
                       selfieFile = await image.readAsBytes();
+                      selfieFileFromMobileCamera = false;
                       Get.forceAppUpdate();
                     }
                   } catch (e) {
                     if (showParseText) {
-                      debugPrint(
-                        "Error picking image: $e",
-                      );
                     }
                   }
                 },
@@ -869,15 +711,12 @@ Future<dynamic> showImageSource({
 }
 
 share(String text) async {
-  try {
-    await html.window.navigator.share(
-      {
-        'title': 'PPC TODA (Beta)',
-        'text': text,
-        'url': "https://ppctoda.com",
-      },
-    );
-  } catch (e) {
+  final shared = await tryNativeShare(
+    title: 'PPC TODA',
+    text: text,
+    url: 'https://ppctoda.com',
+  );
+  if (!shared) {
     Clipboard.setData(
       ClipboardData(
         text: "$text Here's the download link: "
@@ -943,7 +782,6 @@ Map<String, dynamic> parseJwt(String token) {
 Future<void> subscribeToServer() async {
   final token = fcmToken?.trim();
   if (token == null || token.isEmpty || token == "null") {
-    debugPrint("Skipping FCM subscription: token unavailable");
     return;
   }
   if (AuthService.isLoggedIn()) {
@@ -954,13 +792,11 @@ Future<void> subscribeToServer() async {
         topics: topics,
       );
       if (apiResponse.allGood) {
-        debugPrint("subscribed topic(s): ${topics.join(",")}");
-        debugPrint("reponse: ${jsonEncode(apiResponse.body)}");
       } else {
         throw apiResponse.message;
       }
     } catch (e) {
-      debugPrint("$e");
+      // Ignore FCM registration failures for signed-out users.
     }
   } else {
     final topics = ["all"];
@@ -970,24 +806,17 @@ Future<void> subscribeToServer() async {
         topics: topics,
       );
       if (apiResponse.allGood) {
-        debugPrint("subscribed topic(s): ${topics.join(",")}");
-        debugPrint("reponse: ${jsonEncode(apiResponse.body)}");
       } else {
         throw apiResponse.message;
       }
     } catch (e) {
-      debugPrint("$e");
+      // Ignore FCM registration failures for signed-out users.
     }
   }
 }
 
 void copyToClipboardWeb(String text) {
-  final textarea = html.TextAreaElement()
-    ..value = text
-    ..style.position = 'fixed';
-  html.document.body?.append(textarea);
-  textarea.focus();
-  textarea.select();
-  html.document.execCommand('copy');
-  textarea.remove();
+  Clipboard.setData(
+    ClipboardData(text: text),
+  );
 }

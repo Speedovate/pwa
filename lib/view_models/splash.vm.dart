@@ -16,6 +16,7 @@ import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/requests/settings.request.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SplashViewModel extends BaseViewModel {
   StreamSubscription? configStream;
@@ -29,8 +30,9 @@ class SplashViewModel extends BaseViewModel {
     await AppStrings.getAppSettingsFromStorage();
     await AppStrings.getHomeSettingsFromStorage();
     if (AppStrings.appSettingsObject == null) {
-      unawaited(getSettings());
+      await getSettings();
     }
+    _handleUpgradeGate();
     await AuthService.ensureUserNameInFirestore();
     if (isIOSLikeBrowser()) {
       initLatLng = defaultLatLng;
@@ -38,6 +40,7 @@ class SplashViewModel extends BaseViewModel {
     } else {
       await getMyLatLng(
         forceFresh: true,
+        requestPermission: false,
       );
     }
     subscribeToServer();
@@ -52,16 +55,22 @@ class SplashViewModel extends BaseViewModel {
     await goToNextPage();
   }
 
+  bool _handleUpgradeGate() {
+    if (!AuthService.shouldUpgrade()) {
+      AuthService.resetUpgradeDismissal();
+    }
+    return true;
+  }
+
   Future<void> getAppUser() async {
     await AuthService.getUserFromStorage();
     await AuthService.getTokenFromStorage();
     try {
-      version = "1.0.39";
-      versionCode = "59";
+      final packageInfo = await PackageInfo.fromPlatform();
+      versionCode = packageInfo.buildNumber;
+      version = packageInfo.version;
     } catch (e) {
-      debugPrint(
-        "getAppInfo error: $e",
-      );
+      // Package info is best-effort during splash.
     }
   }
 
@@ -99,19 +108,16 @@ class SplashViewModel extends BaseViewModel {
             isMocked: false,
           );
           if (apiResponse.allGood) {
-            debugPrint(
-              "splash getSettings success",
-            );
           } else {
             throw apiResponse.message;
           }
         }
       } catch (e) {
-        debugPrint(
-          "splash getSettings error: $e",
-        );
+        // Location sync is best-effort during splash.
       }
-    } catch (_) {}
+    } catch (_) {
+      // Settings fetch failures are handled by existing fallback flow.
+    }
     startListeningToConfigs();
     startListeningToHotspots();
   }
@@ -119,26 +125,16 @@ class SplashViewModel extends BaseViewModel {
   Future<void> getBanners() async {
     try {
       gBanners = await settingsRequest.bannersRequest();
-      debugPrint(
-        "splash bannersRequest success",
-      );
     } catch (e) {
-      debugPrint(
-        "splash bannersRequest error: $e",
-      );
+      // Banner loading failures are non-fatal.
     }
   }
 
   Future<void> getVehicles() async {
     try {
       gVehicleTypes = await taxiRequest.vehicleTypesRequest();
-      debugPrint(
-        "splash vehicleTypesRequest success",
-      );
     } catch (e) {
-      debugPrint(
-        "splash vehicleTypesRequest error: $e",
-      );
+      // Vehicle loading failures are non-fatal.
     }
   }
 

@@ -86,7 +86,7 @@ class _TransactionListItemState extends State<TransactionListItem> {
               ),
               const SizedBox(width: 16),
               Text(
-                DateFormat("dd/MM/yyyy - h:mm a").format(
+                DateFormat("MM/dd/yyyy - h:mm a").format(
                   widget.transaction.createdAt!,
                 ),
                 style: const TextStyle(

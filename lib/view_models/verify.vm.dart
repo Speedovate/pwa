@@ -27,6 +27,54 @@ class VerifyViewModel extends BaseViewModel {
   var referralTEC = TextEditingController();
   var passwordTEC = TextEditingController();
 
+  bool get _usesRemoteOtpConfig =>
+      isBool(AppStrings.appSettingsObject?["strings"][itexmo] ?? false);
+
+  String _resolvedErrorMessage(
+    ApiResponse apiResponse, {
+    required String fallback,
+  }) {
+    final text = apiResponse.message.trim();
+    if (text.isEmpty || text.toLowerCase() == "null") {
+      final body = apiResponse.body;
+      if (body is Map<String, dynamic>) {
+        final error = "${body["error"] ?? ""}".trim();
+        if (error.isNotEmpty && error.toLowerCase() != "null") {
+          return error;
+        }
+
+        final errors = body["errors"];
+        if (errors is List && errors.isNotEmpty) {
+          final first = "${errors.first}".trim();
+          if (first.isNotEmpty && first.toLowerCase() != "null") {
+            return first;
+          }
+        }
+        if (errors is Map) {
+          for (final value in errors.values) {
+            if (value is List && value.isNotEmpty) {
+              final first = "${value.first}".trim();
+              if (first.isNotEmpty && first.toLowerCase() != "null") {
+                return first;
+              }
+            }
+            final direct = "$value".trim();
+            if (direct.isNotEmpty && direct.toLowerCase() != "null") {
+              return direct;
+            }
+          }
+        }
+      } else {
+        final raw = "$body".trim();
+        if (raw.isNotEmpty && raw.toLowerCase() != "null") {
+          return raw;
+        }
+      }
+      return "$fallback [${apiResponse.code}]";
+    }
+    return text;
+  }
+
   initialise({
     String? name,
     String? email,
@@ -41,7 +89,12 @@ class VerifyViewModel extends BaseViewModel {
     birthdayTEC.text = birthday ?? "";
     referralTEC.text = referral ?? "";
     passwordTEC.text = password ?? "";
-    if (isBool(AppStrings.appSettingsObject?["strings"][itexmo] ?? false)) {
+    await applyOtpConfigBehavior();
+    notifyListeners();
+  }
+
+  Future<void> applyOtpConfigBehavior() async {
+    if (_usesRemoteOtpConfig) {
       codeTEC.text = "";
     } else {
       codeTEC.text = "${100000 + Random().nextInt(900000)}";
@@ -155,7 +208,11 @@ class VerifyViewModel extends BaseViewModel {
                 AlertService().showAppAlert(
                   asset: AppLotties.error,
                   title: "Registration Failed",
-                  content: apiResponse.message,
+                  content: _resolvedErrorMessage(
+                    apiResponse,
+                    fallback:
+                        "There was an error while processing your registration. Please try again later.",
+                  ),
                 );
               } else {
                 final fbToken = apiResponse.body?["fb_token"];
@@ -221,7 +278,11 @@ class VerifyViewModel extends BaseViewModel {
           AlertService().showAppAlert(
             asset: AppLotties.error,
             title: "Verification Failed",
-            content: apiResponse.message,
+            content: _resolvedErrorMessage(
+              apiResponse,
+              fallback:
+                  "There was an error while verifying your code. Please try again later.",
+            ),
           );
         }
       } catch (e) {

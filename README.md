@@ -1,6 +1,6 @@
 # pwa
 
-PPC TODA PWA
+PPC TODA
 
 ## Getting Started
 

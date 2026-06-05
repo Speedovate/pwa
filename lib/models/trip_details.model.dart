@@ -1,6 +1,5 @@
 import "dart:convert";
 import "package:pwa/utils/data.dart";
-import "package:flutter/material.dart";
 import "package:pwa/utils/functions.dart";
 import "package:pwa/models/vehicle_type.model.dart";
 
@@ -47,7 +46,6 @@ class TripDetails {
   factory TripDetails.fromJson(Map<String, dynamic> json) {
     try {
       if (showParseText) {
-        debugPrint("Parsing TripDetails from JSON...");
       }
       return TripDetails(
         kmDistance: parseDouble(json["km_distance"], "km_distance"),
@@ -76,8 +74,6 @@ class TripDetails {
       );
     } catch (e) {
       if (showParseText) {
-        debugPrint("Error parsing TripDetails: $e");
-        debugPrint("TripDetails JSON: $json");
       }
       return TripDetails();
     }

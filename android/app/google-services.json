@@ -1,0 +1,101 @@
+{
+  "project_info": {
+    "project_number": "599344409686",
+    "firebase_url": "https://toda-pal-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "toda-pal",
+    "storage_bucket": "toda-pal.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599344409686:android:31790a591e798524675ff7",
+        "android_client_info": {
+          "package_name": "com.ppctoda.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "599344409686-ikij09q82haq76ggdkvp794vp3o7a43g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ppctoda.customer",
+            "certificate_hash": "137792d35e7d3f40ec7f5d5d2af7fc04f918c4bf"
+          }
+        },
+        {
+          "client_id": "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgliGikPT6MdeProBdKeN71Mrhqe4zahc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "599344409686-a71jhf47m4sd1ps1pct4n4je16g3vjvk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ppctoda.customer",
+                "app_store_id": "6743928831"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599344409686:android:431cb28b20308994675ff7",
+        "android_client_info": {
+          "package_name": "com.ppctoda.driver"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "599344409686-3alqrv69852jucodqisl520nuobc54pr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ppctoda.driver",
+            "certificate_hash": "137792d35e7d3f40ec7f5d5d2af7fc04f918c4bf"
+          }
+        },
+        {
+          "client_id": "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgliGikPT6MdeProBdKeN71Mrhqe4zahc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "599344409686-a71jhf47m4sd1ps1pct4n4je16g3vjvk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ppctoda.customer",
+                "app_store_id": "6743928831"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -99,6 +99,7 @@ class WidgetButton extends StatefulWidget {
   final bool isTransparentColor;
   final bool useDefaultHoverColor;
   final bool disableGestureDetection;
+  final Color? interactionColor;
 
   static void _null() {}
 
@@ -114,6 +115,7 @@ class WidgetButton extends StatefulWidget {
     this.isTransparentColor = false,
     this.useDefaultHoverColor = true,
     this.disableGestureDetection = false,
+    this.interactionColor,
   });
 
   @override
@@ -167,9 +169,13 @@ class _WidgetButtonState extends State<WidgetButton> {
                                 ? Colors.transparent
                                 : widget.mainColor)
                     : isPressed
-                        ? pressColor(widget.mainColor!)
+                        ? pressColor(
+                            widget.interactionColor ?? widget.mainColor!,
+                          )
                         : (isHovered
-                            ? hoverColor(widget.mainColor!)
+                            ? hoverColor(
+                                widget.interactionColor ?? widget.mainColor!,
+                              )
                             : widget.isTransparentColor
                                 ? Colors.transparent
                                 : widget.mainColor);

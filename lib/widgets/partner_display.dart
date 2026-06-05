@@ -109,38 +109,39 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
         .where((banner) => sanitizeImageUrl(banner.photo).isNotEmpty)
         .toList();
 
-    if (validBanners.isEmpty) return [];
+    if (validBanners.isEmpty) {
+      return [];
+    }
 
     return [
       CarouselSlider(
         items: validBanners.map((banner) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+          return Padding(
+            padding: const EdgeInsets.only(top: 20),
             child: Container(
-              margin: const EdgeInsets.only(top: 20),
               width: clampedWidth - 70,
               height: clampedWidth - 70,
-              color: Colors.white,
-              child: NetworkImageWidget(
-                imageUrl: banner.photo,
-                memCacheWidth: 600,
-                fit: BoxFit.cover,
-                progressIndicatorBuilder: (context, imageUrl, progress) {
-                  return Container(
-                    color: Colors.white,
-                  );
-                },
-                errorWidget: (context, imageUrl, error) {
-                  return Container(
-                    color: Colors.white,
-                    child: const Center(
-                      child: Icon(
-                        Icons.image_not_supported_outlined,
-                        color: primaryColor,
-                      ),
-                    ),
-                  );
-                },
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F7FB),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: NetworkImageWidget(
+                  imageUrl: banner.photo,
+                  memCacheWidth: 600,
+                  fit: BoxFit.cover,
+                  progressIndicatorBuilder: (context, imageUrl, progress) {
+                    return Container(
+                      color: Colors.white,
+                    );
+                  },
+                  errorWidget: (context, imageUrl, error) {
+                    return Container(
+                      color: Colors.white,
+                    );
+                  },
+                ),
               ),
             ),
           );

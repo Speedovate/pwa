@@ -61,58 +61,72 @@ class _LoadViewState extends State<LoadView> {
   Widget _buildMarkupSummaryBar(LoadViewModel vm) {
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
-        border: Border.all(
-          width: 1,
-          color: const Color(0xFF030744).withValues(alpha: 0.15),
+      child: WidgetButton(
+        onTap: () {
+          if (_showMarkupHistory) {
+            return;
+          }
+          setState(() {
+            _showMarkupHistory = true;
+          });
+        },
+        borderRadius: 12,
+        mainColor: Colors.white,
+        useDefaultHoverColor: false,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+            border: Border.all(
+              width: 1,
+              color: const Color(0xFF030744).withValues(alpha: 0.15),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF030744).withValues(alpha: 0.06),
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Color(0xFF030744),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      vm.markupBalanceLabel,
+                      style: const TextStyle(
+                        height: 1,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF030744),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "₱${vm.markupBalanceAmount.toStringAsFixed(0)}",
+                      style: const TextStyle(
+                        height: 0.95,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF030744),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFF030744).withValues(alpha: 0.06),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_outlined,
-              color: Color(0xFF030744),
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  vm.markupBalanceLabel,
-                  style: const TextStyle(
-                    height: 1,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF030744),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "₱${vm.markupBalanceAmount.toStringAsFixed(0)}",
-                  style: const TextStyle(
-                    height: 0.95,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF030744),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -152,51 +166,10 @@ class _LoadViewState extends State<LoadView> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       physics: const BouncingScrollPhysics(),
-      itemCount: vm.markupTransactions.length + 1,
+      itemCount: vm.markupTransactions.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-              border: Border.all(
-                width: 1,
-                color: const Color(0xFF030744).withValues(alpha: 0.15),
-              ),
-            ),
-            child: InkWell(
-              onTap: _openSupportChannel,
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: RichText(
-                  text: TextSpan(
-                    style: TextStyle(
-                      height: 1.25,
-                      fontSize: 12,
-                      color: const Color(0xFF030744).withValues(alpha: 0.7),
-                    ),
-                    children: const [
-                      TextSpan(
-                        text:
-                            "Claimable Partner Markups come from bookings that you paid via cash and can be claimed via ",
-                      ),
-                      TextSpan(
-                        text: "request.",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF007BFF),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-        final transaction = vm.markupTransactions[index - 1];
+        final transaction = vm.markupTransactions[index];
         final createdAt = transaction["created_at"] as DateTime?;
         final name = transaction["name"]?.toString().trim();
         final note = transaction["note"]?.toString().trim();
@@ -264,7 +237,7 @@ class _LoadViewState extends State<LoadView> {
                   Text(
                     createdAt == null
                         ? ""
-                        : DateFormat("dd/MM/yyyy - h:mm a").format(createdAt),
+                        : DateFormat("MM/dd/yyyy - h:mm a").format(createdAt),
                     style: const TextStyle(
                       height: 1,
                       fontSize: 14,
@@ -279,6 +252,52 @@ class _LoadViewState extends State<LoadView> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMarkupInfoCard() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        border: Border.all(
+          width: 1,
+          color: const Color(0xFF030744).withValues(alpha: 0.15),
+        ),
+      ),
+      child: WidgetButton(
+        onTap: _openSupportChannel,
+        borderRadius: 12,
+        mainColor: Colors.white,
+        useDefaultHoverColor: false,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                height: 1.25,
+                fontSize: 12,
+                color: const Color(0xFF030744).withValues(alpha: 0.7),
+              ),
+              children: const [
+                TextSpan(
+                  text:
+                      "Claimable Partner Markups come from bookings that you paid via cash and can be claimed via ",
+                ),
+                TextSpan(
+                  text: "request.",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF007BFF),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -361,6 +380,8 @@ class _LoadViewState extends State<LoadView> {
       viewModelBuilder: () => vm,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
         return Scaffold(
           backgroundColor: Colors.white,
           appBar: AppBar(
@@ -370,7 +391,9 @@ class _LoadViewState extends State<LoadView> {
           body: SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 12),
+                SizedBox(
+                  height: isMobile ? mediaQuery.padding.top + 36 : 12,
+                ),
                 Row(
                   children: [
                     const SizedBox(width: 4),
@@ -714,6 +737,9 @@ class _LoadViewState extends State<LoadView> {
                   _buildMarkupSummaryBar(vm),
                 if (isBool(AuthService.currentUser?.isProvider) ||
                     vm.hasMarkupHistoryAccess)
+                  _buildMarkupInfoCard(),
+                if (isBool(AuthService.currentUser?.isProvider) ||
+                    vm.hasMarkupHistoryAccess)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                     child: _buildHistorySwitch(),
@@ -751,6 +777,14 @@ class _LoadViewState extends State<LoadView> {
                                       isLoadingMore: _isLoadingMore,
                                       onRefresh: _refresh,
                                       currentPage: vm.queryPage,
+                                      padding: const EdgeInsets.fromLTRB(
+                                        20,
+                                        12,
+                                        20,
+                                        20,
+                                      ),
+                                      removeFirstItemTopPadding: true,
+                                      removeLastItemBottomPadding: true,
                                       itemBuilder: (context, order, index) {
                                         return TransactionListItem(
                                           transaction:

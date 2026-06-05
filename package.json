@@ -1,9 +1,16 @@
 {
-  "name": "pwa",
+  "name": "ppc-toda",
   "private": true,
-  "version": "1.0.39",
+  "version": "1.0.40",
   "scripts": {
     "sync-version": "node scripts/sync-pubspec-version.cjs",
-    "release": "node scripts/release.cjs"
+    "version:set": "node scripts/sync-pubspec-version.cjs",
+    "release": "node scripts/release.cjs",
+    "release:web": "node scripts/release.cjs web",
+    "release:apk": "node scripts/release.cjs apk",
+    "release:ios": "node scripts/release.cjs ios"
+  },
+  "dependencies": {
+    "firebase": "^12.14.0"
   }
 }

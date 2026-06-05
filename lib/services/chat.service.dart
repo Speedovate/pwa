@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:pwa/requests/chat.request.dart';
 import 'package:pwa/models/chat_entity.model.dart';
 
@@ -8,7 +7,7 @@ class ChatService {
       (peerKey) => chatEntity.mainUser?.id != peerKey,
     );
     final otherPeer = chatEntity.peers[otherPeerKey];
-    final apiResponse = await ChatRequest().sendNotification(
+    await ChatRequest().sendNotification(
       title: "${chatEntity.mainUser?.name}",
       body: message.contains("https") ? "Sent a photo" : message,
       topic: otherPeer!.id,
@@ -16,6 +15,5 @@ class ChatService {
       user: chatEntity.mainUser!,
       otherUser: otherPeer,
     );
-    debugPrint("Result ==> ${apiResponse.body}");
   }
 }

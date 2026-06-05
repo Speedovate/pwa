@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/constants/api.dart';
 import 'package:pwa/services/auth.service.dart';
@@ -200,9 +199,6 @@ class HttpService {
   }
 
   String _buildUri(String url) {
-    debugPrint(
-      "api request ${url.startsWith("https") ? url : "$host${url.startsWith("/") ? "" : "/"}$url"}",
-    );
     return url.startsWith("https")
         ? url
         : "$host${url.startsWith("/") ? "" : "/"}$url";

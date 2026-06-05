@@ -10,6 +10,21 @@ import 'package:pwa/models/chat_media.model.dart';
 import 'package:pwa/models/api_response.model.dart';
 
 class OrderRequest extends HttpService {
+  String _chatUploadExtension(Uint8List bytes) {
+    if (bytes.length >= 8 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47 &&
+        bytes[4] == 0x0D &&
+        bytes[5] == 0x0A &&
+        bytes[6] == 0x1A &&
+        bytes[7] == 0x0A) {
+      return "png";
+    }
+    return "jpg";
+  }
+
   Future<List<Order>> getOrdersRequest({required int page}) async {
     try {
       final apiResult = await get(
@@ -69,6 +84,7 @@ class OrderRequest extends HttpService {
     if (chatFile == null || chatFile!.isEmpty) {
       throw "No image selected.";
     }
+    final chatUploadExt = _chatUploadExtension(chatFile!);
     dynamic body = {
       "uploaded_by": uploadedBy,
     };
@@ -78,7 +94,7 @@ class OrderRequest extends HttpService {
         "media",
         MultipartFile.fromBytes(
           chatFile!,
-          filename: "image_${Random().nextInt(900000)}.jpg",
+          filename: "image_${Random().nextInt(900000)}.$chatUploadExt",
         ),
       ),
     );
@@ -109,7 +125,6 @@ class OrderRequest extends HttpService {
       }
       return apiResponse;
     } catch (e) {
-      debugPrint("postMedia error for order $id uploaded_by=$uploadedBy: $e");
       throw e.toString();
     }
   }

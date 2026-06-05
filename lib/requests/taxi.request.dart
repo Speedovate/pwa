@@ -1,9 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages
 
 import 'package:dio/dio.dart';
-import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
-import 'package:flutter/material.dart';
 import 'package:pwa/constants/api.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/models/driver.model.dart';
@@ -63,9 +61,6 @@ class TaxiRequest extends HttpService {
         );
         final apiResponse = ApiResponse.fromResponse(apiResult);
         if (apiResponse.allGood) {
-          debugPrint(
-            "${DateFormat("dd MMM yyyy, h:mm:ss a").format(DateTime.now()).toString()} LatLng(${apiResponse.body["lat"]}, ${apiResponse.body["long"]}) $orderDriver Calls",
-          );
         }
         return apiResponse;
       } catch (e) {

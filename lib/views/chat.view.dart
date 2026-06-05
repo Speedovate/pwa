@@ -1,7 +1,5 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'dart:js_interop';
-
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
@@ -11,21 +9,24 @@ import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pwa/models/order.model.dart';
+import 'package:pwa/models/address.model.dart';
+import 'package:pwa/models/coordinates.model.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:pwa/view_models/chat.vm.dart';
+import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/widgets/button.widget.dart';
-import 'package:pwa/widgets/camera.widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/requests/order.request.dart';
+import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/models/chat_entity.model.dart';
+import 'package:pwa/widgets/camera_widget_shared.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:pwa/widgets/quick_chat_pills.widget.dart';
+import 'package:pwa/utils/web_viewport_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
-
-import 'package:web/web.dart' as web;
 
 class ChatView extends StatefulWidget {
   const ChatView(
@@ -43,23 +44,26 @@ class ChatView extends StatefulWidget {
   State<ChatView> createState() => _ChatViewState();
 }
 
-class _ChatViewState extends State<ChatView> {
+class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   bool isMediaLoading = false;
   bool _isUpdatingRequestCancellation = false;
   bool _isUpdatingRequestPass = false;
   double _webKeyboardInset = 0;
-  JSFunction? _visualViewportResizeListener;
-  JSFunction? _visualViewportScrollListener;
+  double _mobileKeyboardInset = 0;
+  final WebViewportObserver _viewportObserver = WebViewportObserver();
+  final TaxiRequest _taxiRequest = TaxiRequest();
   late TextEditingController _controller;
   late FocusNode _messageFocusNode;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = TextEditingController();
     _messageFocusNode = FocusNode();
     _controller.addListener(_handleComposerChanged);
     _messageFocusNode.addListener(_handleComposerChanged);
+    _mobileKeyboardInset = _currentKeyboardInset();
     if (chatFileListenable.value != chatFile) {
       chatFileListenable.value = chatFile;
     }
@@ -68,8 +72,23 @@ class _ChatViewState extends State<ChatView> {
   }
 
   @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    final nextKeyboardInset = _currentKeyboardInset();
+    if ((_mobileKeyboardInset - nextKeyboardInset).abs() < 0.5) {
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _mobileKeyboardInset = nextKeyboardInset;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     setChatViewOpen(false);
+    WidgetsBinding.instance.removeObserver(this);
     _stopVisualViewportListener();
     _controller.removeListener(_handleComposerChanged);
     _messageFocusNode.removeListener(_handleComposerChanged);
@@ -79,74 +98,41 @@ class _ChatViewState extends State<ChatView> {
   }
 
   void _handleComposerChanged() {
-    if (!_messageFocusNode.hasFocus && _webKeyboardInset != 0) {
-      _webKeyboardInset = 0;
+    if (!_messageFocusNode.hasFocus) {
+      if (_webKeyboardInset != 0) {
+        _webKeyboardInset = 0;
+      }
+      if (_mobileKeyboardInset != 0) {
+        _mobileKeyboardInset = 0;
+      }
     }
     if (mounted) {
       setState(() {});
     }
   }
 
+  double _currentKeyboardInset() {
+    final dispatcher = WidgetsBinding.instance.platformDispatcher;
+    final view = dispatcher.implicitView ?? dispatcher.views.first;
+    return view.viewInsets.bottom / view.devicePixelRatio;
+  }
+
   void _startVisualViewportListener() {
-    try {
-      final viewport = web.window.visualViewport;
-      if (viewport == null) {
+    _viewportObserver.start((inset) {
+      if (!mounted) {
         return;
       }
-      _stopVisualViewportListener();
-      _syncWebKeyboardInset();
-      _visualViewportResizeListener = ((web.Event _) {
-        _syncWebKeyboardInset();
-      }).toJS;
-      _visualViewportScrollListener = ((web.Event _) {
-        _syncWebKeyboardInset();
-      }).toJS;
-      viewport.addEventListener("resize", _visualViewportResizeListener);
-      viewport.addEventListener("scroll", _visualViewportScrollListener);
-    } catch (_) {}
-  }
-
-  void _stopVisualViewportListener() {
-    try {
-      final viewport = web.window.visualViewport;
-      if (viewport == null) {
-        return;
-      }
-      if (_visualViewportResizeListener != null) {
-        viewport.removeEventListener("resize", _visualViewportResizeListener);
-      }
-      if (_visualViewportScrollListener != null) {
-        viewport.removeEventListener("scroll", _visualViewportScrollListener);
-      }
-    } catch (_) {
-      // no-op
-    } finally {
-      _visualViewportResizeListener = null;
-      _visualViewportScrollListener = null;
-    }
-  }
-
-  void _syncWebKeyboardInset() {
-    if (!mounted) {
-      return;
-    }
-    try {
-      final viewport = web.window.visualViewport;
-      if (viewport == null) {
-        return;
-      }
-      final innerHeight = web.window.innerHeight.toDouble();
-      final viewportHeight = viewport.height;
-      final viewportOffsetTop = viewport.offsetTop;
-      final double overlap = innerHeight - viewportHeight - viewportOffsetTop;
-      final double nextInset = overlap > 0 ? overlap : 0;
-      if ((_webKeyboardInset - nextInset).abs() < 1) {
+      if ((_webKeyboardInset - inset).abs() < 1) {
         return;
       }
       setState(() {
-        _webKeyboardInset = nextInset;
+        _webKeyboardInset = inset;
       });
-    } catch (_) {}
+    });
+  }
+
+  void _stopVisualViewportListener() {
+    _viewportObserver.stop();
   }
 
   Future<void> _sendTextMessage(
@@ -241,6 +227,93 @@ class _ChatViewState extends State<ChatView> {
     ].contains(normalized);
   }
 
+  bool _isEnrouteOrBeyondStatus(String? status) {
+    final normalized = (status ?? "").trim().toLowerCase();
+    return [
+      "enroute",
+      "delivered",
+      "completed",
+      "successful",
+      "cancelled",
+    ].contains(normalized);
+  }
+
+  bool _shouldShowAcceptedCancelRequestActions(String? message) {
+    final normalized = (message ?? "").trim().toLowerCase();
+    return normalized.contains("has accepted") &&
+        normalized.contains("cancel request");
+  }
+
+  int? get _currentOrderDriverId =>
+      widget.order.driverId ?? widget.order.driver?.id;
+
+  int _remainingCancelSecondsForOrder(Order? order) {
+    final createdAt = order?.createdAt ?? order?.taxiOrder?.createdAt;
+    if (createdAt == null) {
+      return 0;
+    }
+
+    final cancelAvailableAt = createdAt.toLocal().add(
+          const Duration(minutes: 5),
+        );
+    final remaining = cancelAvailableAt.difference(DateTime.now()).inSeconds;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  int _remainingRebookSecondsForOrder(Order? order) {
+    final createdAt = order?.createdAt ?? order?.taxiOrder?.createdAt;
+    if (createdAt == null) {
+      return 0;
+    }
+
+    final rebookAvailableAt = createdAt.toLocal().add(
+          const Duration(minutes: 2),
+        );
+    final remaining = rebookAvailableAt.difference(DateTime.now()).inSeconds;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  Address? _orderPickupAddress() {
+    final taxiOrder = widget.order.taxiOrder;
+    final lat = taxiOrder?.pickupLatitude;
+    final lng = taxiOrder?.pickupLongitude;
+    if (taxiOrder == null || lat == null || lng == null) {
+      return null;
+    }
+    return Address(
+      addressLine: taxiOrder.pickupAddress,
+      coordinates: Coordinates(lat, lng),
+    );
+  }
+
+  Address? _orderDropoffAddress() {
+    final taxiOrder = widget.order.taxiOrder;
+    final lat = taxiOrder?.dropoffLatitude;
+    final lng = taxiOrder?.dropoffLongitude;
+    if (taxiOrder == null || lat == null || lng == null) {
+      return null;
+    }
+    return Address(
+      addressLine: taxiOrder.dropoffAddress,
+      coordinates: Coordinates(lat, lng),
+    );
+  }
+
+  void _showAcceptedCancelWaitSnackBar(int seconds) {
+    ScaffoldMessenger.of(Get.context!).clearSnackBars();
+    ScaffoldMessenger.of(Get.context!).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.red,
+        content: Text(
+          "Please wait for $seconds second${seconds == 1 ? "" : "s"} or get a new driver now!",
+          style: const TextStyle(
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
   String _otherChatParticipantName() {
     final currentUserId = "${AuthService.currentUser?.id ?? ''}";
     final otherPeer = widget.chatEntity.peers.entries
@@ -251,6 +324,102 @@ class _ChatViewState extends State<ChatView> {
           orElse: () => "Recipient",
         );
     return otherPeer;
+  }
+
+  double get _chatDriverSearchPickupKmLimit =>
+      widget.order.driver?.vehicle?.vehicleType?.pickupKmLimit ??
+      widget.order.taxiOrder?.vehicleType?.pickupKmLimit ??
+      0.0;
+
+  double get _chatDriverDistantPayableFare {
+    return widget.order.total ?? 0;
+  }
+
+  double get _chatDriverDistantDialogBaseFare {
+    final orderSubTotal = widget.order.subTotal ?? 0;
+    if (orderSubTotal > 0) {
+      return orderSubTotal;
+    }
+    return _chatDriverDistantPayableFare;
+  }
+
+  Future<void> _showDriverDistantDialogForRebook(
+    ChatViewModel vm,
+    availableDriver,
+  ) async {
+    final fareNotifier = ValueNotifier<double?>(_chatDriverDistantPayableFare);
+    try {
+      await AlertService().showDriverDistantDialog(
+        availableDriver: availableDriver,
+        totalAmountListenable: fareNotifier,
+        originalFare: _chatDriverDistantDialogBaseFare,
+        newBaseFare: _chatDriverDistantDialogBaseFare,
+        onAccept: () async {
+          await _submitAcceptedCancelRequestRebook(
+            vm,
+            availableDriver,
+          );
+        },
+      );
+    } finally {
+      fareNotifier.dispose();
+    }
+  }
+
+  Future<void> _submitAcceptedCancelRequestRebook(
+    ChatViewModel vm,
+    availableDriver,
+  ) async {
+    try {
+      AlertService().showLoading();
+      final apiResponse = await _taxiRequest.passOrderRequest(
+        reason: "rebook",
+        id: widget.order.id!,
+        targetDriverId: availableDriver.driver!.id!,
+      );
+      if (!apiResponse.allGood) {
+        throw apiResponse.message;
+      }
+
+      final orderCode = widget.order.code?.trim();
+      if (orderCode != null && orderCode.isNotEmpty) {
+        await fbStore.collection("orders").doc(orderCode).update(
+          {
+            "driver_accept_id": null,
+            "driver_accept_latitude": null,
+            "driver_accept_longitude": null,
+            "userSeen": true,
+          },
+        );
+      }
+
+      final currentUserName = (widget.order.user?.name ?? "User").trim();
+      final newDriverName = (availableDriver.driver?.name ?? "Driver").trim();
+      if (newDriverName.isNotEmpty) {
+        final message =
+            "$currentUserName rebooked for a new driver and was assigned to $newDriverName!";
+        await vm.sendMessage(
+          ChatMessage(
+            text: message,
+            user: widget.chatEntity.mainUser!.toChatUser(),
+            createdAt: DateTime.now().toUtc(),
+          ),
+        );
+      }
+      AlertService().stopLoading(forceStop: true);
+    } catch (e) {
+      AlertService().stopLoading(forceStop: true);
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            e.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _updateRequestStatus({
@@ -302,6 +471,176 @@ class _ChatViewState extends State<ChatView> {
         });
       }
     }
+  }
+
+  Future<void> _processAcceptedCancelRequestCancel() async {
+    final orderSnapshot =
+        await fbStore.collection("orders").doc(widget.order.code).get();
+    final data = orderSnapshot.data();
+    final cancelStatus =
+        "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
+    final status =
+        "${data?["status"] ?? widget.order.status ?? ""}".trim().toLowerCase();
+    final canCancelWithAcceptedRequest =
+        cancelStatus == "accepted" && !_isEnrouteOrBeyondStatus(status);
+    final latestRemainingCancelSeconds =
+        _remainingCancelSecondsForOrder(widget.order);
+    if (!canCancelWithAcceptedRequest && latestRemainingCancelSeconds > 0) {
+      _showAcceptedCancelWaitSnackBar(latestRemainingCancelSeconds);
+      return;
+    }
+
+    if (AuthService.inReviewMode()) {
+      Get.back();
+      return;
+    }
+
+    Get.until((route) => route.isFirst);
+    AlertService().showLoading();
+    try {
+      final apiResponse = await _taxiRequest.cancelOrderRequest(
+        id: widget.order.id!,
+        reason: "initiated by passenger",
+        rebook: false,
+      );
+      final orderCode = widget.order.code?.trim();
+      if (!apiResponse.allGood) {
+        throw apiResponse.message;
+      }
+      AlertService().stopLoading(forceStop: true);
+      if (orderCode != null && orderCode.isNotEmpty) {
+        await fbStore.collection("orders").doc(orderCode).update(
+          {
+            "userSeen": true,
+          },
+        );
+      }
+    } catch (e) {
+      AlertService().stopLoading(forceStop: true);
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            e.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _processAcceptedCancelRequestRebook(
+    ChatViewModel vm,
+  ) async {
+    final orderSnapshot =
+        await fbStore.collection("orders").doc(widget.order.code).get();
+    final data = orderSnapshot.data();
+    final cancelStatus =
+        "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
+    final status =
+        "${data?["status"] ?? widget.order.status ?? ""}".trim().toLowerCase();
+    final canCancelWithAcceptedRequest =
+        cancelStatus == "accepted" && !_isEnrouteOrBeyondStatus(status);
+    final latestRemainingRebookSeconds =
+        _remainingRebookSecondsForOrder(widget.order);
+    if (!canCancelWithAcceptedRequest && latestRemainingRebookSeconds > 0) {
+      _showAcceptedCancelWaitSnackBar(latestRemainingRebookSeconds);
+      return;
+    }
+
+    final pickup = _orderPickupAddress();
+    final dropoff = _orderDropoffAddress();
+    final vehicleTypeId = widget.order.taxiOrder?.vehicleTypeId;
+    if (pickup == null || dropoff == null || vehicleTypeId == null) {
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "Unable to prepare this booking for rebook",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    }
+
+    Get.until((route) => route.isFirst);
+    try {
+      AlertService().showLoading();
+      final availableDriver = await _taxiRequest.findAvailableDriver(
+        pickup: pickup,
+        dropoff: dropoff,
+        vehicleTypeId: vehicleTypeId,
+        types: const [],
+      );
+      if (availableDriver?.driver == null || availableDriver?.kmDistance == 0) {
+        throw "No driver found. Try again later";
+      }
+      AlertService().stopLoading(forceStop: true);
+      if ((availableDriver?.pickupKm ?? 0.0) <= _chatDriverSearchPickupKmLimit) {
+        await _submitAcceptedCancelRequestRebook(
+          vm,
+          availableDriver!,
+        );
+      } else {
+        await _showDriverDistantDialogForRebook(
+          vm,
+          availableDriver!,
+        );
+      }
+    } catch (e) {
+      AlertService().stopLoading(forceStop: true);
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            e.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _confirmAcceptedCancelRequestCancel() {
+    AlertService().showAppAlert(
+      asset: AppLotties.confirm,
+      title: "Are you sure?",
+      content: "Do you want to cancel this booking?",
+      hideCancel: false,
+      cancelText: "No",
+      confirmText: "Yes",
+      confirmColor: Colors.red,
+      cancelAction: () async {
+        Get.back();
+      },
+      confirmAction: () async {
+        Get.back();
+        await _processAcceptedCancelRequestCancel();
+      },
+    );
+  }
+
+  void _confirmAcceptedCancelRequestRebook(ChatViewModel vm) {
+    AlertService().showAppAlert(
+      asset: AppLotties.confirm,
+      title: "Are you sure?",
+      content: "Do you want to get a new driver now?",
+      hideCancel: false,
+      cancelText: "No",
+      confirmText: "Yes",
+      confirmColor: const Color(0xFF007BFF),
+      cancelAction: () async {
+        Get.back();
+      },
+      confirmAction: () async {
+        Get.back();
+        await _processAcceptedCancelRequestRebook(vm);
+      },
+    );
   }
 
   Widget _buildRequestStatus({
@@ -401,7 +740,7 @@ class _ChatViewState extends State<ChatView> {
                         await _updateRequestStatus(
                           vm: vm,
                           requestType: requestType,
-                          status: "accepted",
+                          status: "rejected",
                         );
                       },
                 mainColor: Colors.white,
@@ -420,7 +759,7 @@ class _ChatViewState extends State<ChatView> {
                             ),
                           )
                         : Text(
-                            "Accept",
+                            "Reject",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -441,7 +780,7 @@ class _ChatViewState extends State<ChatView> {
                         await _updateRequestStatus(
                           vm: vm,
                           requestType: requestType,
-                          status: "rejected",
+                          status: "accepted",
                         );
                       },
                 mainColor: Colors.white,
@@ -451,7 +790,7 @@ class _ChatViewState extends State<ChatView> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Center(
                     child: Text(
-                      "Reject",
+                      "Accept",
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -464,6 +803,114 @@ class _ChatViewState extends State<ChatView> {
             ),
           ],
         );
+      },
+    );
+  }
+
+  Widget _buildAcceptedCancelRequestPills(ChatViewModel vm) {
+    Widget buildPill({
+      required String label,
+      required Color color,
+      required VoidCallback onTap,
+    }) {
+      return Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: const BorderRadius.all(
+              Radius.circular(1000),
+            ),
+            border: Border.all(
+              color: color.withValues(alpha: 0.18),
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: const BorderRadius.all(
+              Radius.circular(1000),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 0,
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: SizedBox(
+        height: 34,
+        child: ListView.separated(
+          shrinkWrap: true,
+          scrollDirection: Axis.horizontal,
+          itemCount: 2,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return buildPill(
+                label: "Cancel",
+                color: const Color(0xFFFF3B30),
+                onTap: _confirmAcceptedCancelRequestCancel,
+              );
+            }
+            return buildPill(
+              label: "Get a new driver now!",
+              color: const Color(0xFF007BFF),
+              onTap: () {
+                _confirmAcceptedCancelRequestRebook(vm);
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAcceptedCancelRequestActions({
+    required ChatViewModel vm,
+    required ChatMessage message,
+  }) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: fbStore.collection("orders").doc(widget.order.code).snapshots(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data();
+        final currentUserId = "${AuthService.currentUser?.id ?? ''}";
+        final isSender =
+            currentUserId.isNotEmpty && currentUserId == message.user.id;
+        final normalizedMessage = message.text.trim().toLowerCase();
+        final firestoreDriverId = "${data?["driver_id"] ?? ""}".trim();
+        final orderDriverId = "${_currentOrderDriverId ?? ""}".trim();
+        final cancelStatus =
+            "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
+        final sameDriver = firestoreDriverId.isNotEmpty &&
+            firestoreDriverId.toLowerCase() != "null" &&
+            orderDriverId.isNotEmpty &&
+            firestoreDriverId == orderDriverId;
+
+        if (isSender ||
+            !normalizedMessage.contains("has accepted") ||
+            !normalizedMessage.contains("cancel request") ||
+            !sameDriver ||
+            cancelStatus != "accepted") {
+          return const SizedBox.shrink();
+        }
+
+        return _buildAcceptedCancelRequestPills(vm);
       },
     );
   }
@@ -654,6 +1101,8 @@ class _ChatViewState extends State<ChatView> {
   @override
   Widget build(BuildContext context) {
     ChatViewModel chatViewModel = ChatViewModel();
+    final rootMediaQuery = MediaQueryData.fromView(View.of(context));
+    final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -798,11 +1247,31 @@ class _ChatViewState extends State<ChatView> {
                                                             imageUrl,
                                                             progress,
                                                           ) {
-                                                            return const CircularProgressIndicator(
-                                                              color: Color(
-                                                                0xFF007BFF,
+                                                            return Container(
+                                                              decoration:
+                                                                  const BoxDecoration(
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                                color: Color(
+                                                                  0x14007BFF,
+                                                                ),
                                                               ),
-                                                              strokeWidth: 2,
+                                                              child:
+                                                                  const Center(
+                                                                child:
+                                                                    SizedBox(
+                                                                  width: 16,
+                                                                  height: 16,
+                                                                  child:
+                                                                      CircularProgressIndicator(
+                                                                    color: Color(
+                                                                      0xFF007BFF,
+                                                                    ),
+                                                                    strokeWidth:
+                                                                        2,
+                                                                  ),
+                                                                ),
+                                                              ),
                                                             );
                                                           },
                                                           errorWidget: (
@@ -811,15 +1280,22 @@ class _ChatViewState extends State<ChatView> {
                                                             progress,
                                                           ) {
                                                             return Container(
-                                                              color:
-                                                                  const Color(
-                                                                0xFF030744,
+                                                              decoration:
+                                                                  const BoxDecoration(
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                                color: Color(
+                                                                  0xFF030744,
+                                                                ),
                                                               ),
-                                                              child: const Icon(
-                                                                Icons
-                                                                    .person_outline_outlined,
-                                                                color: Colors
-                                                                    .white,
+                                                              child:
+                                                                  const Center(
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .person_outline_outlined,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
                                                               ),
                                                             );
                                                           },
@@ -947,6 +1423,17 @@ class _ChatViewState extends State<ChatView> {
                                                                     height: 5,
                                                                   ),
                                                                 ],
+                                                                _buildAcceptedCancelRequestActions(
+                                                                  vm: vm,
+                                                                  message:
+                                                                      message,
+                                                                ),
+                                                                if (_shouldShowAcceptedCancelRequestActions(
+                                                                  message.text,
+                                                                ))
+                                                                  const SizedBox(
+                                                                    height: 5,
+                                                                  ),
                                                                 Text(
                                                                   DateFormat(
                                                                     "h:mm a",
@@ -1157,18 +1644,21 @@ class _ChatViewState extends State<ChatView> {
                               final mediaKeyboardInset =
                                   MediaQuery.of(context).viewInsets.bottom;
                               final keyboardInset =
-                                  mediaKeyboardInset > _webKeyboardInset
+                                  mediaKeyboardInset > _mobileKeyboardInset
                                       ? mediaKeyboardInset
-                                      : _webKeyboardInset;
+                                      : _mobileKeyboardInset > _webKeyboardInset
+                                          ? _mobileKeyboardInset
+                                          : _webKeyboardInset;
                               final isComposerFocused =
                                   _messageFocusNode.hasFocus;
                               final showQuickChatPills =
                                   selectedChatFile == null &&
                                       !isComposerFocused;
-                              final imagePreviewHeight = MediaQuery.of(context)
-                                  .size
-                                  .width
-                                  .clamp(0.0, 450.0);
+                              final double imagePreviewHeight =
+                                  MediaQuery.of(context)
+                                      .size
+                                      .width
+                                      .clamp(0.0, 450.0);
                               return AnimatedPadding(
                                 duration: const Duration(milliseconds: 180),
                                 curve: Curves.easeOut,
@@ -1342,9 +1832,6 @@ class _ChatViewState extends State<ChatView> {
                                                             }
                                                           } catch (e) {
                                                             if (showParseText) {
-                                                              debugPrint(
-                                                                "Error picking image: $e",
-                                                              );
                                                             }
                                                           }
                                                         },
@@ -1448,7 +1935,7 @@ class _ChatViewState extends State<ChatView> {
                       if (selectedChatFile == null) {
                         return const SizedBox.shrink();
                       }
-                      final imagePreviewHeight =
+                      final double imagePreviewHeight =
                           MediaQuery.of(context).size.width.clamp(0.0, 450.0);
                       return Positioned(
                         left: 0,
@@ -1626,7 +2113,11 @@ class _ChatViewState extends State<ChatView> {
                         color: Colors.white,
                         child: Column(
                           children: [
-                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: isMobile
+                                  ? rootMediaQuery.padding.top + 16
+                                  : 12,
+                            ),
                             Row(
                               children: [
                                 const SizedBox(width: 4),
@@ -1678,7 +2169,7 @@ class _ChatViewState extends State<ChatView> {
                                   child: WidgetButton(
                                     onTap: () {
                                       launchUrlString(
-                                        "tel://${widget.order.driver?.phone}",
+                                        "tel:${widget.order.driver?.phone}",
                                       );
                                     },
                                     mainColor: const Color(

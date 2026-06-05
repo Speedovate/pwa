@@ -30,8 +30,10 @@ class Api {
   static const authCheck = "/auth/check";
   static const authPhone = "/auth/phone";
   static const authVerify = "/auth/verify";
-  static const authSignUp = "/auth/signup";
-  static const authSignIn = "/auth/signin";
+  // static const authSignUp = "/auth/signup";
+  static const authSignUp = "/register";
+  // static const authSignIn = "/auth/signin";
+  static const authSignIn = "/login";
   static const authUpdate = "/auth/update";
   static const authDelete = "/auth/delete";
   static const googleLogin = "/social/login";

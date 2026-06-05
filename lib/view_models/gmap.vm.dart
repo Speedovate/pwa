@@ -1,6 +1,8 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
 import 'dart:async';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
@@ -18,9 +20,18 @@ import 'package:pwa/services/geocoder.service.dart';
 class GMapViewModel extends BaseViewModel {
   static const Duration _minimumLoadingIndicatorDuration =
       Duration(milliseconds: 350);
+  static const Duration _defaultMapMoveDebounceDuration =
+      Duration(milliseconds: 3000);
+  static const double _webSinglePointFocusZoom = 15;
+  static const Duration _mobileInitialMapMoveDebounceDuration =
+      Duration(milliseconds: 150);
+  static const Duration _mobilePolylineAnimationStepDuration =
+      Duration(milliseconds: 16);
+  static const int _mobilePolylineAnimationFrameCount = 32;
   AppMapController? _map;
   Timer? _debounce;
   int _cameraMoveGeneration = 0;
+  int _polylineAnimationGeneration = 0;
   bool _isResolvingCameraMove = false;
   bool _isCameraMovePending = false;
   DateTime? _ignoreCameraMoveUntil;
@@ -46,6 +57,12 @@ class GMapViewModel extends BaseViewModel {
   bool get hasActivatedBottomUi => _hasActivatedBottomUi;
   bool get shouldSkipInitialMapCameraMove => false;
   bool get shouldAutoFitMapToRoute => true;
+  EdgeInsets get routeBoundsPadding => kIsWeb
+      ? const EdgeInsets.fromLTRB(75, 90, 75, 90)
+      : const EdgeInsets.fromLTRB(100, 180, 100, 140);
+  Duration get initialMapCameraMoveDebounceDuration => kIsWeb
+      ? _defaultMapMoveDebounceDuration
+      : _mobileInitialMapMoveDebounceDuration;
 
   List<MapMarkerData> _markersWithDriverOnTop(List<MapMarkerData> nextMarkers) {
     final sorted = [...nextMarkers];
@@ -121,6 +138,7 @@ class GMapViewModel extends BaseViewModel {
 
   void cancelPendingCameraMove() {
     _cameraMoveGeneration++;
+    _polylineAnimationGeneration++;
     _debounce?.cancel();
     _debounce = null;
     _isCameraMovePending = false;
@@ -129,6 +147,115 @@ class GMapViewModel extends BaseViewModel {
       showMapLoadingIndicator.value = false;
     }
     _syncMapUiNotifiers();
+  }
+
+  Future<void> _setPolylineWithOptionalAnimation({
+    required List<gmaps.LatLng> points,
+    required Color color,
+    required double strokeWidth,
+    bool animate = false,
+  }) async {
+    final animationGeneration = ++_polylineAnimationGeneration;
+    if (!animate || kIsWeb || points.length <= 2) {
+      polylines = [
+        MapPolylineData(
+          points: points,
+          color: color,
+          strokeWidth: strokeWidth,
+        ),
+      ];
+      return;
+    }
+
+    polylines = [];
+    notifyListeners();
+
+    for (var frame = 1; frame <= _mobilePolylineAnimationFrameCount; frame++) {
+      if (animationGeneration != _polylineAnimationGeneration) {
+        return;
+      }
+      final progress = frame / _mobilePolylineAnimationFrameCount;
+      final visiblePoints = _visiblePolylinePointsForProgress(
+        points,
+        progress,
+      );
+      polylines = [
+        MapPolylineData(
+          points: visiblePoints,
+          color: color,
+          strokeWidth: strokeWidth,
+        ),
+      ];
+      notifyListeners();
+      if (frame < _mobilePolylineAnimationFrameCount) {
+        await Future<void>.delayed(_mobilePolylineAnimationStepDuration);
+      }
+    }
+  }
+
+  List<gmaps.LatLng> _visiblePolylinePointsForProgress(
+    List<gmaps.LatLng> points,
+    double progress,
+  ) {
+    if (points.length <= 1) {
+      return List<gmaps.LatLng>.from(points);
+    }
+
+    final clampedProgress = progress.clamp(0.0, 1.0);
+    if (clampedProgress <= 0) {
+      return points.take(1).toList();
+    }
+    if (clampedProgress >= 1) {
+      return List<gmaps.LatLng>.from(points);
+    }
+
+    final segmentLengths = <double>[];
+    var totalLength = 0.0;
+    for (var i = 1; i < points.length; i++) {
+      final dx = points[i].lat - points[i - 1].lat;
+      final dy = points[i].lng - points[i - 1].lng;
+      final length = sqrt((dx * dx) + (dy * dy));
+      segmentLengths.add(length);
+      totalLength += length;
+    }
+
+    if (totalLength == 0) {
+      final endIndex =
+          (1 + ((points.length - 1) * clampedProgress)).floor().clamp(
+                2,
+                points.length,
+              );
+      return points.take(endIndex).toList();
+    }
+
+    final targetLength = totalLength * clampedProgress;
+    var traversedLength = 0.0;
+    final visiblePoints = <gmaps.LatLng>[points.first];
+
+    for (var i = 1; i < points.length; i++) {
+      final previousPoint = points[i - 1];
+      final nextPoint = points[i];
+      final segmentLength = segmentLengths[i - 1];
+      final nextTraversedLength = traversedLength + segmentLength;
+
+      if (targetLength >= nextTraversedLength) {
+        visiblePoints.add(nextPoint);
+        traversedLength = nextTraversedLength;
+        continue;
+      }
+
+      final remainingLength = targetLength - traversedLength;
+      final ratio = segmentLength == 0 ? 0.0 : remainingLength / segmentLength;
+      visiblePoints.add(
+        gmaps.LatLng(
+          previousPoint.lat + ((nextPoint.lat - previousPoint.lat) * ratio),
+          previousPoint.lng + ((nextPoint.lng - previousPoint.lng) * ratio),
+        ),
+      );
+      break;
+    }
+
+    return visiblePoints.length < 2 ? points.take(2).toList() : visiblePoints;
   }
 
   @override
@@ -164,7 +291,11 @@ class GMapViewModel extends BaseViewModel {
           return;
         }
         _syncMapUiNotifiers();
-        mapCameraMove("setMap", mapCenter);
+        mapCameraMove(
+          "setMap",
+          mapCenter,
+          debounceDuration: initialMapCameraMoveDebounceDuration,
+        );
       },
     );
   }
@@ -179,7 +310,11 @@ class GMapViewModel extends BaseViewModel {
     }
     isInitializing = true;
     _syncMapUiNotifiers();
-    mapCameraMove("setMap", mapCenter);
+    mapCameraMove(
+      "setMap",
+      mapCenter,
+      debounceDuration: initialMapCameraMoveDebounceDuration,
+    );
   }
 
   bool get isIgnoringCameraMove {
@@ -205,8 +340,61 @@ class GMapViewModel extends BaseViewModel {
     return target;
   }
 
+  Future<void> reseedPickupFromCurrentLocation({double zoom = 16}) async {
+    final target = await zoomToCurrentLocation(zoom: zoom);
+    if (target == null) {
+      return;
+    }
+
+    try {
+      final addresses = await geocoderService.findAddressesFromCoordinates(
+        Coordinates(
+          target.lat,
+          target.lng,
+        ),
+      );
+      final address = addresses.isNotEmpty
+          ? Address(
+              addressLine: addresses.first.addressLine,
+              countryName: addresses.first.countryName,
+              countryCode: addresses.first.countryCode,
+              featureName: addresses.first.featureName,
+              postalCode: addresses.first.postalCode,
+              adminArea: addresses.first.adminArea,
+              subAdminArea: addresses.first.subAdminArea,
+              locality: addresses.first.locality,
+              subLocality: addresses.first.subLocality,
+              thoroughfare: addresses.first.thoroughfare,
+              subThoroughfare: addresses.first.subThoroughfare,
+              gMapPlaceId: addresses.first.gMapPlaceId,
+              coordinates: Coordinates(
+                target.lat,
+                target.lng,
+              ),
+            )
+          : Address(
+              coordinates: Coordinates(
+                target.lat,
+                target.lng,
+              ),
+            );
+      await addressSelected(address);
+    } catch (_) {
+      await addressSelected(
+        Address(
+          coordinates: Coordinates(
+            target.lat,
+            target.lng,
+          ),
+        ),
+      );
+    }
+  }
+
   bool fitCurrentRouteBounds({
-    EdgeInsets padding = const EdgeInsets.all(48),
+    EdgeInsets? padding,
+    bool animated = true,
+    bool allowSinglePointFit = true,
   }) {
     if (_map == null) {
       return false;
@@ -223,26 +411,66 @@ class GMapViewModel extends BaseViewModel {
       return false;
     }
 
+    final uniquePoints = <String, gmaps.LatLng>{};
+    for (final point in routePoints) {
+      uniquePoints["${point.lat},${point.lng}"] = point;
+    }
+    final targetPoints = uniquePoints.values.toList();
+    if (targetPoints.isEmpty) {
+      return false;
+    }
+
+    final hasOnlyPickupSelection = targetPoints.length == 1 &&
+        pickupAddress != null &&
+        dropoffAddress == null &&
+        polylines.isEmpty &&
+        markers.isEmpty;
+    if (kIsWeb && hasOnlyPickupSelection) {
+      return false;
+    }
+
     ignoreCameraMovesFor(
       const Duration(milliseconds: 1200),
     );
+    if (targetPoints.length == 1) {
+      if (!allowSinglePointFit) {
+        return false;
+      }
+      _map!.recenter(
+        targetPoints.first,
+        zoom: kIsWeb ? _webSinglePointFocusZoom : 16,
+      );
+      return true;
+    }
     _map!.fitToCoordinates(
-      routePoints,
-      padding: padding,
+      targetPoints,
+      padding: padding ?? routeBoundsPadding,
+      animated: animated,
     );
     return true;
   }
 
-  Future<void> recenterHomeMap() async {
+  Future<void> recenterHomeMap({
+    gmaps.LatLng? fallbackTarget,
+    bool allowSinglePointFit = true,
+  }) async {
     if (_map == null) {
       return;
     }
 
-    if (fitCurrentRouteBounds()) {
+    if (fitCurrentRouteBounds(
+      allowSinglePointFit: allowSinglePointFit,
+    )) {
       return;
     }
 
-    final target = await zoomToCurrentLocation();
+    final target = fallbackTarget ?? await zoomToCurrentLocation();
+    if (fallbackTarget != null) {
+      zoomToLocation(
+        fallbackTarget,
+        zoom: kIsWeb ? _webSinglePointFocusZoom : 16,
+      );
+    }
     if (target != null) {
       await mapCameraMove(
         "myLocation",
@@ -255,12 +483,20 @@ class GMapViewModel extends BaseViewModel {
   zoomToLocation(
     gmaps.LatLng target, {
     double zoom = 16,
+    bool animate = true,
   }) async {
     if (_map != null) {
-      _map!.recenter(
-        target,
-        zoom: zoom,
-      );
+      if (animate) {
+        _map!.recenter(
+          target,
+          zoom: zoom,
+        );
+      } else {
+        _map!.move(
+          target,
+          zoom,
+        );
+      }
     }
   }
 
@@ -270,7 +506,10 @@ class GMapViewModel extends BaseViewModel {
         const Duration(milliseconds: 800),
       );
       final currentZoom = _map!.zoom;
-      _map!.move(_map!.center, (currentZoom + 1).clamp(2, 21));
+      _map!.recenter(
+        _map!.center,
+        zoom: (currentZoom + 1).clamp(2, 21),
+      );
     }
   }
 
@@ -280,7 +519,10 @@ class GMapViewModel extends BaseViewModel {
         const Duration(milliseconds: 800),
       );
       final currentZoom = _map!.zoom;
-      _map!.move(_map!.center, (currentZoom - 1).clamp(2, 21));
+      _map!.recenter(
+        _map!.center,
+        zoom: (currentZoom - 1).clamp(2, 21),
+      );
     }
   }
 
@@ -289,7 +531,7 @@ class GMapViewModel extends BaseViewModel {
     gmaps.LatLng? target, {
     bool skipSelectedAddress = false,
     bool animateSelectedAddress = true,
-    Duration debounceDuration = const Duration(milliseconds: 3000),
+    Duration debounceDuration = _defaultMapMoveDebounceDuration,
     Completer<void>? completion,
   }) async {
     if (target == null || _isResolvingCameraMove) {
@@ -297,7 +539,6 @@ class GMapViewModel extends BaseViewModel {
       return;
     }
     final generation = ++_cameraMoveGeneration;
-    debugPrint("Map move - $function");
     final previousAddress = selectedAddress.value;
     if (!skipSelectedAddress) {
       beginCameraMove();
@@ -371,7 +612,6 @@ class GMapViewModel extends BaseViewModel {
             isInitializing = false;
             final fallbackAddress = previousAddress ??
                 Address(
-                  addressLine: "Current location",
                   coordinates: Coordinates(
                     double.parse("${target.lat}"),
                     double.parse("${target.lng}"),
@@ -426,13 +666,8 @@ class GMapViewModel extends BaseViewModel {
                 return;
               }
               shouldNotify = true;
-              debugPrint(
-                "gmap vehicleTypesRequest success",
-              );
             } catch (e) {
-              debugPrint(
-                "gmap vehicleTypesRequest error 1: $e",
-              );
+              // Vehicle types can retry on the next map move.
             }
           }
         } finally {
@@ -472,7 +707,7 @@ class GMapViewModel extends BaseViewModel {
         try {
           resolvedAddress = await geocoderService.fetchPlaceDetails(address);
         } catch (e) {
-          debugPrint("Error in fetchPlaceDetails: $e");
+          // Fall back to the provided place summary when details fail.
         }
       }
       selectedAddress.value = resolvedAddress;
@@ -496,15 +731,13 @@ class GMapViewModel extends BaseViewModel {
         _map!.move(nextCenter, currentZoom);
       }
     } catch (e) {
-      debugPrint("Error in addressSelected: $e");
+      // Ignore temporary map-selection failures.
     }
   }
 
   drawPickPolyLines(
-    String purpose,
-    gmaps.LatLng pickupLatLng,
-    gmaps.LatLng driverLatLng,
-  ) async {
+      String purpose, gmaps.LatLng pickupLatLng, gmaps.LatLng driverLatLng,
+      {bool animatePolyline = false}) async {
     if (_map == null) return;
     markers = [
       const MapMarkerData(
@@ -533,13 +766,12 @@ class GMapViewModel extends BaseViewModel {
       );
       if (result.isNotEmpty) {
         final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
-        polylines = [
-          MapPolylineData(
-            points: points,
-            color: const Color(0xFF42A5F5),
-            strokeWidth: 6,
-          ),
-        ];
+        await _setPolylineWithOptionalAnimation(
+          points: points,
+          color: const Color(0xFF42A5F5),
+          strokeWidth: 6,
+          animate: animatePolyline,
+        );
         final allPoints = [driverLatLng, ...points, pickupLatLng];
         if (shouldAutoFitMapToRoute) {
           ignoreCameraMovesFor(
@@ -547,24 +779,25 @@ class GMapViewModel extends BaseViewModel {
           );
           _map!.fitToCoordinates(
             allPoints,
-            padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+            padding: routeBoundsPadding,
           );
         }
-      } else {
-        debugPrint("No polyline points received from backend");
-      }
+      } else {}
     } catch (e) {
-      debugPrint("Error drawing pick polyline: $e");
+      // Ignore temporary polyline failures.
     }
     notifyListeners();
   }
 
-  drawDropPolyLines(
+  Future<void> drawDropPolyLines(
     String purpose,
     gmaps.LatLng pickupLatLng,
     gmaps.LatLng dropoffLatLng,
-    gmaps.LatLng? driverLatLng,
-  ) async {
+    gmaps.LatLng? driverLatLng, {
+    bool animatePolyline = false,
+    bool autoFitMap = true,
+    bool autoFitAnimated = true,
+  }) async {
     if (_map == null) return;
     markers = [
       const MapMarkerData(
@@ -604,33 +837,32 @@ class GMapViewModel extends BaseViewModel {
       );
       if (result.isNotEmpty) {
         final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
-        polylines = [
-          MapPolylineData(
-            points: points,
-            color: const Color(0xFF42A5F5),
-            strokeWidth: 8,
-          ),
-        ];
+        await _setPolylineWithOptionalAnimation(
+          points: points,
+          color: const Color(0xFF42A5F5),
+          strokeWidth: 6,
+          animate: animatePolyline,
+        );
         final allPoints = [pickupLatLng, ...points, dropoffLatLng];
-        if (shouldAutoFitMapToRoute) {
+        if (autoFitMap && shouldAutoFitMapToRoute) {
           ignoreCameraMovesFor(
             const Duration(milliseconds: 1200),
           );
           _map!.fitToCoordinates(
             allPoints,
-            padding: const EdgeInsets.fromLTRB(75, 90, 75, 90),
+            padding: routeBoundsPadding,
+            animated: autoFitAnimated,
           );
         }
-      } else {
-        debugPrint("No polyline points received from backend");
-      }
+      } else {}
     } catch (e) {
-      debugPrint("Error drawing drop polyline: $e");
+      // Ignore temporary polyline failures.
     }
     notifyListeners();
   }
 
   clearGMapDetails() {
+    _polylineAnimationGeneration++;
     markers = [];
     polylines = [];
     notifyListeners();

@@ -1,7 +1,4 @@
-// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
-
 import 'dart:async';
-import 'dart:html' as html;
 import 'package:pwa/models/banner.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pwa/constants/strings.dart';
@@ -25,6 +22,8 @@ int orderDriver = 0;
 String? versionCode;
 int branchNumber = 0;
 Uint8List? selfieFile;
+bool selfieFileNeedsHorizontalFlip = false;
+bool selfieFileFromMobileCamera = false;
 bool isAdSeen = false;
 bool isAd1Seen = false;
 bool isSharing = false;
@@ -42,6 +41,9 @@ bool cameFromSettings = false;
 bool cameFromLocation = false;
 bool otherVehicleOpen = false;
 bool loadingPolylines = false;
+bool openHomeDrawerOnNextLoad = false;
+String? pendingHomeDrawerDialogTitle;
+String? pendingHomeDrawerDialogContent;
 List<ChatMedia> mediaList = [];
 AvailableDriver? availableDriver;
 List<VehicleType> availableVehicles = [];
@@ -83,7 +85,6 @@ List<VehicleType> gVehicleTypes = [];
 
 final fbStore = FirebaseFirestore.instance;
 final userQuickChatDoc = fbStore.collection("quick_chat").doc("user");
-var geolocation = html.window.navigator.geolocation;
 
 void setLoadingDialogOpen(bool isOpen) {
   if (isLoadingDialogOpen == isOpen &&
@@ -105,6 +106,31 @@ void setChatFile(Uint8List? fileBytes) {
 
 void setChatViewOpen(bool isOpen) {
   isChatViewOpen = isOpen;
+}
+
+void queueHomeDrawerDialog({
+  required String title,
+  required String content,
+}) {
+  openHomeDrawerOnNextLoad = true;
+  pendingHomeDrawerDialogTitle = title;
+  pendingHomeDrawerDialogContent = content;
+}
+
+({String title, String content})? consumeHomeDrawerDialog() {
+  if (!openHomeDrawerOnNextLoad ||
+      pendingHomeDrawerDialogTitle == null ||
+      pendingHomeDrawerDialogContent == null) {
+    return null;
+  }
+  final result = (
+    title: pendingHomeDrawerDialogTitle!,
+    content: pendingHomeDrawerDialogContent!,
+  );
+  openHomeDrawerOnNextLoad = false;
+  pendingHomeDrawerDialogTitle = null;
+  pendingHomeDrawerDialogContent = null;
+  return result;
 }
 
 Future<void> waitForLoadingDialogToClose() {

@@ -1,18 +1,18 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/views/verify.view.dart';
-import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/map.service.dart';
+import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/push.service.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -31,6 +31,51 @@ class RegisterViewModel extends BaseViewModel {
   var referralTEC = TextEditingController();
   var passwordTEC = TextEditingController();
   var cPasswordTEC = TextEditingController();
+
+  String _resolvedErrorMessage(
+    ApiResponse apiResponse, {
+    required String fallback,
+  }) {
+    final text = apiResponse.message.trim();
+    if (text.isEmpty || text.toLowerCase() == "null") {
+      final body = apiResponse.body;
+      if (body is Map<String, dynamic>) {
+        final error = "${body["error"] ?? ""}".trim();
+        if (error.isNotEmpty && error.toLowerCase() != "null") {
+          return error;
+        }
+
+        final errors = body["errors"];
+        if (errors is List && errors.isNotEmpty) {
+          final first = "${errors.first}".trim();
+          if (first.isNotEmpty && first.toLowerCase() != "null") {
+            return first;
+          }
+        }
+        if (errors is Map) {
+          for (final value in errors.values) {
+            if (value is List && value.isNotEmpty) {
+              final first = "${value.first}".trim();
+              if (first.isNotEmpty && first.toLowerCase() != "null") {
+                return first;
+              }
+            }
+            final direct = "$value".trim();
+            if (direct.isNotEmpty && direct.toLowerCase() != "null") {
+              return direct;
+            }
+          }
+        }
+      } else {
+        final raw = "$body".trim();
+        if (raw.isNotEmpty && raw.toLowerCase() != "null") {
+          return raw;
+        }
+      }
+      return "$fallback [${apiResponse.code}]";
+    }
+    return text;
+  }
 
   initialise() async {
     try {
@@ -107,7 +152,8 @@ class RegisterViewModel extends BaseViewModel {
           ),
         ),
       );
-    } else if (birthdayTEC.text.trim().isEmpty || isBirthdayActive) {
+    } else if (!AuthService.inReviewMode() &&
+        (birthdayTEC.text.trim().isEmpty || isBirthdayActive)) {
       ScaffoldMessenger.of(Get.context!).clearSnackBars();
       ScaffoldMessenger.of(
         Get.context!,
@@ -476,7 +522,11 @@ class RegisterViewModel extends BaseViewModel {
         AlertService().showAppAlert(
           asset: AppLotties.error,
           title: "Registration Failed",
-          content: apiResponse.message,
+          content: _resolvedErrorMessage(
+            apiResponse,
+            fallback:
+                "There was an error while processing your registration. Please try again later.",
+          ),
         );
       } else {
         final fbToken = apiResponse.body?["fb_token"];

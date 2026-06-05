@@ -1,9 +1,15 @@
+import 'dart:async';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/login.view.dart';
 import 'package:pwa/constants/images.dart';
+import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/push.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/widgets/upgrade.widget.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:pwa/widgets/page_indicator.widget.dart';
@@ -18,6 +24,29 @@ class IntroView extends StatefulWidget {
 class _IntroViewState extends State<IntroView> {
   List<String> items = ["a", "b", "c", "d", "e"];
   int itemsIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!kIsWeb) {
+        unawaited(
+          _requestMobilePermissions(),
+        );
+      }
+    });
+  }
+
+  Future<void> _requestMobilePermissions() async {
+    if (AuthService.inReviewMode()) {
+      return;
+    }
+    await PushService.requestNotificationPermissionsIfNeeded();
+    await getMyLatLng(
+      forceFresh: true,
+      requestPermission: true,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +226,9 @@ class _IntroViewState extends State<IntroView> {
                         horizontal: 24,
                       ),
                       child: ActionButton(
-                        text: "Login account",
+                        text: AuthService.inReviewMode()
+                            ? "Login Account"
+                            : "Continue",
                         onTap: () {
                           setState(() {
                             isTourist = false;
@@ -244,12 +275,16 @@ class _IntroViewState extends State<IntroView> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.bottom + 32,
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+          if (AuthService.shouldUpgrade() && !AuthService.isUpgradeDismissed())
+            const UpgradeWidget(),
         ],
       ),
     );

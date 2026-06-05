@@ -19,18 +19,33 @@ class OrderListItem extends StatefulWidget {
     required this.hvm,
     required this.order,
     required this.onTap,
+    this.onUseHistoryRoute,
     super.key,
   });
 
   final Order order;
   final HomeViewModel hvm;
   final VoidCallback onTap;
+  final VoidCallback? onUseHistoryRoute;
 
   @override
   State<OrderListItem> createState() => _OrderListItemState();
 }
 
 class _OrderListItemState extends State<OrderListItem> {
+  Future<void> _returnHistoryRoute({
+    required Address pickup,
+    required Address dropoff,
+  }) async {
+    widget.onUseHistoryRoute?.call();
+    Get.back(
+      result: <String, dynamic>{
+        "pickup": pickup,
+        "dropoff": dropoff,
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -255,11 +270,7 @@ class _OrderListItemState extends State<OrderListItem> {
                                   double.parse("${initLatLng!.lng}"),
                             ),
                           );
-                          Get.until(
-                            (route) => route.isFirst,
-                          );
-                          Get.back();
-                          await widget.hvm.previewSelectedRouteOnHome(
+                          await _returnHistoryRoute(
                             pickup: nextPickup,
                             dropoff: nextDropoff,
                           );
@@ -329,11 +340,7 @@ class _OrderListItemState extends State<OrderListItem> {
                                   double.parse("${initLatLng!.lng}"),
                             ),
                           );
-                          Get.until(
-                            (route) => route.isFirst,
-                          );
-                          Get.back();
-                          await widget.hvm.previewSelectedRouteOnHome(
+                          await _returnHistoryRoute(
                             pickup: nextPickup,
                             dropoff: nextDropoff,
                           );

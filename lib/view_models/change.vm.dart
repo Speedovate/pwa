@@ -1,11 +1,14 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/views/intro.view.dart';
+import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/login.view.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/models/api_response.model.dart';
+import 'package:pwa/utils/data.dart';
 
 class ChangeViewModel extends BaseViewModel {
   AuthRequest authRequest = AuthRequest();
@@ -89,28 +92,24 @@ class ChangeViewModel extends BaseViewModel {
           password: nPasswordTEC.text,
         );
         if (apiResponse.allGood) {
-          Get.until((route) => route.isFirst);
-          Navigator.push(
-            Get.context!,
-            PageRouteBuilder(
-              reverseTransitionDuration: Duration.zero,
-              transitionDuration: Duration.zero,
-              pageBuilder: (
-                context,
-                a,
-                b,
-              ) =>
-                  const LoginView(),
-            ),
+          Get.offAll(
+            () => const IntroView(),
+            transition: Transition.noTransition,
           );
-          AlertService().showAppAlert(
-            asset: AppLotties.success,
-            title: "Forgot Password",
-            content: "Your password has been changed",
-            confirmAction: () {
-              Get.until((route) => route.isFirst);
-            },
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Get.to(
+              () => const LoginView(),
+              transition: Transition.noTransition,
+            );
+            AlertService().showAppAlert(
+              asset: AppLotties.success,
+              title: "Forgot Password",
+              content: "Your password has been changed",
+              confirmAction: () {
+                Get.back();
+              },
+            );
+          });
         } else {
           throw apiResponse.message;
         }
@@ -250,14 +249,13 @@ class ChangeViewModel extends BaseViewModel {
         );
         if (apiResponse.allGood) {
           AlertService().stopLoading(forceStop: true);
-          Get.back();
-          AlertService().showAppAlert(
-            asset: AppLotties.success,
+          queueHomeDrawerDialog(
             title: "Change Password",
             content: "Your password has been changed",
-            confirmAction: () {
-              Get.until((route) => route.isFirst);
-            },
+          );
+          Get.offAll(
+            () => const HomeView(),
+            transition: Transition.noTransition,
           );
         } else {
           throw apiResponse.message;

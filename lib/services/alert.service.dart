@@ -493,6 +493,10 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
     final pickupFee =
         widget.availableDriver.pickupChargeFee?.ceil().toStringAsFixed(0) ??
             "0";
+    final rootMediaQuery = MediaQueryData.fromView(View.of(context));
+    final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
+    final topInset = isMobile ? rootMediaQuery.padding.top + 12 : 0.0;
+
     return ValueListenableBuilder<double?>(
       valueListenable: widget.totalAmountListenable,
       builder: (context, totalAmount, _) {
@@ -502,210 +506,218 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
             ((widget.availableDriver.pickupChargeFee?.ceil() ?? 0) +
                     newBaseFare)
                 .toStringAsFixed(0);
+
         return Scaffold(
           backgroundColor: Colors.black.withValues(alpha: 0.8),
           body: SafeArea(
-            child: SizedBox.expand(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isCompact = constraints.maxHeight < 760;
-                      final topSpacing = isCompact ? 16.0 : 24.0;
-                      final sectionSpacing = isCompact ? 16.0 : 24.0;
-                      final tileSpacing = isCompact ? 10.0 : 12.0;
-                      final iconSize = isCompact ? 64.0 : 80.0;
-                      final titleSize = isCompact ? 22.0 : 24.0;
-                      final bodySize = isCompact ? 14.0 : 16.0;
-                      final buttonHeight = isCompact ? 48.0 : 52.0;
-                      final bottomSpacing = isCompact ? 16.0 : 24.0;
-                      final checkboxFontSize = isCompact ? 13.0 : 14.0;
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(top: topInset),
+              child: SizedBox.expand(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxHeight < 760;
+                        final topSpacing = isCompact ? 16.0 : 24.0;
+                        final sectionSpacing = isCompact ? 16.0 : 24.0;
+                        final tileSpacing = isCompact ? 10.0 : 12.0;
+                        final iconSize = isCompact ? 64.0 : 80.0;
+                        final titleSize = isCompact ? 22.0 : 24.0;
+                        final bodySize = isCompact ? 14.0 : 16.0;
+                        final buttonHeight = isCompact ? 48.0 : 52.0;
+                        final bottomSpacing = isCompact ? 16.0 : 24.0;
+                        final checkboxFontSize = isCompact ? 13.0 : 14.0;
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(height: topSpacing),
-                                    Center(
-                                      child: Icon(
-                                        Icons.warning,
-                                        size: iconSize,
-                                        color: Colors.red,
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(height: topSpacing),
+                                      Center(
+                                        child: Icon(
+                                          Icons.warning,
+                                          size: iconSize,
+                                          color: Colors.red,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Center(
-                                      child: Text(
-                                        "Driver is Distant",
+                                      const SizedBox(height: 12),
+                                      Center(
+                                        child: Text(
+                                          "Driver is Distant",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            height: 1.05,
+                                            fontSize: titleSize,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: isCompact ? 16 : 20),
+                                      Text(
+                                        "Ka-TODA, the nearest driver is $pickupKm km away. An additional fare of ₱$pickupFee will apply for picking you up. The new fare will be ₱$updatedFare.",
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          height: 1.05,
-                                          fontSize: titleSize,
-                                          fontWeight: FontWeight.w700,
+                                          height: 1.4,
+                                          fontSize: bodySize,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.92,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: sectionSpacing),
+                                      _DriverDistantMetricTile(
+                                        icon: Icons.location_on,
+                                        label: "Driver Distance",
+                                        value:
+                                            "$pickupKm kilometer${pickupKmValue <= 1 ? "" : "s"}",
+                                      ),
+                                      SizedBox(height: tileSpacing),
+                                      _DriverDistantMetricTile(
+                                        icon: Icons.description,
+                                        label: "Initial Fare",
+                                        value:
+                                            "${originalFare.toStringAsFixed(0)} pesos",
+                                      ),
+                                      SizedBox(height: tileSpacing),
+                                      _DriverDistantMetricTile(
+                                        icon: Icons.add_circle,
+                                        label: "Pickup Fare",
+                                        value: "$pickupFee pesos",
+                                      ),
+                                      SizedBox(height: tileSpacing),
+                                      _DriverDistantMetricTile(
+                                        icon: Icons.warning,
+                                        label: "New Fare",
+                                        value: "$updatedFare pesos",
+                                        containerColor: Colors.red,
+                                      ),
+                                      SizedBox(height: sectionSpacing),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _acknowledged = !_acknowledged;
+                                  });
+                                },
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Center(
+                                        child: Checkbox(
+                                          value: _acknowledged,
+                                          activeColor: Colors.red,
+                                          side: const BorderSide(
+                                            color: Colors.white,
+                                            width: 1.5,
+                                          ),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _acknowledged = value ?? false;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        "I'm aware the driver is distant and accept the additional fare voluntarily.",
+                                        style: TextStyle(
+                                          height: 1.35,
+                                          fontSize: checkboxFontSize,
                                           color: Colors.white,
                                         ),
                                       ),
                                     ),
-                                    SizedBox(height: isCompact ? 16 : 20),
-                                    Text(
-                                      "Ka-TODA, the nearest driver is $pickupKm km away. An additional fare of ₱$pickupFee will apply for picking you up. The new fare will be ₱$updatedFare.",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        height: 1.4,
-                                        fontSize: bodySize,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.92,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: sectionSpacing),
-                                    _DriverDistantMetricTile(
-                                      icon: Icons.location_on,
-                                      label: "Driver Distance",
-                                      value:
-                                          "$pickupKm kilometer${pickupKmValue <= 1 ? "" : "s"}",
-                                    ),
-                                    SizedBox(height: tileSpacing),
-                                    _DriverDistantMetricTile(
-                                      icon: Icons.description,
-                                      label: "Original Fare",
-                                      value:
-                                          "${originalFare.toStringAsFixed(0)} pesos",
-                                    ),
-                                    SizedBox(height: tileSpacing),
-                                    _DriverDistantMetricTile(
-                                      icon: Icons.add_circle,
-                                      label: "Pickup Fare",
-                                      value: "$pickupFee pesos",
-                                    ),
-                                    SizedBox(height: tileSpacing),
-                                    _DriverDistantMetricTile(
-                                      icon: Icons.warning,
-                                      label: "New Fare",
-                                      value: "$updatedFare pesos",
-                                      containerColor: Colors.red,
-                                    ),
-                                    SizedBox(height: sectionSpacing),
                                   ],
                                 ),
                               ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _acknowledged = !_acknowledged;
-                                });
-                              },
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                              SizedBox(height: isCompact ? 14 : 18),
+                              Row(
                                 children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: Center(
-                                      child: Checkbox(
-                                        value: _acknowledged,
-                                        activeColor: Colors.red,
-                                        side: const BorderSide(
-                                          color: Colors.white,
-                                          width: 1.5,
-                                        ),
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _acknowledged = value ?? false;
-                                          });
-                                        },
+                                  Expanded(
+                                    child: ActionButton(
+                                      height: buttonHeight,
+                                      text: "Cancel",
+                                      mainColor:
+                                          Colors.white.withValues(alpha: 0.12),
+                                      borderColor:
+                                          Colors.white.withValues(alpha: 0.4),
+                                      style: const TextStyle(
+                                        height: 1,
+                                        fontSize: 15,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                       ),
+                                      onTap:
+                                          widget.onCancel ?? () => Get.back(),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 16),
                                   Expanded(
-                                    child: Text(
-                                      "I'm aware the driver is distant and accept the additional fare voluntarily.",
-                                      style: TextStyle(
-                                        height: 1.35,
-                                        fontSize: checkboxFontSize,
+                                    child: ActionButton(
+                                      height: buttonHeight,
+                                      text: _secondsLeft == 0
+                                          ? "Accept"
+                                          : "Accept ($_secondsLeft)",
+                                      mainColor: canAccept
+                                          ? Colors.red
+                                          : Colors.red.withValues(alpha: 0.45),
+                                      borderColor: canAccept
+                                          ? null
+                                          : Colors.red.withValues(alpha: 0.8),
+                                      style: const TextStyle(
+                                        height: 1,
+                                        fontSize: 15,
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                       ),
+                                      onTap: () async {
+                                        if (_secondsLeft > 0) {
+                                          _showValidationSnackBar(
+                                            "Take time to read. Please try again after $_secondsLeft second${_secondsLeft == 1 ? "" : "s"}!",
+                                          );
+                                          return;
+                                        }
+                                        if (!_acknowledged) {
+                                          _showValidationSnackBar(
+                                            "Please confirm that you're aware the driver is distant and accept the additional fare voluntarily.",
+                                          );
+                                          return;
+                                        }
+                                        setState(() {
+                                          _submitting = true;
+                                        });
+                                        Get.back();
+                                        await widget.onAccept();
+                                      },
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            SizedBox(height: isCompact ? 14 : 18),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ActionButton(
-                                    height: buttonHeight,
-                                    text: "Cancel",
-                                    mainColor:
-                                        Colors.white.withValues(alpha: 0.12),
-                                    borderColor:
-                                        Colors.white.withValues(alpha: 0.4),
-                                    style: const TextStyle(
-                                      height: 1,
-                                      fontSize: 15,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    onTap: widget.onCancel ?? () => Get.back(),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: ActionButton(
-                                    height: buttonHeight,
-                                    text: _secondsLeft == 0
-                                        ? "Accept"
-                                        : "Accept ($_secondsLeft)",
-                                    mainColor: canAccept
-                                        ? Colors.red
-                                        : Colors.red.withValues(alpha: 0.45),
-                                    borderColor: canAccept
-                                        ? null
-                                        : Colors.red.withValues(alpha: 0.8),
-                                    style: const TextStyle(
-                                      height: 1,
-                                      fontSize: 15,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    onTap: () async {
-                                      if (_secondsLeft > 0) {
-                                        _showValidationSnackBar(
-                                          "Take time to read. Please try again after $_secondsLeft second${_secondsLeft == 1 ? "" : "s"}!",
-                                        );
-                                        return;
-                                      }
-                                      if (!_acknowledged) {
-                                        _showValidationSnackBar(
-                                          "Please confirm that you're aware the driver is distant and accept the additional fare voluntarily.",
-                                        );
-                                        return;
-                                      }
-                                      setState(() {
-                                        _submitting = true;
-                                      });
-                                      Get.back();
-                                      await widget.onAccept();
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: bottomSpacing),
-                          ],
-                        ),
-                      );
-                    },
+                              SizedBox(height: bottomSpacing),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:pwa/services/storage.service.dart';
 
 class AppStrings {
@@ -187,9 +186,6 @@ class AppStrings {
         );
       }
     } catch (_) {
-      debugPrint(
-        "getAppSettingsFromStorage: null",
-      );
     }
   }
 
@@ -204,15 +200,20 @@ class AppStrings {
         );
       }
     } catch (_) {
-      debugPrint(
-        "getHomeSettingsFromStorage: null",
-      );
     }
   }
 
   static dynamic env(String ref) {
     getAppSettingsFromStorage();
-    return appSettingsObject != null ? appSettingsObject[ref] : "";
+    if (appSettingsObject is Map) {
+      final appSettingsMap = Map<String, dynamic>.from(appSettingsObject);
+      final strings = appSettingsMap['strings'];
+      if (strings is Map && strings.containsKey(ref)) {
+        return strings[ref];
+      }
+      return appSettingsMap[ref] ?? "";
+    }
+    return "";
   }
 
   static List<String> get orderCancellationReasons {

@@ -1,7 +1,9 @@
-import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:pwa/firebase_options.dart';
 import 'package:pwa/views/splash.view.dart';
 import 'package:pwa/services/push.service.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,25 +11,25 @@ import 'package:pwa/services/storage.service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyA3tvPnJN8hy3HksAFLDkMHDAC6wMeXS-Q",
-      authDomain: "toda-pal.firebaseapp.com",
-      databaseURL:
-          "https://toda-pal-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "toda-pal",
-      storageBucket: "toda-pal.firebasestorage.app",
-      messagingSenderId: "599344409686",
-      appId: "1:599344409686:web:ae1f18c90ac11007675ff7",
-    ),
-  );
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.web,
+    );
+  } else {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
   await StorageService.getPrefs();
   GestureBinding.instance.pointerRouter.addGlobalRoute((event) {});
+  await SystemChrome.setPreferredOrientations(
+    const [
+      DeviceOrientation.portraitUp,
+    ],
+  );
+  await PushService.initialize();
   runApp(
     const MyApp(),
-  );
-  unawaited(
-    PushService.initialize(),
   );
 }
 
@@ -46,7 +48,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'PPC TODA (Beta)',
+      title: 'PPC TODA',
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         var mediaQuery = MediaQuery.of(

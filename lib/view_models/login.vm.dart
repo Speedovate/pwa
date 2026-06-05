@@ -247,16 +247,11 @@ class LoginViewModel extends BaseViewModel {
           isMocked: false,
         );
         if (apiResponse.allGood) {
-          debugPrint(
-            "login syncLocationRequest success",
-          );
         } else {
           throw apiResponse.message;
         }
       } catch (e) {
-        debugPrint(
-          "login syncLocationRequest error: $e",
-        );
+        // Location sync is best-effort after login.
       }
       AlertService().stopLoading(forceStop: true);
       Navigator.pushAndRemoveUntil(

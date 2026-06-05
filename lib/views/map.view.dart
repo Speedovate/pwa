@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/view_models/map.vm.dart';
@@ -27,7 +29,63 @@ class MapView extends StatefulWidget {
 }
 
 class _MapViewState extends State<MapView> {
+  static const Duration _mapDragUnlockDelay = Duration(seconds: 1);
   final MapViewModel mapViewModel = MapViewModel();
+  static const double _minimumPickupDropoffDistanceMeters = 100;
+  Timer? _mapInteractionDelayTimer;
+  bool _keepMapInteractionBlocked = false;
+
+  bool _sameCoordinates(Address a, Address b) {
+    return a.coordinates.latitude == b.coordinates.latitude &&
+        a.coordinates.longitude == b.coordinates.longitude;
+  }
+
+  bool _isTooCloseToExistingSelection(Address a, Address b) {
+    final distanceMeters = Geolocator.distanceBetween(
+      a.coordinates.latitude,
+      a.coordinates.longitude,
+      b.coordinates.latitude,
+      b.coordinates.longitude,
+    );
+    return distanceMeters <= _minimumPickupDropoffDistanceMeters;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    mapViewModel.addListener(_handleMapLoadingChanged);
+  }
+
+  void _handleMapLoadingChanged() {
+    final isVisible = mapViewModel.isLoading;
+    _mapInteractionDelayTimer?.cancel();
+    if (isVisible) {
+      if (!_keepMapInteractionBlocked && mounted) {
+        setState(() {
+          _keepMapInteractionBlocked = true;
+        });
+      }
+      return;
+    }
+    _mapInteractionDelayTimer = Timer(
+      _mapDragUnlockDelay,
+      () {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _keepMapInteractionBlocked = false;
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _mapInteractionDelayTimer?.cancel();
+    mapViewModel.removeListener(_handleMapLoadingChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +95,8 @@ class _MapViewState extends State<MapView> {
         isPickup: widget.isPickup,
       ),
       builder: (context, vm, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
         return Scaffold(
           backgroundColor: Colors.white,
           appBar: AppBar(
@@ -54,7 +114,9 @@ class _MapViewState extends State<MapView> {
                   children: [
                     Column(
                       children: [
-                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: isMobile ? mediaQuery.padding.top + 36 : 12,
+                        ),
                         Row(
                           children: [
                             const SizedBox(width: 4),
@@ -258,29 +320,37 @@ class _MapViewState extends State<MapView> {
                             children: [
                               GoogleMapWidget(
                                 center: initLatLng ?? defaultLatLng,
-                                enableGestures: !vm.isHolding,
+                                enableGestures: !_keepMapInteractionBlocked &&
+                                    !vm.isHolding,
                                 onMapCreated: (map) => vm.setMap(
                                   isPickup: widget.isPickup,
                                   map: map,
                                 ),
+                                onCameraMoveStart: () {
+                                  try {
+                                    FocusManager.instance.primaryFocus
+                                        ?.unfocus();
+                                    vm.beginCameraMoveVisual();
+                                  } catch (e) {
+                                    // Ignore transient camera callback issues.
+                                  }
+                                },
                                 onCameraMove: (center) {
                                   try {
                                     FocusManager.instance.primaryFocus
                                         ?.unfocus();
                                     final a = vm.disposed;
                                     if (!a &&
+                                        !_keepMapInteractionBlocked &&
                                         !vm.skipCamera &&
                                         vm.shouldProcessCameraMove(center)) {
                                       vm.mapCameraMove(
                                         center,
                                         isPickup: widget.isPickup,
                                       );
-                                      debugPrint("MapView - Map move");
                                     }
                                   } catch (e) {
-                                    debugPrint(
-                                      "MapView - onCameraMove error: $e",
-                                    );
+                                    // Ignore transient camera callback issues.
                                   }
                                 },
                               ),
@@ -399,7 +469,6 @@ class _MapViewState extends State<MapView> {
                                         isPickup: widget.isPickup,
                                         debounceDuration: Duration.zero,
                                       );
-                                      debugPrint("MapView - Map move");
                                     }
                                   },
                                 ),
@@ -419,7 +488,6 @@ class _MapViewState extends State<MapView> {
                                               vm.mapCenter,
                                               isPickup: widget.isPickup,
                                             );
-                                            debugPrint("MapView - Map move");
                                           }
                                         }
                                       },
@@ -435,7 +503,6 @@ class _MapViewState extends State<MapView> {
                                               vm.mapCenter,
                                               isPickup: widget.isPickup,
                                             );
-                                            debugPrint("MapView - Map move");
                                           }
                                         }
                                       },
@@ -473,136 +540,157 @@ class _MapViewState extends State<MapView> {
                               child: ValueListenableBuilder<Address?>(
                                 valueListenable: vm.selectedAddress,
                                 builder: (context, address, _) {
-                                  return Container(
-                                    height: 75,
-                                    width: double.infinity.clamp(0, 800),
-                                    decoration: BoxDecoration(
-                                      color: gVehicleTypes.isEmpty ||
-                                              mapUnavailable
-                                          ? Colors.red.shade50
-                                          : const Color(0xFF007BFF)
-                                              .withValues(alpha: 0.1),
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(8),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const SizedBox(width: 16),
-                                        if (vm.isLoading && address == null)
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                            ),
-                                            child: SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeCap: StrokeCap.round,
-                                                color: widget.isPickup
-                                                    ? const Color(0xFF007BFF)
-                                                    : Colors.red,
-                                                backgroundColor: widget.isPickup
-                                                    ? const Color(
-                                                        0xFF007BFF,
-                                                      ).withValues(
-                                                        alpha: 0.25,
-                                                      )
-                                                    : Colors.red.withValues(
-                                                        alpha: 0.25,
-                                                      ),
-                                              ),
-                                            ),
-                                          )
-                                        else
-                                          Icon(
-                                            gVehicleTypes.isEmpty ||
-                                                    mapUnavailable
-                                                ? Icons.warning
-                                                : Icons.trip_origin,
-                                            color: gVehicleTypes.isEmpty ||
-                                                    mapUnavailable ||
-                                                    !widget.isPickup
-                                                ? Colors.red
-                                                : const Color(0xFF007BFF),
-                                          ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              gVehicleTypes.isEmpty ||
-                                                      mapUnavailable
-                                                  ? const SizedBox.shrink()
-                                                  : Text(
-                                                      capitalizeWords(
-                                                          address?.addressLine
-                                                                  ?.split(
-                                                                      ",")[0] ??
-                                                              "",
-                                                          alt: widget.isPickup
-                                                              ? "Pickup"
-                                                              : "Dropoff"),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        height: 1.05,
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color:
-                                                            Color(0xFF030744),
-                                                      ),
-                                                    ),
-                                              Text(
-                                                gVehicleTypes.isEmpty ||
-                                                        mapUnavailable
-                                                    ? mapUnavailable
-                                                        ? "Service location is not available"
-                                                        : "An error occurred. Please try again"
-                                                    : capitalizeWords(
-                                                        !(address?.addressLine ??
-                                                                    "")
-                                                                .contains(",")
-                                                            ? address
-                                                                ?.addressLine
-                                                            : address
-                                                                ?.addressLine
-                                                                ?.split(", ")
-                                                                .sublist(1)
-                                                                .join(", "),
-                                                        alt:
-                                                            "Fetching details, please wait ...",
-                                                      ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: gVehicleTypes.isEmpty ||
-                                                        mapUnavailable
-                                                    ? const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Color(
-                                                          0xFF030744,
-                                                        ),
-                                                      )
-                                                    : const TextStyle(
-                                                        height: 1.05,
-                                                        fontSize: 13,
-                                                        color: Color(
-                                                          0xFF030744,
-                                                        ),
-                                                      ),
-                                              ),
-                                            ],
+                                  return ValueListenableBuilder<Address?>(
+                                    valueListenable: vm.visualPlaceholderAddress,
+                                    builder: (context, visualPlaceholder, __) {
+                                      final displayAddress =
+                                          address ?? visualPlaceholder;
+                                      return Container(
+                                        height: 75,
+                                        width: double.infinity.clamp(0, 800),
+                                        decoration: BoxDecoration(
+                                          color: gVehicleTypes.isEmpty ||
+                                                  mapUnavailable
+                                              ? Colors.red.shade50
+                                              : const Color(0xFF007BFF)
+                                                  .withValues(alpha: 0.1),
+                                          borderRadius: const BorderRadius.all(
+                                            Radius.circular(8),
                                           ),
                                         ),
-                                        const SizedBox(width: 14),
-                                      ],
-                                    ),
+                                        child: Row(
+                                          children: [
+                                            const SizedBox(width: 16),
+                                            if (vm.showLoadingVisual)
+                                              Padding(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 4,
+                                                ),
+                                                child: SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeCap: StrokeCap.round,
+                                                    color: widget.isPickup
+                                                        ? const Color(0xFF007BFF)
+                                                        : Colors.red,
+                                                    backgroundColor: widget
+                                                            .isPickup
+                                                        ? const Color(
+                                                            0xFF007BFF,
+                                                          ).withValues(
+                                                            alpha: 0.25,
+                                                          )
+                                                        : Colors.red.withValues(
+                                                            alpha: 0.25,
+                                                          ),
+                                                  ),
+                                                ),
+                                              )
+                                            else
+                                              Icon(
+                                                gVehicleTypes.isEmpty ||
+                                                        mapUnavailable
+                                                    ? Icons.warning
+                                                    : Icons.trip_origin,
+                                                color: gVehicleTypes.isEmpty ||
+                                                        mapUnavailable ||
+                                                        !widget.isPickup
+                                                    ? Colors.red
+                                                    : const Color(0xFF007BFF),
+                                              ),
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  gVehicleTypes.isEmpty ||
+                                                          mapUnavailable
+                                                      ? const SizedBox.shrink()
+                                                      : Text(
+                                                          capitalizeWords(
+                                                              vm.showLoadingVisual
+                                                                  ? null
+                                                                  : displayAddress
+                                                                              ?.addressLine
+                                                                              ?.split(
+                                                                                  ",")[0] ??
+                                                                          "",
+                                                              alt: widget.isPickup
+                                                                  ? "Pickup"
+                                                                  : "Dropoff"),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                            height: 1.05,
+                                                            fontSize: 14,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Color(
+                                                                0xFF030744),
+                                                          ),
+                                                        ),
+                                                  Text(
+                                                    gVehicleTypes.isEmpty ||
+                                                            mapUnavailable
+                                                        ? mapUnavailable
+                                                            ? "Service location is not available"
+                                                            : "An error occurred. Please try again"
+                                                        : capitalizeWords(
+                                                            vm.showLoadingVisual
+                                                                ? null
+                                                                : !(displayAddress
+                                                                                ?.addressLine ??
+                                                                            "")
+                                                                        .contains(
+                                                                            ",")
+                                                                    ? displayAddress
+                                                                        ?.addressLine
+                                                                    : displayAddress
+                                                                        ?.addressLine
+                                                                        ?.split(
+                                                                            ", ")
+                                                                        .sublist(
+                                                                            1)
+                                                                        .join(
+                                                                            ", "),
+                                                            alt:
+                                                                "Fetching details, please wait ...",
+                                                          ),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: gVehicleTypes.isEmpty ||
+                                                            mapUnavailable
+                                                        ? const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Color(
+                                                              0xFF030744,
+                                                            ),
+                                                          )
+                                                        : const TextStyle(
+                                                            height: 1.05,
+                                                            fontSize: 13,
+                                                            color: Color(
+                                                              0xFF030744,
+                                                            ),
+                                                          ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 14),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               ),
@@ -615,46 +703,105 @@ class _MapViewState extends State<MapView> {
                                 child: ValueListenableBuilder<Address?>(
                                   valueListenable: vm.selectedAddress,
                                   builder: (context, address, _) {
-                                    return Material(
-                                      color: address == null
-                                          ? const Color(0xFF030744)
-                                              .withValues(alpha: 0.25)
-                                          : const Color(0xFF007BFF),
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(8),
-                                      ),
-                                      child: ActionButton(
-                                        onTap: () {
-                                          FocusManager.instance.primaryFocus
-                                              ?.unfocus();
-                                          if (gVehicleTypes.isEmpty ||
-                                              mapUnavailable) {
-                                            vm.setMap(
-                                              isPickup: widget.isPickup,
-                                              map: vm.map!,
-                                            );
-                                          } else {
-                                            if (address != null) {
-                                              if (widget.isPickup) {
-                                                pickupAddress = address;
+                                    return ValueListenableBuilder<Address?>(
+                                      valueListenable:
+                                          vm.visualPlaceholderAddress,
+                                      builder:
+                                          (context, visualPlaceholder, __) {
+                                        final shouldRequireVehicleTypes =
+                                            !kIsWeb && gVehicleTypes.isEmpty;
+                                        final shouldRetry =
+                                            shouldRequireVehicleTypes ||
+                                            mapUnavailable;
+                                        final effectiveAddress =
+                                            address ?? visualPlaceholder;
+                                        final hasEffectiveAddress =
+                                            effectiveAddress != null;
+                                        return Material(
+                                          color: vm.showLoadingVisual ||
+                                                  !hasEffectiveAddress
+                                              ? const Color(0xFF030744)
+                                                  .withValues(alpha: 0.25)
+                                              : const Color(0xFF007BFF),
+                                          borderRadius: const BorderRadius.all(
+                                            Radius.circular(8),
+                                          ),
+                                          child: ActionButton(
+                                            onTap: () {
+                                              FocusManager.instance.primaryFocus
+                                                  ?.unfocus();
+                                              if (shouldRetry) {
+                                                vm.setMap(
+                                                  isPickup: widget.isPickup,
+                                                  map: vm.map!,
+                                                );
                                               } else {
-                                                dropoffAddress = address;
+                                                if (!vm.showLoadingVisual &&
+                                                    hasEffectiveAddress) {
+                                                  final conflictsWithExistingSelection =
+                                                      widget.isPickup
+                                                          ? dropoffAddress !=
+                                                                  null &&
+                                                              (_sameCoordinates(
+                                                                    effectiveAddress,
+                                                                    dropoffAddress!,
+                                                                  ) ||
+                                                                  _isTooCloseToExistingSelection(
+                                                                    effectiveAddress,
+                                                                    dropoffAddress!,
+                                                                  ))
+                                                          : pickupAddress !=
+                                                                  null &&
+                                                              (_sameCoordinates(
+                                                                    effectiveAddress,
+                                                                    pickupAddress!,
+                                                                  ) ||
+                                                                  _isTooCloseToExistingSelection(
+                                                                    effectiveAddress,
+                                                                    pickupAddress!,
+                                                                  ));
+                                                  if (conflictsWithExistingSelection) {
+                                                    ScaffoldMessenger.of(context)
+                                                        .clearSnackBars();
+                                                    ScaffoldMessenger.of(context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                        backgroundColor:
+                                                            Colors.red,
+                                                        content: Text(
+                                                          "Pickup and dropoff must differ",
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                    return;
+                                                  }
+                                                  if (widget.isPickup) {
+                                                    pickupAddress =
+                                                        effectiveAddress;
+                                                  } else {
+                                                    dropoffAddress =
+                                                        effectiveAddress;
+                                                  }
+                                                  Navigator.pop(context, true);
+                                                }
                                               }
-                                              Navigator.pop(context, true);
-                                            }
-                                          }
-                                        },
-                                        mainColor: gVehicleTypes.isEmpty ||
-                                                mapUnavailable
-                                            ? Colors.red
-                                            : const Color(0xFF007BFF),
-                                        text: gVehicleTypes.isEmpty ||
-                                                mapUnavailable
-                                            ? "Retry"
-                                            : address == null
-                                                ? "•••"
-                                                : "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}",
-                                      ),
+                                            },
+                                            mainColor: shouldRetry
+                                                ? Colors.red
+                                                : const Color(0xFF007BFF),
+                                            text: shouldRetry
+                                                ? "Retry"
+                                                : vm.showLoadingVisual
+                                                    ? "•••"
+                                                    : hasEffectiveAddress
+                                                        ? "Confirm ${widget.isPickup ? "Pickup" : "Dropoff"}"
+                                                        : "•••",
+                                          ),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
