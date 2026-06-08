@@ -308,10 +308,13 @@ class AuthService {
         topics.add(topic);
         await StorageService.prefs?.setStringList("topics", topics);
       }
+      debugPrint('[PPC_NOTIF_DEBUG] topic persist subscribe topic=$topic');
       if (!kIsWeb) {
         await FirebaseMessaging.instance.subscribeToTopic(topic);
+        debugPrint('[PPC_NOTIF_DEBUG] firebase subscribe topic=$topic');
       }
     } catch (_) {
+      debugPrint('[PPC_NOTIF_DEBUG] topic subscribe failed topic=$topic');
       // Ignore topic persistence failures.
     }
   }
@@ -321,10 +324,13 @@ class AuthService {
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       topics.remove(topic);
       await StorageService.prefs?.setStringList("topics", topics);
+      debugPrint('[PPC_NOTIF_DEBUG] topic persist unsubscribe topic=$topic');
       if (!kIsWeb) {
         await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
+        debugPrint('[PPC_NOTIF_DEBUG] firebase unsubscribe topic=$topic');
       }
     } catch (_) {
+      debugPrint('[PPC_NOTIF_DEBUG] topic unsubscribe failed topic=$topic');
       // Ignore topic persistence failures.
     }
   }
@@ -343,7 +349,10 @@ class AuthService {
       for (final topic in topics) {
         try {
           await FirebaseMessaging.instance.subscribeToTopic(topic);
+          debugPrint('[PPC_NOTIF_DEBUG] sync firebase topic=$topic');
         } catch (_) {
+          debugPrint(
+              '[PPC_NOTIF_DEBUG] sync firebase topic failed topic=$topic');
           // Ignore best-effort topic subscribe failures.
         }
       }

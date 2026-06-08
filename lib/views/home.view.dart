@@ -186,15 +186,16 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
     if (lastGeolocationErrorMessage != null &&
         !_acceptedDefaultLocationFallback) {
+      if (AuthService.inReviewMode()) {
+        _homeMapCenter = latLng ?? defaultLatLng;
+        return _homeMapCenter;
+      }
       return null;
     }
     return latLng;
   }
 
   Future<void> _requestMobilePermissions() async {
-    if (AuthService.inReviewMode()) {
-      return;
-    }
     await PushService.requestNotificationPermissionsIfNeeded();
     final latLng = await getMyLatLng(
       forceFresh: true,
@@ -1149,7 +1150,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 _openSupportChannel(homeViewModel);
               },
             ),
-            if (AuthService.isLoggedIn())
+            if (AuthService.isLoggedIn() && !AuthService.inReviewMode())
               ListTileWidget(
                 contentPadding: const EdgeInsets.only(
                   left: 18,
@@ -1206,7 +1207,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   );
                 },
               ),
-            if (AuthService.isLoggedIn())
+            if (AuthService.isLoggedIn() && !AuthService.inReviewMode())
               StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                 stream: fbStore
                     .collection("access")
@@ -2108,8 +2109,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                       ),
                                     ),
                                     !isBool(
-                                      AuthService.currentUser?.isProvider,
-                                    )
+                                              AuthService
+                                                  .currentUser?.isProvider,
+                                            ) ||
+                                            AuthService.inReviewMode()
                                         ? const SizedBox()
                                         : Positioned(
                                             top: mediaQuery.padding.top + 20,

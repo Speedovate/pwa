@@ -169,6 +169,7 @@ class _OrderListItemState extends State<OrderListItem> {
 
   @override
   Widget build(BuildContext context) {
+    final isReviewMode = AuthService.inReviewMode();
     return ValueListenableBuilder<bool>(
       valueListenable: _isRouteActionPressed,
       builder: (context, isRouteActionPressed, _) {
@@ -185,8 +186,9 @@ class _OrderListItemState extends State<OrderListItem> {
           ),
           child: WidgetButton(
             borderRadius: 12,
-            onTap: _handleCardTap,
-            suppressInteraction: isRouteActionPressed,
+            mainColor: Colors.white,
+            onTap: isReviewMode ? () {} : _handleCardTap,
+            suppressInteraction: isReviewMode || isRouteActionPressed,
             child: Column(
               children: [
                 const SizedBox(height: 12),
@@ -368,35 +370,39 @@ class _OrderListItemState extends State<OrderListItem> {
                     const SizedBox(width: 12),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: (_) => _markRouteActionTap(),
-                  onPointerUp: (_) => _clearRouteActionPress(),
-                  onPointerCancel: (_) => _clearRouteActionPress(),
-                  child: SizedBox(
-                    height: 32,
-                    child: Row(
-                      children: [
-                        _buildRouteActionButton(
-                          label: "Repeat",
-                          onTap: _repeatHistoryRoute,
-                        ),
-                        VerticalDivider(
-                          width: 1,
-                          thickness: 1,
-                          color:
-                              const Color(0xFF030744).withValues(alpha: 0.15),
-                        ),
-                        _buildRouteActionButton(
-                          label: "Reverse",
-                          onTap: _reverseHistoryRoute,
-                        ),
-                      ],
+                if (!isReviewMode) ...[
+                  const SizedBox(height: 8),
+                  Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (_) => _markRouteActionTap(),
+                    onPointerUp: (_) => _clearRouteActionPress(),
+                    onPointerCancel: (_) => _clearRouteActionPress(),
+                    child: SizedBox(
+                      height: 32,
+                      child: Row(
+                        children: [
+                          _buildRouteActionButton(
+                            label: "Repeat",
+                            onTap: _repeatHistoryRoute,
+                          ),
+                          VerticalDivider(
+                            width: 1,
+                            thickness: 1,
+                            color: const Color(
+                              0xFF030744,
+                            ).withValues(alpha: 0.15),
+                          ),
+                          _buildRouteActionButton(
+                            label: "Reverse",
+                            onTap: _reverseHistoryRoute,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
+                ] else
+                  const SizedBox(height: 14),
                 Divider(
                   height: 1,
                   thickness: 1,

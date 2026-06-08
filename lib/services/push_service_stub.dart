@@ -38,6 +38,47 @@ const AndroidNotificationChannel _bookingNotificationChannel =
   playSound: true,
   sound: RawResourceAndroidNotificationSound('alert'),
 );
+const String _basicDarwinNotificationSound = 'sound.wav';
+const String _bookingDarwinNotificationSound = 'alert.wav';
+const String _notifDebugTag = 'PPC_NOTIF_DEBUG';
+const Duration _notificationDedupeWindow = Duration(minutes: 5);
+final Map<String, DateTime> _shownNotificationKeys = {};
+
+void _notifDebug(String message) {
+  debugPrint('[$_notifDebugTag] $message');
+}
+
+String _notificationDedupeKey(RemoteMessage message) {
+  final messageId = message.messageId?.trim();
+  if (messageId != null && messageId.isNotEmpty) {
+    return 'id:$messageId';
+  }
+
+  final orderedData = Map<String, dynamic>.fromEntries(
+    message.data.entries.toList()
+      ..sort(
+        (left, right) => left.key.compareTo(right.key),
+      ),
+  );
+  return 'payload:${jsonEncode(orderedData)}|'
+      '${message.notification?.title ?? ''}|'
+      '${message.notification?.body ?? ''}';
+}
+
+bool _shouldSkipDuplicateNotification(RemoteMessage message) {
+  final now = DateTime.now();
+  _shownNotificationKeys.removeWhere(
+    (_, shownAt) => now.difference(shownAt) > _notificationDedupeWindow,
+  );
+
+  final key = _notificationDedupeKey(message);
+  if (_shownNotificationKeys.containsKey(key)) {
+    _notifDebug('local notification skipped duplicate key=$key');
+    return true;
+  }
+  _shownNotificationKeys[key] = now;
+  return false;
+}
 
 String? _notificationTitleFromMessage(RemoteMessage message) {
   final rawTitle = message.data['title'] ?? message.notification?.title;
@@ -82,7 +123,7 @@ bool _isRideStatusUpdate(RemoteMessage message) {
     return false;
   }
 
-  final title = (_notificationTitleFromMessage(message) ?? '')
+  final title = '${message.data['title'] ?? message.notification?.title ?? ''}'
       .toLowerCase()
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
@@ -94,6 +135,9 @@ void _handleLocalNotificationResponse(NotificationResponse response) {}
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  _notifDebug(
+    'background handler start messageId=${message.messageId} data=${message.data}',
+  );
   WidgetsFlutterBinding.ensureInitialized();
   ui.DartPluginRegistrant.ensureInitialized();
   try {
@@ -103,6 +147,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   } catch (_) {}
   await StorageService.getPrefs();
   await PushService.showLocalNotification(message);
+  _notifDebug('background handler complete messageId=${message.messageId}');
 }
 
 class PushService {
@@ -113,6 +158,10 @@ class PushService {
   static bool _hasRequestedRuntimePermissions = false;
 
   static Future<void> initialize() async {
+    _notifDebug(
+      'initialize start platform=$defaultTargetPlatform '
+      'review=${AuthService.inReviewMode()} loggedIn=${AuthService.isLoggedIn()}',
+    );
     await _ensureLocalNotificationsInitialized();
     await _configureForegroundPresentation();
     _attachForegroundListener();
@@ -125,6 +174,7 @@ class PushService {
     unawaited(
       syncTokenWithServer(requestPermission: false).catchError((Object _) {}),
     );
+    _notifDebug('initialize complete');
   }
 
   static Future<void> _configureForegroundPresentation() async {
@@ -139,6 +189,7 @@ class PushService {
         badge: true,
         sound: true,
       );
+      _notifDebug('foreground presentation configured');
     } catch (_) {}
   }
 
@@ -146,9 +197,8 @@ class PushService {
     if (kIsWeb) {
       return;
     }
-    try {
-      await FirebaseMessaging.instance.getAPNSToken();
-    } catch (_) {}
+    await _waitForAPNSToken();
+    _notifDebug('warm up subscribe topic=all');
     await AuthService().subscribeToTopic('all');
   }
 
@@ -157,6 +207,7 @@ class PushService {
       return;
     }
     _hasRequestedRuntimePermissions = true;
+    _notifDebug('request runtime notification permissions');
     await _requestDevicePermissions();
     await syncTokenWithServer(forceSync: true);
   }
@@ -166,31 +217,68 @@ class PushService {
     bool forceSync = false,
   }) async {
     try {
+      _notifDebug(
+        'sync token start requestPermission=$requestPermission '
+        'forceSync=$forceSync platform=$defaultTargetPlatform '
+        'review=${AuthService.inReviewMode()} loggedIn=${AuthService.isLoggedIn()}',
+      );
       if (requestPermission) {
         await _requestDevicePermissions();
       }
 
       if (defaultTargetPlatform == TargetPlatform.iOS) {
-        try {
-          await FirebaseMessaging.instance.getAPNSToken();
-        } catch (_) {}
+        final apnsToken = await _waitForAPNSToken();
+        if (apnsToken == null || apnsToken.isEmpty) {
+          _notifDebug('sync token stop missing APNs token');
+          return;
+        }
       }
 
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) {
+        _notifDebug('sync token stop missing FCM token');
         return;
       }
 
       fcmToken = token;
+      _notifDebug('fcm token ready length=${token.length}');
       final topicSignature = _topicSignature();
       if (!forceSync && !_shouldSync(token, topicSignature)) {
+        _notifDebug('sync token skipped unchanged topics=$topicSignature');
         return;
       }
-      await subscribeToServer();
+      final syncedToServer = await subscribeToServer();
+      if (!syncedToServer) {
+        _notifDebug('sync token stop server subscribe failed');
+        return;
+      }
       await _rememberSyncedState(token, topicSignature);
+      _notifDebug('sync token complete topics=$topicSignature');
     } catch (_) {
+      _notifDebug('sync token failed');
       // Keep push sync non-blocking.
     }
+  }
+
+  static Future<String?> _waitForAPNSToken() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+      return null;
+    }
+
+    for (var attempt = 0; attempt < 8; attempt++) {
+      try {
+        final token = await FirebaseMessaging.instance.getAPNSToken();
+        if (token != null && token.isNotEmpty) {
+          _notifDebug(
+              'apns token ready attempt=$attempt length=${token.length}');
+          return token;
+        }
+      } catch (_) {}
+      _notifDebug('apns token waiting attempt=$attempt');
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+    }
+    _notifDebug('apns token unavailable after retries');
+    return null;
   }
 
   static Future<void> _ensureLocalNotificationsInitialized() async {
@@ -221,6 +309,7 @@ class PushService {
     await androidPlugin?.createNotificationChannel(_bookingNotificationChannel);
 
     _localNotificationsInitialized = true;
+    _notifDebug('local notifications initialized');
   }
 
   static Future<void> _requestDevicePermissions() async {
@@ -231,6 +320,9 @@ class PushService {
         badge: true,
         sound: true,
         provisional: false,
+      );
+      _notifDebug(
+        'firebase permission status=${settings.authorizationStatus}',
       );
       if (settings.authorizationStatus == AuthorizationStatus.denied &&
           !AuthService.inReviewMode()) {
@@ -252,6 +344,7 @@ class PushService {
         badge: true,
         sound: true,
       );
+      _notifDebug('local iOS notification permissions requested');
     } catch (_) {}
 
     try {
@@ -263,6 +356,7 @@ class PushService {
         badge: true,
         sound: true,
       );
+      _notifDebug('local macOS notification permissions requested');
     } catch (_) {}
 
     if (defaultTargetPlatform != TargetPlatform.android) {
@@ -271,8 +365,10 @@ class PushService {
 
     try {
       final statusBefore = await Permission.notification.status;
+      _notifDebug('android notification status before=$statusBefore');
       if (statusBefore.isDenied) {
         final statusAfter = await Permission.notification.request();
+        _notifDebug('android notification status after=$statusAfter');
         if (!statusAfter.isGranted &&
             !permissionDialogShown &&
             !AuthService.inReviewMode()) {
@@ -299,6 +395,9 @@ class PushService {
   static void _attachForegroundListener() {
     _messageSubscription ??= FirebaseMessaging.onMessage.listen(
       (RemoteMessage message) async {
+        _notifDebug(
+          'foreground message messageId=${message.messageId} data=${message.data}',
+        );
         await showLocalNotification(message);
       },
       onError: (Object _) {},
@@ -307,7 +406,11 @@ class PushService {
 
   static void _attachOpenListener() {
     _messageOpenedSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen(
-      (RemoteMessage message) {},
+      (RemoteMessage message) {
+        _notifDebug(
+          'notification opened messageId=${message.messageId} data=${message.data}',
+        );
+      },
       onError: (Object _) {},
     );
   }
@@ -317,8 +420,10 @@ class PushService {
         FirebaseMessaging.instance.onTokenRefresh.listen(
       (String token) async {
         if (token.isEmpty) {
+          _notifDebug('token refresh empty token');
           return;
         }
+        _notifDebug('token refresh length=${token.length}');
         fcmToken = token;
         await syncTokenWithServer(forceSync: true);
       },
@@ -330,15 +435,26 @@ class PushService {
     await _ensureLocalNotificationsInitialized();
 
     try {
+      if (_shouldSkipDuplicateNotification(message)) {
+        return;
+      }
+
       final title = _notificationTitleFromMessage(message);
       final body = _notificationBodyFromMessage(message);
       if (title == null && body == null) {
+        _notifDebug(
+          'local notification skipped empty title/body messageId=${message.messageId}',
+        );
         return;
       }
 
       final channel = _isRideStatusUpdate(message)
           ? _bookingNotificationChannel
           : _basicNotificationChannel;
+      _notifDebug(
+        'show local notification messageId=${message.messageId} '
+        'channel=${channel.id} title=$title body=$body data=${message.data}',
+      );
 
       final androidDetails = AndroidNotificationDetails(
         channel.id,
@@ -356,12 +472,15 @@ class PushService {
         visibility: NotificationVisibility.public,
         category: AndroidNotificationCategory.message,
       );
-      const darwinDetails = DarwinNotificationDetails(
+      final darwinDetails = DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentBanner: true,
         presentList: true,
         presentSound: true,
+        sound: channel.id == _bookingNotificationChannel.id
+            ? _bookingDarwinNotificationSound
+            : _basicDarwinNotificationSound,
       );
 
       await _flutterLocalNotificationsPlugin.show(
@@ -375,7 +494,9 @@ class PushService {
         ),
         payload: jsonEncode(message.data),
       );
+      _notifDebug('local notification shown channel=${channel.id}');
     } catch (_) {
+      _notifDebug('local notification failed');
       // Foreground/background notification rendering is best-effort only.
     }
   }

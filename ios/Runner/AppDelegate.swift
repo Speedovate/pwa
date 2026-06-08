@@ -26,6 +26,10 @@ import UserNotifications
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
+    if notification.request.trigger is UNPushNotificationTrigger {
+      completionHandler([])
+      return
+    }
     if #available(iOS 14.0, *) {
       completionHandler([.banner, .list, .sound, .badge])
     } else {

@@ -827,40 +827,64 @@ Map<String, dynamic> parseJwt(String token) {
   return payloadMap;
 }
 
-Future<void> subscribeToServer() async {
+Future<bool> subscribeToServer() async {
   final token = fcmToken?.trim();
   if (token == null || token.isEmpty || token == "null") {
-    return;
+    debugPrint('[PPC_NOTIF_DEBUG] server subscribe skipped missing token');
+    return false;
   }
   if (AuthService.isLoggedIn()) {
     final topics = StorageService.prefs?.getStringList("topics") ?? [];
+    debugPrint(
+      '[PPC_NOTIF_DEBUG] server subscribe loggedIn=true '
+      'tokenLength=${token.length} topics=${topics.join(",")}',
+    );
     try {
       ApiResponse apiResponse = await AuthRequest().fcmRequest(
         token: token,
         topics: topics,
       );
       if (apiResponse.allGood) {
+        debugPrint('[PPC_NOTIF_DEBUG] server subscribe success loggedIn=true');
+        return true;
       } else {
+        debugPrint(
+          '[PPC_NOTIF_DEBUG] server subscribe failed loggedIn=true '
+          'message=${apiResponse.message}',
+        );
         throw apiResponse.message;
       }
     } catch (e) {
+      debugPrint('[PPC_NOTIF_DEBUG] server subscribe exception=$e');
       // Ignore FCM registration failures for signed-out users.
     }
   } else {
     final topics = ["all"];
+    debugPrint(
+      '[PPC_NOTIF_DEBUG] server subscribe loggedIn=false '
+      'tokenLength=${token.length} topics=${topics.join(",")}',
+    );
     try {
       ApiResponse apiResponse = await AuthRequest().fcmRequest(
         token: token,
         topics: topics,
       );
       if (apiResponse.allGood) {
+        debugPrint('[PPC_NOTIF_DEBUG] server subscribe success loggedIn=false');
+        return true;
       } else {
+        debugPrint(
+          '[PPC_NOTIF_DEBUG] server subscribe failed loggedIn=false '
+          'message=${apiResponse.message}',
+        );
         throw apiResponse.message;
       }
     } catch (e) {
+      debugPrint('[PPC_NOTIF_DEBUG] server subscribe exception=$e');
       // Ignore FCM registration failures for signed-out users.
     }
   }
+  return false;
 }
 
 void copyToClipboardWeb(String text) {

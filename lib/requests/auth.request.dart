@@ -77,15 +77,33 @@ class AuthRequest extends HttpService {
     required List<String> topics,
   }) async {
     try {
-      final apiResult = await post(
-        "${Api.baseUrl}/api/fcm",
-        {
-          "token": token,
-          "topics": topics.join(","),
-          "action": "subscribeTopics",
-        },
+      final body = {
+        "token": token,
+        "topics": topics.join(","),
+        "action": "subscribeTopics",
+      };
+      final fcmUrl = "${Api.baseUrl}${Api.fcm}";
+      debugPrint(
+        '[PPC_NOTIF_DEBUG] fcm request POST url=$fcmUrl '
+        'tokenLength=${token.length} topics=${topics.join(",")}',
       );
-      return ApiResponse.fromResponse(apiResult);
+      final apiResult = await post(
+        fcmUrl,
+        body,
+      );
+      final postResponse = ApiResponse.fromResponse(apiResult);
+      if (!postResponse.message.contains('POST method is not supported')) {
+        return postResponse;
+      }
+
+      debugPrint(
+        '[PPC_NOTIF_DEBUG] fcm request fallback GET url=$fcmUrl',
+      );
+      final fallbackResult = await get(
+        fcmUrl,
+        queryParameters: body,
+      );
+      return ApiResponse.fromResponse(fallbackResult);
     } catch (e) {
       throw e.toString();
     }

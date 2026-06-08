@@ -38,9 +38,6 @@ class _IntroViewState extends State<IntroView> {
   }
 
   Future<void> _requestMobilePermissions() async {
-    if (AuthService.inReviewMode()) {
-      return;
-    }
     await PushService.requestNotificationPermissionsIfNeeded();
     await getMyLatLng(
       forceFresh: true,
