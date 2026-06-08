@@ -33,13 +33,12 @@ class ListViewWidget<T> extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding:
-          padding ?? EdgeInsets.fromLTRB(20, 8, 20, computedBottomPadding),
+      padding: padding ?? EdgeInsets.fromLTRB(20, 8, 20, computedBottomPadding),
       itemCount: items.length + (isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= items.length) {
           return const Padding(
-            padding: EdgeInsets.only(top: 4, bottom: 10),
+            padding: EdgeInsets.only(top: 16, bottom: 10),
             child: Center(
               child: SizedBox(
                 width: 30,

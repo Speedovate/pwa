@@ -113,6 +113,33 @@ class _ProfileViewState extends State<ProfileView> {
     return result;
   }
 
+  bool _hasPendingProfileDetails() {
+    return selfieFile != null;
+  }
+
+  void _leaveProfilePage() {
+    Get.back(result: true);
+  }
+
+  void _confirmLeaveProfilePage() {
+    if (!_hasPendingProfileDetails()) {
+      _leaveProfilePage();
+      return;
+    }
+
+    AlertService().showAppAlert(
+      title: "Are you sure?",
+      content: "You're about to leave this page",
+      hideCancel: false,
+      confirmText: "Leave",
+      confirmColor: Colors.red,
+      confirmAction: () {
+        Get.back(result: true);
+        _leaveProfilePage();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -121,65 +148,36 @@ class _ProfileViewState extends State<ProfileView> {
         if (didPop) {
           return;
         }
-        if (selfieFile == null) {
-          Get.back(result: true);
-        } else {
-          AlertService().showAppAlert(
-            title: "Are you sure?",
-            content: "You're about to leave this page",
-            hideCancel: false,
-            confirmText: "Go back",
-            confirmAction: () {
-              Get.back(result: true);
-              Get.back(result: true);
-            },
-          );
-        }
+        _confirmLeaveProfilePage();
       },
       child: ViewModelBuilder<ProfileViewModel>.reactive(
         viewModelBuilder: () => profileViewModel,
         onViewModelReady: (vm) => vm.initialise(),
         builder: (context, vm, child) {
-          final mediaQuery = MediaQuery.of(context);
           final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
           final visibleFraction = _currentUserTopHalfVisibleFraction(isMobile);
+          final mediaQuery = MediaQuery.of(context);
+          final double avatarSize =
+              (mediaQuery.size.width / 3).clamp(0, 250).toDouble();
           return GestureDetector(
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
             },
             child: Scaffold(
               backgroundColor: Colors.white,
-              appBar: AppBar(
-                toolbarHeight: 0,
-                backgroundColor: Colors.white,
-              ),
-              body: SafeArea(
-                child: SingleChildScrollView(
+              body: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: mediaQuery.padding.top,
+                  ),
                   child: Column(
                     children: [
-                      SizedBox(
-                        height: isMobile ? mediaQuery.padding.top + 36 : 12,
-                      ),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           const SizedBox(width: 4),
                           WidgetButton(
-                            onTap: () {
-                              if (selfieFile == null) {
-                                Get.back(result: true);
-                              } else {
-                                AlertService().showAppAlert(
-                                  title: "Are you sure?",
-                                  content: "You're about to leave this page",
-                                  hideCancel: false,
-                                  confirmText: "Go back",
-                                  confirmAction: () {
-                                    Get.back(result: true);
-                                    Get.back(result: true);
-                                  },
-                                );
-                              }
-                            },
+                            onTap: _confirmLeaveProfilePage,
                             child: const SizedBox(
                               width: 58,
                               height: 58,
@@ -218,22 +216,23 @@ class _ProfileViewState extends State<ProfileView> {
                         color: const Color(0xFF030744).withValues(alpha: 0.1),
                       ),
                       const SizedBox(height: 24),
-                      GestureDetector(
+                      WidgetButton(
                         onTap: () {
                           FocusManager.instance.primaryFocus?.unfocus();
                           showImageSource(isEdit: true);
                         },
+                        borderRadius: 1000,
+                        mainColor: Colors.transparent,
+                        isTransparentColor: true,
+                        useDefaultHoverColor: false,
+                        interactionColor: const Color(0x14030744),
                         child: Stack(
                           children: [
                             selfieFile != null
                                 ? ClipOval(
                                     child: SizedBox(
-                                      width:
-                                          (MediaQuery.of(context).size.width / 3)
-                                              .clamp(0, 250),
-                                      height:
-                                          (MediaQuery.of(context).size.width / 3)
-                                              .clamp(0, 250),
+                                      width: avatarSize,
+                                      height: avatarSize,
                                       child: selfieFileFromMobileCamera
                                           ? LayoutBuilder(
                                               builder: (
@@ -266,16 +265,12 @@ class _ProfileViewState extends State<ProfileView> {
                                     ),
                                   )
                                 : SizedBox(
-                                    width:
-                                        (MediaQuery.of(context).size.width / 3)
-                                            .clamp(0, 250),
-                                    height:
-                                        (MediaQuery.of(context).size.width / 3)
-                                            .clamp(0, 250),
+                                    width: avatarSize,
+                                    height: avatarSize,
                                     child: ClipOval(
                                       child: _shouldUseTopHalfCurrentUserPhoto(
-                                            isMobile,
-                                          )
+                                        isMobile,
+                                      )
                                           ? LayoutBuilder(
                                               builder: (
                                                 context,
@@ -283,22 +278,28 @@ class _ProfileViewState extends State<ProfileView> {
                                               ) {
                                                 final imageProvider =
                                                     safeNetworkImageProvider(
-                                                  AuthService
-                                                          .currentUser
+                                                  AuthService.currentUser
                                                           ?.cPhoto ??
                                                       "",
                                                   cacheWidth: 600,
                                                 );
                                                 if (imageProvider == null) {
-                                                  return Container(
-                                                    color: const Color(
-                                                      0xFF030744,
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons
-                                                          .person_outline_outlined,
-                                                      color: Colors.white,
-                                                      size: 50,
+                                                  return const SizedBox.expand(
+                                                    child: DecoratedBox(
+                                                      decoration: BoxDecoration(
+                                                        color: Color(
+                                                          0xFF030744,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: Center(
+                                                        child: Icon(
+                                                          Icons
+                                                              .person_outline_outlined,
+                                                          color: Colors.white,
+                                                          size: 50,
+                                                        ),
+                                                      ),
                                                     ),
                                                   );
                                                 }
@@ -307,28 +308,43 @@ class _ProfileViewState extends State<ProfileView> {
                                                   visibleFraction:
                                                       visibleFraction,
                                                   loadingChild:
-                                                      CircularProgressIndicator(
-                                                    strokeCap:
-                                                        StrokeCap.round,
-                                                    color: const Color(
-                                                      0xFF007BFF,
-                                                    ),
-                                                    backgroundColor:
-                                                        const Color(
-                                                      0xFF007BFF,
-                                                    ).withValues(
-                                                      alpha: 0.25,
+                                                      const SizedBox.expand(
+                                                    child: DecoratedBox(
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: Colors.white,
+                                                      ),
+                                                      child: Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeCap:
+                                                              StrokeCap.round,
+                                                          color: Color(
+                                                            0xFF007BFF,
+                                                          ),
+                                                          backgroundColor:
+                                                              Colors.white,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
-                                                  errorChild: Container(
-                                                    color: const Color(
-                                                      0xFF030744,
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons
-                                                          .person_outline_outlined,
-                                                      color: Colors.white,
-                                                      size: 50,
+                                                  errorChild:
+                                                      const SizedBox.expand(
+                                                    child: DecoratedBox(
+                                                      decoration: BoxDecoration(
+                                                        color: Color(
+                                                          0xFF030744,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: Center(
+                                                        child: Icon(
+                                                          Icons
+                                                              .person_outline_outlined,
+                                                          color: Colors.white,
+                                                          size: 50,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 );
@@ -337,68 +353,68 @@ class _ProfileViewState extends State<ProfileView> {
                                           : NetworkImageWidget(
                                               fit: BoxFit.cover,
                                               memCacheWidth: 600,
-                                              imageUrl:
-                                                  AuthService
-                                                      .currentUser
-                                                      ?.cPhoto ??
+                                              imageUrl: AuthService
+                                                      .currentUser?.cPhoto ??
                                                   "",
                                               progressIndicatorBuilder: (
                                                 context,
                                                 imageUrl,
                                                 progress,
                                               ) {
-                                                return Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeCap:
-                                                        StrokeCap.round,
-                                                    color: const Color(
-                                                      0xFF007BFF,
+                                                return const SizedBox.expand(
+                                                  child: DecoratedBox(
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: Colors.white,
                                                     ),
-                                                    backgroundColor:
-                                                        const Color(
+                                                    child: Center(
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeCap:
+                                                            StrokeCap.round,
+                                                        color: Color(
                                                           0xFF007BFF,
-                                                        ).withValues(
-                                                          alpha: 0.25,
                                                         ),
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                      ),
+                                                    ),
                                                   ),
                                                 );
                                               },
-                                              errorWidget:
-                                                  (
-                                                    context,
-                                                    imageUrl,
-                                                    progress,
-                                                  ) {
-                                                    return Container(
-                                                      color: const Color(
+                                              errorWidget: (
+                                                context,
+                                                imageUrl,
+                                                progress,
+                                              ) {
+                                                return const SizedBox.expand(
+                                                  child: DecoratedBox(
+                                                    decoration: BoxDecoration(
+                                                      color: Color(
                                                         0xFF030744,
                                                       ),
-                                                      child: const Icon(
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Center(
+                                                      child: Icon(
                                                         Icons
                                                             .person_outline_outlined,
                                                         color: Colors.white,
                                                         size: 50,
                                                       ),
-                                                    );
-                                                  },
+                                                    ),
+                                                  ),
+                                                );
+                                              },
                                             ),
                                     ),
                                   ),
                             Positioned(
-                              right: (MediaQuery.of(context).size.width / 3)
-                                      .clamp(0, 250) /
-                                  20,
-                              bottom: (MediaQuery.of(context).size.width / 3)
-                                      .clamp(0, 250) /
-                                  20,
+                              right: avatarSize / 20,
+                              bottom: avatarSize / 20,
                               child: Container(
-                                width: (MediaQuery.of(context).size.width / 3)
-                                        .clamp(0, 250) /
-                                    5,
-                                height: (MediaQuery.of(context).size.width / 3)
-                                        .clamp(0, 250) /
-                                    5,
+                                width: avatarSize / 5,
+                                height: avatarSize / 5,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: const BorderRadius.all(
@@ -429,20 +445,12 @@ class _ProfileViewState extends State<ProfileView> {
                                   child: Center(
                                     child: Padding(
                                       padding: EdgeInsets.only(
-                                        top:
-                                            (MediaQuery.of(context).size.width /
-                                                        3)
-                                                    .clamp(0, 250) /
-                                                80,
+                                        top: avatarSize / 80,
                                       ),
                                       child: Icon(
                                         Icons.photo_camera_outlined,
                                         color: const Color(0xFF030744),
-                                        size:
-                                            (MediaQuery.of(context).size.width /
-                                                        3)
-                                                    .clamp(0, 250) /
-                                                7,
+                                        size: avatarSize / 7,
                                       ),
                                     ),
                                   ),
@@ -537,7 +545,7 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                         child: SizedBox(
                           width: double.infinity.clamp(0, 800),
-                          child: GestureDetector(
+                          child: WidgetButton(
                             onTap: () {
                               // Clipboard.setData(
                               //   ClipboardData(
@@ -551,75 +559,52 @@ class _ProfileViewState extends State<ProfileView> {
                                   AuthService.currentUser?.code,
                                 ),
                               );
-                              ScaffoldMessenger.of(
-                                Get.context!,
-                              ).clearSnackBars();
-                              ScaffoldMessenger.of(
-                                Get.context!,
-                              ).showSnackBar(
-                                SnackBar(
-                                  margin: const EdgeInsets.all(
-                                    20,
-                                  ),
-                                  behavior: SnackBarBehavior.floating,
-                                  backgroundColor: Colors.grey.shade700,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  content: const Text(
-                                    "Copied to clipboard.",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              );
+                              showSuccess("Copied to clipboard.");
                             },
-                            child: Container(
-                              color: Colors.white,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        "Referral",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: const Color(0xFF030744)
-                                              .withValues(alpha: 0.5),
-                                        ),
+                            borderRadius: 8,
+                            suppressInteraction: true,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Referral",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: const Color(0xFF030744)
+                                            .withValues(alpha: 0.5),
                                       ),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        lowerCase(
-                                          "${AuthService.currentUser?.code}",
-                                        ),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF030744),
-                                        ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      lowerCase(
+                                        "${AuthService.currentUser?.code}",
                                       ),
-                                      const SizedBox(width: 6),
-                                      const Icon(
-                                        Icons.copy,
-                                        size: 14,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
                                         color: Color(0xFF030744),
                                       ),
-                                      const SizedBox(width: 2),
-                                      const Text(
-                                        "tap to copy",
-                                        style: TextStyle(
-                                          color: Color(0xFF030744),
-                                        ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.copy,
+                                      size: 14,
+                                      color: Color(0xFF030744),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    const Text(
+                                      "tap to copy",
+                                      style: TextStyle(
+                                        color: Color(0xFF030744),
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),

@@ -140,37 +140,20 @@ class SplashViewModel extends BaseViewModel {
 
   Future<void> goToNextPage() async {
     if (!AuthService.isLoggedIn()) {
-      if (!AuthService.inReviewMode()) {
-        Navigator.pushAndRemoveUntil(
-          Get.context!,
-          PageRouteBuilder(
-            reverseTransitionDuration: Duration.zero,
-            transitionDuration: Duration.zero,
-            pageBuilder: (
-              context,
-              a,
-              b,
-            ) =>
-                const IntroView(),
-          ),
-          (route) => false,
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          Get.context!,
-          PageRouteBuilder(
-            reverseTransitionDuration: Duration.zero,
-            transitionDuration: Duration.zero,
-            pageBuilder: (
-              context,
-              a,
-              b,
-            ) =>
-                const HomeView(),
-          ),
-          (route) => false,
-        );
-      }
+      Navigator.pushAndRemoveUntil(
+        Get.context!,
+        PageRouteBuilder(
+          reverseTransitionDuration: Duration.zero,
+          transitionDuration: Duration.zero,
+          pageBuilder: (
+            context,
+            a,
+            b,
+          ) =>
+              const IntroView(),
+        ),
+        (route) => false,
+      );
     } else {
       Navigator.pushAndRemoveUntil(
         Get.context!,
@@ -246,17 +229,6 @@ class SplashViewModel extends BaseViewModel {
         } catch (_) {
           gSpots = [];
         }
-        // print("xyz ${jsonEncode(
-        //   gSpots
-        //       .map(
-        //         (e) => {
-        //           'add': e.addressLine,
-        //           'lat': e.coordinates.latitude,
-        //           'lng': e.coordinates.longitude,
-        //         },
-        //       )
-        //       .toList(),
-        // )}");
       },
     );
   }

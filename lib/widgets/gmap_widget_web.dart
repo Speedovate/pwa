@@ -18,6 +18,7 @@ class GoogleMapWidget extends StatefulWidget {
   final void Function(AppMapController map)? onMapCreated;
   final VoidCallback? onCameraMoveStart;
   final void Function(app_maps.LatLng)? onCameraMove;
+  final VoidCallback? onTap;
 
   const GoogleMapWidget({
     super.key,
@@ -28,6 +29,7 @@ class GoogleMapWidget extends StatefulWidget {
     this.onMapCreated,
     this.onCameraMoveStart,
     this.onCameraMove,
+    this.onTap,
   });
 
   @override
@@ -43,9 +45,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void initState() {
     super.initState();
     _useLeafletFallback = MapService.isLeafletFallbackPreferred;
-    MapService.debugLog(
-      'GoogleMapWidget init: useLeafletFallback=$_useLeafletFallback, shouldAttemptGoogleMaps=${MapService.shouldAttemptGoogleMaps}',
-    );
   }
 
   @override
@@ -122,6 +121,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             _LeafletMapController(_leafletMapController),
           );
         },
+        onTap: (_, __) {
+          widget.onTap?.call();
+        },
         onMapEvent: _handleLeafletMapEvent,
       ),
       children: [
@@ -177,7 +179,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   @override
   Widget build(BuildContext context) {
     if (!_useLeafletFallback) {
-      MapService.debugLog('Rendering Google map widget');
       return legacy_google.GoogleMapWidget(
         key: const ValueKey('legacy-google-map'),
         center: widget.center,
@@ -195,20 +196,17 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             app_maps.LatLng(center.lat.toDouble(), center.lng.toDouble()),
           );
         },
+        onTap: widget.onTap,
         onLoadError: () {
           if (!mounted) {
             return;
           }
-          MapService.debugLog(
-            'Google widget reported load error; switching to Leaflet',
-          );
           setState(() {
             _useLeafletFallback = true;
           });
         },
       );
     }
-    MapService.debugLog('Rendering Leaflet fallback widget');
     return _buildLeafletMap();
   }
 }
@@ -245,7 +243,8 @@ class _LeafletMapController implements AppMapController {
   }) {
     raw.fitCamera(
       fmap.CameraFit.coordinates(
-        coordinates: coordinates.map((point) => point.toLeafletLatLng()).toList(),
+        coordinates:
+            coordinates.map((point) => point.toLeafletLatLng()).toList(),
         padding: padding,
       ),
     );
@@ -294,9 +293,24 @@ class _WebGoogleMapController implements AppMapController {
     for (final coordinate in coordinates) {
       bounds.extend(google_maps.LatLng(coordinate.lat, coordinate.lng));
     }
+    var minLat = coordinates.first.lat;
+    var maxLat = coordinates.first.lat;
+    var minLng = coordinates.first.lng;
+    var maxLng = coordinates.first.lng;
+    for (final coordinate in coordinates.skip(1)) {
+      minLat = math.min(minLat, coordinate.lat);
+      maxLat = math.max(maxLat, coordinate.lat);
+      minLng = math.min(minLng, coordinate.lng);
+      maxLng = math.max(maxLng, coordinate.lng);
+    }
+    final latSpan = (maxLat - minLat).abs();
+    final lngSpan = (maxLng - minLng).abs();
+    final boundsPadding = lngSpan >= latSpan
+        ? math.max(padding.left, padding.right)
+        : math.max(padding.top, padding.bottom);
     raw.fitBounds(
       bounds,
-      padding.left.round().toJS,
+      boundsPadding.round().toJS,
     );
   }
 }

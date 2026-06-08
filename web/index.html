@@ -52,9 +52,7 @@
                 return app.platform === "webapp" && app.url === manifestUrl;
               });
           }
-        } catch (error) {
-          console.debug("getInstalledRelatedApps check failed:", error);
-        }
+        } catch (_) {}
 
         const registrations = await navigator.serviceWorker.getRegistrations().catch(function () {
           return [];
@@ -74,15 +72,11 @@
       }
 
       window.addEventListener("load", function () {
-        reportPwaClientState().catch(function (error) {
-          console.debug("PWA client state reporting failed:", error);
-        });
+        reportPwaClientState().catch(function () {});
       });
 
       window.addEventListener("appinstalled", function () {
-        reportPwaClientState().catch(function (error) {
-          console.debug("PWA install state refresh failed:", error);
-        });
+        reportPwaClientState().catch(function () {});
       });
     })();
   </script>
@@ -257,12 +251,8 @@
         }
 
         navigator.serviceWorker.register("/sw.js?v=" + encodeURIComponent(versionTag))
-          .then(function (registration) {
-            console.log("Service Worker registered:", registration);
-          })
-          .catch(function (error) {
-            console.log("Service Worker registration failed:", error);
-          });
+          .then(function () {})
+          .catch(function () {});
       }
 
       function checkForVersionUpdate() {

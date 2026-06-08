@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/utils/browser_utils.dart';
@@ -15,6 +14,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/web_view.widget.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/models/api_response.model.dart';
@@ -23,6 +23,16 @@ import 'package:url_launcher/url_launcher.dart';
 const String facebookSupportUrl = "https://www.facebook.com/ppctodaofficial";
 const String telSupportUrl = "tel:+639686410532";
 const String smsSupportUrl = "sms:+639686410532";
+
+void showPermissionSettingsDialog({
+  required String permissionName,
+  String? reason,
+}) {
+  AlertService().showPermissionSettingsDialog(
+    permissionName: permissionName,
+    reason: reason,
+  );
+}
 
 Future<void> openFacebookSupportChannel() async {
   final facebookAppUri = Uri.parse(
@@ -68,7 +78,8 @@ Future<void> showFacebookSupportDialog(
   await showDialog(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.8),
-    builder: (dialogContext) {
+    useSafeArea: false,
+    builder: (context) {
       return Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(
@@ -81,129 +92,135 @@ Future<void> showFacebookSupportDialog(
               constraints: const BoxConstraints(
                 maxWidth: 800,
               ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(dialogContext).padding.top,
-                ),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(20),
-                    ),
-                    border: Border.all(
-                      color: const Color(0xFF030744).withValues(alpha: 0.08),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF030744).withValues(alpha: 0.18),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(20),
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
-                          ),
+                  border: Border.all(
+                    color: const Color(0xFF030744).withValues(alpha: 0.08),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF030744).withValues(alpha: 0.18),
+                      blurRadius: 24,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(20, 4, 6, 6),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
                         ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    title,
-                                    style: const TextStyle(
-                                      height: 1.05,
-                                      fontSize: 18,
-                                      fontFamily: "Inter",
-                                      fontWeight: FontWeight.w700,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: const TextStyle(
+                                    height: 1.05,
+                                    fontSize: 18,
+                                    fontFamily: "Inter",
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF030744),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: WidgetButton(
+                                  onTap: () => Navigator.of(context).pop(),
+                                  mainColor: Colors.transparent,
+                                  isTransparentColor: true,
+                                  useDefaultHoverColor: false,
+                                  interactionColor: const Color(0x14030744),
+                                  borderRadius: 1000,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 28,
                                       color: Color(0xFF030744),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                IconButton(
-                                  onPressed: () =>
-                                      Navigator.of(dialogContext).pop(),
-                                  icon: const Icon(
-                                    Icons.close,
-                                    color: Color(0xFF030744),
-                                  ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: Column(
+                        children: [
+                          _supportDialogButton(
+                            label: "Message us on Facebook",
+                            icon: Icons.facebook,
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              await openFacebookSupportChannel();
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          _supportDialogButton(
+                            label: "Send us a message",
+                            icon: Icons.sms,
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              try {
+                                await launchUrl(
+                                  Uri.parse(smsSupportUrl),
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } catch (_) {}
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          _supportDialogButton(
+                            label: "Contact us",
+                            icon: Icons.call,
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              try {
+                                await launchUrl(
+                                  Uri.parse(telSupportUrl),
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } catch (_) {}
+                            },
+                          ),
+                          !showRequestCancellation
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 10),
+                          !showRequestCancellation
+                              ? const SizedBox.shrink()
+                              : _supportDialogButton(
+                                  label: "Request cancellation",
+                                  icon: Icons.cancel,
+                                  color: Colors.red,
+                                  onTap: () async {
+                                    Navigator.of(context).pop();
+                                    await onRequestCancellation?.call();
+                                  },
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                        child: Column(
-                          children: [
-                            _supportDialogButton(
-                              label: "Message us on Facebook",
-                              icon: Icons.facebook,
-                              onTap: () async {
-                                Navigator.of(dialogContext).pop();
-                                await openFacebookSupportChannel();
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            _supportDialogButton(
-                              label: "Send us a message",
-                              icon: Icons.sms,
-                              onTap: () async {
-                                Navigator.of(dialogContext).pop();
-                                try {
-                                  await launchUrl(
-                                    Uri.parse(smsSupportUrl),
-                                    mode: LaunchMode.externalApplication,
-                                  );
-                                } catch (_) {}
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            _supportDialogButton(
-                              label: "Contact us",
-                              icon: Icons.call,
-                              onTap: () async {
-                                Navigator.of(dialogContext).pop();
-                                try {
-                                  await launchUrl(
-                                    Uri.parse(telSupportUrl),
-                                    mode: LaunchMode.externalApplication,
-                                  );
-                                } catch (_) {}
-                              },
-                            ),
-                            !showRequestCancellation
-                                ? const SizedBox.shrink()
-                                : const SizedBox(height: 8),
-                            !showRequestCancellation
-                                ? const SizedBox.shrink()
-                                : _supportDialogButton(
-                                    label: "Request cancellation",
-                                    icon: Icons.cancel,
-                                    color: const Color(0xFFFF3B30),
-                                    onTap: () async {
-                                      Navigator.of(dialogContext).pop();
-                                      await onRequestCancellation?.call();
-                                    },
-                                  ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -223,46 +240,37 @@ Widget _supportDialogButton({
   return SizedBox(
     width: double.infinity,
     height: 56,
-    child: Material(
-      color: color.withValues(alpha: 0.1),
-      borderRadius: const BorderRadius.all(
-        Radius.circular(14),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(
-          Radius.circular(14),
-        ),
-        focusColor: Colors.black.withValues(alpha: 0.2),
-        hoverColor: Colors.black.withValues(alpha: 0.2),
-        splashColor: Colors.black.withValues(alpha: 0.2),
-        highlightColor: Colors.black.withValues(alpha: 0.2),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: color,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+    child: WidgetButton(
+      onTap: onTap,
+      borderRadius: 14,
+      mainColor: color.withValues(alpha: 0.1),
+      interactionColor: color.withValues(alpha: 0.18),
+      useDefaultHoverColor: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 6, 0),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: color,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: color,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: color,
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: color,
+            ),
+          ],
         ),
       ),
     ),
@@ -446,8 +454,7 @@ String formatEtaText(String input) {
 parseDouble(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return null;
     }
     if (value is double) {
@@ -458,8 +465,7 @@ parseDouble(dynamic value, String fieldName) {
     }
     return double.parse(value.toString());
   } catch (e) {
-    if (showParseText) {
-    }
+    if (showParseText) {}
     return 0.0;
   }
 }
@@ -467,8 +473,7 @@ parseDouble(dynamic value, String fieldName) {
 parseString(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return null;
     }
     if (value is String) {
@@ -478,8 +483,7 @@ parseString(dynamic value, String fieldName) {
     }
     return value.toString();
   } catch (e) {
-    if (showParseText) {
-    }
+    if (showParseText) {}
     return "";
   }
 }
@@ -487,8 +491,7 @@ parseString(dynamic value, String fieldName) {
 parseInt(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return null;
     }
     if (value is int) {
@@ -499,8 +502,7 @@ parseInt(dynamic value, String fieldName) {
     }
     return int.parse(value.toString());
   } catch (e) {
-    if (showParseText) {
-    }
+    if (showParseText) {}
     return 0;
   }
 }
@@ -508,8 +510,7 @@ parseInt(dynamic value, String fieldName) {
 bool parseBool(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return false;
     }
     if (value is bool) {
@@ -523,8 +524,7 @@ bool parseBool(dynamic value, String fieldName) {
     }
     return false;
   } catch (e) {
-    if (showParseText) {
-    }
+    if (showParseText) {}
     return false;
   }
 }
@@ -532,8 +532,7 @@ bool parseBool(dynamic value, String fieldName) {
 parseDateTime(dynamic value, String fieldName) {
   try {
     if (value == null) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return null;
     }
     if (value is DateTime) {
@@ -544,8 +543,7 @@ parseDateTime(dynamic value, String fieldName) {
     }
     return null;
   } catch (e) {
-    if (showParseText) {
-    }
+    if (showParseText) {}
     return null;
   }
 }
@@ -557,8 +555,7 @@ List<T>? parseList<T>(
 }) {
   try {
     if (value == null) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return null;
     }
     if (value is List) {
@@ -569,8 +566,7 @@ List<T>? parseList<T>(
     }
     return null;
   } catch (e) {
-    if (showParseText) {
-    }
+    if (showParseText) {}
     return null;
   }
 }
@@ -627,15 +623,10 @@ Future<dynamic> showCameraSource({
     if (GetPlatform.isAndroid || GetPlatform.isIOS) {
       if (await Permission.camera.isPermanentlyDenied &&
           !AuthService.inReviewMode()) {
-        AlertService().showAppAlert(
-          asset: AppLotties.error,
-          title: "Permission Denied",
-          content: 'Go to Settings > Apps > PPC TODA > '
-              'Permissions and allow "Camera"',
-          confirmAction: () {
-            Get.back();
-            openAppSettings();
-          },
+        showPermissionSettingsDialog(
+          permissionName: "Camera",
+          reason: 'Go to Settings > Apps > PPC TODA > '
+              'Permissions and allow "Camera" so you can take your profile photo.',
         );
         return null;
       } else if (await Permission.camera.isDenied) {
@@ -643,6 +634,11 @@ Future<dynamic> showCameraSource({
         if (status.isGranted) {
           return openCameraView();
         }
+        showPermissionSettingsDialog(
+          permissionName: "Camera",
+          reason: 'Please allow camera access in Settings '
+              'so you can take your profile photo.',
+        );
         return null;
       } else {
         return openCameraView();
@@ -666,6 +662,7 @@ Future<dynamic> showImageSource({
 }) async {
   return showModalBottomSheet(
     context: Get.context!,
+    useSafeArea: false,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.zero,
     ),
@@ -694,12 +691,16 @@ Future<dynamic> showImageSource({
                         await picker.pickImage(source: ImageSource.gallery);
                     if (image != null) {
                       selfieFile = await image.readAsBytes();
+                      selfieFileNeedsHorizontalFlip = false;
                       selfieFileFromMobileCamera = false;
                       Get.forceAppUpdate();
                     }
                   } catch (e) {
-                    if (showParseText) {
-                    }
+                    showPermissionSettingsDialog(
+                      permissionName: "Photos",
+                      reason: 'Please allow photo access in Settings '
+                          'so you can choose an image from your gallery.',
+                    );
                   }
                 },
                 leading: const Icon(Icons.image),
@@ -723,30 +724,29 @@ share(String text) async {
             "https://ppctoda.com",
       ),
     );
-    ScaffoldMessenger.of(
-      Get.context!,
-    ).clearSnackBars();
-    ScaffoldMessenger.of(
-      Get.context!,
-    ).showSnackBar(
-      SnackBar(
-        margin: const EdgeInsets.all(
-          20,
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.grey.shade700,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        content: const Text(
-          "Copied to clipboard.",
-          style: TextStyle(
-            color: Colors.white,
-          ),
+    showSuccess("Copied to clipboard.");
+  }
+}
+
+void showSuccess(
+  String message, {
+  BuildContext? context,
+}) {
+  final currentContext = context ?? Get.context;
+  if (currentContext == null) return;
+  ScaffoldMessenger.of(currentContext).clearSnackBars();
+  ScaffoldMessenger.of(currentContext).showSnackBar(
+    SnackBar(
+      backgroundColor: Colors.green,
+      content: Text(
+        message,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 showError(Object error) {
@@ -759,7 +759,7 @@ showError(Object error) {
   ScaffoldMessenger.of(context).clearSnackBars();
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      backgroundColor: Colors.red.shade700,
+      backgroundColor: Colors.red,
       content: Text(
         message,
         style: const TextStyle(
@@ -769,6 +769,54 @@ showError(Object error) {
       ),
     ),
   );
+}
+
+String googleAuthErrorMessage(
+  Object error, {
+  required bool isSignUp,
+}) {
+  final action = isSignUp ? "sign-up" : "sign-in";
+  final fallback =
+      "Google $action failed. Please try again or use phone ${isSignUp ? "registration" : "login"}.";
+
+  if (error is PlatformException) {
+    final code = error.code.trim();
+    final lowerCode = code.toLowerCase();
+    final message = (error.message ?? "").trim();
+    final details = "${error.details ?? ""}".trim();
+    final nativeMessage = message.isNotEmpty ? message : details;
+
+    if (lowerCode.contains("cancel") || lowerCode == "sign_in_canceled") {
+      return "Google $action was cancelled.";
+    }
+    if (lowerCode.contains("network")) {
+      return "Google $action failed because the network is unavailable. Please check your connection.";
+    }
+    if (lowerCode.contains("developer") ||
+        lowerCode.contains("configuration") ||
+        lowerCode.contains("missing")) {
+      return "Google $action is not configured correctly for this device. Please contact support. ($code)";
+    }
+    if (nativeMessage.isNotEmpty) {
+      return "Google $action failed: $nativeMessage ($code)";
+    }
+    if (code.isNotEmpty) {
+      return "Google $action failed with code $code.";
+    }
+    return fallback;
+  }
+
+  var message = error.toString().trim();
+  if (message.startsWith("Exception: ")) {
+    message = message.replaceFirst("Exception: ", "");
+  }
+  if (message.startsWith("Bad state: ")) {
+    message = message.replaceFirst("Bad state: ", "");
+  }
+  if (message.isEmpty || message.toLowerCase() == "null") {
+    return fallback;
+  }
+  return message;
 }
 
 Map<String, dynamic> parseJwt(String token) {

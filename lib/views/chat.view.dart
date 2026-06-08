@@ -1,5 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'dart:ui' as ui;
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
@@ -45,6 +46,9 @@ class ChatView extends StatefulWidget {
 }
 
 class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
+  static const int _chatUploadMaxLongSide = 1080;
+  static const double _chatBubblePillTopPadding = 2;
+  static const double _chatBubblePillHeight = 34;
   bool isMediaLoading = false;
   bool _isUpdatingRequestCancellation = false;
   bool _isUpdatingRequestPass = false;
@@ -64,7 +68,9 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     _controller.addListener(_handleComposerChanged);
     _messageFocusNode.addListener(_handleComposerChanged);
     _mobileKeyboardInset = _currentKeyboardInset();
-    if (chatFileListenable.value != chatFile) {
+    if (widget.readOnly) {
+      setChatFile(null);
+    } else if (chatFileListenable.value != chatFile) {
       chatFileListenable.value = chatFile;
     }
     setChatViewOpen(true);
@@ -115,6 +121,44 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     final dispatcher = WidgetsBinding.instance.platformDispatcher;
     final view = dispatcher.implicitView ?? dispatcher.views.first;
     return view.viewInsets.bottom / view.devicePixelRatio;
+  }
+
+  Future<Uint8List> _resizeChatImageBytesForUpload(Uint8List bytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final width = image.width;
+      final height = image.height;
+      final longSide = width > height ? width : height;
+
+      if (longSide <= _chatUploadMaxLongSide) {
+        return bytes;
+      }
+
+      final scale = _chatUploadMaxLongSide / longSide;
+      final targetWidth = (width * scale).round();
+      final targetHeight = (height * scale).round();
+      final resizedCodec = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: targetWidth,
+        targetHeight: targetHeight,
+      );
+      final resizedFrame = await resizedCodec.getNextFrame();
+      final resizedImage = resizedFrame.image;
+      final byteData = await resizedImage.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      if (byteData == null) {
+        return bytes;
+      }
+
+      final resizedBytes = byteData.buffer.asUint8List();
+      return resizedBytes;
+    } catch (_) {
+      return bytes;
+    }
   }
 
   void _startVisualViewportListener() {
@@ -214,6 +258,85 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       return "pass";
     }
     return null;
+  }
+
+  String _displayMessageText(ChatMessage message) {
+    final requestType = _requestMessageType(message);
+    if (requestType == "cancellation") {
+      return "Request Cancellation";
+    }
+    if (requestType == "pass") {
+      return "Request Pass";
+    }
+    return _displayContextualParticipantNames(message.text);
+  }
+
+  String _displayContextualParticipantNames(String text) {
+    final driverName = (widget.order.driver?.name ?? "").trim();
+    final currentUserName = (AuthService.currentUser?.name ?? "").trim();
+    var displayText = _replaceDisplayName(
+      text,
+      name: driverName,
+      plainReplacement: "your driver",
+      possessiveReplacement: "your driver's",
+    );
+    displayText = _replaceDisplayName(
+      displayText,
+      name: currentUserName,
+      plainReplacement: "you",
+      possessiveReplacement: "your",
+    );
+    return _capitalizeLeadingContextReplacement(displayText);
+  }
+
+  String _replaceDisplayName(
+    String text, {
+    required String name,
+    required String plainReplacement,
+    required String possessiveReplacement,
+  }) {
+    if (name.isEmpty || name.toLowerCase() == "null") {
+      return text;
+    }
+
+    final escapedName = name
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .map(RegExp.escape)
+        .join(r'\s+');
+    if (escapedName.isEmpty) {
+      return text;
+    }
+
+    final possessivePattern = RegExp(
+      "(^|[^A-Za-z0-9_])$escapedName['’]s\\b",
+      caseSensitive: false,
+    );
+    final possessiveText = text.replaceAllMapped(
+      possessivePattern,
+      (match) => "${match.group(1) ?? ""}$possessiveReplacement",
+    );
+    final namePattern = RegExp(
+      "(^|[^A-Za-z0-9_])$escapedName\\b",
+      caseSensitive: false,
+    );
+    return possessiveText.replaceAllMapped(
+      namePattern,
+      (match) => "${match.group(1) ?? ""}$plainReplacement",
+    );
+  }
+
+  String _capitalizeLeadingContextReplacement(String text) {
+    if (text.startsWith("your driver")) {
+      return "Your driver${text.substring(11)}";
+    }
+    if (text.startsWith("your")) {
+      return "Your${text.substring(4)}";
+    }
+    if (text.startsWith("you")) {
+      return "You${text.substring(3)}";
+    }
+    return text;
   }
 
   bool _canShowRequestCancellationPill(String? status) {
@@ -579,7 +702,8 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
         throw "No driver found. Try again later";
       }
       AlertService().stopLoading(forceStop: true);
-      if ((availableDriver?.pickupKm ?? 0.0) <= _chatDriverSearchPickupKmLimit) {
+      if ((availableDriver?.pickupKm ?? 0.0) <=
+          _chatDriverSearchPickupKmLimit) {
         await _submitAcceptedCancelRequestRebook(
           vm,
           availableDriver!,
@@ -662,37 +786,42 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
             : status == "pending"
                 ? "Pending"
                 : "Rejected";
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 6,
-              ),
+        final textColor =
+            color == Colors.white ? const Color(0xFF030744) : color;
+        return Padding(
+          padding: const EdgeInsets.only(top: _chatBubblePillTopPadding),
+          child: IntrinsicWidth(
+            child: Container(
+              height: _chatBubblePillHeight,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: const BorderRadius.all(
                   Radius.circular(1000),
                 ),
                 border: Border.all(
-                  color: color.withValues(alpha: 0.22),
+                  color: textColor.withValues(alpha: 0.18),
                 ),
               ),
-              child: Text(
-                statusText,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  height: 1.15,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color:
-                      color == Colors.white ? const Color(0xFF030744) : color,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 0,
+                  ),
+                  child: Text(
+                    statusText,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      height: 1.15,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -704,6 +833,10 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     required String requestType,
     Color color = Colors.white,
   }) {
+    if (widget.readOnly) {
+      return const SizedBox.shrink();
+    }
+
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: fbStore.collection("orders").doc(widget.order.code).snapshots(),
       builder: (context, snapshot) {
@@ -728,78 +861,71 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
           );
         }
 
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 34,
-              child: WidgetButton(
-                onTap: isUpdating
-                    ? () {}
-                    : () async {
-                        await _updateRequestStatus(
-                          vm: vm,
-                          requestType: requestType,
-                          status: "rejected",
-                        );
-                      },
-                mainColor: Colors.white,
-                borderRadius: 1000,
-                useDefaultHoverColor: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Center(
-                    child: isUpdating
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: color,
+        Widget buildActionButton({
+          required String label,
+          required String status,
+          required bool showLoading,
+        }) {
+          return Padding(
+            padding: const EdgeInsets.only(top: _chatBubblePillTopPadding),
+            child: IntrinsicWidth(
+              child: SizedBox(
+                height: _chatBubblePillHeight,
+                child: WidgetButton(
+                  onTap: isUpdating
+                      ? () {}
+                      : () async {
+                          await _updateRequestStatus(
+                            vm: vm,
+                            requestType: requestType,
+                            status: status,
+                          );
+                        },
+                  mainColor: Colors.white,
+                  interactionColor: color.withValues(alpha: 0.12),
+                  borderRadius: 1000,
+                  useDefaultHoverColor: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Center(
+                      child: showLoading
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: color,
+                              ),
+                            )
+                          : Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: color,
+                              ),
                             ),
-                          )
-                        : Text(
-                            "Reject",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: color,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              height: 34,
-              child: WidgetButton(
-                onTap: isUpdating
-                    ? () {}
-                    : () async {
-                        await _updateRequestStatus(
-                          vm: vm,
-                          requestType: requestType,
-                          status: "accepted",
-                        );
-                      },
-                mainColor: Colors.white,
-                borderRadius: 1000,
-                useDefaultHoverColor: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Center(
-                    child: Text(
-                      "Accept",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
                     ),
                   ),
                 ),
               ),
+            ),
+          );
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            buildActionButton(
+              label: "Reject",
+              status: "rejected",
+              showLoading: isUpdating,
+            ),
+            const SizedBox(width: 8),
+            buildActionButton(
+              label: "Accept",
+              status: "accepted",
+              showLoading: false,
             ),
           ],
         );
@@ -813,35 +939,38 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       required Color color,
       required VoidCallback onTap,
     }) {
-      return Material(
-        color: Colors.transparent,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: const BorderRadius.all(
-              Radius.circular(1000),
-            ),
-            border: Border.all(
-              color: color.withValues(alpha: 0.18),
-            ),
-          ),
-          child: InkWell(
+      return Padding(
+        padding: const EdgeInsets.only(top: _chatBubblePillTopPadding),
+        child: IntrinsicWidth(
+          child: WidgetButton(
             onTap: onTap,
-            borderRadius: const BorderRadius.all(
-              Radius.circular(1000),
-            ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 0,
+            mainColor: color.withValues(alpha: 0.08),
+            interactionColor: color.withValues(alpha: 0.18),
+            useDefaultHoverColor: false,
+            borderRadius: 1000,
+            child: Container(
+              height: _chatBubblePillHeight,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(1000),
                 ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
+                border: Border.all(
+                  color: color.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 0,
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
                   ),
                 ),
               ),
@@ -851,32 +980,29 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: SizedBox(
-        height: 34,
-        child: ListView.separated(
-          shrinkWrap: true,
-          scrollDirection: Axis.horizontal,
-          itemCount: 2,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return buildPill(
-                label: "Cancel",
-                color: const Color(0xFFFF3B30),
-                onTap: _confirmAcceptedCancelRequestCancel,
-              );
-            }
+    return SizedBox(
+      height: _chatBubblePillHeight + _chatBubblePillTopPadding,
+      child: ListView.separated(
+        shrinkWrap: true,
+        scrollDirection: Axis.horizontal,
+        itemCount: 2,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) {
             return buildPill(
-              label: "Get a new driver now!",
-              color: const Color(0xFF007BFF),
-              onTap: () {
-                _confirmAcceptedCancelRequestRebook(vm);
-              },
+              label: "Cancel",
+              color: Colors.red,
+              onTap: _confirmAcceptedCancelRequestCancel,
             );
-          },
-        ),
+          }
+          return buildPill(
+            label: "Get a new driver now!",
+            color: const Color(0xFF007BFF),
+            onTap: () {
+              _confirmAcceptedCancelRequestRebook(vm);
+            },
+          );
+        },
       ),
     );
   }
@@ -885,6 +1011,10 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     required ChatViewModel vm,
     required ChatMessage message,
   }) {
+    if (widget.readOnly) {
+      return const SizedBox.shrink();
+    }
+
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: fbStore.collection("orders").doc(widget.order.code).snapshots(),
       builder: (context, snapshot) {
@@ -949,7 +1079,8 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     BuildContext context,
     String imageUrl,
   ) {
-    final availableWidth = MediaQuery.of(context).size.width - 124;
+    final mediaQuery = MediaQuery.of(context);
+    final availableWidth = mediaQuery.size.width - 124;
     final width = availableWidth < 240 ? availableWidth : 240.0;
     final height = width * (260 / 240);
     return ClipRRect(
@@ -992,108 +1123,293 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     );
   }
 
+  void _showNetworkImagePreview(String? imageUrl, {int memCacheWidth = 900}) {
+    final resolvedImageUrl = (imageUrl ?? "").trim();
+    if (resolvedImageUrl.isEmpty || resolvedImageUrl.toLowerCase() == "null") {
+      return;
+    }
+
+    AlertService().showAppAlert(
+      isCustom: true,
+      customWidget: PinchZoom(
+        child: NetworkImageWidget(
+          imageUrl: resolvedImageUrl,
+          memCacheWidth: memCacheWidth,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  void _showMemoryImagePreview(Uint8List imageBytes) {
+    if (imageBytes.isEmpty) {
+      return;
+    }
+
+    AlertService().showAppAlert(
+      isCustom: true,
+      customWidget: PinchZoom(
+        child: Image.memory(
+          imageBytes,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  String? _philippineMobileNumberFromMessage(String messageText) {
+    final matches = RegExp(
+      r'(?:\+?63|0)?9(?:[\s\-.()]*\d){9}',
+    ).allMatches(messageText);
+
+    for (final match in matches) {
+      final rawNumber = match.group(0) ?? "";
+      final digits = rawNumber.replaceAll(RegExp(r'\D'), "");
+      if (digits.length == 12 && digits.startsWith("639")) {
+        return "+$digits";
+      }
+      if (digits.length == 11 && digits.startsWith("09")) {
+        return "+63${digits.substring(1)}";
+      }
+      if (digits.length == 10 && digits.startsWith("9")) {
+        return "+63$digits";
+      }
+    }
+
+    return null;
+  }
+
+  Widget _buildCallPhonePill(String phoneNumber) {
+    const color = Color(0xFF007BFF);
+    return Padding(
+      padding: const EdgeInsets.only(top: _chatBubblePillTopPadding),
+      child: IntrinsicWidth(
+        child: WidgetButton(
+          onTap: () async {
+            await launchUrlString("tel:$phoneNumber");
+          },
+          mainColor: color.withValues(alpha: 0.08),
+          interactionColor: color.withValues(alpha: 0.18),
+          useDefaultHoverColor: false,
+          borderRadius: 1000,
+          child: Container(
+            height: _chatBubblePillHeight,
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.all(
+                Radius.circular(1000),
+              ),
+              border: Border.all(
+                color: color.withValues(alpha: 0.18),
+              ),
+            ),
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 0,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.call,
+                      size: 14,
+                      color: color,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      "Call",
+                      style: TextStyle(
+                        height: 1.15,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _showMessageActionsSheet(String messageText) async {
     final trimmedMessage = messageText.trim();
     if (trimmedMessage.isEmpty || trimmedMessage.toLowerCase() == "null") {
       return;
     }
+    final phoneNumber = _philippineMobileNumberFromMessage(trimmedMessage);
 
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
+      useSafeArea: false,
       builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                  child: Center(
-                    child: Container(
-                      width: 42,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(1000),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    trimmedMessage,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.left,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () async {
-                      await Clipboard.setData(
-                        ClipboardData(text: trimmedMessage),
-                      );
-                      if (sheetContext.mounted) {
-                        Navigator.pop(sheetContext);
-                      }
-                      if (!mounted) {
-                        return;
-                      }
-                      final messenger = ScaffoldMessenger.maybeOf(context);
-                      messenger?.clearSnackBars();
-                      messenger?.showSnackBar(
-                        const SnackBar(
-                          content: Text("Text copied"),
-                        ),
-                      );
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          Icons.copy_rounded,
-                        ),
-                        title: Text("Copy"),
-                      ),
-                    ),
-                  ),
-                ),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          Icons.close_rounded,
-                        ),
-                        title: Text("Close"),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(20),
             ),
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: Center(
+                  child: Container(
+                    width: 42,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(1000),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  trimmedMessage,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                ),
+              ),
+              const SizedBox(height: 16),
+              WidgetButton(
+                borderRadius: 0,
+                onTap: () async {
+                  await Clipboard.setData(
+                    ClipboardData(text: trimmedMessage),
+                  );
+                  if (sheetContext.mounted) {
+                    Navigator.pop(sheetContext);
+                  }
+                  if (!mounted) {
+                    return;
+                  }
+                  showSuccess("Copied to clipboard.", context: context);
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy_rounded),
+                      SizedBox(width: 16),
+                      Text("Copy"),
+                    ],
+                  ),
+                ),
+              ),
+              if (phoneNumber != null)
+                WidgetButton(
+                  borderRadius: 0,
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await launchUrlString("tel:$phoneNumber");
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.call_outlined),
+                        SizedBox(width: 16),
+                        Text("Call"),
+                      ],
+                    ),
+                  ),
+                ),
+              WidgetButton(
+                borderRadius: 0,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                },
+                child: const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 12, 24, 24),
+                  child: Row(
+                    children: [
+                      Icon(Icons.close_rounded),
+                      SizedBox(width: 16),
+                      Text("Close"),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
+      },
+    );
+  }
+
+  bool _hasPendingChatDraft() {
+    final message = _controller.text.trim();
+    return (message.isNotEmpty && message != "null") ||
+        chatFileListenable.value != null ||
+        chatFile != null;
+  }
+
+  String _chatImageUploadErrorMessage(Object error) {
+    final message = error.toString().replaceFirst("Exception: ", "").trim();
+    if (message.contains("try a smaller image")) {
+      return message;
+    }
+    if (message.contains("Server Error") ||
+        message.contains("Response:") ||
+        message.contains("{message:")) {
+      return "The photo failed to upload. Please try a smaller image.";
+    }
+    if (message.isEmpty || message.toLowerCase() == "null") {
+      return "The photo failed to upload. Please try again.";
+    }
+    return message;
+  }
+
+  Future<void> _markChatSeen() async {
+    try {
+      await fbStore.collection("orders").doc(widget.order.code).update(
+        {
+          "userSeen": true,
+        },
+      );
+    } catch (_) {
+      // Best effort only; leaving chat should not be blocked by sync failure.
+    }
+  }
+
+  Future<void> _leaveChatPage() async {
+    await _markChatSeen();
+    Get.back();
+  }
+
+  void _confirmLeaveChatPage() {
+    if (!_hasPendingChatDraft()) {
+      _leaveChatPage();
+      return;
+    }
+
+    AlertService().showAppAlert(
+      title: "Are you sure?",
+      content: "You're about to leave this page",
+      hideCancel: false,
+      confirmText: "Leave",
+      confirmColor: Colors.red,
+      confirmAction: () {
+        Get.back();
+        _leaveChatPage();
       },
     );
   }
@@ -1101,25 +1417,13 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     ChatViewModel chatViewModel = ChatViewModel();
-    final rootMediaQuery = MediaQueryData.fromView(View.of(context));
-    final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) {
           return;
         }
-        fbStore
-            .collection(
-              "orders",
-            )
-            .doc(widget.order.code)
-            .update(
-          {
-            "userSeen": true,
-          },
-        );
-        Get.back();
+        _confirmLeaveChatPage();
       },
       child: ViewModelBuilder<ChatViewModel>.reactive(
         viewModelBuilder: () => chatViewModel,
@@ -1127,9 +1431,14 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
           model.initialise(widget.chatEntity);
         },
         builder: (context, vm, child) {
+          final mediaQuery = MediaQuery.of(context);
           return Scaffold(
             backgroundColor: Colors.white,
-            body: SafeArea(
+            resizeToAvoidBottomInset: false,
+            body: Padding(
+              padding: EdgeInsets.only(
+                top: mediaQuery.padding.top,
+              ),
               child: Stack(
                 children: [
                   Builder(builder: (context) {
@@ -1143,12 +1452,20 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                               },
                               child: ListView.builder(
                                 reverse: true,
-                                padding: const EdgeInsets.only(bottom: 12),
+                                padding: EdgeInsets.only(
+                                  bottom: widget.readOnly
+                                      ? mediaQuery.padding.bottom + 12
+                                      : 12,
+                                ),
                                 itemCount: vm.messages.length,
                                 itemBuilder: (context, index) {
                                   final message = vm.messages[index];
                                   final imageUrl = _messageImageUrl(message);
                                   final isImageMessage = imageUrl != null;
+                                  final messagePhoneNumber =
+                                      _philippineMobileNumberFromMessage(
+                                    message.text,
+                                  );
                                   final requestMessageType =
                                       _requestMessageType(message);
                                   final isRequestMessage =
@@ -1156,7 +1473,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                   final requestAccentColor =
                                       requestMessageType == "pass"
                                           ? const Color(0xFF007BFF)
-                                          : const Color(0xFFFF3B30);
+                                          : Colors.red;
                                   final requestBubbleColor =
                                       requestMessageType == "pass"
                                           ? const Color(0xFFEAF4FF)
@@ -1175,21 +1492,13 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                       child: GestureDetector(
                                         onTap: () {
                                           if (isImageMessage) {
-                                            AlertService().showAppAlert(
-                                              isCustom: true,
-                                              customWidget: PinchZoom(
-                                                child: NetworkImageWidget(
-                                                  imageUrl: imageUrl,
-                                                  memCacheWidth: 900,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
-                                            );
+                                            _showNetworkImagePreview(imageUrl);
                                           }
                                         },
-                                        onLongPress: !_canShowTextActions(
-                                          message,
-                                        )
+                                        onLongPress: widget.readOnly ||
+                                                !_canShowTextActions(
+                                                  message,
+                                                )
                                             ? null
                                             : () async {
                                                 await _showMessageActionsSheet(
@@ -1231,74 +1540,82 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                         }
                                                       }()
                                                   ? const SizedBox(width: 35)
-                                                  : ClipOval(
-                                                      child: SizedBox(
-                                                        width: 35,
-                                                        height: 35,
-                                                        child:
-                                                            NetworkImageWidget(
-                                                          fit: BoxFit.cover,
+                                                  : GestureDetector(
+                                                      onTap: () {
+                                                        _showNetworkImagePreview(
+                                                          "${vm.messages[index].user.profileImage}",
                                                           memCacheWidth: 600,
-                                                          imageUrl:
-                                                              "${vm.messages[index].user.profileImage}",
-                                                          progressIndicatorBuilder:
-                                                              (
-                                                            context,
-                                                            imageUrl,
-                                                            progress,
-                                                          ) {
-                                                            return Container(
-                                                              decoration:
-                                                                  const BoxDecoration(
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                                color: Color(
-                                                                  0x14007BFF,
-                                                                ),
-                                                              ),
-                                                              child:
-                                                                  const Center(
-                                                                child:
-                                                                    SizedBox(
-                                                                  width: 16,
-                                                                  height: 16,
-                                                                  child:
-                                                                      CircularProgressIndicator(
-                                                                    color: Color(
-                                                                      0xFF007BFF,
-                                                                    ),
-                                                                    strokeWidth:
-                                                                        2,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            );
-                                                          },
-                                                          errorWidget: (
-                                                            context,
-                                                            imageUrl,
-                                                            progress,
-                                                          ) {
-                                                            return Container(
-                                                              decoration:
-                                                                  const BoxDecoration(
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                                color: Color(
-                                                                  0xFF030744,
-                                                                ),
-                                                              ),
-                                                              child:
-                                                                  const Center(
-                                                                child: Icon(
-                                                                  Icons
-                                                                      .person_outline_outlined,
+                                                        );
+                                                      },
+                                                      child: ClipOval(
+                                                        child: SizedBox(
+                                                          width: 35,
+                                                          height: 35,
+                                                          child:
+                                                              NetworkImageWidget(
+                                                            fit: BoxFit.cover,
+                                                            memCacheWidth: 600,
+                                                            imageUrl:
+                                                                "${vm.messages[index].user.profileImage}",
+                                                            progressIndicatorBuilder:
+                                                                (
+                                                              context,
+                                                              imageUrl,
+                                                              progress,
+                                                            ) {
+                                                              return Container(
+                                                                decoration:
+                                                                    const BoxDecoration(
+                                                                  shape: BoxShape
+                                                                      .circle,
                                                                   color: Colors
                                                                       .white,
                                                                 ),
-                                                              ),
-                                                            );
-                                                          },
+                                                                child:
+                                                                    const Center(
+                                                                  child:
+                                                                      SizedBox(
+                                                                    width: 16,
+                                                                    height: 16,
+                                                                    child:
+                                                                        CircularProgressIndicator(
+                                                                      color:
+                                                                          Color(
+                                                                        0xFF007BFF,
+                                                                      ),
+                                                                      strokeWidth:
+                                                                          2,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            },
+                                                            errorWidget: (
+                                                              context,
+                                                              imageUrl,
+                                                              progress,
+                                                            ) {
+                                                              return Container(
+                                                                decoration:
+                                                                    const BoxDecoration(
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                  color: Color(
+                                                                    0xFF030744,
+                                                                  ),
+                                                                ),
+                                                                child:
+                                                                    const Center(
+                                                                  child: Icon(
+                                                                    Icons
+                                                                        .person_outline_outlined,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            },
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
@@ -1388,7 +1705,9 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                                       .start,
                                                               children: [
                                                                 Text(
-                                                                  message.text,
+                                                                  _displayMessageText(
+                                                                    message,
+                                                                  ),
                                                                   style:
                                                                       TextStyle(
                                                                     fontSize:
@@ -1409,6 +1728,17 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                                 const SizedBox(
                                                                   height: 5,
                                                                 ),
+                                                                if (!widget
+                                                                        .readOnly &&
+                                                                    messagePhoneNumber !=
+                                                                        null) ...[
+                                                                  _buildCallPhonePill(
+                                                                    messagePhoneNumber,
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    height: 5,
+                                                                  ),
+                                                                ],
                                                                 if (isRequestMessage) ...[
                                                                   _buildRequestActions(
                                                                     vm: vm,
@@ -1428,9 +1758,12 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                                   message:
                                                                       message,
                                                                 ),
-                                                                if (_shouldShowAcceptedCancelRequestActions(
-                                                                  message.text,
-                                                                ))
+                                                                if (!widget
+                                                                        .readOnly &&
+                                                                    _shouldShowAcceptedCancelRequestActions(
+                                                                      message
+                                                                          .text,
+                                                                    ))
                                                                   const SizedBox(
                                                                     height: 5,
                                                                   ),
@@ -1478,21 +1811,13 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                       child: GestureDetector(
                                         onTap: () {
                                           if (isImageMessage) {
-                                            AlertService().showAppAlert(
-                                              isCustom: true,
-                                              customWidget: PinchZoom(
-                                                child: NetworkImageWidget(
-                                                  imageUrl: imageUrl,
-                                                  memCacheWidth: 900,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
-                                            );
+                                            _showNetworkImagePreview(imageUrl);
                                           }
                                         },
-                                        onLongPress: !_canShowTextActions(
-                                          message,
-                                        )
+                                        onLongPress: widget.readOnly ||
+                                                !_canShowTextActions(
+                                                  message,
+                                                )
                                             ? null
                                             : () async {
                                                 await _showMessageActionsSheet(
@@ -1574,7 +1899,9 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                                   .end,
                                                           children: [
                                                             Text(
-                                                              message.text,
+                                                              _displayMessageText(
+                                                                message,
+                                                              ),
                                                               style: TextStyle(
                                                                 fontSize: 14,
                                                                 height: 1.15,
@@ -1641,9 +1968,13 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                           ValueListenableBuilder<Uint8List?>(
                             valueListenable: chatFileListenable,
                             builder: (context, selectedChatFile, _) {
+                              if (widget.readOnly) {
+                                return const SizedBox.shrink();
+                              }
+
                               final mediaKeyboardInset =
-                                  MediaQuery.of(context).viewInsets.bottom;
-                              final keyboardInset =
+                                  mediaQuery.viewInsets.bottom;
+                              final rawKeyboardInset =
                                   mediaKeyboardInset > _mobileKeyboardInset
                                       ? mediaKeyboardInset
                                       : _mobileKeyboardInset > _webKeyboardInset
@@ -1651,17 +1982,20 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                           : _webKeyboardInset;
                               final isComposerFocused =
                                   _messageFocusNode.hasFocus;
+                              final keyboardInset =
+                                  isComposerFocused ? rawKeyboardInset : 0.0;
+                              final isKeyboardVisible = keyboardInset > 0;
+                              final closedComposerSafeBottomPadding =
+                                  (mediaQuery.viewPadding.bottom > 0
+                                          ? mediaQuery.viewPadding.bottom
+                                          : mediaQuery.padding.bottom)
+                                      .toDouble();
                               final showQuickChatPills =
                                   selectedChatFile == null &&
                                       !isComposerFocused;
                               final double imagePreviewHeight =
-                                  MediaQuery.of(context)
-                                      .size
-                                      .width
-                                      .clamp(0.0, 450.0);
-                              return AnimatedPadding(
-                                duration: const Duration(milliseconds: 180),
-                                curve: Curves.easeOut,
+                                  mediaQuery.size.width.clamp(0.0, 450.0);
+                              return Padding(
                                 padding: EdgeInsets.only(
                                   bottom: selectedChatFile == null
                                       ? keyboardInset
@@ -1760,161 +2094,214 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                         height: selectedChatFile == null
                                             ? null
                                             : imagePreviewHeight,
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: selectedChatFile == null
-                                                ? 12
-                                                : 0,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              _controller.text != "" &&
-                                                      _controller.text != "null"
-                                                  ? const SizedBox(width: 16)
-                                                  : const SizedBox(width: 8),
-                                              _controller.text != "" &&
-                                                      _controller.text != "null"
-                                                  ? const SizedBox.shrink()
-                                                  : SizedBox(
-                                                      width: 38,
-                                                      height: 38,
-                                                      child: WidgetButton(
-                                                        onTap: () async {
-                                                          FocusManager.instance
-                                                              .primaryFocus
-                                                              ?.unfocus();
-                                                          await showCameraSource(
-                                                            cameraType: "chat",
-                                                          );
-                                                        },
-                                                        borderRadius: 8,
-                                                        child: const Center(
-                                                          child: Icon(
-                                                            Icons
-                                                                .camera_alt_outlined,
-                                                            size: 30,
-                                                            color: Color(
-                                                              0xFF007BFF,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                              _controller.text != "" &&
-                                                      _controller.text != "null"
-                                                  ? const SizedBox.shrink()
-                                                  : SizedBox(
-                                                      width: 38,
-                                                      height: 38,
-                                                      child: WidgetButton(
-                                                        onTap: () async {
-                                                          FocusManager.instance
-                                                              .primaryFocus
-                                                              ?.unfocus();
-                                                          try {
-                                                            final ImagePicker
-                                                                picker =
-                                                                ImagePicker();
-                                                            final XFile? image =
-                                                                await picker
-                                                                    .pickImage(
-                                                              source:
-                                                                  ImageSource
-                                                                      .gallery,
-                                                            );
-                                                            if (image != null) {
-                                                              setChatFile(
-                                                                await normalizeImageToJpegWeb(
-                                                                  await image
-                                                                      .readAsBytes(),
-                                                                ),
-                                                              );
-                                                            }
-                                                          } catch (e) {
-                                                            if (showParseText) {
-                                                            }
-                                                          }
-                                                        },
-                                                        borderRadius: 8,
-                                                        child: const Center(
-                                                          child: Icon(
-                                                            Icons
-                                                                .image_outlined,
-                                                            size: 30,
-                                                            color: Color(
-                                                              0xFF007BFF,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                              _controller.text != "" &&
-                                                      _controller.text != "null"
-                                                  ? const SizedBox.shrink()
-                                                  : const SizedBox(width: 8),
-                                              Expanded(
-                                                child: TextField(
-                                                  focusNode: _messageFocusNode,
-                                                  controller: _controller,
-                                                  decoration: InputDecoration(
-                                                    filled: true,
-                                                    border:
-                                                        const OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                        Radius.circular(
-                                                          8,
-                                                        ),
-                                                      ),
-                                                      borderSide:
-                                                          BorderSide.none,
-                                                    ),
-                                                    fillColor:
-                                                        Colors.grey.shade200,
-                                                  ),
-                                                  onSubmitted: (message) async {
-                                                    await _sendTextMessage(
-                                                      vm,
-                                                      message,
-                                                    );
-                                                  },
-                                                ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Padding(
+                                              padding: EdgeInsets.only(
+                                                top: selectedChatFile == null
+                                                    ? 12
+                                                    : 0,
+                                                bottom: selectedChatFile == null
+                                                    ? 12
+                                                    : 0,
                                               ),
-                                              SizedBox(
-                                                width: 55,
-                                                height: 55,
-                                                child: WidgetButton(
-                                                  onTap: () async {
-                                                    await _sendTextMessage(
-                                                      vm,
-                                                      _controller.text,
-                                                    );
-                                                  },
-                                                  borderRadius: 8,
-                                                  child: Center(
-                                                    child: vm.isBusy
-                                                        ? const CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                          )
-                                                        : Icon(
-                                                            Icons.send,
-                                                            size: 30,
-                                                            color: _controller
-                                                                            .text ==
-                                                                        "" ||
-                                                                    _controller
-                                                                            .text ==
-                                                                        "null"
-                                                                ? Colors.grey
-                                                                : const Color(
-                                                                    0xFF007BFF,
-                                                                  ),
+                                              child: Row(
+                                                children: [
+                                                  _controller.text != "" &&
+                                                          _controller.text !=
+                                                              "null"
+                                                      ? const SizedBox(
+                                                          width: 16)
+                                                      : const SizedBox(
+                                                          width: 8),
+                                                  _controller.text != "" &&
+                                                          _controller.text !=
+                                                              "null"
+                                                      ? const SizedBox.shrink()
+                                                      : SizedBox(
+                                                          width: 38,
+                                                          height: 38,
+                                                          child: WidgetButton(
+                                                            onTap: () async {
+                                                              FocusManager
+                                                                  .instance
+                                                                  .primaryFocus
+                                                                  ?.unfocus();
+                                                              await showCameraSource(
+                                                                cameraType:
+                                                                    "chat",
+                                                              );
+                                                            },
+                                                            borderRadius: 8,
+                                                            child: const Center(
+                                                              child: Icon(
+                                                                Icons
+                                                                    .camera_alt_outlined,
+                                                                size: 30,
+                                                                color: Color(
+                                                                  0xFF007BFF,
+                                                                ),
+                                                              ),
+                                                            ),
                                                           ),
+                                                        ),
+                                                  _controller.text != "" &&
+                                                          _controller.text !=
+                                                              "null"
+                                                      ? const SizedBox.shrink()
+                                                      : SizedBox(
+                                                          width: 38,
+                                                          height: 38,
+                                                          child: WidgetButton(
+                                                            onTap: () async {
+                                                              FocusManager
+                                                                  .instance
+                                                                  .primaryFocus
+                                                                  ?.unfocus();
+                                                              try {
+                                                                final ImagePicker
+                                                                    picker =
+                                                                    ImagePicker();
+                                                                final XFile?
+                                                                    image =
+                                                                    await picker
+                                                                        .pickImage(
+                                                                  source:
+                                                                      ImageSource
+                                                                          .gallery,
+                                                                  maxWidth:
+                                                                      _chatUploadMaxLongSide
+                                                                          .toDouble(),
+                                                                  maxHeight:
+                                                                      _chatUploadMaxLongSide
+                                                                          .toDouble(),
+                                                                  imageQuality:
+                                                                      80,
+                                                                );
+                                                                if (image !=
+                                                                    null) {
+                                                                  final imageBytes =
+                                                                      await image
+                                                                          .readAsBytes();
+                                                                  final normalizedBytes =
+                                                                      await normalizeImageToJpegWeb(
+                                                                    imageBytes,
+                                                                  );
+                                                                  final uploadBytes =
+                                                                      await _resizeChatImageBytesForUpload(
+                                                                    normalizedBytes,
+                                                                  );
+                                                                  setChatFile(
+                                                                    uploadBytes,
+                                                                  );
+                                                                }
+                                                              } catch (e) {
+                                                                showPermissionSettingsDialog(
+                                                                  permissionName:
+                                                                      "Photos",
+                                                                  reason:
+                                                                      'Please allow photo access in Settings so you can send an image from your gallery.',
+                                                                );
+                                                              }
+                                                            },
+                                                            borderRadius: 8,
+                                                            child: const Center(
+                                                              child: Icon(
+                                                                Icons
+                                                                    .image_outlined,
+                                                                size: 30,
+                                                                color: Color(
+                                                                  0xFF007BFF,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                  _controller.text != "" &&
+                                                          _controller.text !=
+                                                              "null"
+                                                      ? const SizedBox.shrink()
+                                                      : const SizedBox(
+                                                          width: 8),
+                                                  Expanded(
+                                                    child: TextField(
+                                                      focusNode:
+                                                          _messageFocusNode,
+                                                      controller: _controller,
+                                                      textInputAction:
+                                                          TextInputAction.send,
+                                                      decoration:
+                                                          InputDecoration(
+                                                        filled: true,
+                                                        border:
+                                                            const OutlineInputBorder(
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                            Radius.circular(
+                                                              8,
+                                                            ),
+                                                          ),
+                                                          borderSide:
+                                                              BorderSide.none,
+                                                        ),
+                                                        fillColor: Colors
+                                                            .grey.shade200,
+                                                      ),
+                                                      onSubmitted:
+                                                          (message) async {
+                                                        await _sendTextMessage(
+                                                          vm,
+                                                          message,
+                                                        );
+                                                      },
+                                                    ),
                                                   ),
-                                                ),
+                                                  SizedBox(
+                                                    width: 55,
+                                                    height: 55,
+                                                    child: WidgetButton(
+                                                      onTap: () async {
+                                                        await _sendTextMessage(
+                                                          vm,
+                                                          _controller.text,
+                                                        );
+                                                      },
+                                                      borderRadius: 8,
+                                                      child: Center(
+                                                        child: vm.isBusy
+                                                            ? const CircularProgressIndicator(
+                                                                strokeWidth: 2,
+                                                              )
+                                                            : Icon(
+                                                                Icons.send,
+                                                                size: 30,
+                                                                color: _controller.text ==
+                                                                            "" ||
+                                                                        _controller.text ==
+                                                                            "null"
+                                                                    ? Colors
+                                                                        .grey
+                                                                    : const Color(
+                                                                        0xFF007BFF,
+                                                                      ),
+                                                              ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (selectedChatFile == null &&
+                                                !isKeyboardVisible &&
+                                                closedComposerSafeBottomPadding >
+                                                    0) ...[
+                                              SizedBox(
+                                                height:
+                                                    closedComposerSafeBottomPadding,
                                               ),
                                             ],
-                                          ),
+                                          ],
                                         ),
                                       ),
                                     ],
@@ -1936,27 +2323,32 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                         return const SizedBox.shrink();
                       }
                       final double imagePreviewHeight =
-                          MediaQuery.of(context).size.width.clamp(0.0, 450.0);
+                          mediaQuery.size.width.clamp(0.0, 450.0);
                       return Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
                         child: Stack(
                           children: [
-                            Container(
-                              width: MediaQuery.of(context).size.width,
-                              height: imagePreviewHeight,
-                              decoration: BoxDecoration(
-                                image: DecorationImage(
-                                  fit: BoxFit.cover,
-                                  image: MemoryImage(selectedChatFile),
+                            GestureDetector(
+                              onTap: () {
+                                _showMemoryImagePreview(selectedChatFile);
+                              },
+                              child: Container(
+                                width: mediaQuery.size.width,
+                                height: imagePreviewHeight,
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    fit: BoxFit.cover,
+                                    image: MemoryImage(selectedChatFile),
+                                  ),
                                 ),
                               ),
                             ),
                             Positioned(
                               left: 20,
                               right: 20,
-                              bottom: 20,
+                              bottom: 32,
                               child: Row(
                                 children: [
                                   Expanded(
@@ -2041,7 +2433,9 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                 SnackBar(
                                                   backgroundColor: Colors.red,
                                                   content: Text(
-                                                    "Error: $e",
+                                                    _chatImageUploadErrorMessage(
+                                                      e,
+                                                    ),
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                     ),
@@ -2113,61 +2507,74 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                         color: Colors.white,
                         child: Column(
                           children: [
-                            SizedBox(
-                              height: isMobile
-                                  ? rootMediaQuery.padding.top + 16
-                                  : 12,
-                            ),
+                            const SizedBox(height: 16),
                             Row(
                               children: [
                                 const SizedBox(width: 4),
-                                IconButton(
-                                  onPressed: () async {
-                                    fbStore
-                                        .collection(
-                                          "orders",
-                                        )
-                                        .doc(widget.order.code)
-                                        .update(
-                                      {
-                                        "userSeen": true,
-                                      },
-                                    );
-                                    Get.back();
-                                  },
-                                  icon: const Padding(
-                                    padding: EdgeInsets.only(
-                                      top: 2,
-                                      right: 4,
-                                      bottom: 2,
-                                    ),
-                                    child: Icon(
-                                      Icons.chevron_left,
-                                      color: Color(
-                                        0xFF030744,
+                                SizedBox(
+                                  width: 58,
+                                  height: 58,
+                                  child: WidgetButton(
+                                    onTap: _confirmLeaveChatPage,
+                                    mainColor: Colors.transparent,
+                                    isTransparentColor: true,
+                                    useDefaultHoverColor: false,
+                                    interactionColor: const Color(0x14030744),
+                                    borderRadius: 1000,
+                                    child: const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                          top: 2,
+                                          right: 4,
+                                          bottom: 2,
+                                        ),
+                                        child: Icon(
+                                          Icons.chevron_left,
+                                          color: Color(
+                                            0xFF030744,
+                                          ),
+                                          size: 38,
+                                        ),
                                       ),
-                                      size: 38,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 2),
-                                Text(
-                                  "#${widget.order.id}",
-                                  style: const TextStyle(
-                                    height: 1,
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(
-                                      0xFF030744,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "#${widget.order.id}",
+                                      style: const TextStyle(
+                                        height: 1,
+                                        fontSize: 25,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(
+                                          0xFF030744,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    if (widget.readOnly) ...[
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.visibility_outlined,
+                                        color: Color(0xFF030744),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 const Expanded(child: SizedBox.shrink()),
                                 SizedBox(
                                   width: 44,
                                   height: 44,
                                   child: WidgetButton(
-                                    onTap: () {
+                                    onTap: () async {
+                                      if (widget.readOnly) {
+                                        await showFacebookSupportDialog(
+                                            context);
+                                        return;
+                                      }
                                       launchUrlString(
                                         "tel:${widget.order.driver?.phone}",
                                       );

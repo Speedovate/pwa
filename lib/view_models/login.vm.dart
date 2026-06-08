@@ -135,8 +135,9 @@ class LoginViewModel extends BaseViewModel {
       GoogleSignInAuthentication? auth;
       AlertService().showLoading();
       final gsi = GoogleSignIn(
-        clientId:
-            "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com",
+        clientId: kIsWeb
+            ? "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com"
+            : null,
         scopes: [
           'email',
           'profile',
@@ -161,12 +162,17 @@ class LoginViewModel extends BaseViewModel {
       } else {
         emailAddress = gsiAccount?.email;
       }
+      if (gsiAccount == null) {
+        throw StateError("Google sign-in was cancelled.");
+      }
       if (emailAddress == null) {
-        throw Exception("An error occurred. Please try again");
+        throw StateError(
+          "Google sign-in did not return an email address. Please choose a Google account with an email.",
+        );
       }
       if (auth?.idToken == null) {
-        throw Exception(
-          "Google sign-in could not verify your identity on this browser. Please try again or use phone login.",
+        throw StateError(
+          "Google sign-in did not return an ID token. Please try again or use phone login.",
         );
       }
       final verifiedIdToken = auth!.idToken!;
@@ -192,9 +198,10 @@ class LoginViewModel extends BaseViewModel {
       showError("Request timed out. Please try again later.");
     } catch (e) {
       showError(
-        e.toString().contains("null")
-            ? "An error occurred. Try again later"
-            : e.toString(),
+        googleAuthErrorMessage(
+          e,
+          isSignUp: false,
+        ),
       );
     } finally {
       AlertService().stopLoading(forceStop: true);
@@ -236,8 +243,7 @@ class LoginViewModel extends BaseViewModel {
           earthCenterLocation,
           Point(
             latitude: double.parse("${initLatLng?.lat ?? defaultLatLng.lat}"),
-            longitude:
-                double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
+            longitude: double.parse("${initLatLng?.lng ?? defaultLatLng.lng}"),
           ),
         );
         ApiResponse apiResponse = await taxiRequest.syncLocationRequest(

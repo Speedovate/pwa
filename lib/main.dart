@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:camera/camera.dart';
+import 'package:pwa/utils/data.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,7 +23,15 @@ void main() async {
     );
   }
   await StorageService.getPrefs();
-  GestureBinding.instance.pointerRouter.addGlobalRoute((event) {});
+  if (!kIsWeb) {
+    try {
+      cameras = await availableCameras().timeout(
+        const Duration(seconds: 5),
+      );
+    } catch (_) {
+      cameras = null;
+    }
+  }
   await SystemChrome.setPreferredOrientations(
     const [
       DeviceOrientation.portraitUp,
@@ -57,9 +67,6 @@ class MyApp extends StatelessWidget {
         var textScaleFactor = 1.0;
         return MediaQuery(
           data: mediaQuery.copyWith(
-            padding: EdgeInsets.zero,
-            viewInsets: EdgeInsets.zero,
-            viewPadding: EdgeInsets.zero,
             textScaler: TextScaler.linear(
               textScaleFactor,
             ),
@@ -83,6 +90,13 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
         snackBarTheme: const SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          insetPadding: EdgeInsets.fromLTRB(24, 0, 24, 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(8),
+            ),
+          ),
           contentTextStyle: TextStyle(
             color: Colors.white,
           ),

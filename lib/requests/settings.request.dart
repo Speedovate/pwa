@@ -36,7 +36,7 @@ class SettingsRequest extends HttpService {
     try {
       final apiResult = await get(
         "${Api.baseUrl}${Api.banners}",
-        includeHeaders: false,
+        includeHeaders: true,
       ).timeout(
         const Duration(seconds: 30),
       );

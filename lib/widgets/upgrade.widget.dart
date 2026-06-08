@@ -19,52 +19,39 @@ class UpgradeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isForced = AuthService.isUpgradeForced();
-    final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
-    final inheritedMediaQuery = MediaQuery.of(context);
-    final rootViewMediaQuery = MediaQueryData.fromView(View.of(context));
-    final rootMediaQuery = inheritedMediaQuery.copyWith(
-      size: rootViewMediaQuery.size,
-      padding: rootViewMediaQuery.padding,
-      viewPadding: rootViewMediaQuery.viewPadding,
-      viewInsets: rootViewMediaQuery.viewInsets,
-      systemGestureInsets: rootViewMediaQuery.systemGestureInsets,
-    );
-
+    final mediaQuery = MediaQuery.of(context);
     return Positioned.fill(
-      child: MediaQuery(
-        data: rootMediaQuery,
-        child: Material(
-          color: Colors.white,
-          child: Container(
-            width: rootMediaQuery.size.width,
-            height: rootMediaQuery.size.height,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.blue.shade300,
-                  Colors.white,
-                  Colors.white,
-                ],
-              ),
+      child: Material(
+        color: Colors.white,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.blue.shade300,
+                Colors.white,
+                Colors.white,
+              ],
             ),
-            child: SafeArea(
-              top: false,
-              bottom: true,
-              minimum: const EdgeInsets.only(
-                bottom: 16,
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) => SizedBox(
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: 16,
+                  ),
                   child: Column(
                     children: [
                       Padding(
                         padding: EdgeInsets.fromLTRB(
                           24,
-                          isMobile ? rootMediaQuery.padding.top + 26 : 26,
+                          mediaQuery.padding.top + 26,
                           24,
                           0,
                         ),
@@ -116,20 +103,19 @@ class UpgradeWidget extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Expanded(flex: 1, child: SizedBox.shrink()),
+                      const Expanded(
+                        flex: 1,
+                        child: SizedBox.shrink(),
+                      ),
                       SizedBox(
-                        height: rootMediaQuery.size.height / 3,
+                        height: constraints.maxHeight / 3,
                         child: Lottie.asset(
                           AppLotties.update,
                           fit: BoxFit.cover,
                           delegates: LottieDelegates(
                             values: [
                               ValueDelegate.color(
-                                [
-                                  '**',
-                                  'Smoke',
-                                  '**',
-                                ],
+                                ['**', 'Smoke', '**'],
                                 value: Colors.white,
                               ),
                             ],
@@ -160,29 +146,31 @@ class UpgradeWidget extends StatelessWidget {
                           height: 1.15,
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
-                          color: const Color(
-                            0xFF030744,
-                          ).withValues(alpha: 0.5),
+                          color: const Color(0xFF030744).withValues(alpha: 0.5),
                         ),
                       ),
                       const SizedBox(height: 24),
                       Center(
-                        child: GestureDetector(
+                        child: WidgetButton(
                           onTap: () async {
                             await showFacebookSupportDialog(context);
                           },
+                          borderRadius: 6,
+                          mainColor: Colors.transparent,
+                          isTransparentColor: true,
+                          useDefaultHoverColor: false,
+                          suppressInteraction: true,
                           child: RichText(
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text: "Need help now? ",
+                                  text: "Need help? ",
                                   style: TextStyle(
                                     height: 1.15,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w400,
-                                    color: const Color(
-                                      0xFF030744,
-                                    ).withValues(alpha: 0.5),
+                                    color: const Color(0xFF030744)
+                                        .withValues(alpha: 0.5),
                                   ),
                                 ),
                                 const TextSpan(
@@ -200,9 +188,8 @@ class UpgradeWidget extends StatelessWidget {
                                     height: 1.15,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w400,
-                                    color: const Color(
-                                      0xFF030744,
-                                    ).withValues(alpha: 0.5),
+                                    color: const Color(0xFF030744)
+                                        .withValues(alpha: 0.5),
                                   ),
                                 ),
                                 const TextSpan(
@@ -220,9 +207,8 @@ class UpgradeWidget extends StatelessWidget {
                                     height: 1.15,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w400,
-                                    color: const Color(
-                                      0xFF030744,
-                                    ).withValues(alpha: 0.5),
+                                    color: const Color(0xFF030744)
+                                        .withValues(alpha: 0.5),
                                   ),
                                 ),
                               ],
@@ -247,24 +233,34 @@ class UpgradeWidget extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: !isForced ? 14 : 16),
-                      if (!isForced) ...[
-                        TextButton(
-                          onPressed: _closeUpgrade,
-                          child: const Text(
-                            "Skip for now",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF007BFF),
+                      if (!isForced)
+                        WidgetButton(
+                          onTap: _closeUpgrade,
+                          mainColor: Colors.transparent,
+                          isTransparentColor: true,
+                          useDefaultHoverColor: false,
+                          suppressInteraction: true,
+                          borderRadius: 8,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Text(
+                              "Skip for now",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF007BFF),
+                              ),
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),

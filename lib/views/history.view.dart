@@ -60,19 +60,15 @@ class _HistoryViewState extends State<HistoryView> {
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
         final mediaQuery = MediaQuery.of(context);
-        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            toolbarHeight: 0,
-            backgroundColor: Colors.white,
-          ),
-          body: SafeArea(
+          body: Padding(
+            padding: EdgeInsets.only(
+              top: mediaQuery.padding.top,
+            ),
             child: Column(
               children: [
-                SizedBox(
-                  height: isMobile ? mediaQuery.padding.top + 36 : 12,
-                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     const SizedBox(width: 4),
@@ -141,6 +137,14 @@ class _HistoryViewState extends State<HistoryView> {
                                   isLoadingMore: _isLoadingMore,
                                   onRefresh: _refresh,
                                   currentPage: vm.queryPage,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    12,
+                                    20,
+                                    12,
+                                  ),
+                                  removeFirstItemTopPadding: true,
+                                  removeLastItemBottomPadding: true,
                                   itemBuilder: (context, order, index) {
                                     return OrderListItem(
                                       order: order,
@@ -149,7 +153,12 @@ class _HistoryViewState extends State<HistoryView> {
                                           widget.onUseHistoryRoute,
                                       onTap: () {
                                         if (!AuthService.inReviewMode()) {
-                                          vm.openOrderDetails(order: order);
+                                          vm.openOrderDetails(
+                                            order: order,
+                                            hvm: widget.hvm,
+                                            onUseHistoryRoute:
+                                                widget.onUseHistoryRoute,
+                                          );
                                         }
                                       },
                                     );

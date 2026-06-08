@@ -9,10 +9,32 @@ import 'package:pwa/models/available_driver.model.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 BuildContext? _loadingDialogContext;
 
 class AlertService {
+  Future<bool?> showPermissionSettingsDialog({
+    required String permissionName,
+    String? reason,
+  }) {
+    final normalizedPermissionName = permissionName.trim();
+    final displayName = normalizedPermissionName.isEmpty
+        ? "Permission"
+        : normalizedPermissionName;
+    return showAppAlert(
+      asset: AppLotties.error,
+      title: "$displayName Permission Required",
+      content: reason ??
+          'Go to Settings > Apps > PPC TODA > Permissions and allow "$displayName".',
+      confirmText: "Go to Settings",
+      confirmAction: () {
+        Get.back();
+        openAppSettings();
+      },
+    );
+  }
+
   Future<bool?> showAppAlert({
     String? title,
     String? content,
@@ -22,6 +44,7 @@ class AlertService {
     String? confirmText,
     Color? confirmColor,
     Widget? customWidget,
+    Widget? bottomWidget,
     bool isCustom = false,
     bool hideThird = true,
     bool hideCancel = true,
@@ -34,7 +57,9 @@ class AlertService {
     FocusManager.instance.primaryFocus?.unfocus();
     return showDialog<bool?>(
       barrierDismissible: dismissible,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       context: Get.context!,
+      useSafeArea: false,
       builder: (BuildContext context) {
         return PopScope(
           canPop: dismissible,
@@ -50,227 +75,247 @@ class AlertService {
             }
           },
           child: Scaffold(
+            resizeToAvoidBottomInset: false,
             backgroundColor: Colors.transparent,
-            body: GestureDetector(
-              onTap: () {
-                if (dismissible) {
-                  Get.back(result: true);
-                }
-              },
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.transparent.withValues(alpha: 0.5),
-                    ),
+            body: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (dismissible) {
+                        Get.back(result: true);
+                      }
+                    },
+                    child: const SizedBox.expand(),
                   ),
-                  Center(
-                    child: SizedBox(
-                      width: (MediaQuery.of(context).size.width - 70)
-                          .clamp(0, 800),
-                      child: !isCustom || customWidget == null
-                          ? SingleChildScrollView(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(
-                                          12,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SizedBox(
-                                          height: 150,
-                                          width: MediaQuery.of(context)
-                                                  .size
-                                                  .width -
-                                              70,
-                                          child: Lottie.asset(asset),
-                                        ),
-                                        SizedBox(
-                                          width: MediaQuery.of(context)
-                                                  .size
-                                                  .width -
-                                              70,
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 20,
-                                                ),
-                                                child: Text(
-                                                  title ?? "Lorem Ipsum",
-                                                  style: const TextStyle(
-                                                    height: 1,
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Color(0xFF030744),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 10),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 20,
-                                                ),
-                                                child: Text(
-                                                  content ??
-                                                      "Lorem ipsum dolor set amet",
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(
-                                                    height: 1.05,
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w400,
-                                                    color: Color(0xFF030744),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 32),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 24,
-                                                ),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    hideCancel
-                                                        ? const SizedBox
-                                                            .shrink()
-                                                        : Expanded(
-                                                            child: ActionButton(
-                                                              height: 38,
-                                                              text:
-                                                                  cancelText ??
-                                                                      "Cancel",
-                                                              mainColor:
-                                                                  Colors.white,
-                                                              borderColor:
-                                                                  const Color(
-                                                                0xFF007BFF,
-                                                              ),
-                                                              style:
-                                                                  const TextStyle(
-                                                                height: 1,
-                                                                fontSize: 14,
-                                                                color: Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                              ),
-                                                              onTap:
-                                                                  cancelAction ??
-                                                                      () {
-                                                                        Get.back();
-                                                                      },
-                                                            ),
-                                                          ),
-                                                    hideCancel
-                                                        ? const SizedBox
-                                                            .shrink()
-                                                        : const SizedBox(
-                                                            width: 16,
-                                                          ),
-                                                    Expanded(
-                                                      child: ActionButton(
-                                                        height: 38,
-                                                        text: confirmText ??
-                                                            (hideCancel
-                                                                ? "Got it"
-                                                                : "Confirm"),
-                                                        mainColor:
-                                                            confirmColor ??
-                                                                const Color(
-                                                                  0xFF007BFF,
-                                                                ),
-                                                        style: const TextStyle(
-                                                          height: 1,
-                                                          fontSize: 14,
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                        onTap: confirmAction ??
-                                                            () {
-                                                              Get.back();
-                                                            },
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              hideThird
-                                                  ? const SizedBox.shrink()
-                                                  : Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                        top: 16,
-                                                        left: 24,
-                                                        right: 24,
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          Expanded(
-                                                            child: ActionButton(
-                                                              height: 38,
-                                                              text: thirdText ??
-                                                                  "Third Button Text",
-                                                              mainColor:
-                                                                  thirdColor ??
-                                                                      const Color(
-                                                                        0xFF007BFF,
-                                                                      ),
-                                                              style:
-                                                                  const TextStyle(
-                                                                height: 1,
-                                                                fontSize: 14,
-                                                                color: Colors
-                                                                    .white,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                              ),
-                                                              onTap:
-                                                                  thirdAction ??
-                                                                      () {
-                                                                        Get.back();
-                                                                      },
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                              const SizedBox(height: 32),
-                                            ],
+                ),
+                Builder(
+                  builder: (context) {
+                    final mediaQuery = MediaQuery.of(context);
+                    return Center(
+                      child: SizedBox(
+                        width: (mediaQuery.size.width - 70).clamp(0, 800),
+                        child: !isCustom || customWidget == null
+                            ? SingleChildScrollView(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(
+                                            12,
                                           ),
                                         ),
-                                      ],
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            height: 150,
+                                            width: mediaQuery.size.width - 70,
+                                            child: Lottie.asset(asset),
+                                          ),
+                                          SizedBox(
+                                            width: mediaQuery.size.width - 70,
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 20,
+                                                  ),
+                                                  child: Text(
+                                                    title ?? "Lorem Ipsum",
+                                                    style: const TextStyle(
+                                                      height: 1,
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Color(0xFF030744),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 20,
+                                                  ),
+                                                  child: Text(
+                                                    content ??
+                                                        "Lorem ipsum dolor set amet",
+                                                    textAlign: TextAlign.center,
+                                                    style: const TextStyle(
+                                                      height: 1.05,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      color: Color(0xFF030744),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 20),
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 24,
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      hideCancel
+                                                          ? const SizedBox
+                                                              .shrink()
+                                                          : Expanded(
+                                                              child:
+                                                                  ActionButton(
+                                                                height: 38,
+                                                                text:
+                                                                    cancelText ??
+                                                                        "Cancel",
+                                                                mainColor:
+                                                                    Colors
+                                                                        .white,
+                                                                borderColor:
+                                                                    const Color(
+                                                                  0xFF007BFF,
+                                                                ),
+                                                                style:
+                                                                    const TextStyle(
+                                                                  height: 1,
+                                                                  fontSize: 14,
+                                                                  color: Color(
+                                                                    0xFF007BFF,
+                                                                  ),
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                                onTap:
+                                                                    cancelAction ??
+                                                                        () {
+                                                                          Get.back();
+                                                                        },
+                                                              ),
+                                                            ),
+                                                      hideCancel
+                                                          ? const SizedBox
+                                                              .shrink()
+                                                          : const SizedBox(
+                                                              width: 16,
+                                                            ),
+                                                      Expanded(
+                                                        child: ActionButton(
+                                                          height: 38,
+                                                          text: confirmText ??
+                                                              (hideCancel
+                                                                  ? "Got it"
+                                                                  : "Confirm"),
+                                                          mainColor:
+                                                              confirmColor ??
+                                                                  const Color(
+                                                                    0xFF007BFF,
+                                                                  ),
+                                                          style:
+                                                              const TextStyle(
+                                                            height: 1,
+                                                            fontSize: 14,
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                          onTap:
+                                                              confirmAction ??
+                                                                  () {
+                                                                    Get.back();
+                                                                  },
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                hideThird
+                                                    ? const SizedBox.shrink()
+                                                    : Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                          top: 16,
+                                                          left: 24,
+                                                          right: 24,
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Expanded(
+                                                              child:
+                                                                  ActionButton(
+                                                                height: 38,
+                                                                text: thirdText ??
+                                                                    "Third Button Text",
+                                                                mainColor:
+                                                                    thirdColor ??
+                                                                        const Color(
+                                                                          0xFF007BFF,
+                                                                        ),
+                                                                style:
+                                                                    const TextStyle(
+                                                                  height: 1,
+                                                                  fontSize: 14,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                                onTap:
+                                                                    thirdAction ??
+                                                                        () {
+                                                                          Get.back();
+                                                                        },
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                bottomWidget == null
+                                                    ? const SizedBox.shrink()
+                                                    : Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .fromLTRB(
+                                                          24,
+                                                          16,
+                                                          24,
+                                                          0,
+                                                        ),
+                                                        child: bottomWidget,
+                                                      ),
+                                                const SizedBox(height: 24),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : customWidget,
-                    ),
-                  ),
-                ],
-              ),
+                                  ],
+                                ),
+                              )
+                            : customWidget,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         );
@@ -290,6 +335,8 @@ class AlertService {
     return showDialog<bool?>(
       context: Get.context!,
       barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      useSafeArea: false,
       builder: (BuildContext context) {
         return PopScope(
           canPop: false,
@@ -320,6 +367,7 @@ class AlertService {
     setLoadingDialogOpen(true);
     showDialog(
       context: Get.context!,
+      useSafeArea: false,
       builder: (BuildContext context) {
         _loadingDialogContext = context;
         return PopScope(
@@ -335,43 +383,51 @@ class AlertService {
               Get.back(result: true);
             }
           },
-          child: GestureDetector(
-            onTap: () {
-              if (dismissible) {
-                Get.back(result: true);
-              }
-            },
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 150,
-                      height: 150,
-                      child: Stack(
-                        children: [
-                          Lottie.asset(
-                            AppLotties.loading,
-                            fit: BoxFit.cover,
-                          ),
-                          const Center(
-                            child: NetworkImageWidget(
-                              imageUrl: AppImages.icon,
-                              memCacheWidth: 600,
-                              height: 50,
-                              width: 50,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (dismissible) {
+                        Get.back(result: true);
+                      }
+                    },
+                    child: const SizedBox.expand(),
+                  ),
                 ),
-              ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 150,
+                        height: 150,
+                        child: Stack(
+                          children: [
+                            Lottie.asset(
+                              AppLotties.loading,
+                              fit: BoxFit.cover,
+                            ),
+                            const Center(
+                              child: NetworkImageWidget(
+                                imageUrl: AppImages.icon,
+                                memCacheWidth: 600,
+                                height: 50,
+                                width: 50,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -493,9 +549,8 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
     final pickupFee =
         widget.availableDriver.pickupChargeFee?.ceil().toStringAsFixed(0) ??
             "0";
-    final rootMediaQuery = MediaQueryData.fromView(View.of(context));
-    final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
-    final topInset = isMobile ? rootMediaQuery.padding.top + 12 : 0.0;
+    final mediaQuery = MediaQuery.of(context);
+    final topInset = mediaQuery.padding.top + 12;
 
     return ValueListenableBuilder<double?>(
       valueListenable: widget.totalAmountListenable,
@@ -509,215 +564,211 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
 
         return Scaffold(
           backgroundColor: Colors.black.withValues(alpha: 0.8),
-          body: SafeArea(
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(top: topInset),
-              child: SizedBox.expand(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 800),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isCompact = constraints.maxHeight < 760;
-                        final topSpacing = isCompact ? 16.0 : 24.0;
-                        final sectionSpacing = isCompact ? 16.0 : 24.0;
-                        final tileSpacing = isCompact ? 10.0 : 12.0;
-                        final iconSize = isCompact ? 64.0 : 80.0;
-                        final titleSize = isCompact ? 22.0 : 24.0;
-                        final bodySize = isCompact ? 14.0 : 16.0;
-                        final buttonHeight = isCompact ? 48.0 : 52.0;
-                        final bottomSpacing = isCompact ? 16.0 : 24.0;
-                        final checkboxFontSize = isCompact ? 13.0 : 14.0;
+          body: Padding(
+            padding: EdgeInsets.only(top: topInset),
+            child: SizedBox.expand(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxHeight < 760;
+                      final topSpacing = isCompact ? 16.0 : 24.0;
+                      final sectionSpacing = isCompact ? 16.0 : 24.0;
+                      final tileSpacing = isCompact ? 10.0 : 12.0;
+                      final iconSize = isCompact ? 64.0 : 80.0;
+                      final titleSize = isCompact ? 22.0 : 24.0;
+                      final bodySize = isCompact ? 14.0 : 16.0;
+                      final buttonHeight = isCompact ? 48.0 : 52.0;
+                      final bottomSpacing = (mediaQuery.padding.bottom + 20)
+                          .clamp(20.0, 32.0)
+                          .toDouble();
+                      final checkboxFontSize = isCompact ? 13.0 : 14.0;
 
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(height: topSpacing),
-                                      Center(
-                                        child: Icon(
-                                          Icons.warning,
-                                          size: iconSize,
-                                          color: Colors.red,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Center(
-                                        child: Text(
-                                          "Driver is Distant",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            height: 1.05,
-                                            fontSize: titleSize,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: isCompact ? 16 : 20),
-                                      Text(
-                                        "Ka-TODA, the nearest driver is $pickupKm km away. An additional fare of ₱$pickupFee will apply for picking you up. The new fare will be ₱$updatedFare.",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          height: 1.4,
-                                          fontSize: bodySize,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.92,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: sectionSpacing),
-                                      _DriverDistantMetricTile(
-                                        icon: Icons.location_on,
-                                        label: "Driver Distance",
-                                        value:
-                                            "$pickupKm kilometer${pickupKmValue <= 1 ? "" : "s"}",
-                                      ),
-                                      SizedBox(height: tileSpacing),
-                                      _DriverDistantMetricTile(
-                                        icon: Icons.description,
-                                        label: "Initial Fare",
-                                        value:
-                                            "${originalFare.toStringAsFixed(0)} pesos",
-                                      ),
-                                      SizedBox(height: tileSpacing),
-                                      _DriverDistantMetricTile(
-                                        icon: Icons.add_circle,
-                                        label: "Pickup Fare",
-                                        value: "$pickupFee pesos",
-                                      ),
-                                      SizedBox(height: tileSpacing),
-                                      _DriverDistantMetricTile(
-                                        icon: Icons.warning,
-                                        label: "New Fare",
-                                        value: "$updatedFare pesos",
-                                        containerColor: Colors.red,
-                                      ),
-                                      SizedBox(height: sectionSpacing),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _acknowledged = !_acknowledged;
-                                  });
-                                },
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: Center(
-                                        child: Checkbox(
-                                          value: _acknowledged,
-                                          activeColor: Colors.red,
-                                          side: const BorderSide(
-                                            color: Colors.white,
-                                            width: 1.5,
-                                          ),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _acknowledged = value ?? false;
-                                            });
-                                          },
-                                        ),
+                                    SizedBox(height: topSpacing),
+                                    Center(
+                                      child: Icon(
+                                        Icons.warning,
+                                        size: iconSize,
+                                        color: Colors.red,
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
+                                    const SizedBox(height: 12),
+                                    Center(
                                       child: Text(
-                                        "I'm aware the driver is distant and accept the additional fare voluntarily.",
+                                        "Driver is Distant",
+                                        textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          height: 1.35,
-                                          fontSize: checkboxFontSize,
+                                          height: 1.05,
+                                          fontSize: titleSize,
+                                          fontWeight: FontWeight.w700,
                                           color: Colors.white,
                                         ),
                                       ),
                                     ),
+                                    SizedBox(height: isCompact ? 16 : 20),
+                                    Text(
+                                      "Ka-TODA, the nearest driver is $pickupKm km away. An additional fare of ₱$pickupFee will apply for picking you up. The new fare will be ₱$updatedFare.",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        height: 1.4,
+                                        fontSize: bodySize,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.92,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: sectionSpacing),
+                                    _DriverDistantMetricTile(
+                                      icon: Icons.location_on,
+                                      label: "Driver Distance",
+                                      value:
+                                          "$pickupKm kilometer${pickupKmValue <= 1 ? "" : "s"}",
+                                    ),
+                                    SizedBox(height: tileSpacing),
+                                    _DriverDistantMetricTile(
+                                      icon: Icons.description,
+                                      label: "Initial Fare",
+                                      value:
+                                          "${originalFare.toStringAsFixed(0)} pesos",
+                                    ),
+                                    SizedBox(height: tileSpacing),
+                                    _DriverDistantMetricTile(
+                                      icon: Icons.add_circle,
+                                      label: "Pickup Fare",
+                                      value: "$pickupFee pesos",
+                                    ),
+                                    SizedBox(height: tileSpacing),
+                                    _DriverDistantMetricTile(
+                                      icon: Icons.warning,
+                                      label: "New Fare",
+                                      value: "$updatedFare pesos",
+                                      containerColor: Colors.red,
+                                    ),
+                                    SizedBox(height: sectionSpacing),
                                   ],
                                 ),
                               ),
-                              SizedBox(height: isCompact ? 14 : 18),
-                              Row(
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _acknowledged = !_acknowledged;
+                                });
+                              },
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Expanded(
-                                    child: ActionButton(
-                                      height: buttonHeight,
-                                      text: "Cancel",
-                                      mainColor:
-                                          Colors.white.withValues(alpha: 0.12),
-                                      borderColor:
-                                          Colors.white.withValues(alpha: 0.4),
-                                      style: const TextStyle(
-                                        height: 1,
-                                        fontSize: 15,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: Center(
+                                      child: Checkbox(
+                                        value: _acknowledged,
+                                        activeColor: Colors.red,
+                                        side: const BorderSide(
+                                          color: Colors.white,
+                                          width: 1.5,
+                                        ),
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _acknowledged = value ?? false;
+                                          });
+                                        },
                                       ),
-                                      onTap:
-                                          widget.onCancel ?? () => Get.back(),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 12),
                                   Expanded(
-                                    child: ActionButton(
-                                      height: buttonHeight,
-                                      text: _secondsLeft == 0
-                                          ? "Accept"
-                                          : "Accept ($_secondsLeft)",
-                                      mainColor: canAccept
-                                          ? Colors.red
-                                          : Colors.red.withValues(alpha: 0.45),
-                                      borderColor: canAccept
-                                          ? null
-                                          : Colors.red.withValues(alpha: 0.8),
-                                      style: const TextStyle(
-                                        height: 1,
-                                        fontSize: 15,
+                                    child: Text(
+                                      "I'm aware the driver is distant and accept the additional fare voluntarily.",
+                                      style: TextStyle(
+                                        height: 1.35,
+                                        fontSize: checkboxFontSize,
                                         color: Colors.white,
-                                        fontWeight: FontWeight.bold,
                                       ),
-                                      onTap: () async {
-                                        if (_secondsLeft > 0) {
-                                          _showValidationSnackBar(
-                                            "Take time to read. Please try again after $_secondsLeft second${_secondsLeft == 1 ? "" : "s"}!",
-                                          );
-                                          return;
-                                        }
-                                        if (!_acknowledged) {
-                                          _showValidationSnackBar(
-                                            "Please confirm that you're aware the driver is distant and accept the additional fare voluntarily.",
-                                          );
-                                          return;
-                                        }
-                                        setState(() {
-                                          _submitting = true;
-                                        });
-                                        Get.back();
-                                        await widget.onAccept();
-                                      },
                                     ),
                                   ),
                                 ],
                               ),
-                              SizedBox(height: bottomSpacing),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            ),
+                            SizedBox(height: isCompact ? 14 : 18),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ActionButton(
+                                    height: buttonHeight,
+                                    text: "Cancel",
+                                    mainColor:
+                                        Colors.white.withValues(alpha: 0.12),
+                                    borderColor:
+                                        Colors.white.withValues(alpha: 0.4),
+                                    style: const TextStyle(
+                                      height: 1,
+                                      fontSize: 15,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    onTap: widget.onCancel ?? () => Get.back(),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: ActionButton(
+                                    height: buttonHeight,
+                                    text: _secondsLeft == 0
+                                        ? "Accept"
+                                        : "Accept ($_secondsLeft)",
+                                    mainColor: canAccept
+                                        ? Colors.red
+                                        : Colors.red.withValues(alpha: 0.45),
+                                    borderColor: canAccept
+                                        ? null
+                                        : Colors.red.withValues(alpha: 0.8),
+                                    style: const TextStyle(
+                                      height: 1,
+                                      fontSize: 15,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    onTap: () async {
+                                      if (_secondsLeft > 0) {
+                                        _showValidationSnackBar(
+                                          "Take time to read. Please try again after $_secondsLeft second${_secondsLeft == 1 ? "" : "s"}!",
+                                        );
+                                        return;
+                                      }
+                                      if (!_acknowledged) {
+                                        _showValidationSnackBar(
+                                          "Please confirm that you're aware the driver is distant and accept the additional fare voluntarily.",
+                                        );
+                                        return;
+                                      }
+                                      setState(() {
+                                        _submitting = true;
+                                      });
+                                      Get.back();
+                                      await widget.onAccept();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: bottomSpacing),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),

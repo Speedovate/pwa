@@ -77,7 +77,6 @@ async function initializeInstallState() {
     }
   } catch (error) {
     installProblemMessage = "Install is unavailable because the app configuration could not be read.";
-    console.debug("Manifest bootstrap failed:", error);
   }
 }
 
@@ -93,9 +92,7 @@ async function checkIfInstalled() {
         return;
       }
     }
-  } catch (error) {
-    console.debug("getInstalledRelatedApps check failed:", error);
-  }
+  } catch (_) {}
 
   if (
     window.matchMedia("(display-mode: standalone)").matches ||

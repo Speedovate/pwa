@@ -1,7 +1,7 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/constants/api.dart';
 import 'package:pwa/models/order.model.dart';
@@ -120,8 +120,9 @@ class OrderRequest extends HttpService {
       }
       if (!apiResponse.allGood) {
         final status = apiResult.statusCode;
-        final rawBody = apiResult.data;
-        throw "Upload failed${status == null ? "" : " [$status]"}: ${apiResponse.message}${rawBody == null ? "" : " | Response: $rawBody"}";
+        throw status == 500
+            ? "The photo failed to upload. Please try a smaller image."
+            : "The photo failed to upload. ${apiResponse.message}";
       }
       return apiResponse;
     } catch (e) {

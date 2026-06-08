@@ -20,24 +20,19 @@ class _SplashViewState extends State<SplashView> {
       viewModelBuilder: () => splashViewModel,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final isLandscape = mediaQuery.size.width > mediaQuery.size.height;
+        final double imageSize = isLandscape
+            ? (mediaQuery.size.height / 2.1).clamp(0, 350).toDouble()
+            : (mediaQuery.size.width / 1.3).clamp(0, 350).toDouble();
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            toolbarHeight: 0,
-            backgroundColor: Colors.white,
-          ),
           body: Center(
             child: NetworkImageWidget(
               imageUrl: AppImages.splash,
               memCacheWidth: 600,
-              width: MediaQuery.of(context).size.width >
-                      MediaQuery.of(context).size.height
-                  ? (MediaQuery.of(context).size.height / 2.1).clamp(0, 350)
-                  : (MediaQuery.of(context).size.width / 1.3).clamp(0, 350),
-              height: MediaQuery.of(context).size.width >
-                      MediaQuery.of(context).size.height
-                  ? (MediaQuery.of(context).size.height / 2.1).clamp(0, 350)
-                  : (MediaQuery.of(context).size.width / 1.3).clamp(0, 350),
+              width: imageSize,
+              height: imageSize,
             ),
           ),
         );

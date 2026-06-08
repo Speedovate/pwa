@@ -50,20 +50,24 @@ class _IntroViewState extends State<IntroView> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final isLandscape = mediaQuery.size.width > mediaQuery.size.height;
+    final double heroSize = isLandscape
+        ? (mediaQuery.size.height / 3).clamp(0, 250).toDouble()
+        : (mediaQuery.size.width / 2.2).clamp(0, 250).toDouble();
+    final double carouselHeight =
+        mediaQuery.size.height - 200 - mediaQuery.padding.top;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        toolbarHeight: 0,
-        backgroundColor: Colors.white,
-      ),
       body: Stack(
         children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom,
+          SingleChildScrollView(
+            child: SizedBox(
+              height: mediaQuery.size.height,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: mediaQuery.padding.top,
+                ),
                 child: Column(
                   children: [
                     Expanded(
@@ -76,49 +80,20 @@ class _IntroViewState extends State<IntroView> {
                                 color: Colors.white,
                                 child: Padding(
                                   padding: const EdgeInsets.only(
-                                    top: 80,
+                                    top: 50,
                                     left: 50,
                                     right: 50,
                                   ),
                                   child: Column(
                                     mainAxisAlignment:
-                                        MediaQuery.of(context).size.height >
-                                                1024
+                                        mediaQuery.size.height > 1024
                                             ? MainAxisAlignment.center
                                             : MainAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 24),
                                       SizedBox(
-                                        width:
-                                            MediaQuery.of(context).size.width >
-                                                    MediaQuery.of(context)
-                                                        .size
-                                                        .height
-                                                ? (MediaQuery.of(context)
-                                                            .size
-                                                            .height /
-                                                        3)
-                                                    .clamp(0, 250)
-                                                : (MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        2.2)
-                                                    .clamp(0, 250),
-                                        height:
-                                            MediaQuery.of(context).size.width >
-                                                    MediaQuery.of(context)
-                                                        .size
-                                                        .height
-                                                ? (MediaQuery.of(context)
-                                                            .size
-                                                            .height /
-                                                        3)
-                                                    .clamp(0, 250)
-                                                : (MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        2.2)
-                                                    .clamp(0, 250),
+                                        width: heroSize,
+                                        height: heroSize,
                                         child: Center(
                                           child: NetworkImageWidget(
                                             imageUrl: () {
@@ -196,9 +171,7 @@ class _IntroViewState extends State<IntroView> {
                             )
                             .toList(),
                         options: CarouselOptions(
-                          height: MediaQuery.of(context).size.height -
-                              200 -
-                              MediaQuery.of(context).padding.top,
+                          height: carouselHeight,
                           initialPage: 0,
                           autoPlay: true,
                           viewportFraction: 1,
@@ -227,8 +200,8 @@ class _IntroViewState extends State<IntroView> {
                       ),
                       child: ActionButton(
                         text: AuthService.inReviewMode()
-                            ? "Login Account"
-                            : "Continue",
+                            ? "Login account"
+                            : "Get started",
                         onTap: () {
                           setState(() {
                             isTourist = false;
@@ -275,9 +248,7 @@ class _IntroViewState extends State<IntroView> {
                         },
                       ),
                     ),
-                    SizedBox(
-                      height: MediaQuery.of(context).padding.bottom + 32,
-                    ),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),

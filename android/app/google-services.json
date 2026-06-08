@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "599344409686-fi41oa11vqboo5nvt1lq017720uc8onk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ppctoda.customer",
+            "certificate_hash": "68a7d5365394759f94caa4bb0130b5f7c06026eb"
+          }
+        },
+        {
           "client_id": "599344409686-ikij09q82haq76ggdkvp794vp3o7a43g.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

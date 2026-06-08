@@ -126,15 +126,13 @@ class NetworkImageWidget extends StatelessWidget {
                           loadingProgress.expectedTotalBytes!
                       : null,
                 )
-              : Center(
+              : const Center(
                   child: CircularProgressIndicator(
                     strokeCap: StrokeCap.round,
-                    color: const Color(
+                    color: Color(
                       0xFF007BFF,
                     ),
-                    backgroundColor: const Color(
-                      0xFF007BFF,
-                    ).withValues(alpha: 0.25),
+                    backgroundColor: Colors.white,
                   ),
                 ),
         );

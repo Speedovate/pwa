@@ -5,6 +5,8 @@
   "scripts": {
     "sync-version": "node scripts/sync-pubspec-version.cjs",
     "version:set": "node scripts/sync-pubspec-version.cjs",
+    "kill:all": "node scripts/kill-all.cjs",
+    "kill-all": "node scripts/kill-all.cjs",
     "release": "node scripts/release.cjs",
     "release:web": "node scripts/release.cjs web",
     "release:apk": "node scripts/release.cjs apk",

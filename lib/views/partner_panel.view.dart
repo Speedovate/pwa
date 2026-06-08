@@ -12,6 +12,7 @@ import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/text_field.widget.dart';
 
 class PartnerPanelView extends StatefulWidget {
@@ -98,6 +99,42 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
       }
     }
     return "";
+  }
+
+  bool _hasPendingPanelDetails() {
+    return _hasText(_userIdTEC.text) ||
+        _hasText(_quickPartnerNameTEC.text) ||
+        _hasText(_markupTEC.text) ||
+        _hasText(_partnerListSearchTEC.text) ||
+        _hasText(_driverListSearchTEC.text);
+  }
+
+  bool _hasText(String? value) {
+    final text = (value ?? "").trim();
+    return text.isNotEmpty && text != "null";
+  }
+
+  void _leavePartnerPanel() {
+    Get.back();
+  }
+
+  void _confirmLeavePartnerPanel() {
+    if (!_hasPendingPanelDetails()) {
+      _leavePartnerPanel();
+      return;
+    }
+
+    AlertService().showAppAlert(
+      title: "Are you sure?",
+      content: "You're about to leave this page",
+      hideCancel: false,
+      confirmText: "Leave",
+      confirmColor: Colors.red,
+      confirmAction: () {
+        Get.back();
+        _leavePartnerPanel();
+      },
+    );
   }
 
   String _monthKeyNow() {
@@ -571,39 +608,16 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   }
 
   void _showSuccessSnack(String message) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.green.shade600,
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
+    showSuccess(message, context: context);
   }
 
   void _showErrorSnack(String message) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.red.shade600,
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
+    showError(message);
   }
 
   void _scheduleListSearchRefresh({required bool isDriver}) {
-    final timer = isDriver
-        ? _driverListSearchDebounce
-        : _partnerListSearchDebounce;
+    final timer =
+        isDriver ? _driverListSearchDebounce : _partnerListSearchDebounce;
     timer?.cancel();
     final nextTimer = Timer(const Duration(milliseconds: 160), () {
       if (!mounted) {
@@ -629,7 +643,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     bool isSaving = false;
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      useSafeArea: false,
       builder: (context) {
+        final mediaQuery = MediaQuery.of(context);
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
@@ -645,12 +662,13 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 ),
               ),
               content: SizedBox(
-                width: min(MediaQuery.of(context).size.width, 520),
+                width: min(mediaQuery.size.width, 520),
                 child: TextField(
                   controller: jsonTEC,
                   minLines: 18,
                   maxLines: 18,
                   keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
                   smartDashesType: SmartDashesType.disabled,
                   smartQuotesType: SmartQuotesType.disabled,
                   style: const TextStyle(
@@ -684,14 +702,13 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 ),
               ),
               actions: [
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: const Text("Cancel"),
+                _dialogActionButton(
+                  text: "Cancel",
+                  onTap: isSaving ? null : () => Navigator.pop(context),
                 ),
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving
+                _dialogActionButton(
+                  text: "Format",
+                  onTap: isSaving
                       ? null
                       : () {
                           try {
@@ -706,11 +723,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                             _showErrorSnack("$e");
                           }
                         },
-                  child: const Text("Format"),
                 ),
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving
+                _dialogActionButton(
+                  text: isSaving ? "Saving..." : "Save",
+                  onTap: isSaving
                       ? null
                       : () async {
                           setStateDialog(() {
@@ -733,7 +749,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                             });
                           }
                         },
-                  child: Text(isSaving ? "Saving..." : "Save"),
                 ),
               ],
             );
@@ -745,7 +760,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   }
 
   bool _isNarrowScreen(BuildContext context) {
-    return MediaQuery.of(context).size.width < 390;
+    final mediaQuery = MediaQuery.of(context);
+    return mediaQuery.size.width < 390;
   }
 
   InputDecoration _dropdownDecoration({
@@ -777,9 +793,34 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     );
   }
 
-  ButtonStyle _darkBlueTextButtonStyle() {
-    return TextButton.styleFrom(
-      foregroundColor: const Color(0xFF030744),
+  Widget _dialogActionButton({
+    required String text,
+    required VoidCallback? onTap,
+  }) {
+    return WidgetButton(
+      onTap: onTap ?? () {},
+      mainColor: Colors.transparent,
+      isTransparentColor: true,
+      useDefaultHoverColor: false,
+      interactionColor: const Color(0x14030744),
+      disableGestureDetection: onTap == null,
+      borderRadius: _panelRadius,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: onTap == null
+                ? const Color(0xFF030744).withValues(alpha: 0.35)
+                : const Color(0xFF030744),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1676,7 +1717,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     var isSaving = false;
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      useSafeArea: false,
       builder: (context) {
+        final mediaQuery = MediaQuery.of(context);
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
@@ -1692,7 +1736,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 ),
               ),
               content: SizedBox(
-                width: min(MediaQuery.of(context).size.width, 420),
+                width: min(mediaQuery.size.width, 420),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1700,6 +1744,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       controller: nameTEC,
                       labelText: "Name",
                       textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: _panelGap),
                     TextFieldWidget(
@@ -1708,6 +1753,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: _panelGap),
                     DropdownButtonFormField<String>(
@@ -1752,19 +1798,19 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     TextFieldWidget(
                       controller: noteTEC,
                       labelText: "Note",
+                      textInputAction: TextInputAction.done,
                     ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: const Text("Cancel"),
+                _dialogActionButton(
+                  text: "Cancel",
+                  onTap: isSaving ? null : () => Navigator.pop(context),
                 ),
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving
+                _dialogActionButton(
+                  text: isSaving ? "Saving..." : "Save",
+                  onTap: isSaving
                       ? null
                       : () async {
                           setStateDialog(() {
@@ -1800,7 +1846,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                             });
                           }
                         },
-                  child: Text(isSaving ? "Saving..." : "Save"),
                 ),
               ],
             );
@@ -1849,7 +1894,10 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     var isSaving = false;
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      useSafeArea: false,
       builder: (context) {
+        final mediaQuery = MediaQuery.of(context);
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
@@ -1865,7 +1913,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 ),
               ),
               content: SizedBox(
-                width: min(MediaQuery.of(context).size.width, 420),
+                width: min(mediaQuery.size.width, 420),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1873,6 +1921,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       controller: nameTEC,
                       labelText: "Name",
                       textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: _panelGap),
                     TextFieldWidget(
@@ -1881,6 +1930,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: _panelGap),
                     DropdownButtonFormField<String>(
@@ -1925,19 +1975,19 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     TextFieldWidget(
                       controller: noteTEC,
                       labelText: "Note",
+                      textInputAction: TextInputAction.done,
                     ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: const Text("Cancel"),
+                _dialogActionButton(
+                  text: "Cancel",
+                  onTap: isSaving ? null : () => Navigator.pop(context),
                 ),
-                TextButton(
-                  style: _darkBlueTextButtonStyle(),
-                  onPressed: isSaving
+                _dialogActionButton(
+                  text: isSaving ? "Saving..." : "Save",
+                  onTap: isSaving
                       ? null
                       : () async {
                           setStateDialog(() {
@@ -1973,7 +2023,6 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                             });
                           }
                         },
-                  child: Text(isSaving ? "Saving..." : "Save"),
                 ),
               ],
             );
@@ -2536,6 +2585,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
             TextFieldWidget(
               controller: _userIdTEC,
               labelText: "Search Name or User ID",
+              textInputAction: TextInputAction.search,
               onChanged: (value) {
                 setState(() {
                   _quickPartnerSearchVersion++;
@@ -2581,8 +2631,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                       "${userData["name"] ?? "Unnamed User"}",
                       alt: "Unnamed User",
                     );
-                    return InkWell(
+                    return WidgetButton(
                       onTap: () => _selectQuickPartner(userData),
+                      borderRadius: 0,
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -2666,6 +2717,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 controller: _quickPartnerNameTEC,
                 labelText: "Partner Name",
                 textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
                 onChanged: (value) {
                   setState(() {
                     if (_quickPartnerUserData == null) {
@@ -2689,6 +2741,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                textInputAction: TextInputAction.done,
               ),
               const SizedBox(height: _panelGap),
               DropdownButtonFormField<String>(
@@ -2737,6 +2790,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     return TextFieldWidget(
       controller: controller,
       labelText: hintText,
+      textInputAction: TextInputAction.search,
       onChanged: (_) {
         _scheduleListSearchRefresh(isDriver: isDriver);
       },
@@ -2869,9 +2923,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                     );
                     final isDuplicate =
                         (duplicateNameCounts[normalizedName] ?? 0) > 1;
-                    final accentColor = isDuplicate
-                        ? const Color(0xFFC62828)
-                        : const Color(0xFF030744);
+                    final accentColor =
+                        isDuplicate ? Colors.red : const Color(0xFF030744);
                     return Padding(
                       key: ValueKey("partner-$partnerId"),
                       padding: const EdgeInsets.only(bottom: _panelOuterGap),
@@ -3032,6 +3085,9 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                         final confirmed =
                                             await showDialog<bool>(
                                                   context: context,
+                                                  barrierColor: Colors.black
+                                                      .withValues(alpha: 0.5),
+                                                  useSafeArea: false,
                                                   builder: (context) {
                                                     return AlertDialog(
                                                       backgroundColor:
@@ -3043,28 +3099,20 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                                         "This will remove the partner transaction and any linked claim record.",
                                                       ),
                                                       actions: [
-                                                        TextButton(
-                                                          style:
-                                                              _darkBlueTextButtonStyle(),
-                                                          onPressed: () =>
+                                                        _dialogActionButton(
+                                                          text: "Cancel",
+                                                          onTap: () =>
                                                               Navigator.pop(
                                                             context,
                                                             false,
                                                           ),
-                                                          child: const Text(
-                                                            "Cancel",
-                                                          ),
                                                         ),
-                                                        TextButton(
-                                                          style:
-                                                              _darkBlueTextButtonStyle(),
-                                                          onPressed: () =>
+                                                        _dialogActionButton(
+                                                          text: "Delete",
+                                                          onTap: () =>
                                                               Navigator.pop(
                                                             context,
                                                             true,
-                                                          ),
-                                                          child: const Text(
-                                                            "Delete",
                                                           ),
                                                         ),
                                                       ],
@@ -3236,8 +3284,8 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(_panelRadius),
                           border: Border.all(
-                            color: const Color(0xFF030744)
-                                .withValues(alpha: 0.08),
+                            color:
+                                const Color(0xFF030744).withValues(alpha: 0.08),
                           ),
                         ),
                         child: Column(
@@ -3247,8 +3295,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                 driverName,
                               ),
                               subtitle: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Wrap(
                                     children: [
@@ -3268,8 +3315,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                   ),
                                 ],
                               ),
-                              isExpanded:
-                                  _expandedDriverIds.contains(driverId),
+                              isExpanded: _expandedDriverIds.contains(driverId),
                               onTap: () {
                                 setState(() {
                                   if (_expandedDriverIds.contains(driverId)) {
@@ -3331,11 +3377,13 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                           initialData: txData,
                                         );
                                       },
-                                      onDelete:
-                                          (transactionId, txData) async {
+                                      onDelete: (transactionId, txData) async {
                                         final confirmed =
                                             await showDialog<bool>(
                                                   context: context,
+                                                  barrierColor: Colors.black
+                                                      .withValues(alpha: 0.5),
+                                                  useSafeArea: false,
                                                   builder: (context) {
                                                     return AlertDialog(
                                                       backgroundColor:
@@ -3347,28 +3395,20 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
                                                         "This will remove the driver transaction and any linked received/deducted record.",
                                                       ),
                                                       actions: [
-                                                        TextButton(
-                                                          style:
-                                                              _darkBlueTextButtonStyle(),
-                                                          onPressed: () =>
+                                                        _dialogActionButton(
+                                                          text: "Cancel",
+                                                          onTap: () =>
                                                               Navigator.pop(
                                                             context,
                                                             false,
                                                           ),
-                                                          child: const Text(
-                                                            "Cancel",
-                                                          ),
                                                         ),
-                                                        TextButton(
-                                                          style:
-                                                              _darkBlueTextButtonStyle(),
-                                                          onPressed: () =>
+                                                        _dialogActionButton(
+                                                          text: "Delete",
+                                                          onTap: () =>
                                                               Navigator.pop(
                                                             context,
                                                             true,
-                                                          ),
-                                                          child: const Text(
-                                                            "Delete",
                                                           ),
                                                         ),
                                                       ],
@@ -3518,74 +3558,77 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    return GestureDetector(
-      onTap: () {
-        FocusManager.instance.primaryFocus?.unfocus();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          return;
+        }
+        _confirmLeavePartnerPanel();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          toolbarHeight: 0,
+      child: GestureDetector(
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
+        child: Scaffold(
           backgroundColor: Colors.white,
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(
-                height: (GetPlatform.isAndroid || GetPlatform.isIOS)
-                    ? mediaQuery.padding.top + 36
-                    : 12,
-              ),
-              Row(
-                children: [
-                  const SizedBox(width: 4),
-                  WidgetButton(
-                    onTap: () {
-                      Get.back();
-                    },
-                    child: const SizedBox(
-                      width: 58,
-                      height: 58,
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            top: 2,
-                            right: 4,
-                            bottom: 2,
-                          ),
-                          child: Icon(
-                            Icons.chevron_left,
-                            color: Color(0xFF030744),
-                            size: 38,
+          body: Padding(
+            padding: EdgeInsets.only(
+              top: mediaQuery.padding.top,
+              bottom: 12,
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const SizedBox(width: 4),
+                    WidgetButton(
+                      onTap: _confirmLeavePartnerPanel,
+                      child: const SizedBox(
+                        width: 58,
+                        height: 58,
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: 2,
+                              right: 4,
+                              bottom: 2,
+                            ),
+                            child: Icon(
+                              Icons.chevron_left,
+                              color: Color(0xFF030744),
+                              size: 38,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 2),
-                  const Expanded(
-                    child: Text(
-                      "Partner Panel",
-                      style: TextStyle(
-                        height: 1,
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF030744),
+                    const SizedBox(width: 2),
+                    const Expanded(
+                      child: Text(
+                        "Partner Panel",
+                        style: TextStyle(
+                          height: 1,
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF030744),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: const Color(0xFF030744).withValues(alpha: 0.1),
-              ),
-              Expanded(
-                child: _buildPanelBody(),
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: const Color(0xFF030744).withValues(alpha: 0.1),
+                ),
+                Expanded(
+                  child: _buildPanelBody(),
+                ),
+              ],
+            ),
           ),
         ),
       ),

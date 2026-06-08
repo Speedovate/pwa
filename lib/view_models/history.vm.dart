@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:pwa/views/details.view.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/requests/order.request.dart';
+import 'package:pwa/view_models/home.vm.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class HistoryViewModel extends BaseViewModel {
@@ -45,7 +46,11 @@ class HistoryViewModel extends BaseViewModel {
     setBusy(false);
   }
 
-  openOrderDetails({required Order order}) {
+  openOrderDetails({
+    required Order order,
+    required HomeViewModel hvm,
+    VoidCallback? onUseHistoryRoute,
+  }) {
     Navigator.push(
       Get.context!,
       PageRouteBuilder(
@@ -56,7 +61,11 @@ class HistoryViewModel extends BaseViewModel {
           a,
           b,
         ) =>
-            DetailsView(order: order),
+            DetailsView(
+          order: order,
+          hvm: hvm,
+          onUseHistoryRoute: onUseHistoryRoute,
+        ),
       ),
     );
   }

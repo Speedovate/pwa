@@ -1,19 +1,19 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
-import 'dart:async';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
-import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:pwa/utils/functions.dart';
+import 'package:pwa/utils/map_layers.dart';
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/utils/map_controller.dart';
-import 'package:pwa/utils/map_layers.dart';
-import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/models/coordinates.model.dart';
+import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
 
@@ -23,6 +23,7 @@ class GMapViewModel extends BaseViewModel {
   static const Duration _defaultMapMoveDebounceDuration =
       Duration(milliseconds: 3000);
   static const double _webSinglePointFocusZoom = 15;
+  static const double _cameraCenterTolerance = 0.00002;
   static const Duration _mobileInitialMapMoveDebounceDuration =
       Duration(milliseconds: 150);
   static const Duration _mobilePolylineAnimationStepDuration =
@@ -57,12 +58,20 @@ class GMapViewModel extends BaseViewModel {
   bool get hasActivatedBottomUi => _hasActivatedBottomUi;
   bool get shouldSkipInitialMapCameraMove => false;
   bool get shouldAutoFitMapToRoute => true;
-  EdgeInsets get routeBoundsPadding => kIsWeb
-      ? const EdgeInsets.fromLTRB(75, 90, 75, 90)
-      : const EdgeInsets.fromLTRB(100, 180, 100, 140);
+  double _routeBoundsTopInset = 0;
+  EdgeInsets get routeBoundsPadding => EdgeInsets.fromLTRB(
+        80,
+        _routeBoundsTopInset + 80,
+        80,
+        80,
+      );
   Duration get initialMapCameraMoveDebounceDuration => kIsWeb
       ? _defaultMapMoveDebounceDuration
       : _mobileInitialMapMoveDebounceDuration;
+
+  void updateRouteBoundsTopInset(double topInset) {
+    _routeBoundsTopInset = max(0, topInset);
+  }
 
   List<MapMarkerData> _markersWithDriverOnTop(List<MapMarkerData> nextMarkers) {
     final sorted = [...nextMarkers];
@@ -326,9 +335,29 @@ class GMapViewModel extends BaseViewModel {
     _ignoreCameraMoveUntil = DateTime.now().add(duration);
   }
 
+  bool _isMapCenteredOn(gmaps.LatLng target) {
+    final center = _map?.center;
+    if (center == null) {
+      return false;
+    }
+    return (center.lat - target.lat).abs() <= _cameraCenterTolerance &&
+        (center.lng - target.lng).abs() <= _cameraCenterTolerance;
+  }
+
+  bool _isMapZoomedTo(double zoom) {
+    final currentZoom = _map?.zoom;
+    if (currentZoom == null) {
+      return false;
+    }
+    return (currentZoom - zoom).abs() <= 0.05;
+  }
+
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
     final target = await getMyLatLng();
     if (_map != null && target != null) {
+      if (_isMapCenteredOn(target)) {
+        return target;
+      }
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
       );
@@ -429,16 +458,21 @@ class GMapViewModel extends BaseViewModel {
       return false;
     }
 
+    if (targetPoints.length == 1 && !allowSinglePointFit) {
+      return false;
+    }
+
     ignoreCameraMovesFor(
       const Duration(milliseconds: 1200),
     );
     if (targetPoints.length == 1) {
-      if (!allowSinglePointFit) {
-        return false;
+      const targetZoom = kIsWeb ? _webSinglePointFocusZoom : 16.0;
+      if (_isMapCenteredOn(targetPoints.first) && _isMapZoomedTo(targetZoom)) {
+        return true;
       }
       _map!.recenter(
         targetPoints.first,
-        zoom: kIsWeb ? _webSinglePointFocusZoom : 16,
+        zoom: targetZoom,
       );
       return true;
     }
@@ -464,20 +498,44 @@ class GMapViewModel extends BaseViewModel {
       return;
     }
 
-    final target = fallbackTarget ?? await zoomToCurrentLocation();
+    final target = fallbackTarget ?? await getMyLatLng();
+    if (target == null) {
+      return;
+    }
+
+    const targetZoom = kIsWeb ? _webSinglePointFocusZoom : 16.0;
+    if (_isMapCenteredOn(target)) {
+      if (!_isMapZoomedTo(targetZoom)) {
+        ignoreCameraMovesFor(
+          const Duration(milliseconds: 800),
+        );
+        _map!.recenter(
+          target,
+          zoom: targetZoom,
+        );
+      }
+      return;
+    }
+
+    ignoreCameraMovesFor(
+      const Duration(milliseconds: 800),
+    );
     if (fallbackTarget != null) {
       zoomToLocation(
         fallbackTarget,
         zoom: kIsWeb ? _webSinglePointFocusZoom : 16,
       );
-    }
-    if (target != null) {
-      await mapCameraMove(
-        "myLocation",
+    } else {
+      _map!.recenter(
         target,
-        debounceDuration: Duration.zero,
+        zoom: 16,
       );
     }
+    await mapCameraMove(
+      "myLocation",
+      target,
+      debounceDuration: Duration.zero,
+    );
   }
 
   zoomToLocation(
@@ -534,7 +592,16 @@ class GMapViewModel extends BaseViewModel {
     Duration debounceDuration = _defaultMapMoveDebounceDuration,
     Completer<void>? completion,
   }) async {
+    final shouldCancelInitialCameraMove = shouldSkipInitialMapCameraMove &&
+        (function == "setMap" || function == "onCameraMove");
     if (target == null || _isResolvingCameraMove) {
+      completion?.complete();
+      return;
+    }
+    if (shouldCancelInitialCameraMove) {
+      isInitializing = false;
+      _isCameraMovePending = false;
+      _syncMapUiNotifiers();
       completion?.complete();
       return;
     }
@@ -550,6 +617,14 @@ class GMapViewModel extends BaseViewModel {
       () async {
         var shouldNotify = false;
         DateTime? loadingStartedAt;
+        if (shouldSkipInitialMapCameraMove &&
+            (function == "setMap" || function == "onCameraMove")) {
+          isInitializing = false;
+          _isCameraMovePending = false;
+          _syncMapUiNotifiers();
+          completion?.complete();
+          return;
+        }
         if (generation != _cameraMoveGeneration) {
           completion?.complete();
           return;
@@ -769,7 +844,7 @@ class GMapViewModel extends BaseViewModel {
         await _setPolylineWithOptionalAnimation(
           points: points,
           color: const Color(0xFF42A5F5),
-          strokeWidth: 6,
+          strokeWidth: 8,
           animate: animatePolyline,
         );
         final allPoints = [driverLatLng, ...points, pickupLatLng];
@@ -840,7 +915,7 @@ class GMapViewModel extends BaseViewModel {
         await _setPolylineWithOptionalAnimation(
           points: points,
           color: const Color(0xFF42A5F5),
-          strokeWidth: 6,
+          strokeWidth: 8,
           animate: animatePolyline,
         );
         final allPoints = [pickupLatLng, ...points, dropoffLatLng];

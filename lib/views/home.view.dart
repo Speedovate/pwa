@@ -64,6 +64,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   gmaps.LatLng? _homeMapCenter;
   bool _isIOSMenuOpen = false;
   String? _activePartnerDisplay;
+  bool _hasQueuedAutomaticPartnerDisplays = false;
+  bool _isShowingAutomaticPartnerDisplay = false;
+  final List<String> _pendingAutomaticPartnerDisplays = [];
   bool _acceptedDefaultLocationFallback = false;
   bool _keepHomeMapInteractionBlocked = false;
 
@@ -181,7 +184,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       forceFresh: true,
       requestPermission: false,
     );
-    if (lastGeolocationErrorMessage != null && !_acceptedDefaultLocationFallback) {
+    if (lastGeolocationErrorMessage != null &&
+        !_acceptedDefaultLocationFallback) {
       return null;
     }
     return latLng;
@@ -196,7 +200,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       forceFresh: true,
       requestPermission: true,
     );
-    if (!mounted || latLng == null) {
+    if (!mounted ||
+        latLng == null ||
+        homeViewModel.isResolvingInitialOngoingOrder ||
+        homeViewModel.ongoingOrder != null) {
       return;
     }
     setState(() {
@@ -264,7 +271,88 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     });
   }
 
+  Future<void> _showPartnerDisplayWithBanners(String partner) async {
+    _pendingAutomaticPartnerDisplays.clear();
+    _isShowingAutomaticPartnerDisplay = false;
+    if (gBanners.isEmpty) {
+      await SplashViewModel().getBanners();
+    }
+    _showPartnerDisplay(partner);
+  }
+
+  Future<void> _queueAutomaticPartnerDisplaysIfNeeded(HomeViewModel vm) async {
+    if (_hasQueuedAutomaticPartnerDisplays ||
+        _activePartnerDisplay != null ||
+        AuthService.inReviewMode() ||
+        vm.ongoingOrder != null ||
+        !isBool(AppStrings.homeSettingsObject?["show_ad"] ?? true)) {
+      return;
+    }
+
+    _hasQueuedAutomaticPartnerDisplays = true;
+    if (gBanners.isEmpty) {
+      await SplashViewModel().getBanners();
+    }
+    if (!mounted || _activePartnerDisplay != null) {
+      return;
+    }
+
+    _pendingAutomaticPartnerDisplays.clear();
+    if (_hasValidBannerImages(
+      _partnerBannersExcludingHosts([
+        "mnb.com",
+        "sbb.com",
+      ]),
+    )) {
+      _pendingAutomaticPartnerDisplays.add("ppc");
+    }
+    _pendingAutomaticPartnerDisplays
+      ..add("mnb")
+      ..add("sbb");
+    _showNextAutomaticPartnerDisplay();
+  }
+
+  bool _hasValidBannerImages(List<BannerModel> banners) {
+    return banners.any((banner) {
+      return sanitizeImageUrl(banner.photo).isNotEmpty;
+    });
+  }
+
+  void _showNextAutomaticPartnerDisplay() {
+    if (!mounted) {
+      return;
+    }
+    if (_pendingAutomaticPartnerDisplays.isEmpty) {
+      _isShowingAutomaticPartnerDisplay = false;
+      return;
+    }
+    _isShowingAutomaticPartnerDisplay = true;
+    _showPartnerDisplay(_pendingAutomaticPartnerDisplays.removeAt(0));
+  }
+
+  Future<void> _closePartnerDisplay({
+    Future<void> Function()? beforeClose,
+  }) async {
+    await beforeClose?.call();
+    if (!mounted) {
+      return;
+    }
+    final nextAutomaticPartner = _isShowingAutomaticPartnerDisplay &&
+            _pendingAutomaticPartnerDisplays.isNotEmpty
+        ? _pendingAutomaticPartnerDisplays.removeAt(0)
+        : null;
+    setState(() {
+      _activePartnerDisplay = nextAutomaticPartner;
+      showBranch = false;
+    });
+    if (nextAutomaticPartner == null) {
+      _isShowingAutomaticPartnerDisplay = false;
+    }
+  }
+
   void _clearPartnerDisplay() {
+    _pendingAutomaticPartnerDisplays.clear();
+    _isShowingAutomaticPartnerDisplay = false;
     setState(() {
       _activePartnerDisplay = null;
       showBranch = false;
@@ -386,11 +474,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   }
 
   Widget _buildHomeAvatarLoading({
-    Color backgroundColor = const Color(0x14007BFF),
+    Color backgroundColor = Colors.white,
   }) {
     return SizedBox.expand(
-      child: ColoredBox(
-        color: backgroundColor,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          shape: BoxShape.circle,
+        ),
         child: const Center(
           child: SizedBox(
             width: 24,
@@ -399,7 +490,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               strokeCap: StrokeCap.round,
               strokeWidth: 2,
               color: Color(0xFF007BFF),
-              backgroundColor: Color(0x40007BFF),
+              backgroundColor: Colors.white,
             ),
           ),
         ),
@@ -408,17 +499,24 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   }
 
   Widget _buildHomeAvatarFallback() {
-    return Container(
-      color: const Color(0xFF030744),
-      child: const Icon(
-        Icons.person_outline_outlined,
-        color: Colors.white,
+    return const SizedBox.expand(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Color(0xFF030744),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Icon(
+            Icons.person_outline_outlined,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildHomeImageLoading({
-    Color backgroundColor = const Color(0x14007BFF),
+    Color backgroundColor = Colors.white,
   }) {
     return SizedBox.expand(
       child: ColoredBox(
@@ -431,7 +529,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               strokeCap: StrokeCap.round,
               strokeWidth: 2.5,
               color: Color(0xFF007BFF),
-              backgroundColor: Color(0x40007BFF),
+              backgroundColor: Colors.white,
             ),
           ),
         ),
@@ -505,16 +603,78 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  List<BannerModel> _partnerBanners(int startIndex, int count) {
-    if (startIndex >= gBanners.length || count <= 0) {
-      return [];
+  bool _bannerMatchesHost(dynamic banner, String host) {
+    final normalizedHost = host.toLowerCase();
+    final link = (banner.link ?? "").trim().toLowerCase();
+    final uri = Uri.tryParse(link);
+    final linkHost = uri?.host.toLowerCase() ?? "";
+    return link == normalizedHost ||
+        link.startsWith("$normalizedHost/") ||
+        link == "https://$normalizedHost" ||
+        link.startsWith("https://$normalizedHost/") ||
+        link == "http://$normalizedHost" ||
+        link.startsWith("http://$normalizedHost/") ||
+        linkHost == normalizedHost ||
+        linkHost.endsWith(".$normalizedHost");
+  }
+
+  List<BannerModel> _partnerBannersForHost(String host) {
+    return gBanners.where((banner) {
+      return _bannerMatchesHost(banner, host);
+    }).map((banner) {
+      return BannerModel(
+        photo: banner.photo ?? "",
+        link: banner.link ?? "",
+      );
+    }).toList();
+  }
+
+  List<BannerModel> _partnerBannersExcludingHosts(List<String> hosts) {
+    return gBanners.where((banner) {
+      return !hosts.any((host) => _bannerMatchesHost(banner, host));
+    }).map((banner) {
+      return BannerModel(
+        photo: banner.photo ?? "",
+        link: banner.link ?? "",
+      );
+    }).toList();
+  }
+
+  Future<void> _openPartnerBannerLink(BannerModel banner) async {
+    final rawLink = banner.link.trim();
+    if (rawLink.isEmpty) {
+      return;
     }
 
-    final endIndex = (startIndex + count).clamp(startIndex, gBanners.length);
-    return gBanners
-        .sublist(startIndex, endIndex)
-        .map((banner) => BannerModel(photo: banner.photo ?? ""))
-        .toList();
+    final normalizedLink =
+        rawLink.contains("://") ? rawLink : "https://$rawLink";
+    final uri = Uri.tryParse(normalizedLink);
+    if (uri == null) {
+      return;
+    }
+
+    final host = uri.host.toLowerCase();
+    if (host == "facebook.com" || host == "www.facebook.com") {
+      final facebookAppUri = Uri.parse(
+        "fb://facewebmodal/f?href=${Uri.encodeComponent(normalizedLink)}",
+      );
+      try {
+        if (await canLaunchUrl(facebookAppUri) &&
+            await launchUrl(
+              facebookAppUri,
+              mode: LaunchMode.externalApplication,
+            )) {
+          return;
+        }
+      } catch (_) {}
+    }
+
+    try {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {}
   }
 
   Future<void> _openSupportChannel([HomeViewModel? vm]) async {
@@ -601,7 +761,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     return _buildHomeRequestActions(
       vm,
       requestType: "cancellation",
-      color: const Color(0xFFFF3B30),
+      color: Colors.red,
     );
   }
 
@@ -619,36 +779,28 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       required Color color,
       required Future<void> Function() onTap,
     }) {
-      return Material(
-        color: Colors.transparent,
-        child: Ink(
+      return WidgetButton(
+        onTap: () async => onTap(),
+        mainColor: color.withValues(alpha: 0.08),
+        interactionColor: color.withValues(alpha: 0.18),
+        useDefaultHoverColor: false,
+        child: Container(
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: const BorderRadius.all(
-              Radius.circular(1000),
-            ),
-            border: Border.all(
-              color: color.withValues(alpha: 0.18),
-            ),
+            borderRadius: const BorderRadius.all(Radius.circular(1000)),
+            border: Border.all(color: color.withValues(alpha: 0.18)),
           ),
-          child: InkWell(
-            onTap: () async => onTap(),
-            borderRadius: const BorderRadius.all(
-              Radius.circular(1000),
-            ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 0,
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: color,
-                  ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 0,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: color,
                 ),
               ),
             ),
@@ -670,7 +822,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             if (index == 0) {
               return buildPill(
                 label: "Cancel",
-                color: const Color(0xFFFF3B30),
+                color: Colors.red,
                 onTap: () async {
                   vm.confirmAcceptedCancelRequestCancel();
                 },
@@ -702,55 +854,43 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
           required String label,
           required Future<void> Function() onTap,
         }) {
-          return Material(
-            color: Colors.transparent,
-            child: Ink(
+          final isUpdating = requestType == "cancellation"
+              ? vm.isUpdatingRequestCancellation
+              : vm.isUpdatingRequestPass;
+          return WidgetButton(
+            onTap: isUpdating ? () {} : () async => onTap(),
+            mainColor: color.withValues(alpha: 0.08),
+            interactionColor: color.withValues(alpha: 0.18),
+            useDefaultHoverColor: false,
+            disableGestureDetection: isUpdating,
+            child: Container(
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.08),
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(1000),
-                ),
-                border: Border.all(
-                  color: color.withValues(alpha: 0.18),
-                ),
+                borderRadius: const BorderRadius.all(Radius.circular(1000)),
+                border: Border.all(color: color.withValues(alpha: 0.18)),
               ),
-              child: InkWell(
-                onTap: requestType == "cancellation"
-                    ? vm.isUpdatingRequestCancellation
-                        ? null
-                        : () async => onTap()
-                    : vm.isUpdatingRequestPass
-                        ? null
-                        : () async => onTap(),
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(1000),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 0,
-                    ),
-                    child: (requestType == "cancellation"
-                            ? vm.isUpdatingRequestCancellation
-                            : vm.isUpdatingRequestPass)
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: color,
-                            ),
-                          )
-                        : Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: color,
-                            ),
-                          ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 0,
                   ),
+                  child: isUpdating
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: color,
+                          ),
+                        )
+                      : Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: color,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -790,364 +930,345 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   }
 
   Widget _buildHomeDrawer(HomeViewModel vm, {bool useScaffoldDrawer = false}) {
-    final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
+    final mediaQuery = MediaQuery.of(context);
     final content = Container(
       color: Colors.white,
-      child: Column(
-        children: [
-          SizedBox(
-            height: isMobile
-                ? MediaQuery.of(context).padding.top + 24
-                : MediaQuery.of(context).padding.top,
-          ),
-          WidgetButton(
-            borderRadius: 0,
-            onTap: () {
-              _closeIOSMenu();
-              if (!AuthService.isLoggedIn()) {
-                setState(() {
-                  isTourist = false;
-                });
-                _navigateWithoutTransition(
-                  const LoginView(),
-                );
-              } else {
-                agreed = false;
-                selfieFile = null;
-                _navigateWithoutTransition(
-                  const ProfileView(),
-                );
-              }
-            },
-            onLongPress: () {
-              if (AuthService.isLoggedIn()) {
-                copyToClipboardWeb(
-                  lowerCase(
-                    AuthService.currentUser?.code,
-                  ),
-                );
-                if (isIOSLikeBrowser()) {
-                  _closeIOSMenu();
+      child: Padding(
+        padding: EdgeInsets.only(top: mediaQuery.padding.top),
+        child: Column(
+          children: [
+            WidgetButton(
+              borderRadius: 0,
+              suppressInteraction: true,
+              onTap: () {
+                _closeIOSMenu();
+                if (!AuthService.isLoggedIn()) {
+                  setState(() {
+                    isTourist = false;
+                  });
+                  _navigateWithoutTransition(
+                    const LoginView(),
+                  );
                 } else {
-                  Get.back();
+                  agreed = false;
+                  selfieFile = null;
+                  _navigateWithoutTransition(
+                    const ProfileView(),
+                  );
                 }
-                ScaffoldMessenger.of(
-                  Get.context!,
-                ).clearSnackBars();
-                ScaffoldMessenger.of(
-                  Get.context!,
-                ).showSnackBar(
-                  SnackBar(
-                    margin: const EdgeInsets.all(
-                      20,
+              },
+              onLongPress: () {
+                if (AuthService.isLoggedIn()) {
+                  copyToClipboardWeb(
+                    lowerCase(
+                      AuthService.currentUser?.code,
                     ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: Colors.grey.shade700,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    content: const Text(
-                      "Copied to clipboard.",
-                      style: TextStyle(
-                        color: Colors.white,
+                  );
+                  if (isIOSLikeBrowser()) {
+                    _closeIOSMenu();
+                  } else {
+                    Get.back();
+                  }
+                  showSuccess("Copied to clipboard.");
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: 18,
+                  left: 18,
+                  right: 12,
+                  bottom: 18,
+                ),
+                child: Row(
+                  children: [
+                    ClipOval(
+                      child: SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: _buildCurrentUserDrawerAvatar(),
                       ),
                     ),
-                  ),
-                );
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(
-                top: 18,
-                left: 18,
-                right: 12,
-                bottom: 18,
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            !AuthService.isLoggedIn()
+                                ? "Login account"
+                                : capitalizeWords(
+                                    "${AuthService.currentUser!.name}",
+                                  ),
+                            style: const TextStyle(
+                              height: 1.05,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(
+                                0xFF030744,
+                              ),
+                            ),
+                          ),
+                          !AuthService.isLoggedIn()
+                              ? const SizedBox()
+                              : const SizedBox(height: 4),
+                          !AuthService.isLoggedIn()
+                              ? const SizedBox()
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFF030744,
+                                      ),
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 2,
+                                      horizontal: 8,
+                                    ),
+                                    child: Text(
+                                      lowerCase(
+                                        AuthService.currentUser?.code,
+                                      ),
+                                      style: const TextStyle(
+                                        height: 1.05,
+                                        fontSize: 12,
+                                        color: Color(
+                                          0xFF030744,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Color(
+                        0xFF030744,
+                      ),
+                      size: 25,
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                children: [
-                  ClipOval(
-                    child: SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: _buildCurrentUserDrawerAvatar(),
+            ),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: const Color(
+                0xFF030744,
+              ).withValues(alpha: 0.1),
+            ),
+            if (AuthService.isLoggedIn())
+              ListTileWidget(
+                leading: const Icon(
+                  Icons.history,
+                  color: Color(
+                    0xFF030744,
+                  ),
+                ),
+                title: const Text(
+                  "History",
+                  style: TextStyle(
+                      color: Color(
+                        0xFF030744,
+                      ),
+                      fontSize: 15),
+                ),
+                onTap: () async {
+                  _closeIOSMenu();
+                  final scaffoldState = _scaffoldKey.currentState;
+                  if (!(isIOSLikeBrowser()) &&
+                      (scaffoldState?.isDrawerOpen ?? false)) {
+                    Navigator.of(context).pop();
+                    await Future<void>.delayed(
+                        const Duration(milliseconds: 16));
+                  }
+                  final selection = await _navigateWithoutTransition(
+                    HistoryView(
+                      vm,
+                      onUseHistoryRoute: _closeHomeDrawer,
+                    ),
+                  );
+                  await _syncHomeAfterHistoryRouteSelection(
+                    vm,
+                    selection,
+                  );
+                },
+              ),
+            if (AuthService.isLoggedIn())
+              ListTileWidget(
+                leading: const Icon(
+                  Icons.settings_outlined,
+                  color: Color(
+                    0xFF030744,
+                  ),
+                ),
+                title: const Text(
+                  "Settings",
+                  style: TextStyle(
+                    color: Color(
+                      0xFF030744,
                     ),
                   ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          !AuthService.isLoggedIn()
-                              ? "Login Account"
-                              : capitalizeWords(
-                                  "${AuthService.currentUser!.name}",
-                                ),
-                          style: const TextStyle(
-                            height: 1.05,
-                            fontSize: 14,
+                ),
+                onTap: () {
+                  _closeIOSMenu();
+                  if (!AuthService.isLoggedIn()) {
+                    _navigateWithoutTransition(
+                      const LoginView(),
+                    );
+                  } else {
+                    _navigateWithoutTransition(
+                      const SettingsView(),
+                    );
+                  }
+                },
+              ),
+            ListTileWidget(
+              leading: const Icon(
+                Icons.headset_outlined,
+                color: Color(
+                  0xFF030744,
+                ),
+              ),
+              title: const Text(
+                "Assistance",
+                style: TextStyle(
+                  color: Color(
+                    0xFF030744,
+                  ),
+                ),
+              ),
+              onTap: () {
+                _closeIOSMenu();
+                _openSupportChannel(homeViewModel);
+              },
+            ),
+            if (AuthService.isLoggedIn())
+              ListTileWidget(
+                contentPadding: const EdgeInsets.only(
+                  left: 18,
+                  right: 16,
+                  top: 16,
+                  bottom: 16,
+                ),
+                leading: Padding(
+                  padding: const EdgeInsets.only(right: 2),
+                  child: Container(
+                    width: 21,
+                    height: 21,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: const Color(
+                          0xFF030744,
+                        ),
+                        width: 2,
+                      ),
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(1000),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 0.5),
+                        child: Text(
+                          "₱",
+                          style: TextStyle(
+                            height: 1,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: Color(
                               0xFF030744,
                             ),
                           ),
                         ),
-                        !AuthService.isLoggedIn()
-                            ? const SizedBox()
-                            : const SizedBox(height: 4),
-                        !AuthService.isLoggedIn()
-                            ? const SizedBox()
-                            : Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFF030744,
-                                    ),
-                                  ),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 2,
-                                    horizontal: 8,
-                                  ),
-                                  child: Text(
-                                    lowerCase(
-                                      AuthService.currentUser?.code,
-                                    ),
-                                    style: const TextStyle(
-                                      height: 1.05,
-                                      fontSize: 12,
-                                      color: Color(
-                                        0xFF030744,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color(
-                      0xFF030744,
-                    ),
-                    size: 25,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: const Color(
-              0xFF030744,
-            ).withValues(alpha: 0.1),
-          ),
-          if (AuthService.isLoggedIn())
-            ListTileWidget(
-              leading: const Icon(
-                Icons.history,
-                color: Color(
-                  0xFF030744,
-                ),
-              ),
-              title: const Text(
-                "History",
-                style: TextStyle(
-                    color: Color(
-                      0xFF030744,
-                    ),
-                    fontSize: 15),
-              ),
-              onTap: () async {
-                _closeIOSMenu();
-                final scaffoldState = _scaffoldKey.currentState;
-                if (!(isIOSLikeBrowser()) && (scaffoldState?.isDrawerOpen ?? false)) {
-                  Navigator.of(context).pop();
-                  await Future<void>.delayed(const Duration(milliseconds: 16));
-                }
-                final selection = await _navigateWithoutTransition(
-                  HistoryView(
-                    vm,
-                    onUseHistoryRoute: _closeHomeDrawer,
-                  ),
-                );
-                await _syncHomeAfterHistoryRouteSelection(
-                  vm,
-                  selection,
-                );
-              },
-            ),
-          if (AuthService.isLoggedIn())
-            ListTileWidget(
-              leading: const Icon(
-                Icons.settings_outlined,
-                color: Color(
-                  0xFF030744,
-                ),
-              ),
-              title: const Text(
-                "Settings",
-                style: TextStyle(
-                  color: Color(
-                    0xFF030744,
-                  ),
-                ),
-              ),
-              onTap: () {
-                _closeIOSMenu();
-                if (!AuthService.isLoggedIn()) {
-                  _navigateWithoutTransition(
-                    const LoginView(),
-                  );
-                } else {
-                  _navigateWithoutTransition(
-                    const SettingsView(),
-                  );
-                }
-              },
-            ),
-          ListTileWidget(
-            leading: const Icon(
-              Icons.headset_outlined,
-              color: Color(
-                0xFF030744,
-              ),
-            ),
-            title: const Text(
-              "Assistance",
-              style: TextStyle(
-                color: Color(
-                  0xFF030744,
-                ),
-              ),
-            ),
-            onTap: () {
-              _closeIOSMenu();
-              _openSupportChannel(homeViewModel);
-            },
-          ),
-          if (AuthService.isLoggedIn())
-            ListTileWidget(
-              contentPadding: const EdgeInsets.only(
-                left: 18,
-                right: 16,
-                top: 16,
-                bottom: 16,
-              ),
-              leading: Padding(
-                padding: const EdgeInsets.only(right: 2),
-                child: Container(
-                  width: 21,
-                  height: 21,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: const Color(
-                        0xFF030744,
-                      ),
-                      width: 2,
-                    ),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(1000),
-                    ),
-                  ),
-                  child: const Center(
-                    child: Padding(
-                      padding: EdgeInsets.only(left: 0.5),
-                      child: Text(
-                        "₱",
-                        style: TextStyle(
-                          height: 1,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Color(
-                            0xFF030744,
-                          ),
-                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              title: const Text(
-                "TODA Load",
-                style: TextStyle(
-                  color: Color(
-                    0xFF030744,
-                  ),
-                ),
-              ),
-              onTap: () {
-                _closeIOSMenu();
-                Get.to(
-                  () => const LoadView(),
-                );
-              },
-            ),
-          if (AuthService.isLoggedIn())
-            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-              stream:
-                  fbStore.collection("access").doc("pwa_partners").snapshots(),
-              builder: (context, snapshot) {
-                final allowedUserIds = snapshot.data?.data()?["users"] ?? [];
-                final currentUserId = "${AuthService.currentUser?.id}";
-                final hasAccess = allowedUserIds.any(
-                  (id) => "$id" == currentUserId,
-                );
-                if (!hasAccess) {
-                  return const SizedBox.shrink();
-                }
-                return ListTileWidget(
-                  leading: const Icon(
-                    Icons.people_outline,
+                title: const Text(
+                  "TODA Load",
+                  style: TextStyle(
                     color: Color(
                       0xFF030744,
                     ),
                   ),
-                  title: const Text(
-                    "Partner Panel",
-                    style: TextStyle(
+                ),
+                onTap: () {
+                  _closeIOSMenu();
+                  Get.to(
+                    () => const LoadView(),
+                  );
+                },
+              ),
+            if (AuthService.isLoggedIn())
+              StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                stream: fbStore
+                    .collection("access")
+                    .doc("pwa_partners")
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final allowedUserIds = snapshot.data?.data()?["users"] ?? [];
+                  final currentUserId = "${AuthService.currentUser?.id}";
+                  final hasAccess = allowedUserIds.any(
+                    (id) => "$id" == currentUserId,
+                  );
+                  if (!hasAccess) {
+                    return const SizedBox.shrink();
+                  }
+                  return ListTileWidget(
+                    leading: const Icon(
+                      Icons.people_outline,
                       color: Color(
                         0xFF030744,
                       ),
                     ),
-                  ),
-                  onTap: () {
-                    _closeIOSMenu();
-                    _navigateWithoutTransition(
-                      const PartnerPanelView(),
-                    );
-                  },
-                );
-              },
-            ),
-          ListTileWidget(
-            leading: const Icon(
-              Icons.code,
-              color: Color(
-                0xFF030744,
+                    title: const Text(
+                      "Partner Panel",
+                      style: TextStyle(
+                        color: Color(
+                          0xFF030744,
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      _closeIOSMenu();
+                      _navigateWithoutTransition(
+                        const PartnerPanelView(),
+                      );
+                    },
+                  );
+                },
               ),
-            ),
-            title: Text(
-              "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
-              style: const TextStyle(
+            ListTileWidget(
+              leading: const Icon(
+                Icons.code,
                 color: Color(
                   0xFF030744,
                 ),
               ),
+              title: Text(
+                "Version ${version ?? "1.0.0"} (${versionCode ?? "1"})",
+                style: const TextStyle(
+                  color: Color(
+                    0xFF030744,
+                  ),
+                ),
+              ),
+              onTap: () async {
+                await launchUrl(
+                  Uri.parse("https://ppctoda.com"),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
             ),
-            onTap: () async {
-              await launchUrl(
-                Uri.parse("https://ppctoda.com"),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
     if (!useScaffoldDrawer) {
@@ -1359,6 +1480,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     return WidgetButton(
       borderRadius: 12,
       useDefaultHoverColor: false,
+      mainColor: selected ? const Color(0xFFEFF6FF) : Colors.white,
+      interactionColor: const Color(0xFF007BFF).withValues(alpha: 0.12),
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -1367,7 +1490,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
           vertical: 14,
         ),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEFF6FF) : Colors.white,
           borderRadius: const BorderRadius.all(
             Radius.circular(12),
           ),
@@ -1407,8 +1529,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       isCustom: true,
       customWidget: StatefulBuilder(
         builder: (context, dialogSetState) {
+          final mediaQuery = MediaQuery.of(context);
           return Container(
-            width: (MediaQuery.of(context).size.width - 70).clamp(0, 420),
+            width: (mediaQuery.size.width - 70).clamp(0, 420),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.all(
@@ -1491,162 +1614,159 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       customWidget: StatefulBuilder(
         builder: (context, dialogSetState) {
           final mediaQuery = MediaQuery.of(context);
-          return ValueListenableBuilder<double>(
-            valueListenable: _keyboardInsetNotifier,
-            builder: (_, observedKeyboardInset, __) {
-              final rootMediaQuery = MediaQueryData.fromView(View.of(context));
-              final keyboardInset =
-                  rootMediaQuery.viewInsets.bottom > observedKeyboardInset
-                      ? rootMediaQuery.viewInsets.bottom
-                      : observedKeyboardInset;
-              final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
-              final topInset = isMobile ? rootMediaQuery.padding.top + 24 : 0.0;
-              return AnimatedPadding(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.only(
-                  top: topInset,
-                  bottom: keyboardInset,
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              top: 24,
+              bottom: mediaQuery.viewInsets.bottom,
+            ),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              child: Container(
+                width: (mediaQuery.size.width - 70).clamp(0, 420),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(16),
+                  ),
                 ),
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  },
-                  child: Container(
-                    width: (mediaQuery.size.width - 70).clamp(0, 420),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Enter Promo Code",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          height: 1,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF030744),
+                        ),
                       ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            "Enter Promo Code",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              height: 1,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF030744),
+                      const SizedBox(height: 16),
+                      TextFieldWidget(
+                        controller: vm.promoCodeTEC,
+                        floatLabel: false,
+                        hintText: "Promo Code",
+                        labelText: "Promo Code",
+                        textCapitalization: TextCapitalization.characters,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.done,
+                        obscureText: false,
+                        showPrefix: false,
+                        showSuffix: vm.appliedCoupon != null,
+                        suffixIcon: Icons.close,
+                        onChanged: (value) {
+                          final upperValue = value.toUpperCase();
+                          if (value == upperValue) {
+                            return;
+                          }
+                          vm.promoCodeTEC.value = TextEditingValue(
+                            text: upperValue,
+                            selection: TextSelection.collapsed(
+                              offset: upperValue.length,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextFieldWidget(
-                            controller: vm.promoCodeTEC,
-                            floatLabel: false,
-                            hintText: "Promo Code",
-                            labelText: "Promo Code",
-                            textCapitalization: TextCapitalization.characters,
-                            keyboardType: TextInputType.text,
-                            textInputAction: TextInputAction.done,
-                            obscureText: false,
-                            showPrefix: false,
-                            showSuffix: vm.appliedCoupon != null,
-                            suffixIcon: Icons.close,
-                            onChanged: (value) {
-                              final upperValue = value.toUpperCase();
-                              if (value == upperValue) {
-                                return;
-                              }
-                              vm.promoCodeTEC.value = TextEditingValue(
-                                text: upperValue,
-                                selection: TextSelection.collapsed(
-                                  offset: upperValue.length,
-                                ),
-                              );
-                            },
-                            onSuffixTap: () {
+                          );
+                        },
+                        onSuffixTap: () {
+                          dialogSetState(() {
+                            vm.clearAppliedPromo();
+                          });
+                        },
+                        autoFocus: true,
+                        maxLines: 1,
+                        minLines: 1,
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: WidgetButton(
+                          borderRadius: 12,
+                          mainColor: vm.appliedCoupon != null
+                              ? Colors.red
+                              : isApplyingPromo
+                                  ? const Color(0xFF007BFF)
+                                      .withValues(alpha: 0.6)
+                                  : const Color(0xFF007BFF),
+                          useDefaultHoverColor: false,
+                          onTap: () async {
+                            if (isApplyingPromo) {
+                              return;
+                            }
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            if (vm.appliedCoupon != null) {
                               dialogSetState(() {
                                 vm.clearAppliedPromo();
                               });
-                            },
-                            autoFocus: true,
-                            maxLines: 1,
-                            minLines: 1,
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 46,
-                            child: WidgetButton(
-                              borderRadius: 12,
-                              mainColor: vm.appliedCoupon != null
-                                  ? Colors.red
-                                  : isApplyingPromo
-                                      ? const Color(0xFF007BFF)
-                                          .withValues(alpha: 0.6)
-                                      : const Color(0xFF007BFF),
-                              useDefaultHoverColor: false,
-                              onTap: () async {
-                                if (isApplyingPromo) {
-                                  return;
-                                }
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                if (vm.appliedCoupon != null) {
-                                  dialogSetState(() {
-                                    vm.clearAppliedPromo();
-                                  });
-                                  return;
-                                }
-                                dialogSetState(() {
-                                  isApplyingPromo = true;
-                                });
-                                try {
-                                  await vm.applyPromoCode(vm.promoCodeTEC.text);
+                              return;
+                            }
+                            final promoCode = vm.promoCodeTEC.text;
+                            dialogSetState(() {
+                              isApplyingPromo = true;
+                            });
+                            try {
+                              final resolvedPromo =
+                                  await vm.resolvePromoCode(promoCode);
+                              if (!mounted) {
+                                return;
+                              }
+                              Get.back();
+                              unawaited(Future<void>.delayed(
+                                const Duration(milliseconds: 240),
+                                () async {
                                   if (!mounted) {
                                     return;
                                   }
-                                  Get.back();
-                                } catch (e) {
-                                  dialogSetState(() {
-                                    isApplyingPromo = false;
-                                  });
-                                  ScaffoldMessenger.of(Get.context!)
-                                      .clearSnackBars();
-                                  ScaffoldMessenger.of(Get.context!)
-                                      .showSnackBar(
-                                    SnackBar(
-                                      backgroundColor: Colors.red,
-                                      content: Text(
-                                        "$e",
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
+                                  vm.applyResolvedPromoCode(
+                                    resolvedPromo.coupon,
+                                    resolvedPromo.code,
                                   );
-                                }
-                                return;
-                              },
-                              child: Center(
-                                child: Text(
-                                  vm.appliedCoupon != null
-                                      ? "Remove"
-                                      : isApplyingPromo
-                                          ? "Applying..."
-                                          : "Apply",
-                                  style: const TextStyle(
-                                    height: 1,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                },
+                              ));
+                            } catch (e) {
+                              dialogSetState(() {
+                                isApplyingPromo = false;
+                              });
+                              ScaffoldMessenger.of(Get.context!)
+                                  .clearSnackBars();
+                              ScaffoldMessenger.of(Get.context!).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.red,
+                                  content: Text(
+                                    "$e",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
+                              );
+                            }
+                            return;
+                          },
+                          child: Center(
+                            child: Text(
+                              vm.appliedCoupon != null ? "Remove" : "Apply",
+                              style: const TextStyle(
+                                height: 1,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-              );
-            },
+              ),
+            ),
           );
         },
       ),
@@ -1670,12 +1790,15 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       viewModelBuilder: () => homeViewModel,
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
-        final rootMediaQuery = MediaQueryData.fromView(View.of(context));
-        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
+        final mediaQuery = MediaQuery.of(context);
+        vm.updateRouteBoundsTopInset(mediaQuery.padding.top);
         final isProvider = isBool(AuthService.currentUser?.isProvider);
         final ongoingDiscount = vm.ongoingOrder?.discount ?? 0;
         final ongoingMarkupAmount =
             (vm.order?["markup_amount"] as num?)?.toDouble() ?? 0;
+        final double bookingCardSize =
+            ((mediaQuery.size.width - 64) / 3).clamp(0, 120).toDouble();
+        const bottomSheetBottomSpacing = 32.0;
         final ongoingSourceLabel = vm.ongoingOrder?.taxiOrder?.isWalkIn == true
             ? "Via Spot"
             : isProvider && ongoingMarkupAmount > 0
@@ -1683,12 +1806,15 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 : isProvider && ongoingDiscount > 0
                     ? "Via App | Staff"
                     : "Via App";
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || vm.isResolvingInitialOngoingOrder) {
+            return;
+          }
+          unawaited(_queueAutomaticPartnerDisplaysIfNeeded(vm));
+        });
         return Scaffold(
           key: _scaffoldKey,
-          appBar: AppBar(
-            toolbarHeight: 0,
-            backgroundColor: Colors.white,
-          ),
+          resizeToAvoidBottomInset: false,
           drawer: isIOSLikeBrowser()
               ? null
               : _buildHomeDrawer(
@@ -1866,9 +1992,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   }
                   final center = _homeMapCenter ?? resolvedCenter;
                   return SizedBox(
-                    height: MediaQuery.of(context).size.height -
-                        MediaQuery.of(context).padding.top -
-                        MediaQuery.of(context).padding.bottom,
+                    height: mediaQuery.size.height,
                     child: Stack(
                       children: [
                         Column(
@@ -1878,11 +2002,13 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 child: Stack(
                                   children: [
                                     ValueListenableBuilder<bool>(
-                                      valueListenable: vm.showMapLoadingIndicator,
-                                      builder: (_, showMapLoadingIndicator, __) {
+                                      valueListenable:
+                                          vm.showMapLoadingIndicator,
+                                      builder:
+                                          (_, showMapLoadingIndicator, __) {
                                         final canInteractWithMap =
                                             !_keepHomeMapInteractionBlocked &&
-                                            !showMapLoadingIndicator &&
+                                                !showMapLoadingIndicator &&
                                                 !vm.isMapInteractionLocked;
                                         return GoogleMapWidget(
                                           center: vm.mapCenter ?? center,
@@ -1890,22 +2016,24 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                               !vm.showAnalytics &&
                                               (hasActiveOngoingOrder ||
                                                   ((hasBookingSelection ||
-                                                          (isAdSeen &&
-                                                              isAd1Seen)) &&
+                                                          _activePartnerDisplay ==
+                                                              null) &&
                                                       canInteractWithMap)),
                                           markers: vm.markers,
                                           polylines: vm.polylines,
                                           onMapCreated: (map) {
                                             vm.setMap(map);
                                             WidgetsBinding.instance
-                                                .addPostFrameCallback((_) async {
+                                                .addPostFrameCallback(
+                                                    (_) async {
                                               if (!mounted ||
                                                   !AuthService.isLoggedIn()) {
                                                 return;
                                               }
                                               await vm
                                                   .ensureInitialOngoingOrderLoaded();
-                                              await vm.loadUIByOngoingOrderStatus(
+                                              await vm
+                                                  .loadUIByOngoingOrderStatus(
                                                 forceStop: true,
                                                 forceRedraw: true,
                                               );
@@ -1970,10 +2098,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                       },
                                     ),
                                     Positioned(
-                                      top: (isMobile
-                                              ? rootMediaQuery.padding.top
-                                              : 0) +
-                                          20,
+                                      top: mediaQuery.padding.top + 20,
                                       left: 20,
                                       child: FloatingButton(
                                         icon: Icons.menu,
@@ -1987,7 +2112,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                     )
                                         ? const SizedBox()
                                         : Positioned(
-                                            top: 20,
+                                            top: mediaQuery.padding.top + 20,
                                             left: 20,
                                             right: 20,
                                             child: Center(
@@ -2008,10 +2133,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                             ),
                                           ),
                                     Positioned(
-                                      top: (isMobile
-                                              ? rootMediaQuery.padding.top
-                                              : 0) +
-                                          20,
+                                      top: mediaQuery.padding.top + 20,
                                       right: 20,
                                       child: FloatingButton(
                                         icon: Icons.my_location_outlined,
@@ -2056,6 +2178,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                 await vm.getOngoingOrder(
                                                   forceStop: true,
                                                 );
+                                                await SplashViewModel()
+                                                    .getBanners();
                                                 if (vm.ongoingOrder == null) {
                                                   await LoadViewModel()
                                                       .getLoadBalance();
@@ -2097,8 +2221,12 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                           FloatingButton(
                                             icon: Icons.share,
                                             onTap: () {
+                                              final referralPhrase = AuthService
+                                                      .isLoggedIn()
+                                                  ? " using my referral code ${AuthService.currentUser?.code}"
+                                                  : "";
                                               share(
-                                                "Hey there, you can now book tricycles on the PPC TODA app! Here is the download link.",
+                                                "Hey there, you can now book tricycles on the PPC TODA app$referralPhrase! Here's the download link:",
                                               );
                                             },
                                           ),
@@ -2167,6 +2295,15 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                 vm.showPartnerButtons,
                                             builder:
                                                 (_, showPartnerButtons, __) {
+                                              final showPpcButton =
+                                                  _partnerBannersExcludingHosts([
+                                                "mnb.com",
+                                                "sbb.com",
+                                              ]).any((banner) {
+                                                return sanitizeImageUrl(
+                                                  banner.photo,
+                                                ).isNotEmpty;
+                                              });
                                               return Positioned(
                                                 left: 0,
                                                 right: 0,
@@ -2181,27 +2318,40 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                       image: AppImages.mnb,
                                                       show: true,
                                                       onTap: () async {
-                                                        if (gBanners.isEmpty) {
-                                                          await SplashViewModel()
-                                                              .getBanners();
-                                                        }
-                                                        _showPartnerDisplay(
-                                                            "mnb");
+                                                        await _showPartnerDisplayWithBanners(
+                                                          "mnb",
+                                                        );
                                                       },
                                                     ),
                                                     const SizedBox(
                                                       width: 12,
                                                     ),
+                                                    if (showPpcButton)
+                                                      PartnerButtonWidget(
+                                                        image: AppImages.logo,
+                                                        show: true,
+                                                        borderColor:
+                                                            const Color(
+                                                          0xFF007BFF,
+                                                        ),
+                                                        borderWidth: 1,
+                                                        onTap: () async {
+                                                          await _showPartnerDisplayWithBanners(
+                                                            "ppc",
+                                                          );
+                                                        },
+                                                      ),
+                                                    if (showPpcButton)
+                                                      const SizedBox(
+                                                        width: 12,
+                                                      ),
                                                     PartnerButtonWidget(
                                                       image: AppImages.sbb,
                                                       show: true,
                                                       onTap: () async {
-                                                        if (gBanners.isEmpty) {
-                                                          await SplashViewModel()
-                                                              .getBanners();
-                                                        }
-                                                        _showPartnerDisplay(
-                                                            "sbb");
+                                                        await _showPartnerDisplayWithBanners(
+                                                          "sbb",
+                                                        );
                                                       },
                                                     ),
                                                   ],
@@ -2258,16 +2408,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                             )
                                         ? const SizedBox()
                                         : Positioned(
-                                            top: 80,
+                                            top: mediaQuery.padding.top + 80,
                                             left: 16,
                                             right: 16,
                                             child: Center(
                                               child: Container(
-                                                width: (MediaQuery.of(context)
-                                                            .size
-                                                            .width -
-                                                        32)
-                                                    .clamp(0, 800),
+                                                width:
+                                                    (mediaQuery.size.width - 32)
+                                                        .clamp(0, 800),
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
                                                   borderRadius:
@@ -2767,6 +2915,122 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                             ),
                                                           ],
                                                         ),
+                                                        const SizedBox(
+                                                            height: 16),
+                                                        Center(
+                                                          child: WidgetButton(
+                                                            onTap: () async {
+                                                              await showFacebookSupportDialog(
+                                                                  context);
+                                                            },
+                                                            borderRadius: 6,
+                                                            mainColor: Colors
+                                                                .transparent,
+                                                            isTransparentColor:
+                                                                true,
+                                                            useDefaultHoverColor:
+                                                                false,
+                                                            suppressInteraction:
+                                                                true,
+                                                            child: RichText(
+                                                              text:
+                                                                  const TextSpan(
+                                                                children: [
+                                                                  TextSpan(
+                                                                    text:
+                                                                        "Need help? ",
+                                                                    style:
+                                                                        TextStyle(
+                                                                      height:
+                                                                          1.15,
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w400,
+                                                                      color:
+                                                                          Color(
+                                                                        0xFF030744,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  TextSpan(
+                                                                    text:
+                                                                        "Contact",
+                                                                    style:
+                                                                        TextStyle(
+                                                                      height:
+                                                                          1.15,
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      color:
+                                                                          Color(
+                                                                        0xFF007BFF,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  TextSpan(
+                                                                    text:
+                                                                        " or ",
+                                                                    style:
+                                                                        TextStyle(
+                                                                      height:
+                                                                          1.15,
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w400,
+                                                                      color:
+                                                                          Color(
+                                                                        0xFF030744,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  TextSpan(
+                                                                    text:
+                                                                        "Message",
+                                                                    style:
+                                                                        TextStyle(
+                                                                      height:
+                                                                          1.15,
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      color:
+                                                                          Color(
+                                                                        0xFF007BFF,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  TextSpan(
+                                                                    text:
+                                                                        " us!",
+                                                                    style:
+                                                                        TextStyle(
+                                                                      height:
+                                                                          1.15,
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w400,
+                                                                      color:
+                                                                          Color(
+                                                                        0xFF030744,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
                                                       ],
                                                     ),
                                                   ),
@@ -2826,11 +3090,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                   0,
                                                                   800,
                                                                 ),
-                                                                height: ((MediaQuery.of(context).size.width -
-                                                                            64) /
-                                                                        3)
-                                                                    .clamp(
-                                                                        0, 120),
+                                                                height:
+                                                                    bookingCardSize,
                                                                 decoration:
                                                                     BoxDecoration(
                                                                   color: Colors
@@ -2900,7 +3161,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                           }
                                                                         },
                                                                         height:
-                                                                            ((MediaQuery.of(context).size.width - 64) / 3).clamp(0, 120) /
+                                                                            bookingCardSize /
                                                                                 3,
                                                                         mainColor:
                                                                             Colors.red,
@@ -2930,12 +3191,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                       ?.status !=
                                                                   "cancelled"
                                                           ? SizedBox(
-                                                              height: ((MediaQuery.of(context).size.width -
-                                                                              64) /
-                                                                          3)
-                                                                      .clamp(0,
-                                                                          120) +
-                                                                  20,
+                                                              height:
+                                                                  bookingCardSize +
+                                                                      20,
                                                               child: Column(
                                                                 children: [
                                                                   Expanded(
@@ -2967,7 +3225,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                     maxWidth: 800,
                                                                                   ),
                                                                                   child: Text(
-                                                                                    "Ride #${vm.ongoingOrder!.id}  |  ${() {
+                                                                                    "#${vm.ongoingOrder!.id}  |  ${() {
                                                                                       if (vm.ongoingOrder?.status == "pending") {
                                                                                         if (vm.ongoingOrder!.driver == null) {
                                                                                           return "Finding a driver";
@@ -3106,16 +3364,16 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                   onTap: !_hasAssignedDriver(vm)
                                                                                       ? null
                                                                                       : () {
-                                                                                    AlertService().showAppAlert(
-                                                                                      isCustom: true,
-                                                                                      customWidget: PinchZoom(
-                                                                                        child: SizedBox(
-                                                                                          height: MediaQuery.of(context).size.width - 70,
-                                                                                          child: _buildDriverPreviewImage(vm),
-                                                                                        ),
-                                                                                      ),
-                                                                                    );
-                                                                                  },
+                                                                                          AlertService().showAppAlert(
+                                                                                            isCustom: true,
+                                                                                            customWidget: PinchZoom(
+                                                                                              child: SizedBox(
+                                                                                                height: mediaQuery.size.width - 70,
+                                                                                                child: _buildDriverPreviewImage(vm),
+                                                                                              ),
+                                                                                            ),
+                                                                                          );
+                                                                                        },
                                                                                   child: ClipOval(
                                                                                     child: SizedBox(
                                                                                       width: 48,
@@ -3262,7 +3520,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                               orElse: () => gVehicleTypes.first,
                                                                             );
                                                                             final squareSize =
-                                                                                (((MediaQuery.of(context).size.width - 64) / 3).clamp(0, 120)).toDouble();
+                                                                                bookingCardSize;
                                                                             final tricycleCard =
                                                                                 SizedBox(
                                                                               width: squareSize,
@@ -3295,8 +3553,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                             horizontal: 8,
                                                                                           ),
                                                                                           child: NetworkImageWidget(
-                                                                                            imageUrl:
-                                                                                                "${AppImages.baseUrl}${lowerCase(previewVehicle.name!)}.png",
+                                                                                            imageUrl: "${AppImages.baseUrl}${lowerCase(previewVehicle.name!)}.png",
                                                                                             memCacheWidth: 600,
                                                                                           ),
                                                                                         ),
@@ -3337,8 +3594,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                             );
                                                                             if (AuthService.inReviewMode()) {
                                                                               return Row(
-                                                                                mainAxisAlignment:
-                                                                                    MainAxisAlignment.center,
+                                                                                mainAxisAlignment: MainAxisAlignment.center,
                                                                                 children: [
                                                                                   tricycleCard,
                                                                                   const SizedBox(
@@ -3361,8 +3617,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                               );
                                                                             }
                                                                             return Row(
-                                                                              mainAxisAlignment:
-                                                                                  MainAxisAlignment.center,
+                                                                              mainAxisAlignment: MainAxisAlignment.center,
                                                                               children: [
                                                                                 tricycleCard,
                                                                                 const SizedBox(
@@ -3792,7 +4047,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                       if (clearPickupDisplay &&
                                                                           !showMapLoadingIndicator) {
                                                                         return const Padding(
-                                                                          padding: EdgeInsets.symmetric(
+                                                                          padding:
+                                                                              EdgeInsets.symmetric(
                                                                             horizontal:
                                                                                 4,
                                                                           ),
@@ -4030,12 +4286,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                       child: Row(
                                                         children: [
                                                           SizedBox(
-                                                            width: ((MediaQuery.of(context)
-                                                                            .size
-                                                                            .width -
-                                                                        64) /
-                                                                    3)
-                                                                .clamp(0, 120),
+                                                            width:
+                                                                bookingCardSize,
                                                             child:
                                                                 ConstrainedBox(
                                                               constraints:
@@ -4076,17 +4328,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                               return "Waiting";
                                                                             } else if (vm.ongoingOrder?.status ==
                                                                                 "preparing") {
-                                                                              final eta =
-                                                                                  (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ??
-                                                                                          "")
-                                                                                      .trim();
-                                                                              if (eta.isEmpty ||
-                                                                                  eta.toLowerCase() ==
-                                                                                      "null") {
+                                                                              final eta = (vm.ongoingOrder?.taxiOrder?.tripDetails?.eta ?? "").trim();
+                                                                              if (eta.isEmpty || eta.toLowerCase() == "null") {
                                                                                 return "Connecting";
                                                                               }
-                                                                              if (eta.toLowerCase().contains("any") ||
-                                                                                  eta.toLowerCase().contains("unknown")) {
+                                                                              if (eta.toLowerCase().contains("any") || eta.toLowerCase().contains("unknown")) {
                                                                                 return "Any Second";
                                                                               }
                                                                               return capitalizeWords(
@@ -4318,12 +4564,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                           const SizedBox(
                                                               width: 15),
                                                           SizedBox(
-                                                            width: ((MediaQuery.of(context)
-                                                                            .size
-                                                                            .width -
-                                                                        64) /
-                                                                    3)
-                                                                .clamp(0, 120),
+                                                            width:
+                                                                bookingCardSize,
                                                             child:
                                                                 ConstrainedBox(
                                                               constraints:
@@ -4400,7 +4642,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                     ),
                                                   ),
                                                   const SizedBox(
-                                                    height: 20,
+                                                    height:
+                                                        bottomSheetBottomSpacing,
                                                   ),
                                                 ],
                                               ),
@@ -4428,12 +4671,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: SizedBox(
-                                    width: MediaQuery.of(context).size.width *
-                                                0.84 >
-                                            320
+                                    width: mediaQuery.size.width * 0.84 > 320
                                         ? 320
-                                        : MediaQuery.of(context).size.width *
-                                            0.84,
+                                        : mediaQuery.size.width * 0.84,
                                     height: double.infinity,
                                     child: Material(
                                       color: Colors.transparent,
@@ -4494,27 +4734,29 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                           height: 20,
                                                         ),
                                                         GestureDetector(
-                                                          onTap: !_hasAssignedDriver(vm)
-                                                              ? null
-                                                              : () {
-                                                            AlertService()
-                                                                .showAppAlert(
-                                                              isCustom: true,
-                                                                  customWidget:
-                                                                      PinchZoom(
-                                                                child: SizedBox(
-                                                                  height: MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .width -
-                                                                      70,
-                                                                  child: _buildDriverPreviewImage(
-                                                                    vm,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            );
-                                                          },
+                                                          onTap:
+                                                              !_hasAssignedDriver(
+                                                                      vm)
+                                                                  ? null
+                                                                  : () {
+                                                                      AlertService()
+                                                                          .showAppAlert(
+                                                                        isCustom:
+                                                                            true,
+                                                                        customWidget:
+                                                                            PinchZoom(
+                                                                          child:
+                                                                              SizedBox(
+                                                                            height:
+                                                                                mediaQuery.size.width - 70,
+                                                                            child:
+                                                                                _buildDriverPreviewImage(
+                                                                              vm,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    },
                                                           child: ClipOval(
                                                             child: SizedBox(
                                                               width: 80,
@@ -4682,7 +4924,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                           return "Arrived";
                                                                         } else if (status ==
                                                                             "enroute") {
-                                                                          return "Navigating";
+                                                                          return "Ongoing";
                                                                         } else if (status ==
                                                                             "failed") {
                                                                           return "Failed";
@@ -4746,7 +4988,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                   height: 12,
                                                                 ),
                                                                 Text(
-                                                                  "Ride #${vm.ongoingOrder?.id}",
+                                                                  "#${vm.ongoingOrder?.id}",
                                                                   style:
                                                                       const TextStyle(
                                                                     height:
@@ -5239,23 +5481,23 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                               onTap: !_hasAssignedDriver(vm)
                                                   ? null
                                                   : () {
-                                                AlertService().showAppAlert(
-                                                  isCustom: true,
-                                                  customWidget: PinchZoom(
-                                                    child: SizedBox(
-                                                      height:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width -
-                                                              70,
-                                                      child:
-                                                          _buildDriverPreviewImage(
-                                                        vm,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              },
+                                                      AlertService()
+                                                          .showAppAlert(
+                                                        isCustom: true,
+                                                        customWidget: PinchZoom(
+                                                          child: SizedBox(
+                                                            height: mediaQuery
+                                                                    .size
+                                                                    .width -
+                                                                70,
+                                                            child:
+                                                                _buildDriverPreviewImage(
+                                                              vm,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
                                               child: ClipOval(
                                                 child: SizedBox(
                                                   width: 50,
@@ -5305,58 +5547,24 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                 ],
                                               ),
                                             ),
+                                            const SizedBox(width: 20),
                                             SizedBox(
                                               width: 44,
                                               height: 44,
-                                              child: Material(
-                                                color: const Color(
-                                                  0xFF007BFF,
-                                                ),
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                  Radius.circular(
-                                                    8,
-                                                  ),
-                                                ),
-                                                child: Ink(
-                                                  child: InkWell(
-                                                    onTap: () {
-                                                      launchUrlString(
-                                                        "tel:${vm.ongoingOrder?.driver?.phone}",
-                                                      );
-                                                    },
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(
-                                                        8,
-                                                      ),
-                                                    ),
-                                                    focusColor: const Color(
-                                                      0xFF030744,
-                                                    ).withValues(
-                                                      alpha: 0.2,
-                                                    ),
-                                                    hoverColor: const Color(
-                                                      0xFF030744,
-                                                    ).withValues(
-                                                      alpha: 0.2,
-                                                    ),
-                                                    splashColor: const Color(
-                                                      0xFF030744,
-                                                    ).withValues(
-                                                      alpha: 0.2,
-                                                    ),
-                                                    highlightColor: const Color(
-                                                      0xFF030744,
-                                                    ).withValues(
-                                                      alpha: 0.2,
-                                                    ),
-                                                    child: const Center(
-                                                      child: Icon(
-                                                        Icons.phone,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
+                                              child: WidgetButton(
+                                                borderRadius: 8,
+                                                mainColor:
+                                                    const Color(0xFF007BFF),
+                                                useDefaultHoverColor: false,
+                                                onTap: () {
+                                                  launchUrlString(
+                                                    "tel:${vm.ongoingOrder?.driver?.phone}",
+                                                  );
+                                                },
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.phone,
+                                                    color: Colors.white,
                                                   ),
                                                 ),
                                               ),
@@ -5404,12 +5612,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                   bottom: 20,
                                                 ),
                                                 child: Container(
-                                                  width: MediaQuery.of(context)
-                                                      .size
-                                                      .width,
-                                                  height: MediaQuery.of(context)
-                                                      .size
-                                                      .width,
+                                                  width: mediaQuery.size.width,
+                                                  height: mediaQuery.size.width,
                                                   decoration:
                                                       const BoxDecoration(
                                                     color: Color(
@@ -5470,96 +5674,52 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                         padding: const EdgeInsets.only(
                                           left: 20,
                                           right: 20,
-                                          bottom: 20,
+                                          bottom: bottomSheetBottomSpacing,
                                         ),
                                         child: Row(
                                           children: [
                                             Expanded(
-                                              child: Container(
+                                              child: SizedBox(
                                                 height: 55,
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                    Radius.circular(10),
-                                                  ),
-                                                ),
-                                                child: Material(
-                                                  color: Colors.transparent,
-                                                  child: Ink(
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                        Radius.circular(10),
-                                                      ),
-                                                    ),
-                                                    child: InkWell(
-                                                      onTap: () {
-                                                        fbStore
-                                                            .collection(
-                                                                "orders")
-                                                            .doc(vm.ongoingOrder
-                                                                ?.code)
-                                                            .update(
-                                                          {
-                                                            "userSeen": true,
-                                                          },
-                                                        );
-                                                        vm.userSeen = true;
-                                                        vm.notifyListeners();
+                                                child: WidgetButton(
+                                                  borderRadius: 10,
+                                                  mainColor: Colors.red,
+                                                  useDefaultHoverColor: false,
+                                                  onTap: () {
+                                                    fbStore
+                                                        .collection("orders")
+                                                        .doc(vm
+                                                            .ongoingOrder?.code)
+                                                        .update(
+                                                      {
+                                                        "userSeen": true,
                                                       },
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                      focusColor: const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      hoverColor: const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      splashColor: const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      highlightColor:
-                                                          const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      child: const Center(
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            Icon(
-                                                              Icons.close,
-                                                              size: 35,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                            Text(
-                                                              "Close",
-                                                              style: TextStyle(
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                            ),
-                                                            SizedBox(width: 8),
-                                                          ],
+                                                    );
+                                                    vm.userSeen = true;
+                                                    vm.notifyListeners();
+                                                  },
+                                                  child: const Center(
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.close,
+                                                          size: 35,
+                                                          color: Colors.white,
                                                         ),
-                                                      ),
+                                                        Text(
+                                                          "Close",
+                                                          style: TextStyle(
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                      ],
                                                     ),
                                                   ),
                                                 ),
@@ -5567,100 +5727,57 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                             ),
                                             const SizedBox(width: 20),
                                             Expanded(
-                                              child: Container(
+                                              child: SizedBox(
                                                 height: 55,
-                                                decoration: const BoxDecoration(
-                                                  color: Color(
+                                                child: WidgetButton(
+                                                  borderRadius: 10,
+                                                  mainColor: const Color(
                                                     0xFF007BFF,
                                                   ),
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                    Radius.circular(10),
-                                                  ),
-                                                ),
-                                                child: Material(
-                                                  color: Colors.transparent,
-                                                  child: Ink(
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.all(
-                                                        Radius.circular(10),
-                                                      ),
-                                                    ),
-                                                    child: InkWell(
-                                                      onTap: () {
-                                                        vm.chatDriver();
-                                                      },
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                        10,
-                                                      ),
-                                                      focusColor: const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      hoverColor: const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      splashColor: const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      highlightColor:
-                                                          const Color(
-                                                        0xFF030744,
-                                                      ).withValues(
-                                                        alpha: 0.1,
-                                                      ),
-                                                      child: Center(
-                                                        child: vm.isBusy
-                                                            ? const SizedBox(
-                                                                width: 28,
-                                                                height: 28,
-                                                                child:
-                                                                    CircularProgressIndicator(
-                                                                  strokeWidth:
-                                                                      2.5,
+                                                  useDefaultHoverColor: false,
+                                                  onTap: () {
+                                                    vm.chatDriver();
+                                                  },
+                                                  child: Center(
+                                                    child: vm.isBusy
+                                                        ? const SizedBox(
+                                                            width: 28,
+                                                            height: 28,
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              strokeWidth: 2.5,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          )
+                                                        : const Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              Icon(
+                                                                Icons.send,
+                                                                size: 35,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                              SizedBox(
+                                                                width: 8,
+                                                              ),
+                                                              Text(
+                                                                "Reply",
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
                                                                   color: Colors
                                                                       .white,
                                                                 ),
-                                                              )
-                                                            : const Row(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Icon(
-                                                                    Icons.send,
-                                                                    size: 35,
-                                                                    color: Colors
-                                                                        .white,
-                                                                  ),
-                                                                  SizedBox(
-                                                                    width: 8,
-                                                                  ),
-                                                                  Text(
-                                                                    "Reply",
-                                                                    style:
-                                                                        TextStyle(
-                                                                      fontSize:
-                                                                          16,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold,
-                                                                      color: Colors
-                                                                          .white,
-                                                                    ),
-                                                                  ),
-                                                                ],
                                                               ),
-                                                      ),
-                                                    ),
+                                                            ],
+                                                          ),
                                                   ),
                                                 ),
                                               ),
@@ -5674,28 +5791,46 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               ),
                         () {
                           try {
-                            final showMnb = !isAdSeen &&
-                                    vm.ongoingOrder == null &&
-                                    pickupAddress == null &&
-                                    dropoffAddress == null &&
-                                    isBool(
-                                      AppStrings
-                                              .homeSettingsObject?["show_ad"] ??
-                                          true,
-                                    ) ||
-                                _activePartnerDisplay == "mnb";
+                            final showPpc = _activePartnerDisplay == "ppc";
+                            return PartnerDisplayWidget(
+                              show: showPpc,
+                              onClose: () {
+                                unawaited(_closePartnerDisplay());
+                              },
+                              isLoggedIn: () => AuthService.isLoggedIn(),
+                              onSelectDropoff: (
+                                latLng,
+                                branchName,
+                              ) {},
+                              banners: _partnerBannersExcludingHosts([
+                                "mnb.com",
+                                "sbb.com",
+                              ]),
+                              partnerName: "PPC TODA",
+                              partnerDescription: "Tap an image to open link",
+                              partnerImage: AppImages.logo,
+                              branches: const [],
+                              onBannerTap: _openPartnerBannerLink,
+                            );
+                          } catch (_) {
+                            return const SizedBox();
+                          }
+                        }(),
+                        () {
+                          try {
+                            final showMnb = _activePartnerDisplay == "mnb";
                             return PartnerDisplayWidget(
                               show: showMnb,
                               onClose: () async {
-                                await StorageService.prefs?.setBool(
-                                  "is_ad_seen",
-                                  true,
+                                await _closePartnerDisplay(
+                                  beforeClose: () async {
+                                    await StorageService.prefs?.setBool(
+                                      "is_ad_seen",
+                                      true,
+                                    );
+                                    isAdSeen = true;
+                                  },
                                 );
-                                setState(() {
-                                  isAdSeen = true;
-                                  _activePartnerDisplay = null;
-                                  showBranch = false;
-                                });
                               },
                               isLoggedIn: () => AuthService.isLoggedIn(),
                               onSelectDropoff: (
@@ -5718,7 +5853,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 vm.fetchVehicleTypesPricing();
                                 _clearPartnerDisplay();
                               },
-                              banners: _partnerBanners(0, 2),
+                              banners: _partnerBannersForHost("mnb.com"),
                               partnerName: "Max & Bunny",
                               partnerDescription:
                                   "Dine in and help a driver earn!",
@@ -5726,18 +5861,18 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               branches: [
                                 Branch(
                                   id: 1,
-                                  name: "SM Branch",
-                                  latLng: const gmaps.LatLng(
-                                    9.743318345512021,
-                                    118.7390989745996,
-                                  ),
-                                ),
-                                Branch(
-                                  id: 2,
                                   name: "San Pedro Branch",
                                   latLng: const gmaps.LatLng(
                                     9.762115888944837,
                                     118.75241723828879,
+                                  ),
+                                ),
+                                Branch(
+                                  id: 2,
+                                  name: "SM Branch",
+                                  latLng: const gmaps.LatLng(
+                                    9.743318345512021,
+                                    118.7390989745996,
                                   ),
                                 ),
                               ],
@@ -5748,26 +5883,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         }(),
                         () {
                           try {
-                            final showSbb = !isAd1Seen &&
-                                    vm.ongoingOrder == null &&
-                                    pickupAddress == null &&
-                                    dropoffAddress == null &&
-                                    isBool(
-                                      AppStrings.homeSettingsObject?[
-                                              "show_ad_1"] ??
-                                          true,
-                                    ) ||
-                                _activePartnerDisplay == "sbb";
+                            final showSbb = _activePartnerDisplay == "sbb";
                             return PartnerDisplayWidget(
                               show: showSbb,
                               onClose: () async {
-                                await StorageService.prefs
-                                    ?.setBool("is_ad_1_seen", true);
-                                setState(() {
-                                  isAd1Seen = true;
-                                  _activePartnerDisplay = null;
-                                  showBranch = false;
-                                });
+                                await _closePartnerDisplay(
+                                  beforeClose: () async {
+                                    await StorageService.prefs
+                                        ?.setBool("is_ad_1_seen", true);
+                                    isAd1Seen = true;
+                                  },
+                                );
                               },
                               isLoggedIn: () => AuthService.isLoggedIn(),
                               onSelectDropoff: (
@@ -5790,7 +5916,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 vm.fetchVehicleTypesPricing();
                                 _clearPartnerDisplay();
                               },
-                              banners: _partnerBanners(2, 2),
+                              banners: _partnerBannersForHost("sbb.com"),
                               partnerName: "Sabie Bakes",
                               partnerDescription:
                                   "Dine in and help a driver earn!",
@@ -5798,18 +5924,18 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               branches: [
                                 Branch(
                                   id: 1,
-                                  name: "SM Branch",
-                                  latLng: const gmaps.LatLng(
-                                    9.74394439548003,
-                                    118.7398234327833,
-                                  ),
-                                ),
-                                Branch(
-                                  id: 2,
                                   name: "BM Road Branch",
                                   latLng: const gmaps.LatLng(
                                     9.765574270055104,
                                     118.76115291309709,
+                                  ),
+                                ),
+                                Branch(
+                                  id: 2,
+                                  name: "SM Branch",
+                                  latLng: const gmaps.LatLng(
+                                    9.74394439548003,
+                                    118.7398234327833,
                                   ),
                                 ),
                               ],

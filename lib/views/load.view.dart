@@ -133,38 +133,15 @@ class _LoadViewState extends State<LoadView> {
 
   Widget _buildMarkupHistoryList(LoadViewModel vm) {
     if (vm.markupTransactions.isEmpty) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.inventory_2_outlined,
-            color: const Color(0xFF030744).withValues(alpha: 0.5),
-            size: 75,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            "No markup history yet",
-            style: TextStyle(
-              height: 1,
-              fontSize: 20,
-              color: const Color(0xFF030744).withValues(alpha: 0.5),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Your claimable markup history will appear here",
-            style: TextStyle(
-              height: 1,
-              color: const Color(0xFF030744).withValues(alpha: 0.5),
-            ),
-          ),
-        ],
+      return _buildEmptyHistoryWidget(
+        icon: Icons.inventory_2_outlined,
+        title: "No transactions yet",
+        subtitle: "Your markup history will appear here",
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       physics: const BouncingScrollPhysics(),
       itemCount: vm.markupTransactions.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
@@ -381,19 +358,15 @@ class _LoadViewState extends State<LoadView> {
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
         final mediaQuery = MediaQuery.of(context);
-        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            toolbarHeight: 0,
-            backgroundColor: Colors.white,
-          ),
-          body: SafeArea(
+          body: Padding(
+            padding: EdgeInsets.only(
+              top: mediaQuery.padding.top,
+            ),
             child: Column(
               children: [
-                SizedBox(
-                  height: isMobile ? mediaQuery.padding.top + 36 : 12,
-                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     const SizedBox(width: 4),
@@ -449,7 +422,7 @@ class _LoadViewState extends State<LoadView> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 SizedBox(
-                                  width: MediaQuery.of(context).size.width - 70,
+                                  width: mediaQuery.size.width - 70,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -781,7 +754,7 @@ class _LoadViewState extends State<LoadView> {
                                         20,
                                         12,
                                         20,
-                                        20,
+                                        12,
                                       ),
                                       removeFirstItemTopPadding: true,
                                       removeLastItemBottomPadding: true,
@@ -833,17 +806,29 @@ class _LoadViewState extends State<LoadView> {
   }
 
   Widget _buildEmptyWidget() {
+    return _buildEmptyHistoryWidget(
+      icon: Icons.cancel_presentation,
+      title: "No transactions yet",
+      subtitle: "Your load history will appear here",
+    );
+  }
+
+  Widget _buildEmptyHistoryWidget({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          Icons.cancel_presentation,
+          icon,
           color: const Color(0xFF030744).withValues(alpha: 0.5),
           size: 75,
         ),
         const SizedBox(height: 12),
         Text(
-          "No transactions yet",
+          title,
           style: TextStyle(
             height: 1,
             fontSize: 20,
@@ -853,7 +838,7 @@ class _LoadViewState extends State<LoadView> {
         ),
         const SizedBox(height: 4),
         Text(
-          "Your transactions will appear here",
+          subtitle,
           style: TextStyle(
             height: 1,
             color: const Color(0xFF030744).withValues(alpha: 0.5),

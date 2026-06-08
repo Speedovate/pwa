@@ -17,6 +17,13 @@ class PushService {
   static StreamSubscription<RemoteMessage>? _messageSubscription;
   static StreamSubscription<String>? _tokenRefreshSubscription;
 
+  static String _parseNotificationBody(String body) {
+    return body.replaceAll(
+      RegExp(r'ride booking', caseSensitive: false),
+      'booking',
+    );
+  }
+
   static Future<void> initialize() async {
     if (!isWebPushLikelySupported()) {
       return;
@@ -74,9 +81,17 @@ class PushService {
   static void _attachForegroundListener() {
     _messageSubscription ??= FirebaseMessaging.onMessage.listen(
       (RemoteMessage message) {
+        final rawTitle =
+            '${message.data['title'] ?? message.notification?.title ?? ''}';
+        final normalizedTitle =
+            rawTitle.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
         html.Notification(
-          message.data['title'] ?? message.notification?.title ?? '',
-          body: message.data['body'] ?? message.notification?.body ?? '',
+          normalizedTitle.contains('ride status update')
+              ? 'Booking Update'
+              : rawTitle,
+          body: _parseNotificationBody(
+            '${message.data['body'] ?? message.notification?.body ?? ''}',
+          ),
           icon: '/icons/webiconsmall.png',
         );
       },

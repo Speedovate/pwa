@@ -24,23 +24,20 @@ class _SettingsViewState extends State<SettingsView> {
       onViewModelReady: (vm) => vm.initialise(),
       builder: (context, vm, child) {
         final mediaQuery = MediaQuery.of(context);
-        final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
         return GestureDetector(
           onTap: () {
             FocusManager.instance.primaryFocus?.unfocus();
           },
           child: Scaffold(
             backgroundColor: Colors.white,
-            appBar: AppBar(
-              toolbarHeight: 0,
-              backgroundColor: Colors.white,
-            ),
-            body: SafeArea(
+            body: Padding(
+              padding: EdgeInsets.only(
+                top: mediaQuery.padding.top,
+                bottom: 12,
+              ),
               child: Column(
                 children: [
-                  SizedBox(
-                    height: isMobile ? mediaQuery.padding.top + 36 : 12,
-                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       const SizedBox(width: 4),

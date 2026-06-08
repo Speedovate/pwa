@@ -2,25 +2,37 @@
 
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
+import 'package:pwa/views/chat.view.dart';
 import 'package:pwa/models/order.model.dart';
+import 'package:pwa/models/address.model.dart';
+import 'package:pwa/models/peer_user.model.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/models/chat_entity.model.dart';
 import 'package:pwa/view_models/details.vm.dart';
+import 'package:pwa/view_models/home.vm.dart';
+import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class DetailsView extends StatefulWidget {
   const DetailsView({
     required this.order,
+    required this.hvm,
+    this.onUseHistoryRoute,
     super.key,
   });
 
   final Order order;
+  final HomeViewModel hvm;
+  final VoidCallback? onUseHistoryRoute;
 
   @override
   State<DetailsView> createState() => _DetailsViewState();
@@ -29,8 +41,237 @@ class DetailsView extends StatefulWidget {
 class _DetailsViewState extends State<DetailsView> {
   DetailsViewModel detailsViewModel = DetailsViewModel();
 
+  bool get _isCurrentOngoingOrder {
+    final ongoingOrder = widget.hvm.ongoingOrder;
+    if (ongoingOrder == null) {
+      return false;
+    }
+
+    if (widget.order.id != null && ongoingOrder.id != null) {
+      return widget.order.id == ongoingOrder.id;
+    }
+
+    final orderCode = (widget.order.code ?? "").trim();
+    final ongoingOrderCode = (ongoingOrder.code ?? "").trim();
+    return orderCode.isNotEmpty && orderCode == ongoingOrderCode;
+  }
+
   Future<void> _openSupportChannel() async {
     await showFacebookSupportDialog(context);
+  }
+
+  Future<void> _callDriverOrSupport() async {
+    if (!_isCurrentOngoingOrder) {
+      await _openSupportChannel();
+      return;
+    }
+
+    await launchUrlString(
+      "tel:${widget.hvm.ongoingOrder?.driver?.phone}",
+    );
+  }
+
+  ChatEntity? _buildReadOnlyChatEntity() {
+    final orderCode = (widget.order.code ?? "").trim();
+    final driver = widget.order.driver;
+    if (orderCode.isEmpty || driver == null) {
+      return null;
+    }
+
+    final userId = "${widget.order.user?.id ?? AuthService.currentUser?.id}";
+    final driverId = "${driver.id}";
+    final peers = {
+      userId: PeerUser(
+        id: userId,
+        name:
+            widget.order.user?.name ?? AuthService.currentUser?.name ?? "User",
+        image: widget.order.user?.photo ?? AuthService.currentUser?.photo ?? "",
+      ),
+      driverId: PeerUser(
+        id: driverId,
+        name: driver.name ?? "Driver",
+        image: driver.photo ?? "",
+      ),
+    };
+
+    return ChatEntity(
+      onMessageSent: (_, __) {},
+      mainUser: peers[userId],
+      peers: peers,
+      path: 'orders/$orderCode/customerDriver/chats',
+      title: "Chat with driver",
+    );
+  }
+
+  Future<void> _openReadOnlyChat() async {
+    final chatEntity = _buildReadOnlyChatEntity();
+    if (chatEntity == null) {
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(Get.context!).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "Chat history is unavailable for this booking.",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      PageRouteBuilder(
+        reverseTransitionDuration: Duration.zero,
+        transitionDuration: Duration.zero,
+        pageBuilder: (context, a, b) => ChatView(
+          chatEntity,
+          widget.order,
+          readOnly: true,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openBookingChat() async {
+    if (_isCurrentOngoingOrder) {
+      await widget.hvm.chatDriver();
+      return;
+    }
+
+    await _openReadOnlyChat();
+  }
+
+  Address _historyRouteAddress({
+    required String? addressLine,
+    required double? latitude,
+    required double? longitude,
+  }) {
+    return Address(
+      addressLine: addressLine,
+      coordinates: Coordinates(
+        latitude ?? double.parse("${initLatLng!.lat}"),
+        longitude ?? double.parse("${initLatLng!.lng}"),
+      ),
+    );
+  }
+
+  void _showOngoingBookingSnackBar() {
+    ScaffoldMessenger.of(Get.context!).clearSnackBars();
+    ScaffoldMessenger.of(Get.context!).showSnackBar(
+      const SnackBar(
+        backgroundColor: Colors.red,
+        content: Text(
+          "You have an ongoing booking",
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _returnHistoryRoute({
+    required Address pickup,
+    required Address dropoff,
+  }) async {
+    widget.onUseHistoryRoute?.call();
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.pop(
+      <String, dynamic>{
+        "pickup": pickup,
+        "dropoff": dropoff,
+      },
+    );
+  }
+
+  Future<void> _repeatHistoryRoute() async {
+    if (widget.hvm.ongoingOrder != null) {
+      _showOngoingBookingSnackBar();
+      return;
+    }
+
+    await _returnHistoryRoute(
+      pickup: _historyRouteAddress(
+        addressLine: widget.order.taxiOrder?.pickupAddress,
+        latitude: widget.order.taxiOrder?.pickupLatitude,
+        longitude: widget.order.taxiOrder?.pickupLongitude,
+      ),
+      dropoff: _historyRouteAddress(
+        addressLine: widget.order.taxiOrder?.dropoffAddress,
+        latitude: widget.order.taxiOrder?.dropoffLatitude,
+        longitude: widget.order.taxiOrder?.dropoffLongitude,
+      ),
+    );
+  }
+
+  Future<void> _reverseHistoryRoute() async {
+    if (widget.hvm.ongoingOrder != null) {
+      _showOngoingBookingSnackBar();
+      return;
+    }
+
+    await _returnHistoryRoute(
+      pickup: _historyRouteAddress(
+        addressLine: widget.order.taxiOrder?.dropoffAddress,
+        latitude: widget.order.taxiOrder?.dropoffLatitude,
+        longitude: widget.order.taxiOrder?.dropoffLongitude,
+      ),
+      dropoff: _historyRouteAddress(
+        addressLine: widget.order.taxiOrder?.pickupAddress,
+        latitude: widget.order.taxiOrder?.pickupLatitude,
+        longitude: widget.order.taxiOrder?.pickupLongitude,
+      ),
+    );
+  }
+
+  Widget _buildHistoryRouteButton({
+    required String label,
+    required Future<void> Function() onPressed,
+  }) {
+    return Expanded(
+      child: WidgetButton(
+        onTap: () async {
+          await onPressed();
+        },
+        mainColor: Colors.transparent,
+        isTransparentColor: true,
+        useDefaultHoverColor: false,
+        interactionColor: const Color(0xFF007BFF).withValues(alpha: 0.12),
+        borderRadius: 0,
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              height: 1.05,
+              color: Color(0xFF007BFF),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryRouteActions() {
+    return SizedBox(
+      height: 32,
+      child: Row(
+        children: [
+          _buildHistoryRouteButton(
+            label: "Repeat",
+            onPressed: _repeatHistoryRoute,
+          ),
+          VerticalDivider(
+            width: 1,
+            thickness: 1,
+            color: const Color(0xFF030744).withValues(alpha: 0.15),
+          ),
+          _buildHistoryRouteButton(
+            label: "Reverse",
+            onPressed: _reverseHistoryRoute,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -51,19 +292,18 @@ class _DetailsViewState extends State<DetailsView> {
                     ? "Via App | Staff"
                     : "Via App";
 
+        final mediaQuery = MediaQuery.of(context);
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            toolbarHeight: 0,
-            backgroundColor: Colors.white,
-          ),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom,
+          body: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: SizedBox(
+              height: mediaQuery.size.height,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: mediaQuery.padding.top,
+                  bottom: 12,
+                ),
                 child: Column(
                   children: [
                     const SizedBox(
@@ -139,10 +379,7 @@ class _DetailsViewState extends State<DetailsView> {
                                         isCustom: true,
                                         customWidget: PinchZoom(
                                           child: SizedBox(
-                                            height: MediaQuery.of(context)
-                                                    .size
-                                                    .width -
-                                                70,
+                                            height: mediaQuery.size.width - 70,
                                             child: NetworkImageWidget(
                                               imageUrl:
                                                   widget.order.driver?.cPhoto ??
@@ -168,14 +405,22 @@ class _DetailsViewState extends State<DetailsView> {
                                             imageUrl,
                                             progress,
                                           ) {
-                                            return CircularProgressIndicator(
-                                              strokeCap: StrokeCap.round,
-                                              color: const Color(
-                                                0xFF007BFF,
+                                            return const SizedBox.expand(
+                                              child: DecoratedBox(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.white,
+                                                ),
+                                                child: Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeCap: StrokeCap.round,
+                                                    color: Color(0xFF007BFF),
+                                                    backgroundColor:
+                                                        Colors.white,
+                                                  ),
+                                                ),
                                               ),
-                                              backgroundColor: const Color(
-                                                0xFF007BFF,
-                                              ).withValues(alpha: 0.25),
                                             );
                                           },
                                           errorWidget: (
@@ -183,11 +428,19 @@ class _DetailsViewState extends State<DetailsView> {
                                             imageUrl,
                                             progress,
                                           ) {
-                                            return Container(
-                                              color: const Color(0xFF030744),
-                                              child: const Icon(
-                                                Icons.person_outline_outlined,
-                                                color: Colors.white,
+                                            return const SizedBox.expand(
+                                              child: DecoratedBox(
+                                                decoration: BoxDecoration(
+                                                  color: Color(0xFF030744),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Center(
+                                                  child: Icon(
+                                                    Icons
+                                                        .person_outline_outlined,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
                                               ),
                                             );
                                           },
@@ -233,72 +486,34 @@ class _DetailsViewState extends State<DetailsView> {
                                     ),
                                   ),
                                   WidgetButton(
-                                    mainColor: const Color(0xFFE5E6EC),
+                                    mainColor: const Color(0xFF007BFF),
                                     useDefaultHoverColor: false,
                                     borderRadius: 8,
-                                    onTap: () {
-                                      ScaffoldMessenger.of(
-                                        Get.context!,
-                                      ).clearSnackBars();
-                                      ScaffoldMessenger.of(
-                                        Get.context!,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          backgroundColor: Colors.red,
-                                          content: Text(
-                                            "You can no longer call your driver."
-                                            " Please report an issue instead",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: SizedBox(
+                                    onTap: _callDriverOrSupport,
+                                    child: const SizedBox(
                                       width: 44,
                                       height: 44,
                                       child: Center(
                                         child: Icon(
                                           Icons.call,
-                                          color: const Color(0xFF030744)
-                                              .withValues(alpha: 0.3),
+                                          color: Colors.white,
                                         ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   WidgetButton(
-                                    mainColor: const Color(0xFFE5E6EC),
+                                    mainColor: const Color(0xFF007BFF),
                                     useDefaultHoverColor: false,
                                     borderRadius: 8,
-                                    onTap: () {
-                                      ScaffoldMessenger.of(
-                                        Get.context!,
-                                      ).clearSnackBars();
-                                      ScaffoldMessenger.of(
-                                        Get.context!,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          backgroundColor: Colors.red,
-                                          content: Text(
-                                            "You can no longer chat your driver."
-                                            " Please report an issue instead",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: SizedBox(
+                                    onTap: _openBookingChat,
+                                    child: const SizedBox(
                                       width: 44,
                                       height: 44,
                                       child: Center(
                                         child: Icon(
                                           Icons.chat,
-                                          color: const Color(0xFF030744)
-                                              .withValues(alpha: 0.3),
+                                          color: Colors.white,
                                         ),
                                       ),
                                     ),
@@ -341,7 +556,7 @@ class _DetailsViewState extends State<DetailsView> {
                                   } else if (status == "ready") {
                                     return Colors.blue.shade100;
                                   } else if (status == "enroute") {
-                                    return Colors.blue.shade100;
+                                    return Colors.orange.shade100;
                                   } else if (status == "failed") {
                                     return Colors.red.shade100;
                                   } else if (status == "cancelled") {
@@ -377,7 +592,7 @@ class _DetailsViewState extends State<DetailsView> {
                                     } else if (status == "ready") {
                                       return "Arrived";
                                     } else if (status == "enroute") {
-                                      return "Navigating";
+                                      return "Ongoing";
                                     } else if (status == "failed") {
                                       return "Failed";
                                     } else if (status == "cancelled") {
@@ -408,7 +623,7 @@ class _DetailsViewState extends State<DetailsView> {
                                       } else if (status == "ready") {
                                         return Colors.blue;
                                       } else if (status == "enroute") {
-                                        return Colors.blue;
+                                        return Colors.orange;
                                       } else if (status == "failed") {
                                         return Colors.red;
                                       } else if (status == "cancelled") {
@@ -434,7 +649,7 @@ class _DetailsViewState extends State<DetailsView> {
                               height: 12,
                             ),
                             Text(
-                              "Ride #${widget.order.id}",
+                              "#${widget.order.id}",
                               style: const TextStyle(
                                 height: 1,
                                 fontSize: 14,
@@ -566,10 +781,12 @@ class _DetailsViewState extends State<DetailsView> {
                                 const SizedBox(width: 12),
                               ],
                             ),
+                            const SizedBox(height: 8),
+                            _buildHistoryRouteActions(),
                             const SizedBox(height: 14),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
+                                horizontal: 12,
                               ),
                               child: Divider(
                                 height: 1,

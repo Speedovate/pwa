@@ -2,6 +2,33 @@
 
 PPC TODA
 
+## Commands
+
+### Kill Stuck Dev Runs
+
+Use this when Flutter/Xcode/Android/Web debug runs overlap, logs stop showing,
+or Xcode reports concurrent builds.
+
+```bash
+npm run kill:all
+```
+
+Alias:
+
+```bash
+npm run kill-all
+```
+
+This stops Flutter dev/build processes, Flutter web Chrome debug sessions,
+Android Gradle builds, iOS/Xcode debug/build processes, and force-stops the
+Android app on connected Android devices.
+
+Dry run:
+
+```bash
+node scripts/kill-all.cjs --dry-run
+```
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pwa/widgets/button.widget.dart';
 
 class QuickChatPills extends StatelessWidget {
   const QuickChatPills({
@@ -37,14 +38,25 @@ class QuickChatPills extends StatelessWidget {
               hasTrailingRequestCancellation && index == options.length;
           final option =
               isRequestCancellation ? "Request cancellation" : options[index];
-          final pillColor = isRequestCancellation
-              ? const Color(0xFFFF3B30)
-              : const Color(0xFF007BFF);
-          return Material(
-            color: Colors.transparent,
-            child: Ink(
+          final pillColor =
+              isRequestCancellation ? Colors.red : const Color(0xFF007BFF);
+          return WidgetButton(
+            onTap: !enabled
+                ? () {}
+                : () {
+                    if (isRequestCancellation) {
+                      onRequestCancellation?.call();
+                      return;
+                    }
+                    onSelected(option);
+                  },
+            mainColor: pillColor.withValues(alpha: 0.08),
+            interactionColor: pillColor.withValues(alpha: 0.18),
+            useDefaultHoverColor: false,
+            disableGestureDetection: !enabled,
+            borderRadius: 1000,
+            child: Container(
               decoration: BoxDecoration(
-                color: pillColor.withValues(alpha: 0.08),
                 borderRadius: const BorderRadius.all(
                   Radius.circular(1000),
                 ),
@@ -52,32 +64,18 @@ class QuickChatPills extends StatelessWidget {
                   color: pillColor.withValues(alpha: 0.18),
                 ),
               ),
-              child: InkWell(
-                onTap: enabled
-                    ? () {
-                        if (isRequestCancellation) {
-                          onRequestCancellation?.call();
-                          return;
-                        }
-                        onSelected(option);
-                      }
-                    : null,
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(1000),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 0,
-                    ),
-                    child: Text(
-                      option,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: pillColor,
-                      ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 0,
+                  ),
+                  child: Text(
+                    option,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: pillColor,
                     ),
                   ),
                 ),

@@ -14,13 +14,45 @@ class AuthRequest extends HttpService {
 
   String _selfieUploadFilename({
     bool mobileProfileUpdate = false,
+    Uint8List? uploadBytes,
   }) {
+    final ext = _imageUploadExtension(uploadBytes ?? selfieFile);
     if (mobileProfileUpdate && selfieFileFromMobileCamera) {
-      final ext = selfieFileNeedsHorizontalFlip ? "png" : "jpg";
       return "mobile_${Random().nextInt(900000)}.$ext";
     }
-    final ext = selfieFileNeedsHorizontalFlip ? "png" : "jpg";
     return "image_${Random().nextInt(900000)}.$ext";
+  }
+
+  String _imageUploadExtension(Uint8List? bytes) {
+    if (bytes == null || bytes.length < 12) {
+      return !kIsWeb ? "png" : "jpg";
+    }
+    if (bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47) {
+      return "png";
+    }
+    if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+      return "jpg";
+    }
+    if (bytes[0] == 0x47 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x38) {
+      return "gif";
+    }
+    if (bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46 &&
+        bytes[8] == 0x57 &&
+        bytes[9] == 0x45 &&
+        bytes[10] == 0x42 &&
+        bytes[11] == 0x50) {
+      return "webp";
+    }
+    return !kIsWeb ? "png" : "jpg";
   }
 
   Future<Uint8List?> _effectiveSelfieUploadBytes() async {
@@ -231,7 +263,9 @@ class AuthRequest extends HttpService {
             "profile",
             MultipartFile.fromBytes(
               effectiveSelfieFile,
-              filename: _selfieUploadFilename(),
+              filename: _selfieUploadFilename(
+                uploadBytes: effectiveSelfieFile,
+              ),
             ),
           ),
         );
@@ -240,7 +274,9 @@ class AuthRequest extends HttpService {
             "customizable_photo",
             MultipartFile.fromBytes(
               effectiveSelfieFile,
-              filename: _selfieUploadFilename(),
+              filename: _selfieUploadFilename(
+                uploadBytes: effectiveSelfieFile,
+              ),
             ),
           ),
         );
@@ -306,7 +342,9 @@ class AuthRequest extends HttpService {
             "profile",
             MultipartFile.fromBytes(
               effectiveSelfieFile,
-              filename: _selfieUploadFilename(),
+              filename: _selfieUploadFilename(
+                uploadBytes: effectiveSelfieFile,
+              ),
             ),
           ),
         );
@@ -315,7 +353,9 @@ class AuthRequest extends HttpService {
             "customizable_photo",
             MultipartFile.fromBytes(
               effectiveSelfieFile,
-              filename: _selfieUploadFilename(),
+              filename: _selfieUploadFilename(
+                uploadBytes: effectiveSelfieFile,
+              ),
             ),
           ),
         );
@@ -443,6 +483,8 @@ class AuthRequest extends HttpService {
     required String? countryCode,
   }) async {
     try {
+      final effectivePhoto =
+          photo == null ? null : await _effectiveSelfieUploadBytes() ?? photo;
       final apiResult = await postWithFiles(
         Api.authUpdate,
         {
@@ -451,12 +493,13 @@ class AuthRequest extends HttpService {
           "email": email,
           "phone": phone,
           "country_code": countryCode,
-          "photo": photo == null
+          "photo": effectivePhoto == null
               ? null
               : MultipartFile.fromBytes(
-                  await _effectiveSelfieUploadBytes() ?? photo,
+                  effectivePhoto,
                   filename: _selfieUploadFilename(
                     mobileProfileUpdate: true,
+                    uploadBytes: effectivePhoto,
                   ),
                 ),
         },
@@ -507,12 +550,7 @@ Future<Uint8List> _resizeImageBytesForUpload(
   final width = image.width;
   final height = image.height;
   final longSide = max(width, height);
-
-  if (longSide <= maxLongSide) {
-    return bytes;
-  }
-
-  final scale = maxLongSide / longSide;
+  final scale = longSide <= maxLongSide ? 1.0 : maxLongSide / longSide;
   final targetWidth = max(1, (width * scale).round());
   final targetHeight = max(1, (height * scale).round());
   final resizedCodec = await ui.instantiateImageCodec(

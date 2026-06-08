@@ -5,11 +5,15 @@ class PartnerButtonWidget extends StatefulWidget {
   final VoidCallback? onTap;
   final String image;
   final bool show;
+  final Color? borderColor;
+  final double borderWidth;
 
   const PartnerButtonWidget({
     required this.onTap,
     required this.image,
     required this.show,
+    this.borderColor,
+    this.borderWidth = 0,
     super.key,
   });
 
@@ -24,19 +28,24 @@ class _PartnerButtonWidgetState extends State<PartnerButtonWidget> {
   Widget build(BuildContext context) {
     if (!widget.show) return const SizedBox.shrink();
 
-    return ClipOval(
-      child: Container(
-        width: 66,
-        height: 66,
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: _primaryColor.withValues(alpha: 0.25),
-              blurRadius: 2,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+    final hasBorder = widget.borderColor != null && widget.borderWidth > 0;
+
+    return Container(
+      width: 66,
+      height: 66,
+      padding: EdgeInsets.all(hasBorder ? widget.borderWidth : 0),
+      decoration: BoxDecoration(
+        color: hasBorder ? widget.borderColor : Colors.transparent,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: _primaryColor.withValues(alpha: 0.25),
+            blurRadius: 2,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipOval(
         child: Material(
           color: Colors.transparent,
           child: _PartnerImageSurface(

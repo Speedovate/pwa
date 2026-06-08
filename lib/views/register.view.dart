@@ -34,7 +34,6 @@ class _RegisterViewState extends State<RegisterView>
   final FocusNode _confirmPasswordFocusNode = FocusNode();
   final FocusNode _referralFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  double _keyboardInset = 0;
   static const double _registerSelfieVisibleFractionWeb = 0.55;
   static const double _registerSelfieVisibleFractionMobile = 0.60;
 
@@ -82,6 +81,7 @@ class _RegisterViewState extends State<RegisterView>
         (vm.emailTEC.text != "" && vm.emailTEC.text != "null") ||
         (vm.phoneTEC.text != "" && vm.phoneTEC.text != "null") ||
         (vm.birthdayTEC.text != "" && vm.birthdayTEC.text != "null") ||
+        (vm.referralTEC.text != "" && vm.referralTEC.text != "null") ||
         (vm.passwordTEC.text != "" && vm.passwordTEC.text != "null") ||
         (vm.cPasswordTEC.text != "" && vm.cPasswordTEC.text != "null");
   }
@@ -103,19 +103,34 @@ class _RegisterViewState extends State<RegisterView>
       title: "Are you sure?",
       content: "You're about to leave this page",
       hideCancel: false,
-      confirmText: "Go back",
+      confirmText: "Leave",
+      confirmColor: Colors.red,
       confirmAction: () {
-        _leaveRegisterPage();
         Get.back();
+        _leaveRegisterPage();
       },
     );
+  }
+
+  void _toggleTermsAgreement() {
+    setState(() {
+      agreed = !agreed;
+    });
+  }
+
+  void _collapseBirthdayPicker(RegisterViewModel vm) {
+    if (!vm.isBirthdayActive) {
+      return;
+    }
+    setState(() {
+      vm.isBirthdayActive = false;
+    });
   }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _keyboardInset = _currentKeyboardInset();
     _nameFocusNode.addListener(_handleFocusChange);
     _emailFocusNode.addListener(_handleFocusChange);
     _phoneFocusNode.addListener(_handleFocusChange);
@@ -127,14 +142,6 @@ class _RegisterViewState extends State<RegisterView>
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    final nextKeyboardInset = _currentKeyboardInset();
-    if ((_keyboardInset - nextKeyboardInset).abs() > 0.5) {
-      setState(() {
-        _keyboardInset = nextKeyboardInset;
-      });
-    } else if (mounted) {
-      setState(() {});
-    }
     if (_hasFocusedField) {
       _scrollToBottom();
     }
@@ -147,12 +154,6 @@ class _RegisterViewState extends State<RegisterView>
       _passwordFocusNode.hasFocus ||
       _confirmPasswordFocusNode.hasFocus ||
       _referralFocusNode.hasFocus;
-
-  double _currentKeyboardInset() {
-    final dispatcher = WidgetsBinding.instance.platformDispatcher;
-    final view = dispatcher.implicitView ?? dispatcher.views.first;
-    return view.viewInsets.bottom / view.devicePixelRatio;
-  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -168,6 +169,7 @@ class _RegisterViewState extends State<RegisterView>
 
   void _handleFocusChange() {
     if (_hasFocusedField) {
+      _collapseBirthdayPicker(registerViewModel);
       Future.delayed(const Duration(milliseconds: 250), _scrollToBottom);
     }
   }
@@ -210,383 +212,339 @@ class _RegisterViewState extends State<RegisterView>
               canUseGoogleAuth && !AuthService.inReviewMode();
           final useGoogleFlow = isTourist && showGoogleAuthOption;
           final mediaQuery = MediaQuery.of(context);
-          final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
-          final keyboardInset = mediaQuery.viewInsets.bottom > _keyboardInset
-              ? mediaQuery.viewInsets.bottom
-              : _keyboardInset;
+          final registerSelfieSize = mediaQuery.size.width.clamp(0, 800) / 2.5;
           return GestureDetector(
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
+              _collapseBirthdayPicker(vm);
             },
             child: Scaffold(
               backgroundColor: Colors.white,
-              appBar: AppBar(
-                toolbarHeight: 0,
-                backgroundColor: Colors.white,
-              ),
-              body: SafeArea(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: AnimatedPadding(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        padding: EdgeInsets.only(bottom: keyboardInset),
-                        child: SingleChildScrollView(
-                          controller: _scrollController,
-                          physics: const BouncingScrollPhysics(),
-                          child: Column(
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: [
+                          SizedBox(height: mediaQuery.padding.top + 12),
+                          Row(
                             children: [
-                              SizedBox(
-                                height:
-                                    isMobile ? mediaQuery.padding.top + 36 : 12,
-                              ),
-                              Row(
-                                children: [
-                                  const SizedBox(width: 4),
-                                  WidgetButton(
-                                    onTap: () {
-                                      _confirmLeaveRegisterPage(vm);
-                                    },
-                                    child: const SizedBox(
-                                      width: 58,
-                                      height: 58,
-                                      child: Center(
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                            top: 2,
-                                            right: 4,
-                                            bottom: 2,
-                                          ),
-                                          child: Icon(
-                                            Icons.chevron_left,
-                                            color: Color(0xFF030744),
-                                            size: 38,
-                                          ),
-                                        ),
+                              const SizedBox(width: 4),
+                              WidgetButton(
+                                onTap: () {
+                                  _confirmLeaveRegisterPage(vm);
+                                },
+                                child: const SizedBox(
+                                  width: 58,
+                                  height: 58,
+                                  child: Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        top: 2,
+                                        right: 4,
+                                        bottom: 2,
+                                      ),
+                                      child: Icon(
+                                        Icons.chevron_left,
+                                        color: Color(0xFF030744),
+                                        size: 38,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 2),
-                                  const Text(
-                                    "Register",
-                                    style: TextStyle(
-                                      height: 1,
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF030744),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 8),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox.shrink()
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        selfieFile != null
-                                            ? GestureDetector(
-                                                onTap: () async {
-                                                  FocusManager
-                                                      .instance.primaryFocus
-                                                      ?.unfocus();
-                                                  await showCameraSource();
-                                                  if (!mounted) {
-                                                    return;
-                                                  }
-                                                  setState(() {});
-                                                },
-                                                child: Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width
-                                                          .clamp(0, 800) /
-                                                      2.5,
-                                                  height: MediaQuery.of(context)
-                                                          .size
-                                                          .width
-                                                          .clamp(0, 800) /
-                                                      2.5,
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: const Color(
-                                                          0xFF030744),
-                                                      width: 1,
-                                                    ),
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(
-                                                        1000,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(
-                                                        1000,
-                                                      ),
-                                                    ),
-                                                    child: kIsWeb
-                                                        ? LayoutBuilder(
-                                                            builder: (
-                                                              context,
-                                                              constraints,
-                                                            ) {
-                                                              return _buildTopCroppedSelfiePreview(
-                                                                constraints,
-                                                                visibleFraction:
-                                                                    _registerSelfieVisibleFractionWeb,
-                                                              );
-                                                            },
-                                                          )
-                                                        : LayoutBuilder(
-                                                            builder: (
-                                                              context,
-                                                              constraints,
-                                                            ) {
-                                                              return _buildTopCroppedSelfiePreview(
-                                                                constraints,
-                                                                visibleFraction:
-                                                                    _registerSelfieVisibleFractionMobile,
-                                                              );
-                                                            },
-                                                          ),
-                                                  ),
+                              const SizedBox(width: 2),
+                              const Text(
+                                "Register",
+                                style: TextStyle(
+                                  height: 1,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF030744),
+                                ),
+                              ),
+                            ],
+                          ),
+                          AuthService.inReviewMode()
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 8),
+                          AuthService.inReviewMode()
+                              ? const SizedBox.shrink()
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    selfieFile != null
+                                        ? GestureDetector(
+                                            onTap: () async {
+                                              FocusManager.instance.primaryFocus
+                                                  ?.unfocus();
+                                              await showCameraSource();
+                                              if (!mounted) {
+                                                return;
+                                              }
+                                              setState(() {});
+                                            },
+                                            child: Container(
+                                              width: registerSelfieSize,
+                                              height: registerSelfieSize,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color:
+                                                      const Color(0xFF030744),
+                                                  width: 1,
                                                 ),
-                                              )
-                                            : WidgetButton(
-                                                onTap: () async {
-                                                  FocusManager
-                                                      .instance.primaryFocus
-                                                      ?.unfocus();
-                                                  await showCameraSource();
-                                                  if (!mounted) {
-                                                    return;
-                                                  }
-                                                  setState(() {});
-                                                },
-                                                child: Container(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width
-                                                          .clamp(0, 800) /
-                                                      2.5,
-                                                  height: MediaQuery.of(context)
-                                                          .size
-                                                          .width
-                                                          .clamp(0, 800) /
-                                                      2.5,
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(
-                                                        1000,
-                                                      ),
-                                                    ),
-                                                    border: Border.all(
-                                                      color: const Color(
-                                                          0xFF030744),
-                                                    ),
-                                                  ),
-                                                  child: const Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Icon(
-                                                        Icons
-                                                            .photo_camera_outlined,
-                                                        color:
-                                                            Color(0xFF030744),
-                                                        size: 50,
-                                                      ),
-                                                      SizedBox(height: 8),
-                                                      Text(
-                                                        "Profile Photo",
-                                                        style: TextStyle(
-                                                          height: 1.05,
-                                                          fontSize: 14,
-                                                          fontFamily: "Inter",
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color:
-                                                              Color(0xFF030744),
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 8),
-                                                    ],
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(
+                                                    1000,
                                                   ),
                                                 ),
                                               ),
-                                      ],
-                                    ),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox(height: 12)
-                                  : const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity.clamp(0, 800),
-                                  child: TextFieldWidget(
-                                    controller: vm.nameTEC,
-                                    focusNode: _nameFocusNode,
-                                    hintText: "Juan Dela Cruz",
-                                    labelText: "Full Name",
-                                    textCapitalization:
-                                        TextCapitalization.words,
-                                    keyboardType: TextInputType.text,
-                                    textInputAction: TextInputAction.next,
-                                    obscureText: false,
-                                    showPrefix: true,
-                                    showSuffix: false,
-                                    prefixText: null,
-                                    suffixIcon: null,
-                                    onSuffixTap: null,
-                                    autoFocus: false,
-                                    minLines: null,
-                                    maxLines: 1,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox.shrink()
-                                  : !vm.isBirthdayActive
-                                      ? Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                          ),
-                                          child: SizedBox(
-                                            width:
-                                                double.infinity.clamp(0, 800),
-                                            child: WidgetButton(
-                                              borderRadius: 10,
-                                              onTap: () async {
-                                                setState(() {
-                                                  vm.isBirthdayActive = true;
-                                                });
-                                              },
-                                              child: Container(
-                                                width: MediaQuery.of(context)
-                                                        .size
-                                                        .width -
-                                                    48,
-                                                height: 50,
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                    Radius.circular(
-                                                      10,
-                                                    ),
-                                                  ),
-                                                  border: Border.all(
-                                                    color: const Color(
-                                                      0xFF030744,
-                                                    ),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(
+                                                    1000,
                                                   ),
                                                 ),
-                                                child: Row(
-                                                  children: [
-                                                    const SizedBox(width: 17),
-                                                    Text(
-                                                      (vm.birthdayTEC.text ==
-                                                                  "" ||
-                                                              vm.birthdayTEC
-                                                                      .text ==
-                                                                  "null")
-                                                          ? "Birthday"
-                                                          : vm.birthdayTEC.text,
-                                                      style: const TextStyle(
-                                                        height: 1,
-                                                        fontSize: 14,
-                                                        fontFamily: "Inter",
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color:
-                                                            Color(0xFF030744),
+                                                child: kIsWeb
+                                                    ? LayoutBuilder(
+                                                        builder: (
+                                                          context,
+                                                          constraints,
+                                                        ) {
+                                                          return _buildTopCroppedSelfiePreview(
+                                                            constraints,
+                                                            visibleFraction:
+                                                                _registerSelfieVisibleFractionWeb,
+                                                          );
+                                                        },
+                                                      )
+                                                    : LayoutBuilder(
+                                                        builder: (
+                                                          context,
+                                                          constraints,
+                                                        ) {
+                                                          return _buildTopCroppedSelfiePreview(
+                                                            constraints,
+                                                            visibleFraction:
+                                                                _registerSelfieVisibleFractionMobile,
+                                                          );
+                                                        },
                                                       ),
-                                                    ),
-                                                    const Expanded(
-                                                      child: SizedBox(),
-                                                    ),
-                                                    const Icon(
-                                                      Icons
-                                                          .calendar_month_outlined,
-                                                      size: 24,
+                                              ),
+                                            ),
+                                          )
+                                        : WidgetButton(
+                                            onTap: () async {
+                                              FocusManager.instance.primaryFocus
+                                                  ?.unfocus();
+                                              await showCameraSource();
+                                              if (!mounted) {
+                                                return;
+                                              }
+                                              setState(() {});
+                                            },
+                                            child: Container(
+                                              width: registerSelfieSize,
+                                              height: registerSelfieSize,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(
+                                                    1000,
+                                                  ),
+                                                ),
+                                                border: Border.all(
+                                                  color:
+                                                      const Color(0xFF030744),
+                                                ),
+                                              ),
+                                              child: const Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.photo_camera_outlined,
+                                                    color: Color(0xFF030744),
+                                                    size: 50,
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    "Profile Photo",
+                                                    style: TextStyle(
+                                                      height: 1.05,
+                                                      fontSize: 14,
+                                                      fontFamily: "Inter",
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       color: Color(0xFF030744),
                                                     ),
-                                                    const SizedBox(width: 12),
-                                                  ],
-                                                ),
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                ],
                                               ),
                                             ),
                                           ),
-                                        )
-                                      : Stack(
-                                          children: [
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 24,
+                                  ],
+                                ),
+                          AuthService.inReviewMode()
+                              ? const SizedBox(height: 12)
+                              : const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity.clamp(0, 800),
+                              child: TextFieldWidget(
+                                controller: vm.nameTEC,
+                                focusNode: _nameFocusNode,
+                                hintText: "Juan Dela Cruz",
+                                labelText: "Full Name",
+                                textCapitalization: TextCapitalization.words,
+                                keyboardType: TextInputType.text,
+                                textInputAction: TextInputAction.next,
+                                obscureText: false,
+                                showPrefix: true,
+                                showSuffix: false,
+                                prefixText: null,
+                                suffixIcon: null,
+                                onSuffixTap: null,
+                                autoFocus: false,
+                                minLines: null,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          AuthService.inReviewMode()
+                              ? const SizedBox.shrink()
+                              : !vm.isBirthdayActive
+                                  ? Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                      ),
+                                      child: SizedBox(
+                                        width: double.infinity.clamp(0, 800),
+                                        child: WidgetButton(
+                                          borderRadius: 10,
+                                          onTap: () async {
+                                            setState(() {
+                                              vm.isBirthdayActive = true;
+                                            });
+                                          },
+                                          child: Container(
+                                            width: mediaQuery.size.width - 48,
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  const BorderRadius.all(
+                                                Radius.circular(
+                                                  10,
+                                                ),
                                               ),
-                                              child: Container(
-                                                width: double.infinity.clamp(
-                                                  0,
-                                                  800,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                    color: const Color(
-                                                      0xFF007BFF,
-                                                    ),
-                                                  ),
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                    Radius.circular(10),
-                                                  ),
-                                                ),
-                                                height: 150,
-                                                child: DatePickerWidget(
-                                                  minYear: 1924,
-                                                  selectedDate: vm.selectedDate,
-                                                  onDateTimeChanged: (newDate) {
-                                                    setState(() {
-                                                      vm.selectedDate = newDate;
-                                                    });
-                                                  },
-                                                  showDay: true,
-                                                  showMonth: true,
-                                                  showYear: true,
-                                                  order: const [
-                                                    'month',
-                                                    'day',
-                                                    'year',
-                                                  ],
+                                              border: Border.all(
+                                                color: const Color(
+                                                  0xFF030744,
                                                 ),
                                               ),
                                             ),
-                                            Positioned(
-                                              left: 0,
-                                              right: 0,
-                                              bottom: 16,
-                                              child: Center(
-                                                child: SizedBox(
+                                            child: Row(
+                                              children: [
+                                                const SizedBox(width: 17),
+                                                Text(
+                                                  (vm.birthdayTEC.text == "" ||
+                                                          vm.birthdayTEC.text ==
+                                                              "null")
+                                                      ? "Birthday"
+                                                      : vm.birthdayTEC.text,
+                                                  style: const TextStyle(
+                                                    height: 1,
+                                                    fontSize: 14,
+                                                    fontFamily: "Inter",
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF030744),
+                                                  ),
+                                                ),
+                                                const Expanded(
+                                                  child: SizedBox(),
+                                                ),
+                                                const Icon(
+                                                  Icons.calendar_month_outlined,
+                                                  size: 24,
+                                                  color: Color(0xFF030744),
+                                                ),
+                                                const SizedBox(width: 12),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {},
+                                      child: Stack(
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                            ),
+                                            child: Container(
+                                              width: double.infinity.clamp(
+                                                0,
+                                                800,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFF007BFF,
+                                                  ),
+                                                ),
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                  Radius.circular(10),
+                                                ),
+                                              ),
+                                              height: 150,
+                                              child: DatePickerWidget(
+                                                minYear: 1924,
+                                                selectedDate: vm.selectedDate,
+                                                onDateTimeChanged: (newDate) {
+                                                  setState(() {
+                                                    vm.selectedDate = newDate;
+                                                  });
+                                                },
+                                                showDay: true,
+                                                showMonth: true,
+                                                showYear: true,
+                                                order: const [
+                                                  'month',
+                                                  'day',
+                                                  'year',
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 16,
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SizedBox(
                                                   height: 30,
-                                                  child: ElevatedButton(
-                                                    style: const ButtonStyle(
-                                                      backgroundColor:
-                                                          WidgetStatePropertyAll(
-                                                        Color(0xFF007BFF),
-                                                      ),
-                                                    ),
-                                                    onPressed: () {
+                                                  child: WidgetButton(
+                                                    mainColor:
+                                                        const Color(0xFF007BFF),
+                                                    borderRadius: 1000,
+                                                    useDefaultHoverColor: false,
+                                                    onTap: () {
                                                       setState(
                                                         () {
                                                           vm.isBirthdayActive =
@@ -602,423 +560,437 @@ class _RegisterViewState extends State<RegisterView>
                                                         },
                                                       );
                                                     },
-                                                    child: const Text(
-                                                      "Set",
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                    child: const Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal: 18,
+                                                      ),
+                                                      child: Center(
+                                                        child: Text(
+                                                          "Set",
+                                                          style: TextStyle(
+                                                            fontSize: 14,
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 16),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: SizedBox(
-                                        width: double.infinity.clamp(0, 800),
-                                        child: TextFieldWidget(
-                                          controller: vm.emailTEC,
-                                          focusNode: _emailFocusNode,
-                                          hintText: "juandelacruz@gmail.com",
-                                          labelText: "Email Address",
-                                          textCapitalization:
-                                              TextCapitalization.none,
-                                          keyboardType:
-                                              TextInputType.emailAddress,
-                                          textInputAction: TextInputAction.next,
-                                          obscureText: false,
-                                          showPrefix: true,
-                                          showSuffix: false,
-                                          prefixText: null,
-                                          suffixIcon: null,
-                                          onSuffixTap: null,
-                                          autoFocus: false,
-                                          minLines: null,
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                    ),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 16),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: SizedBox(
-                                        width: double.infinity.clamp(0, 800),
-                                        child: TextFieldWidget(
-                                          controller: vm.phoneTEC,
-                                          focusNode: _phoneFocusNode,
-                                          hintText: "XXXXXXXXX",
-                                          labelText: "Phone Number",
-                                          textCapitalization:
-                                              TextCapitalization.none,
-                                          keyboardType: TextInputType.number,
-                                          textInputAction: TextInputAction.next,
-                                          obscureText: false,
-                                          showPrefix: true,
-                                          showSuffix: false,
-                                          prefixText: "+63",
-                                          suffixIcon: null,
-                                          onSuffixTap: null,
-                                          autoFocus: false,
-                                          minLines: null,
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                    ),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 16),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: SizedBox(
-                                        width: double.infinity.clamp(0, 800),
-                                        child: TextFieldWidget(
-                                          controller: vm.passwordTEC,
-                                          focusNode: _passwordFocusNode,
-                                          hintText: "Enter your password",
-                                          labelText: "Password",
-                                          textCapitalization:
-                                              TextCapitalization.none,
-                                          keyboardType: TextInputType.text,
-                                          textInputAction: TextInputAction.next,
-                                          obscureText: true,
-                                          showPrefix: false,
-                                          showSuffix: true,
-                                          prefixText: null,
-                                          suffixIcon: null,
-                                          onSuffixTap: null,
-                                          autoFocus: false,
-                                          minLines: null,
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                    ),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 16),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: SizedBox(
-                                        width: double.infinity.clamp(0, 800),
-                                        child: TextFieldWidget(
-                                          controller: vm.cPasswordTEC,
-                                          focusNode: _confirmPasswordFocusNode,
-                                          hintText: "confirm your password",
-                                          labelText: "Confirm Password",
-                                          textCapitalization:
-                                              TextCapitalization.none,
-                                          keyboardType: TextInputType.text,
-                                          textInputAction: TextInputAction.done,
-                                          obscureText: true,
-                                          showPrefix: false,
-                                          showSuffix: true,
-                                          prefixText: null,
-                                          suffixIcon: null,
-                                          onSuffixTap: null,
-                                          autoFocus: false,
-                                          minLines: null,
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                    ),
-                              useGoogleFlow
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 16),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox.shrink()
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: SizedBox(
-                                        width: double.infinity.clamp(0, 800),
-                                        child: TextFieldWidget(
-                                          controller: vm.referralTEC,
-                                          focusNode: _referralFocusNode,
-                                          hintText: "Enter referral code",
-                                          labelText: "Referral Code (Optional)",
-                                          textCapitalization:
-                                              TextCapitalization.characters,
-                                          keyboardType: TextInputType.text,
-                                          textInputAction: TextInputAction.done,
-                                          obscureText: false,
-                                          showPrefix: true,
-                                          showSuffix: false,
-                                          prefixText: null,
-                                          suffixIcon: null,
-                                          onSuffixTap: null,
-                                          autoFocus: false,
-                                          minLines: null,
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                    ),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity.clamp(0, 800),
-                                  child: Row(
-                                    children: [
-                                      if (showGoogleAuthOption)
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(
-                                              () {
-                                                isTourist = !useGoogleFlow;
-                                              },
-                                            );
-                                          },
-                                          child: Row(
-                                            children: [
-                                              SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: Checkbox(
-                                                  side: const BorderSide(
-                                                    color: Color(0xFF030744),
-                                                    width: 2,
-                                                  ),
-                                                  activeColor:
-                                                      const Color(0xFF007BFF),
-                                                  checkColor: Colors.white,
-                                                  value: !useGoogleFlow,
-                                                  onChanged: (value) {
-                                                    setState(
-                                                      () {
-                                                        isTourist =
-                                                            !useGoogleFlow;
-                                                      },
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              const Text(
-                                                "I have a PH 🇵🇭 Phone Number",
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  height: 1,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w400,
-                                                  color: Color(0xFF030744),
-                                                ),
-                                              ),
-                                            ],
                                           ),
-                                        ),
-                                    ],
+                                        ],
+                                      ),
+                                    ),
+                          AuthService.inReviewMode()
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 16),
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity.clamp(0, 800),
+                                    child: TextFieldWidget(
+                                      controller: vm.emailTEC,
+                                      focusNode: _emailFocusNode,
+                                      hintText: "juandelacruz@gmail.com",
+                                      labelText: "Email Address",
+                                      textCapitalization:
+                                          TextCapitalization.none,
+                                      keyboardType: TextInputType.emailAddress,
+                                      textInputAction: TextInputAction.next,
+                                      obscureText: false,
+                                      showPrefix: true,
+                                      showSuffix: false,
+                                      prefixText: null,
+                                      suffixIcon: null,
+                                      onSuffixTap: null,
+                                      autoFocus: false,
+                                      minLines: null,
+                                      maxLines: 1,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              AuthService.inReviewMode()
-                                  ? const SizedBox.shrink()
-                                  : const SizedBox(height: 12),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 16),
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity.clamp(0, 800),
+                                    child: TextFieldWidget(
+                                      controller: vm.phoneTEC,
+                                      focusNode: _phoneFocusNode,
+                                      hintText: "XXXXXXXXX",
+                                      labelText: "Phone Number",
+                                      textCapitalization:
+                                          TextCapitalization.none,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.next,
+                                      obscureText: false,
+                                      showPrefix: true,
+                                      showSuffix: false,
+                                      prefixText: "+63",
+                                      suffixIcon: null,
+                                      onSuffixTap: null,
+                                      autoFocus: false,
+                                      minLines: null,
+                                      maxLines: 1,
+                                    ),
+                                  ),
                                 ),
-                                child: SizedBox(
-                                  width: double.infinity.clamp(0, 800),
-                                  child: Row(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          setState(
-                                            () {
-                                              agreed = !agreed;
-                                            },
-                                          );
-                                        },
-                                        child: Row(
-                                          children: [
-                                            SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: Checkbox(
-                                                side: const BorderSide(
-                                                  color: Color(0xFF030744),
-                                                  width: 2,
-                                                ),
-                                                activeColor:
-                                                    const Color(0xFF007BFF),
-                                                checkColor: Colors.white,
-                                                value: agreed,
-                                                onChanged: (value) {
-                                                  setState(
-                                                    () {
-                                                      agreed = !agreed;
-                                                    },
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            const Text(
-                                              "I agree to the",
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                height: 1,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w400,
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 16),
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity.clamp(0, 800),
+                                    child: TextFieldWidget(
+                                      controller: vm.passwordTEC,
+                                      focusNode: _passwordFocusNode,
+                                      hintText: "Enter your password",
+                                      labelText: "Password",
+                                      textCapitalization:
+                                          TextCapitalization.none,
+                                      keyboardType: TextInputType.text,
+                                      textInputAction: TextInputAction.next,
+                                      obscureText: true,
+                                      showPrefix: false,
+                                      showSuffix: true,
+                                      prefixText: null,
+                                      suffixIcon: null,
+                                      onSuffixTap: null,
+                                      autoFocus: false,
+                                      minLines: null,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 16),
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity.clamp(0, 800),
+                                    child: TextFieldWidget(
+                                      controller: vm.cPasswordTEC,
+                                      focusNode: _confirmPasswordFocusNode,
+                                      hintText: "confirm your password",
+                                      labelText: "Confirm Password",
+                                      textCapitalization:
+                                          TextCapitalization.none,
+                                      keyboardType: TextInputType.text,
+                                      textInputAction:
+                                          AuthService.inReviewMode()
+                                              ? TextInputAction.done
+                                              : TextInputAction.next,
+                                      obscureText: true,
+                                      showPrefix: false,
+                                      showSuffix: true,
+                                      prefixText: null,
+                                      suffixIcon: null,
+                                      onSuffixTap: null,
+                                      autoFocus: false,
+                                      minLines: null,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+                          useGoogleFlow
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 16),
+                          AuthService.inReviewMode()
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity.clamp(0, 800),
+                                    child: TextFieldWidget(
+                                      controller: vm.referralTEC,
+                                      focusNode: _referralFocusNode,
+                                      hintText: "Enter referral code",
+                                      labelText: "Referral Code (Optional)",
+                                      textCapitalization:
+                                          TextCapitalization.characters,
+                                      keyboardType: TextInputType.text,
+                                      textInputAction: TextInputAction.done,
+                                      obscureText: false,
+                                      showPrefix: true,
+                                      showSuffix: false,
+                                      prefixText: null,
+                                      suffixIcon: null,
+                                      onSuffixTap: null,
+                                      autoFocus: false,
+                                      minLines: null,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+                          AuthService.inReviewMode()
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity.clamp(0, 800),
+                              child: Row(
+                                children: [
+                                  if (showGoogleAuthOption)
+                                    WidgetButton(
+                                      onTap: () {
+                                        setState(
+                                          () {
+                                            isTourist = !useGoogleFlow;
+                                          },
+                                        );
+                                      },
+                                      borderRadius: 6,
+                                      mainColor: Colors.transparent,
+                                      isTransparentColor: true,
+                                      useDefaultHoverColor: false,
+                                      interactionColor: const Color(0x14030744),
+                                      child: Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: Checkbox(
+                                              side: const BorderSide(
                                                 color: Color(0xFF030744),
+                                                width: 2,
                                               ),
+                                              activeColor:
+                                                  const Color(0xFF007BFF),
+                                              checkColor: Colors.white,
+                                              value: !useGoogleFlow,
+                                              onChanged: (value) {
+                                                setState(
+                                                  () {
+                                                    isTourist = !useGoogleFlow;
+                                                  },
+                                                );
+                                              },
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            "I have a PH 🇵🇭 Phone Number",
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              height: 1,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                              color: Color(0xFF030744),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 4),
-                                      GestureDetector(
-                                        onTap: () {
-                                          FocusManager.instance.primaryFocus
-                                              ?.unfocus();
-                                          openWebview(
-                                            "Terms of Service",
-                                            Api.terms,
-                                          );
-                                        },
-                                        child: const Text(
-                                          "Terms of Service",
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          AuthService.inReviewMode()
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity.clamp(0, 800),
+                              child: Row(
+                                children: [
+                                  WidgetButton(
+                                    onTap: _toggleTermsAgreement,
+                                    borderRadius: 6,
+                                    mainColor: Colors.transparent,
+                                    isTransparentColor: true,
+                                    useDefaultHoverColor: false,
+                                    interactionColor: const Color(0x14030744),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: Checkbox(
+                                            side: const BorderSide(
+                                              color: Color(0xFF030744),
+                                              width: 2,
+                                            ),
+                                            activeColor:
+                                                const Color(0xFF007BFF),
+                                            checkColor: Colors.white,
+                                            value: agreed,
+                                            onChanged: (_) {
+                                              _toggleTermsAgreement();
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          "I agree to the",
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             height: 1,
                                             fontSize: 14,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF007BFF),
+                                            fontWeight: FontWeight.w400,
+                                            color: Color(0xFF030744),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              !useGoogleFlow
-                                  ? Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: ActionButton(
-                                        text: "Create account",
-                                        onTap: () {
-                                          FocusManager.instance.primaryFocus
-                                              ?.unfocus();
-                                          vm.processRegister(
-                                            provider: "custom",
-                                          );
-                                        },
-                                      ),
-                                    )
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: Container(
-                                        height: 50,
-                                        width: double.infinity.clamp(0, 800),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: const Color(0xFF030744),
-                                          ),
-                                          borderRadius: const BorderRadius.all(
-                                            Radius.circular(8),
-                                          ),
-                                        ),
-                                        child: WidgetButton(
-                                          borderRadius: 8,
-                                          onTap: () {
-                                            FocusManager.instance.primaryFocus
-                                                ?.unfocus();
-                                            vm.processRegister(
-                                              provider: "google",
-                                            );
-                                          },
-                                          child: const Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              NetworkImageWidget(
-                                                imageUrl: AppImages.google,
-                                                memCacheWidth: 600,
-                                                width: 24,
-                                                height: 24,
-                                              ),
-                                              SizedBox(width: 12),
-                                              Text(
-                                                "Sign up with Google",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Color(0xFF030744),
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              SizedBox(width: 4),
-                                            ],
-                                          ),
-                                        ),
+                                  const SizedBox(width: 4),
+                                  WidgetButton(
+                                    onTap: () {
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                      openWebview(
+                                        "Terms of Service",
+                                        Api.terms,
+                                      );
+                                    },
+                                    borderRadius: 6,
+                                    mainColor: Colors.transparent,
+                                    isTransparentColor: true,
+                                    useDefaultHoverColor: false,
+                                    suppressInteraction: true,
+                                    child: const Text(
+                                      "Terms of Service",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        height: 1,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF007BFF),
                                       ),
                                     ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                "or",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF030744),
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 12),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: ActionButton(
-                                  text: "Login to account",
-                                  mainColor: const Color(0xFF030744),
-                                  onTap: () {
-                                    _confirmLeaveRegisterPage(vm);
-                                  },
-                                ),
-                              ),
-                              SizedBox(
-                                height: mediaQuery.padding.bottom + 32,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          !useGoogleFlow
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: ActionButton(
+                                    text: "Create account",
+                                    onTap: () {
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                      vm.processRegister(
+                                        provider: "custom",
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: Container(
+                                    height: 50,
+                                    width: double.infinity.clamp(0, 800),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: const Color(0xFF030744),
+                                      ),
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(8),
+                                      ),
+                                    ),
+                                    child: WidgetButton(
+                                      borderRadius: 8,
+                                      onTap: () {
+                                        FocusManager.instance.primaryFocus
+                                            ?.unfocus();
+                                        vm.processRegister(
+                                          provider: "google",
+                                        );
+                                      },
+                                      child: const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          NetworkImageWidget(
+                                            imageUrl: AppImages.google,
+                                            memCacheWidth: 600,
+                                            width: 24,
+                                            height: 24,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(
+                                            "Sign up with Google",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF030744),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(width: 4),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "or",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF030744),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: ActionButton(
+                              text: "Login to account",
+                              mainColor: const Color(0xFF030744),
+                              onTap: () {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                _confirmLeaveRegisterPage(vm);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );

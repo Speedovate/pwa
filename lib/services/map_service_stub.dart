@@ -2,9 +2,6 @@ class MapService {
   static bool get shouldAttemptGoogleMaps => true;
   static bool get isLeafletFallbackPreferred => false;
 
-  static void debugLog(String message) {
-  }
-
   static bool? get initialEngineDecision => true;
   static bool get isGoogleMapsLoaded => true;
 

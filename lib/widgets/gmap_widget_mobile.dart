@@ -16,6 +16,7 @@ class GoogleMapWidget extends StatefulWidget {
   final void Function(AppMapController map)? onMapCreated;
   final VoidCallback? onCameraMoveStart;
   final void Function(app_maps.LatLng)? onCameraMove;
+  final VoidCallback? onTap;
 
   const GoogleMapWidget({
     super.key,
@@ -26,6 +27,7 @@ class GoogleMapWidget extends StatefulWidget {
     this.onMapCreated,
     this.onCameraMoveStart,
     this.onCameraMove,
+    this.onTap,
   });
 
   @override
@@ -126,7 +128,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       targetHeight: height,
     );
     final frame = await codec.getNextFrame();
-    final byteData = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+    final byteData =
+        await frame.image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }
 
@@ -176,8 +179,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         zIndex: marker.zIndex.toDouble(),
         flat: !isPinMarker,
         anchor: isPinMarker ? const Offset(0.5, 1.0) : const Offset(0.5, 0.5),
-        icon:
-            _markerIconCache[iconKey] ?? gmaps.BitmapDescriptor.defaultMarker,
+        icon: _markerIconCache[iconKey] ?? gmaps.BitmapDescriptor.defaultMarker,
       );
     }).toSet();
   }
@@ -186,9 +188,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     return widget.polylines.map((polyline) {
       return gmaps.Polyline(
         polylineId: gmaps.PolylineId(
-          polyline.points
-              .map((point) => '${point.lat},${point.lng}')
-              .join('|'),
+          polyline.points.map((point) => '${point.lat},${point.lng}').join('|'),
         ),
         points: polyline.points
             .map((point) => gmaps.LatLng(point.lat, point.lng))
@@ -239,6 +239,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           position.target.latitude,
           position.target.longitude,
         );
+      },
+      onTap: (_) {
+        widget.onTap?.call();
       },
       onCameraIdle: () {
         final latestCenter = _latestCenter ?? _appController?.center;
@@ -332,12 +335,17 @@ class _MobileGoogleMapController implements AppMapController {
       maxLng = math.max(maxLng, coordinate.lng);
     }
 
+    final latSpan = (maxLat - minLat).abs();
+    final lngSpan = (maxLng - minLng).abs();
+    final boundsPadding = lngSpan >= latSpan
+        ? math.max(padding.left, padding.right)
+        : math.max(padding.top, padding.bottom);
     final update = gmaps.CameraUpdate.newLatLngBounds(
       gmaps.LatLngBounds(
         southwest: gmaps.LatLng(minLat, minLng),
         northeast: gmaps.LatLng(maxLat, maxLng),
       ),
-      padding.left,
+      boundsPadding,
     );
     if (animated) {
       raw.animateCamera(update);

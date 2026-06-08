@@ -21,8 +21,17 @@ import 'package:pwa/models/api_response.model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class RegisterViewModel extends BaseViewModel {
+  static DateTime _defaultBirthdayDate() {
+    final now = DateTime.now();
+    return DateTime(
+      now.year - 18,
+      now.month,
+      now.day,
+    );
+  }
+
   bool isBirthdayActive = false;
-  DateTime selectedDate = DateTime.now();
+  DateTime selectedDate = _defaultBirthdayDate();
   AuthRequest authRequest = AuthRequest();
   var nameTEC = TextEditingController();
   var emailTEC = TextEditingController();
@@ -31,6 +40,27 @@ class RegisterViewModel extends BaseViewModel {
   var referralTEC = TextEditingController();
   var passwordTEC = TextEditingController();
   var cPasswordTEC = TextEditingController();
+
+  DateTime? _selectedBirthday() {
+    final value = birthdayTEC.text.trim();
+    if (value.isEmpty || value == "null") {
+      return null;
+    }
+    return DateTime.tryParse(
+      value.replaceAll("/", "-"),
+    );
+  }
+
+  bool _isBirthdayToday() {
+    final birthday = _selectedBirthday();
+    if (birthday == null) {
+      return false;
+    }
+    final today = DateTime.now();
+    return birthday.year == today.year &&
+        birthday.month == today.month &&
+        birthday.day == today.day;
+  }
 
   String _resolvedErrorMessage(
     ApiResponse apiResponse, {
@@ -162,6 +192,21 @@ class RegisterViewModel extends BaseViewModel {
           backgroundColor: Colors.red,
           content: Text(
             "Please set your birthday",
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    } else if (!AuthService.inReviewMode() && _isBirthdayToday()) {
+      ScaffoldMessenger.of(Get.context!).clearSnackBars();
+      ScaffoldMessenger.of(
+        Get.context!,
+      ).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "Birthday cannot be today",
             style: TextStyle(
               color: Colors.white,
             ),
@@ -305,8 +350,9 @@ class RegisterViewModel extends BaseViewModel {
           );
         } else {
           final gsi = GoogleSignIn(
-            clientId:
-                "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com",
+            clientId: kIsWeb
+                ? "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com"
+                : null,
             scopes: [
               'email',
               'profile',
@@ -331,12 +377,17 @@ class RegisterViewModel extends BaseViewModel {
           } else {
             emailAddress = gsiAccount?.email;
           }
+          if (gsiAccount == null) {
+            throw StateError("Google sign-up was cancelled.");
+          }
           if (emailAddress == null) {
-            throw Exception("An error occurred. Please try again");
+            throw StateError(
+              "Google sign-up did not return an email address. Please choose a Google account with an email.",
+            );
           }
           if (auth?.idToken == null) {
-            throw Exception(
-              "Google sign-up could not verify your identity on this browser. Please try again or use phone registration.",
+            throw StateError(
+              "Google sign-up did not return an ID token. Please try again or use phone registration.",
             );
           }
           apiResponse = await authRequest.checkCredentialsExist(
@@ -361,7 +412,10 @@ class RegisterViewModel extends BaseViewModel {
       } catch (e) {
         AlertService().stopLoading(forceStop: true);
         showError(
-          "There was an error while processing your request. Please try again later",
+          googleAuthErrorMessage(
+            e,
+            isSignUp: provider != "custom",
+          ),
         );
       }
     }
@@ -491,9 +545,10 @@ class RegisterViewModel extends BaseViewModel {
       showError("Request timed out. Please try again later.");
     } catch (e) {
       showError(
-        e.toString().contains("null")
-            ? "An error occurred. Try again later"
-            : e.toString(),
+        googleAuthErrorMessage(
+          e,
+          isSignUp: true,
+        ),
       );
     } finally {
       AlertService().stopLoading(forceStop: true);

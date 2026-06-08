@@ -6,7 +6,6 @@ import 'dart:typed_data';
 import 'dart:ui_web' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/widgets/camera_widget_shared.dart';
 
@@ -74,6 +73,7 @@ class _CameraWidgetState extends State<CameraWidget> {
   late final String _viewType;
   bool _isReady = false;
   bool _isCapturing = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -112,12 +112,20 @@ class _CameraWidgetState extends State<CameraWidget> {
 
       _videoElement!.onLoadedMetadata.listen((_) {
         if (mounted && !_isReady) {
-          setState(() => _isReady = true);
+          setState(() {
+            _isReady = true;
+            _errorMessage = null;
+          });
         }
       });
 
       setState(() {});
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      }
       _showError(e.toString());
     }
   }
@@ -189,6 +197,18 @@ class _CameraWidgetState extends State<CameraWidget> {
     }
   }
 
+  void _popCameraRoute() {
+    if (widget.cameraType == "chat") {
+      Get.back();
+      return;
+    }
+    Get.back(result: true);
+  }
+
+  void _handleBack() {
+    _popCameraRoute();
+  }
+
   void _stopMediaStream() {
     try {
       _mediaStream?.getTracks().forEach((t) => t.stop());
@@ -211,107 +231,100 @@ class _CameraWidgetState extends State<CameraWidget> {
     final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
     final isProfile = widget.cameraType == "profile";
     final previewWidth = (mediaQuery.size.width - 40).clamp(0.0, 720.0);
+    final hasCameraError = _errorMessage != null;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        toolbarHeight: 0,
-        backgroundColor: Colors.white,
-      ),
       body: CameraShellLayout(
         title: cameraTitleForType(widget.cameraType),
         isMobile: isMobile,
-        onBack: () {
-          if (widget.cameraType == "chat") {
-            Get.back();
-          } else {
-            AlertService().showAppAlert(
-              title: "Are you sure?",
-              content: "You're about to leave this page",
-              hideCancel: false,
-              confirmText: "Go back",
-              confirmAction: () {
-                Get.back(result: true);
-                Get.back(result: true);
-              },
-            );
-          }
-        },
-        stage: CameraStageLayout(
-          maxWidth: previewWidth,
-          aspectRatio: 1 / 1.7777777777777777,
-          isProfile: isProfile,
-          cameraType: widget.cameraType,
-          isCapturedPreview: false,
-          child: _videoElement == null
-              ? Center(
-                  child: CircularProgressIndicator(
-                    strokeCap: StrokeCap.round,
-                    color: const Color(0xFF007BFF),
-                    backgroundColor:
-                        const Color(0xFF007BFF).withValues(alpha: 0.25),
-                  ),
-                )
-              : Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..scaleByDouble(
-                      isProfile ? -1.0 : 1.0,
-                      1.0,
-                      1.0,
-                      1.0,
-                    ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: double.infinity,
-                    child: HtmlElementView(
-                      viewType: _viewType,
-                      key: ValueKey(_viewType),
-                    ),
-                  ),
-                ),
-        ),
-        bottomChild: SizedBox(
-          width: 80,
-          height: 80,
-          child: WidgetButton(
-            borderRadius: 16,
-            onTap: _isReady && !_isCapturing ? _captureImage : () {},
-            child: Center(
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF007BFF),
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(10),
-                  ),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      blurRadius: 2,
-                      spreadRadius: 2,
-                      offset: Offset(0, 2),
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-                child: _isCapturing
-                    ? const Padding(
-                        padding: EdgeInsets.all(10),
+        onBack: _handleBack,
+        hideBottomArea: hasCameraError,
+        stage: hasCameraError
+            ? const CameraUnavailableState()
+            : CameraStageLayout(
+                maxWidth: previewWidth,
+                aspectRatio: 1 / 1.7777777777777777,
+                isProfile: isProfile,
+                cameraType: widget.cameraType,
+                isCapturedPreview: false,
+                child: _videoElement == null
+                    ? Center(
                         child: CircularProgressIndicator(
-                          strokeWidth: 4,
-                          color: Colors.white,
+                          strokeCap: StrokeCap.round,
+                          color: const Color(0xFF007BFF),
+                          backgroundColor:
+                              const Color(0xFF007BFF).withValues(alpha: 0.25),
                         ),
                       )
-                    : const Icon(
-                        Icons.photo_camera,
-                        color: Colors.white,
-                        size: 35,
+                    : Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..scaleByDouble(
+                            isProfile ? -1.0 : 1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                          ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: HtmlElementView(
+                            viewType: _viewType,
+                            key: ValueKey(_viewType),
+                          ),
+                        ),
                       ),
               ),
-            ),
-          ),
-        ),
+        bottomChild: hasCameraError
+            ? const SizedBox.shrink()
+            : SizedBox(
+                width: 80,
+                height: 80,
+                child: WidgetButton(
+                  borderRadius: 16,
+                  mainColor: Colors.transparent,
+                  isTransparentColor: true,
+                  useDefaultHoverColor: false,
+                  interactionColor: const Color(0xFF007BFF).withValues(
+                    alpha: 0.16,
+                  ),
+                  onTap: _isReady && !_isCapturing ? _captureImage : () {},
+                  child: Center(
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF007BFF),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
+                        ),
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            blurRadius: 2,
+                            spreadRadius: 2,
+                            offset: Offset(0, 2),
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                      child: _isCapturing
+                          ? const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 4,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.photo_camera,
+                              color: Colors.white,
+                              size: 35,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   }

@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pwa/utils/data.dart';
+import 'package:pwa/services/auth.service.dart';
+import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
 
 Future<gmaps.LatLng?> getMyLatLng({
   bool forceFresh = false,
   bool requestPermission = true,
 }) async {
+  var showedPermissionDialog = false;
   try {
     lastGeolocationErrorMessage = null;
     LocationPermission permission = await Geolocator.checkPermission();
@@ -15,6 +18,14 @@ Future<gmaps.LatLng?> getMyLatLng({
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
+      if (requestPermission && !AuthService.inReviewMode()) {
+        showedPermissionDialog = true;
+        AlertService().showPermissionSettingsDialog(
+          permissionName: "Location",
+          reason: 'Please allow location access in Settings '
+              'so we can show nearby drivers and your pickup location.',
+        );
+      }
       throw 'PERMISSION_DENIED: Location access was denied';
     }
 
@@ -23,6 +34,16 @@ Future<gmaps.LatLng?> getMyLatLng({
     );
     return _storeRealLatLng(position.latitude, position.longitude);
   } catch (e) {
+    if (requestPermission &&
+        !showedPermissionDialog &&
+        !AuthService.inReviewMode() &&
+        e is LocationServiceDisabledException) {
+      AlertService().showPermissionSettingsDialog(
+        permissionName: "Location",
+        reason: 'Please enable Location Services and allow location access '
+            'so we can show nearby drivers and your pickup location.',
+      );
+    }
     final existingLocation =
         _nonDefaultLatLng(lastKnownRealLatLng) ?? _nonDefaultLatLng(initLatLng);
     initLatLng = existingLocation ?? defaultLatLng;

@@ -42,19 +42,39 @@ const AndroidNotificationChannel _bookingNotificationChannel =
 String? _notificationTitleFromMessage(RemoteMessage message) {
   final rawTitle = message.data['title'] ?? message.notification?.title;
   final title = '$rawTitle'.trim();
-  return title.isEmpty ? null : title;
+  if (title.isEmpty) {
+    return null;
+  }
+  return _parseNotificationTitle(title);
+}
+
+String _parseNotificationTitle(String title) {
+  final normalizedTitle =
+      title.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (normalizedTitle.contains('ride status update')) {
+    return 'Booking Update';
+  }
+  return title;
 }
 
 String? _notificationBodyFromMessage(RemoteMessage message) {
   final rawBody = message.data['body'] ?? message.notification?.body;
   final body = '$rawBody'.trim();
-  return body.isEmpty ? null : body;
+  return body.isEmpty ? null : _parseNotificationBody(body);
+}
+
+String _parseNotificationBody(String body) {
+  return body.replaceAll(
+    RegExp(r'ride booking', caseSensitive: false),
+    'booking',
+  );
 }
 
 bool _isRideStatusUpdate(RemoteMessage message) {
-  final explicitChannel = '${message.data['channel_id'] ?? message.data['channel'] ?? ''}'
-      .trim()
-      .toLowerCase();
+  final explicitChannel =
+      '${message.data['channel_id'] ?? message.data['channel'] ?? ''}'
+          .trim()
+          .toLowerCase();
   if (explicitChannel == _bookingNotificationChannel.id) {
     return true;
   }
@@ -74,18 +94,13 @@ void _handleLocalNotificationResponse(NotificationResponse response) {}
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint(
-    '[PushDebug][BG:start] messageId=${message.messageId} data=${message.data} title=${message.notification?.title} body=${message.notification?.body}',
-  );
   WidgetsFlutterBinding.ensureInitialized();
   ui.DartPluginRegistrant.ensureInitialized();
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e) {
-    debugPrint('[PushDebug][BG:firebaseInit:error] $e');
-  }
+  } catch (_) {}
   await StorageService.getPrefs();
   await PushService.showLocalNotification(message);
 }
@@ -98,15 +113,33 @@ class PushService {
   static bool _hasRequestedRuntimePermissions = false;
 
   static Future<void> initialize() async {
-    debugPrint('[PushDebug][Init:start]');
     await _ensureLocalNotificationsInitialized();
-    await _warmUpMobileMessaging();
+    await _configureForegroundPresentation();
     _attachForegroundListener();
     _attachOpenListener();
     _attachTokenRefreshListener();
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    await syncTokenWithServer(requestPermission: false);
-    debugPrint('[PushDebug][Init:done]');
+    unawaited(
+      _warmUpMobileMessaging().catchError((Object _) {}),
+    );
+    unawaited(
+      syncTokenWithServer(requestPermission: false).catchError((Object _) {}),
+    );
+  }
+
+  static Future<void> _configureForegroundPresentation() async {
+    if (kIsWeb) {
+      return;
+    }
+
+    try {
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (_) {}
   }
 
   static Future<void> _warmUpMobileMessaging() async {
@@ -114,26 +147,18 @@ class PushService {
       return;
     }
     try {
-      final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-      debugPrint('[PushDebug][Warmup:apns] token=$apnsToken');
-    } catch (e) {
-      debugPrint('[PushDebug][Warmup:apns:error] $e');
-    }
-    debugPrint('[PushDebug][Warmup:subscribeAll:start]');
+      await FirebaseMessaging.instance.getAPNSToken();
+    } catch (_) {}
     await AuthService().subscribeToTopic('all');
-    debugPrint('[PushDebug][Warmup:subscribeAll:done]');
   }
 
   static Future<void> requestNotificationPermissionsIfNeeded() async {
     if (_hasRequestedRuntimePermissions) {
-      debugPrint('[PushDebug][Permissions:skip] already-requested');
       return;
     }
     _hasRequestedRuntimePermissions = true;
-    debugPrint('[PushDebug][Permissions:start]');
     await _requestDevicePermissions();
     await syncTokenWithServer(forceSync: true);
-    debugPrint('[PushDebug][Permissions:done]');
   }
 
   static Future<void> syncTokenWithServer({
@@ -141,49 +166,35 @@ class PushService {
     bool forceSync = false,
   }) async {
     try {
-      debugPrint(
-        '[PushDebug][TokenSync:start] requestPermission=$requestPermission forceSync=$forceSync',
-      );
       if (requestPermission) {
         await _requestDevicePermissions();
       }
 
       if (defaultTargetPlatform == TargetPlatform.iOS) {
         try {
-          final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-          debugPrint('[PushDebug][TokenSync:apns] token=$apnsToken');
-        } catch (e) {
-          debugPrint('[PushDebug][TokenSync:apns:error] $e');
-        }
+          await FirebaseMessaging.instance.getAPNSToken();
+        } catch (_) {}
       }
 
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) {
-        debugPrint('[PushDebug][TokenSync:no-token]');
         return;
       }
 
       fcmToken = token;
       final topicSignature = _topicSignature();
-      debugPrint(
-        '[PushDebug][TokenSync:token] token=$token topics=$topicSignature',
-      );
       if (!forceSync && !_shouldSync(token, topicSignature)) {
-        debugPrint('[PushDebug][TokenSync:skip] unchanged');
         return;
       }
       await subscribeToServer();
       await _rememberSyncedState(token, topicSignature);
-      debugPrint('[PushDebug][TokenSync:done]');
-    } catch (e) {
-      debugPrint('[PushDebug][TokenSync:error] $e');
+    } catch (_) {
       // Keep push sync non-blocking.
     }
   }
 
   static Future<void> _ensureLocalNotificationsInitialized() async {
     if (_localNotificationsInitialized) {
-      debugPrint('[PushDebug][LocalNotif:init:skip] already-initialized');
       return;
     }
 
@@ -202,21 +213,18 @@ class PushService {
       onDidReceiveBackgroundNotificationResponse:
           _handleLocalNotificationResponse,
     );
-    debugPrint('[PushDebug][LocalNotif:init:plugin-ready]');
 
-    final androidPlugin = _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
+    final androidPlugin =
+        _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
     await androidPlugin?.createNotificationChannel(_basicNotificationChannel);
     await androidPlugin?.createNotificationChannel(_bookingNotificationChannel);
-    debugPrint(
-      '[PushDebug][LocalNotif:channels] created=${_basicNotificationChannel.id},${_bookingNotificationChannel.id}',
-    );
 
     _localNotificationsInitialized = true;
   }
 
   static Future<void> _requestDevicePermissions() async {
+    var permissionDialogShown = false;
     try {
       final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
@@ -224,96 +232,97 @@ class PushService {
         sound: true,
         provisional: false,
       );
-      debugPrint(
-        '[PushDebug][Permissions:fcm] auth=${settings.authorizationStatus} alert=${settings.alert} badge=${settings.badge} sound=${settings.sound}',
-      );
-    } catch (e) {
-      debugPrint('[PushDebug][Permissions:fcm:error] $e');
-    }
+      if (settings.authorizationStatus == AuthorizationStatus.denied &&
+          !AuthService.inReviewMode()) {
+        permissionDialogShown = true;
+        showPermissionSettingsDialog(
+          permissionName: "Notifications",
+          reason: 'Please allow notifications in Settings so we can send '
+              'booking updates and important alerts.',
+        );
+      }
+    } catch (_) {}
 
     try {
       final iosPlugin = _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin>();
-      final granted = await iosPlugin?.requestPermissions(
+      await iosPlugin?.requestPermissions(
         alert: true,
         badge: true,
         sound: true,
       );
-      debugPrint('[PushDebug][Permissions:ios-local] granted=$granted');
-    } catch (e) {
-      debugPrint('[PushDebug][Permissions:ios-local:error] $e');
-    }
+    } catch (_) {}
 
     try {
       final macPlugin = _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
               MacOSFlutterLocalNotificationsPlugin>();
-      final granted = await macPlugin?.requestPermissions(
+      await macPlugin?.requestPermissions(
         alert: true,
         badge: true,
         sound: true,
       );
-      debugPrint('[PushDebug][Permissions:mac-local] granted=$granted');
-    } catch (e) {
-      debugPrint('[PushDebug][Permissions:mac-local:error] $e');
+    } catch (_) {}
+
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return;
     }
 
     try {
       final statusBefore = await Permission.notification.status;
-      debugPrint('[PushDebug][Permissions:android-before] $statusBefore');
       if (statusBefore.isDenied) {
         final statusAfter = await Permission.notification.request();
-        debugPrint('[PushDebug][Permissions:android-after] $statusAfter');
+        if (!statusAfter.isGranted &&
+            !permissionDialogShown &&
+            !AuthService.inReviewMode()) {
+          permissionDialogShown = true;
+          showPermissionSettingsDialog(
+            permissionName: "Notifications",
+            reason: 'Please allow notifications in Settings so we can send '
+                'booking updates and important alerts.',
+          );
+        }
+      } else if (!permissionDialogShown &&
+          statusBefore.isPermanentlyDenied &&
+          !AuthService.inReviewMode()) {
+        permissionDialogShown = true;
+        showPermissionSettingsDialog(
+          permissionName: "Notifications",
+          reason: 'Please allow notifications in Settings so we can send '
+              'booking updates and important alerts.',
+        );
       }
-    } catch (e) {
-      debugPrint('[PushDebug][Permissions:android:error] $e');
-    }
+    } catch (_) {}
   }
 
   static void _attachForegroundListener() {
-    debugPrint('[PushDebug][Listener:foreground:attach]');
     _messageSubscription ??= FirebaseMessaging.onMessage.listen(
       (RemoteMessage message) async {
-        debugPrint(
-          '[PushDebug][FG:message] messageId=${message.messageId} data=${message.data} title=${message.notification?.title} body=${message.notification?.body}',
-        );
         await showLocalNotification(message);
       },
-      onError: (Object error) {
-        debugPrint('[PushDebug][FG:message:error] $error');
-      },
+      onError: (Object _) {},
     );
   }
 
   static void _attachOpenListener() {
-    debugPrint('[PushDebug][Listener:open:attach]');
     _messageOpenedSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen(
-      (RemoteMessage message) {
-        debugPrint('Notification opened: ${message.data}');
-      },
-      onError: (Object error) {
-        debugPrint('[PushDebug][Open:error] $error');
-      },
+      (RemoteMessage message) {},
+      onError: (Object _) {},
     );
   }
 
   static void _attachTokenRefreshListener() {
-    debugPrint('[PushDebug][Listener:token-refresh:attach]');
     _tokenRefreshSubscription ??=
         FirebaseMessaging.instance.onTokenRefresh.listen(
       (String token) async {
         if (token.isEmpty) {
-          debugPrint('[PushDebug][TokenRefresh:empty]');
           return;
         }
-        debugPrint('[PushDebug][TokenRefresh:value] token=$token');
         fcmToken = token;
         await syncTokenWithServer(forceSync: true);
       },
-      onError: (Object error) {
-        debugPrint('[PushDebug][TokenRefresh:error] $error');
-      },
+      onError: (Object _) {},
     );
   }
 
@@ -324,16 +333,12 @@ class PushService {
       final title = _notificationTitleFromMessage(message);
       final body = _notificationBodyFromMessage(message);
       if (title == null && body == null) {
-        debugPrint('[PushDebug][LocalNotif:skip] empty title/body');
         return;
       }
 
       final channel = _isRideStatusUpdate(message)
           ? _bookingNotificationChannel
           : _basicNotificationChannel;
-      debugPrint(
-        '[PushDebug][LocalNotif:show] channel=${channel.id} title=$title body=$body data=${message.data}',
-      );
 
       final androidDetails = AndroidNotificationDetails(
         channel.id,
@@ -370,9 +375,7 @@ class PushService {
         ),
         payload: jsonEncode(message.data),
       );
-      debugPrint('[PushDebug][LocalNotif:shown]');
-    } catch (e) {
-      debugPrint('[PushDebug][LocalNotif:error] $e');
+    } catch (_) {
       // Foreground/background notification rendering is best-effort only.
     }
   }

@@ -25,13 +25,11 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
   final FocusNode _phoneFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  double _keyboardInset = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _keyboardInset = _currentKeyboardInset();
     _phoneFocusNode.addListener(_handleFocusChange);
     _passwordFocusNode.addListener(_handleFocusChange);
   }
@@ -39,14 +37,6 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    final nextKeyboardInset = _currentKeyboardInset();
-    if ((_keyboardInset - nextKeyboardInset).abs() > 0.5) {
-      setState(() {
-        _keyboardInset = nextKeyboardInset;
-      });
-    } else if (mounted) {
-      setState(() {});
-    }
     if (_hasFocusedField) {
       _scrollToBottom();
     }
@@ -54,12 +44,6 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
 
   bool get _hasFocusedField =>
       _phoneFocusNode.hasFocus || _passwordFocusNode.hasFocus;
-
-  double _currentKeyboardInset() {
-    final dispatcher = WidgetsBinding.instance.platformDispatcher;
-    final view = dispatcher.implicitView ?? dispatcher.views.first;
-    return view.viewInsets.bottom / view.devicePixelRatio;
-  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -90,6 +74,39 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  bool _hasPendingLoginDetails([LoginViewModel? vm]) {
+    final model = vm ?? loginViewModel;
+    return _hasText(model.phoneTEC.text) || _hasText(model.passwordTEC.text);
+  }
+
+  bool _hasText(String? value) {
+    final text = (value ?? "").trim();
+    return text.isNotEmpty && text != "null";
+  }
+
+  void _leaveLoginPage() {
+    Get.back();
+  }
+
+  void _confirmLeaveLoginPage([LoginViewModel? vm]) {
+    if (!_hasPendingLoginDetails(vm)) {
+      _leaveLoginPage();
+      return;
+    }
+
+    AlertService().showAppAlert(
+      title: "Are you sure?",
+      content: "You're about to leave this page",
+      hideCancel: false,
+      confirmText: "Leave",
+      confirmColor: Colors.red,
+      confirmAction: () {
+        Get.back();
+        _leaveLoginPage();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -98,23 +115,7 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
         if (didPop) {
           return;
         }
-        if ((loginViewModel.phoneTEC.text == "" ||
-                loginViewModel.phoneTEC.text == "null") &&
-            (loginViewModel.passwordTEC.text == "" ||
-                loginViewModel.passwordTEC.text == "null")) {
-          Get.back();
-        } else {
-          AlertService().showAppAlert(
-            title: "Are you sure?",
-            content: "You're about to leave this page",
-            hideCancel: false,
-            confirmText: "Go back",
-            confirmAction: () {
-              Get.back();
-              Get.back();
-            },
-          );
-        }
+        _confirmLeaveLoginPage();
       },
       child: ViewModelBuilder<LoginViewModel>.reactive(
         viewModelBuilder: () => loginViewModel,
@@ -123,374 +124,341 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
           final canUseGoogleAuth = isGoogleAuthLikelySupported();
           final useGoogleFlow = isTourist && canUseGoogleAuth;
           final mediaQuery = MediaQuery.of(context);
-          final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
-          final keyboardInset = mediaQuery.viewInsets.bottom > _keyboardInset
-              ? mediaQuery.viewInsets.bottom
-              : _keyboardInset;
           return GestureDetector(
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
             },
             child: Scaffold(
               backgroundColor: Colors.white,
-              appBar: AppBar(
-                toolbarHeight: 0,
-                backgroundColor: Colors.white,
-              ),
-              body: SafeArea(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: AnimatedPadding(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        padding: EdgeInsets.only(bottom: keyboardInset),
-                        child: SingleChildScrollView(
-                          controller: _scrollController,
-                          physics: const BouncingScrollPhysics(),
-                          child: Column(
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: [
+                          SizedBox(height: mediaQuery.padding.top + 12),
+                          Row(
                             children: [
-                              SizedBox(
-                                height:
-                                    isMobile ? mediaQuery.padding.top + 36 : 12,
-                              ),
-                              Row(
-                                children: [
-                                  const SizedBox(width: 4),
-                                  WidgetButton(
-                                    onTap: () {
-                                      if ((vm.phoneTEC.text == "" ||
-                                              vm.phoneTEC.text == "null") &&
-                                          (vm.passwordTEC.text == "" ||
-                                              vm.passwordTEC.text == "null")) {
-                                        Get.back();
-                                      } else {
-                                        AlertService().showAppAlert(
-                                          title: "Are you sure?",
-                                          content:
-                                              "You're about to leave this page",
-                                          hideCancel: false,
-                                          confirmText: "Go back",
-                                          confirmAction: () {
-                                            Get.back();
-                                            Get.back();
-                                          },
-                                        );
-                                      }
-                                    },
-                                    child: const SizedBox(
-                                      width: 58,
-                                      height: 58,
-                                      child: Center(
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                            top: 2,
-                                            right: 4,
-                                            bottom: 2,
-                                          ),
-                                          child: Icon(
-                                            Icons.chevron_left,
-                                            color: Color(0xFF030744),
-                                            size: 38,
-                                          ),
-                                        ),
+                              const SizedBox(width: 4),
+                              WidgetButton(
+                                onTap: () => _confirmLeaveLoginPage(vm),
+                                child: const SizedBox(
+                                  width: 58,
+                                  height: 58,
+                                  child: Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        top: 2,
+                                        right: 4,
+                                        bottom: 2,
+                                      ),
+                                      child: Icon(
+                                        Icons.chevron_left,
+                                        color: Color(0xFF030744),
+                                        size: 38,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 2),
-                                  const Text(
-                                    "Login",
-                                    style: TextStyle(
-                                      height: 1,
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF030744),
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              const Text(
+                                "Login",
+                                style: TextStyle(
+                                  height: 1,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF030744),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity.clamp(0, 800),
+                              child: TextFieldWidget(
+                                readOnly: useGoogleFlow,
+                                controller: vm.phoneTEC,
+                                focusNode: _phoneFocusNode,
+                                hintText: "XXXXXXXXX",
+                                labelText: "Phone Number",
+                                textCapitalization: TextCapitalization.none,
+                                keyboardType: TextInputType.number,
+                                textInputAction: TextInputAction.next,
+                                obscureText: false,
+                                showPrefix: true,
+                                showSuffix: false,
+                                prefixText: useGoogleFlow ? null : "+63",
+                                suffixIcon: null,
+                                onSuffixTap: null,
+                                autoFocus: false,
+                                minLines: null,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity.clamp(0, 800),
+                              child: TextFieldWidget(
+                                readOnly: useGoogleFlow,
+                                controller: vm.passwordTEC,
+                                focusNode: _passwordFocusNode,
+                                hintText: "Enter your password",
+                                labelText: "Password",
+                                textCapitalization: TextCapitalization.none,
+                                keyboardType: TextInputType.text,
+                                textInputAction: TextInputAction.done,
+                                obscureText: true,
+                                showPrefix: false,
+                                showSuffix: true,
+                                prefixText: null,
+                                suffixIcon: null,
+                                onSuffixTap: null,
+                                autoFocus: false,
+                                minLines: null,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity.clamp(0, 800),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  AuthService.inReviewMode() ||
+                                          !canUseGoogleAuth
+                                      ? const SizedBox.shrink()
+                                      : WidgetButton(
+                                          onTap: () {
+                                            FocusManager.instance.primaryFocus
+                                                ?.unfocus();
+                                            vm.passwordTEC.clear();
+                                            vm.phoneTEC.clear();
+                                            setState(
+                                              () {
+                                                isTourist = !useGoogleFlow;
+                                              },
+                                            );
+                                          },
+                                          borderRadius: 6,
+                                          mainColor: Colors.transparent,
+                                          isTransparentColor: true,
+                                          useDefaultHoverColor: false,
+                                          interactionColor:
+                                              const Color(0x14030744),
+                                          child: Row(
+                                            children: [
+                                              SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: Checkbox(
+                                                  side: const BorderSide(
+                                                    color: Color(0xFF030744),
+                                                    width: 2,
+                                                  ),
+                                                  activeColor: const Color(
+                                                    0xFF007BFF,
+                                                  ),
+                                                  checkColor: Colors.white,
+                                                  value: !useGoogleFlow,
+                                                  onChanged: (value) {
+                                                    FocusManager
+                                                        .instance.primaryFocus
+                                                        ?.unfocus();
+                                                    vm.passwordTEC.clear();
+                                                    vm.phoneTEC.clear();
+                                                    setState(
+                                                      () {
+                                                        isTourist =
+                                                            !useGoogleFlow;
+                                                      },
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text(
+                                                "Use 🇵🇭 Phone",
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  height: 1,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: Color(0xFF030744),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                  const Expanded(child: SizedBox.shrink()),
+                                  WidgetButton(
+                                    onTap: () {
+                                      if (!useGoogleFlow) {
+                                        Navigator.push(
+                                          context,
+                                          PageRouteBuilder(
+                                            reverseTransitionDuration:
+                                                Duration.zero,
+                                            transitionDuration: Duration.zero,
+                                            pageBuilder: (
+                                              context,
+                                              a,
+                                              b,
+                                            ) =>
+                                                const SendView(
+                                              purpose: "forgot_password",
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    borderRadius: 6,
+                                    mainColor: Colors.transparent,
+                                    isTransparentColor: true,
+                                    useDefaultHoverColor: false,
+                                    disableGestureDetection: useGoogleFlow,
+                                    suppressInteraction: true,
+                                    child: Text(
+                                      "Forgot password?",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: useGoogleFlow
+                                            ? Colors.grey
+                                            : const Color(0xFF007BFF),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity.clamp(0, 800),
-                                  child: TextFieldWidget(
-                                    readOnly: useGoogleFlow,
-                                    controller: vm.phoneTEC,
-                                    focusNode: _phoneFocusNode,
-                                    hintText: "XXXXXXXXX",
-                                    labelText: "Phone Number",
-                                    textCapitalization: TextCapitalization.none,
-                                    keyboardType: TextInputType.number,
-                                    textInputAction: TextInputAction.next,
-                                    obscureText: false,
-                                    showPrefix: true,
-                                    showSuffix: false,
-                                    prefixText: useGoogleFlow ? null : "+63",
-                                    suffixIcon: null,
-                                    onSuffixTap: null,
-                                    autoFocus: false,
-                                    minLines: null,
-                                    maxLines: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          !useGoogleFlow
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity.clamp(0, 800),
-                                  child: TextFieldWidget(
-                                    readOnly: useGoogleFlow,
-                                    controller: vm.passwordTEC,
-                                    focusNode: _passwordFocusNode,
-                                    hintText: "Enter your password",
-                                    labelText: "Password",
-                                    textCapitalization: TextCapitalization.none,
-                                    keyboardType: TextInputType.text,
-                                    textInputAction: TextInputAction.done,
-                                    obscureText: true,
-                                    showPrefix: false,
-                                    showSuffix: true,
-                                    prefixText: null,
-                                    suffixIcon: null,
-                                    onSuffixTap: null,
-                                    autoFocus: false,
-                                    minLines: null,
-                                    maxLines: 1,
+                                  child: ActionButton(
+                                    text: "Login with phone",
+                                    onTap: () {
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                      vm.processPhoneLogin();
+                                    },
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity.clamp(0, 800),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      AuthService.inReviewMode() ||
-                                              !canUseGoogleAuth
-                                          ? const SizedBox.shrink()
-                                          : GestureDetector(
-                                              onTap: () {
-                                                FocusManager
-                                                    .instance.primaryFocus
-                                                    ?.unfocus();
-                                                vm.passwordTEC.clear();
-                                                vm.phoneTEC.clear();
-                                                setState(
-                                                  () {
-                                                    isTourist = !useGoogleFlow;
-                                                  },
-                                                );
-                                              },
-                                              child: Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child: Checkbox(
-                                                      side: const BorderSide(
-                                                        color:
-                                                            Color(0xFF030744),
-                                                        width: 2,
-                                                      ),
-                                                      activeColor: const Color(
-                                                        0xFF007BFF,
-                                                      ),
-                                                      checkColor: Colors.white,
-                                                      value: !useGoogleFlow,
-                                                      onChanged: (value) {
-                                                        FocusManager.instance
-                                                            .primaryFocus
-                                                            ?.unfocus();
-                                                        vm.passwordTEC.clear();
-                                                        vm.phoneTEC.clear();
-                                                        setState(
-                                                          () {
-                                                            isTourist =
-                                                                !useGoogleFlow;
-                                                          },
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  const Text(
-                                                    "Use 🇵🇭 Phone",
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      height: 1,
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                      color: Color(0xFF030744),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                      const Expanded(child: SizedBox.shrink()),
-                                      GestureDetector(
-                                        onTap: () {
-                                          if (!useGoogleFlow) {
-                                            Navigator.push(
-                                              context,
-                                              PageRouteBuilder(
-                                                reverseTransitionDuration:
-                                                    Duration.zero,
-                                                transitionDuration:
-                                                    Duration.zero,
-                                                pageBuilder: (
-                                                  context,
-                                                  a,
-                                                  b,
-                                                ) =>
-                                                    const SendView(
-                                                  purpose: "forgot_password",
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: Text(
-                                          "Forgot password?",
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: useGoogleFlow
-                                                ? Colors.grey
-                                                : const Color(0xFF007BFF),
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                )
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              !useGoogleFlow
-                                  ? Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
+                                  child: Container(
+                                    height: 50,
+                                    width: double.infinity.clamp(0, 800),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: const Color(0xFF030744),
                                       ),
-                                      child: ActionButton(
-                                        text: "Login with phone",
-                                        onTap: () {
-                                          FocusManager.instance.primaryFocus
-                                              ?.unfocus();
-                                          vm.processPhoneLogin();
-                                        },
-                                      ),
-                                    )
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: Container(
-                                        height: 50,
-                                        width: double.infinity.clamp(0, 800),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: const Color(0xFF030744),
-                                          ),
-                                          borderRadius: const BorderRadius.all(
-                                            Radius.circular(8),
-                                          ),
-                                        ),
-                                        child: WidgetButton(
-                                          borderRadius: 8,
-                                          onTap: () {
-                                            FocusManager.instance.primaryFocus
-                                                ?.unfocus();
-                                            vm.processGoogleLogin();
-                                          },
-                                          child: const Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              NetworkImageWidget(
-                                                imageUrl: AppImages.google,
-                                                memCacheWidth: 600,
-                                                width: 24,
-                                                height: 24,
-                                              ),
-                                              SizedBox(width: 12),
-                                              Text(
-                                                "Sign in with Google",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Color(0xFF030744),
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              SizedBox(width: 4),
-                                            ],
-                                          ),
-                                        ),
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(8),
                                       ),
                                     ),
-                              if (canUseGoogleAuth) const SizedBox(height: 12),
-                              if (canUseGoogleAuth)
-                                const Text(
-                                  "or",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF030744),
-                                    fontWeight: FontWeight.bold,
+                                    child: WidgetButton(
+                                      borderRadius: 8,
+                                      onTap: () {
+                                        FocusManager.instance.primaryFocus
+                                            ?.unfocus();
+                                        vm.processGoogleLogin();
+                                      },
+                                      child: const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          NetworkImageWidget(
+                                            imageUrl: AppImages.google,
+                                            memCacheWidth: 600,
+                                            width: 24,
+                                            height: 24,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(
+                                            "Sign in with Google",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF030744),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(width: 4),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              if (canUseGoogleAuth) const SizedBox(height: 12),
-                              if (!canUseGoogleAuth) const SizedBox(height: 12),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: ActionButton(
-                                  text: "Create an account",
-                                  mainColor: const Color(0xFF030744),
-                                  onTap: () {
-                                    FocusManager.instance.primaryFocus
-                                        ?.unfocus();
-                                    setState(() {
-                                      agreed = false;
-                                      isTourist = false;
-                                      selfieFile = null;
-                                    });
-                                    Navigator.push(
+                          if (canUseGoogleAuth) const SizedBox(height: 12),
+                          if (canUseGoogleAuth)
+                            const Text(
+                              "or",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF030744),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          if (canUseGoogleAuth) const SizedBox(height: 12),
+                          if (!canUseGoogleAuth) const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                            ),
+                            child: ActionButton(
+                              text: "Create an account",
+                              mainColor: const Color(0xFF030744),
+                              onTap: () {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                setState(() {
+                                  agreed = false;
+                                  isTourist = false;
+                                  selfieFile = null;
+                                });
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    reverseTransitionDuration: Duration.zero,
+                                    transitionDuration: Duration.zero,
+                                    pageBuilder: (
                                       context,
-                                      PageRouteBuilder(
-                                        reverseTransitionDuration:
-                                            Duration.zero,
-                                        transitionDuration: Duration.zero,
-                                        pageBuilder: (
-                                          context,
-                                          a,
-                                          b,
-                                        ) =>
-                                            const RegisterView(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              SizedBox(
-                                height: mediaQuery.padding.bottom + 32,
-                              ),
-                            ],
+                                      a,
+                                      b,
+                                    ) =>
+                                        const RegisterView(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 32),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );

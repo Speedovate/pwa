@@ -14,6 +14,7 @@ import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/services/geocoder.service.dart';
 
 class MapViewModel extends BaseViewModel {
+  static const double _cameraCenterTolerance = 0.00002;
   AppMapController? _map;
   Timer? _debounce;
   Timer? _manualSelectionGuard;
@@ -33,6 +34,7 @@ class MapViewModel extends BaseViewModel {
   TextEditingController searchTEC = TextEditingController();
   ValueNotifier<Address?> selectedAddress = ValueNotifier(null);
   ValueNotifier<Address?> visualPlaceholderAddress = ValueNotifier(null);
+  bool lastCurrentLocationRecenterMoved = false;
 
   void _clearSearchAfterBuild() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -122,22 +124,11 @@ class MapViewModel extends BaseViewModel {
       return;
     }
     _cameraMoveVisualGuard?.cancel();
+    _cameraMoveVisualGuard = null;
     if (!showLoadingVisual) {
       showLoadingVisual = true;
       notifyListeners();
     }
-    _cameraMoveVisualGuard = Timer(
-      const Duration(milliseconds: 450),
-      () {
-        if (disposed || _isResolvingCameraMove || isLoading) {
-          return;
-        }
-        if (showLoadingVisual) {
-          showLoadingVisual = false;
-          notifyListeners();
-        }
-      },
-    );
   }
 
   bool get isIgnoringCameraMove {
@@ -251,7 +242,25 @@ class MapViewModel extends BaseViewModel {
 
   gmaps.LatLng? get mapCenter => _map?.center;
 
+  bool _isMapCenteredOn(gmaps.LatLng target) {
+    final center = _map?.center;
+    if (center == null) {
+      return false;
+    }
+    return (center.lat - target.lat).abs() <= _cameraCenterTolerance &&
+        (center.lng - target.lng).abs() <= _cameraCenterTolerance;
+  }
+
+  bool _isMapZoomedTo(double zoom) {
+    final currentZoom = _map?.zoom;
+    if (currentZoom == null) {
+      return false;
+    }
+    return (currentZoom - zoom).abs() <= 0.05;
+  }
+
   Future<gmaps.LatLng?> zoomToCurrentLocation({double zoom = 16}) async {
+    lastCurrentLocationRecenterMoved = false;
     var target = await getMyLatLng(
       forceFresh: true,
     );
@@ -264,25 +273,53 @@ class MapViewModel extends BaseViewModel {
       );
     }
     if (_map != null && target != null) {
+      if (_isMapCenteredOn(target)) {
+        if (!_isMapZoomedTo(zoom)) {
+          _ignoreCameraMoveUntil = DateTime.now().add(
+            const Duration(milliseconds: 800),
+          );
+          _map!.recenter(
+            target,
+            zoom: zoom,
+          );
+        }
+        return target;
+      }
       _ignoreCameraMoveUntil = DateTime.now().add(
         const Duration(milliseconds: 800),
       );
-      _map!.move(target, zoom);
+      lastCurrentLocationRecenterMoved = true;
+      _map!.recenter(
+        target,
+        zoom: zoom,
+      );
     }
     return target;
   }
 
   zoomIn() async {
     if (_map != null) {
+      _ignoreCameraMoveUntil = DateTime.now().add(
+        const Duration(milliseconds: 800),
+      );
       final currentZoom = _map!.zoom;
-      _map!.move(_map!.center, (currentZoom + 1).clamp(2, 21));
+      _map!.recenter(
+        _map!.center,
+        zoom: (currentZoom + 1).clamp(2, 21),
+      );
     }
   }
 
   zoomOut() async {
     if (_map != null) {
+      _ignoreCameraMoveUntil = DateTime.now().add(
+        const Duration(milliseconds: 800),
+      );
       final currentZoom = _map!.zoom;
-      _map!.move(_map!.center, (currentZoom - 1).clamp(2, 21));
+      _map!.recenter(
+        _map!.center,
+        zoom: (currentZoom - 1).clamp(2, 21),
+      );
     }
   }
 
@@ -362,7 +399,8 @@ class MapViewModel extends BaseViewModel {
               ),
             ));
             _setVisualPlaceholderSafely(null);
-            ApiResponse apiResponse = await taxiRequest.locationAvailableRequest(
+            ApiResponse apiResponse =
+                await taxiRequest.locationAvailableRequest(
               double.parse("${target.lat}"),
               double.parse("${target.lng}"),
             );

@@ -40,14 +40,12 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
   VerifyViewModel verifyViewModel = VerifyViewModel();
   final FocusNode _codeFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  double _keyboardInset = 0;
   bool? _lastOtpConfigUsesRemoteVerification;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _keyboardInset = _currentKeyboardInset();
     resendCountdownTimer?.cancel();
     _codeFocusNode.addListener(_handleCodeFocusChange);
     startCountDown();
@@ -59,25 +57,11 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
     if (!mounted) {
       return;
     }
-    final nextKeyboardInset = _currentKeyboardInset();
-    if ((_keyboardInset - nextKeyboardInset).abs() > 0.5) {
-      setState(() {
-        _keyboardInset = nextKeyboardInset;
-      });
-    } else {
-      setState(() {});
-    }
     if (_codeFocusNode.hasFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToBottom();
       });
     }
-  }
-
-  double _currentKeyboardInset() {
-    final dispatcher = WidgetsBinding.instance.platformDispatcher;
-    final view = dispatcher.implicitView ?? dispatcher.views.first;
-    return view.viewInsets.bottom / view.devicePixelRatio;
   }
 
   @override
@@ -111,6 +95,34 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
     }
   }
 
+  bool _hasPendingVerifyDetails([VerifyViewModel? vm]) {
+    final text = ((vm ?? verifyViewModel).codeTEC.text).trim();
+    return text.isNotEmpty && text != "null";
+  }
+
+  void _leaveVerifyPage() {
+    Get.back();
+  }
+
+  void _confirmLeaveVerifyPage([VerifyViewModel? vm]) {
+    if (!_hasPendingVerifyDetails(vm)) {
+      _leaveVerifyPage();
+      return;
+    }
+
+    AlertService().showAppAlert(
+      title: "Are you sure?",
+      content: "You're about to leave this page",
+      hideCancel: false,
+      confirmText: "Leave",
+      confirmColor: Colors.red,
+      confirmAction: () {
+        Get.back();
+        _leaveVerifyPage();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final usesRemoteOtpConfig =
@@ -130,16 +142,7 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
         if (didPop) {
           return;
         }
-        AlertService().showAppAlert(
-          title: "Are you sure?",
-          content: "You're about to leave this page",
-          hideCancel: false,
-          confirmText: "Go back",
-          confirmAction: () {
-            Get.back();
-            Get.back();
-          },
-        );
+        _confirmLeaveVerifyPage();
       },
       child: ViewModelBuilder<VerifyViewModel>.reactive(
         viewModelBuilder: () => verifyViewModel,
@@ -153,11 +156,7 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
         ),
         builder: (context, vm, child) {
           final mediaQuery = MediaQuery.of(context);
-          final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
           final screenWidth = mediaQuery.size.width;
-          final keyboardInset = mediaQuery.viewInsets.bottom > _keyboardInset
-              ? mediaQuery.viewInsets.bottom
-              : _keyboardInset;
           final otpSectionWidth = screenWidth > 848 ? 800.0 : screenWidth - 48;
           final otpSpacing = otpSectionWidth < 360 ? 8.0 : 10.0;
           final otpBoxSize =
@@ -170,379 +169,237 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
               FocusManager.instance.primaryFocus?.unfocus();
             },
             child: Scaffold(
-              appBar: AppBar(
-                backgroundColor: Colors.white,
-                toolbarHeight: 0,
-              ),
               backgroundColor: Colors.white,
-              body: SafeArea(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: AnimatedPadding(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        padding: EdgeInsets.only(bottom: keyboardInset),
-                        child: GestureDetector(
-                          onTap: () {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                          },
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            physics: const BouncingScrollPhysics(),
-                            child: Column(
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          children: [
+                            SizedBox(height: mediaQuery.padding.top + 12),
+                            Row(
                               children: [
-                                SizedBox(
-                                  height: isMobile
-                                      ? mediaQuery.padding.top + 36
-                                      : 12,
-                                ),
-                                Row(
-                                  children: [
-                                    const SizedBox(width: 4),
-                                    WidgetButton(
-                                      onTap: () {
-                                        AlertService().showAppAlert(
-                                          title: "Are you sure?",
-                                          content:
-                                              "You're about to leave this page",
-                                          hideCancel: false,
-                                          confirmText: "Go back",
-                                          confirmAction: () {
-                                            Get.back();
-                                            Get.back();
-                                          },
-                                        );
-                                      },
-                                      child: const SizedBox(
-                                        width: 58,
-                                        height: 58,
-                                        child: Center(
-                                          child: Padding(
-                                            padding: EdgeInsets.only(
-                                              top: 2,
-                                              right: 4,
-                                              bottom: 2,
-                                            ),
-                                            child: Icon(
-                                              Icons.chevron_left,
-                                              color: Color(0xFF030744),
-                                              size: 38,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 2),
-                                    const Text(
-                                      "Verify Code",
-                                      style: TextStyle(
-                                        height: 1,
-                                        fontSize: 25,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF030744),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-                                SizedBox(
-                                  width: imageWidth,
-                                  height: imageHeight,
-                                  child: NetworkImageWidget(
-                                    imageUrl: AppImages.verify,
-                                    width: imageWidth,
-                                    height: imageHeight,
-                                    memCacheWidth: 600,
-                                    fit: BoxFit.fitWidth,
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: 32,
-                                    left: 24,
-                                    right: 24,
-                                  ),
-                                  child: SizedBox(
-                                    width: double.infinity.clamp(0, 800),
+                                const SizedBox(width: 4),
+                                WidgetButton(
+                                  onTap: () => _confirmLeaveVerifyPage(vm),
+                                  child: const SizedBox(
+                                    width: 58,
+                                    height: 58,
                                     child: Center(
-                                      child: RichText(
-                                        text: TextSpan(
-                                          children: [
-                                            const TextSpan(
-                                              text:
-                                                  "We have sent a 6-digit code to ",
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontFamily: "Inter",
-                                                fontWeight: FontWeight.w400,
-                                                color: Color(0xFF030744),
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: "0${widget.phone}",
-                                              style: const TextStyle(
-                                                height: 1,
-                                                fontSize: 14,
-                                                fontFamily: "Inter",
-                                                fontWeight: FontWeight.w700,
-                                                color: Color(0xFF007BFF),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 24),
-                                    child: SizedBox(
-                                      width: double.infinity.clamp(0, 800),
-                                      child: SizedBox(
-                                        height: otpBoxSize,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            _codeFocusNode.requestFocus();
-                                          },
-                                          child: Stack(
-                                            alignment: Alignment.center,
-                                            children: [
-                                              Positioned.fill(
-                                                child: Opacity(
-                                                  opacity: 0.02,
-                                                  child: TextField(
-                                                    controller: vm.codeTEC,
-                                                    focusNode: _codeFocusNode,
-                                                    autofocus: false,
-                                                    keyboardType:
-                                                        TextInputType.number,
-                                                    textInputAction:
-                                                        TextInputAction.done,
-                                                    textAlignVertical:
-                                                        TextAlignVertical
-                                                            .center,
-                                                    scrollPadding:
-                                                        const EdgeInsets.only(
-                                                      left: 24,
-                                                      top: 24,
-                                                      right: 24,
-                                                      bottom: 120,
-                                                    ),
-                                                    autofillHints: const [
-                                                      AutofillHints.oneTimeCode,
-                                                    ],
-                                                    inputFormatters: [
-                                                      FilteringTextInputFormatter
-                                                          .digitsOnly,
-                                                      LengthLimitingTextInputFormatter(
-                                                          6),
-                                                    ],
-                                                    autocorrect: false,
-                                                    enableSuggestions: false,
-                                                    showCursor: false,
-                                                    decoration:
-                                                        const InputDecoration(
-                                                      border: InputBorder.none,
-                                                      contentPadding:
-                                                          EdgeInsets.zero,
-                                                      counterText: "",
-                                                    ),
-                                                    onChanged: (_) {
-                                                      setState(() {});
-                                                    },
-                                                    onSubmitted: (_) {
-                                                      FocusManager
-                                                          .instance.primaryFocus
-                                                          ?.unfocus();
-                                                      vm.verifyCode(
-                                                          "${widget.purpose}");
-                                                    },
-                                                  ),
-                                                ),
-                                              ),
-                                              IgnorePointer(
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: List.generate(
-                                                    6,
-                                                    (index) {
-                                                      final code =
-                                                          vm.codeTEC.text;
-                                                      final hasValue =
-                                                          index < code.length;
-                                                      final isActive =
-                                                          _codeFocusNode
-                                                                  .hasFocus &&
-                                                              index ==
-                                                                  code.length
-                                                                      .clamp(
-                                                                          0, 5);
-                                                      return Container(
-                                                        width: otpBoxSize,
-                                                        height: otpBoxSize,
-                                                        margin: EdgeInsets.only(
-                                                          right: index == 5
-                                                              ? 0
-                                                              : otpSpacing,
-                                                        ),
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: Colors.white,
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(10),
-                                                          border: Border.all(
-                                                            color: isActive
-                                                                ? const Color(
-                                                                    0xFF007BFF)
-                                                                : const Color(
-                                                                    0xFF030744),
-                                                          ),
-                                                        ),
-                                                        child: Center(
-                                                          child: Text(
-                                                            hasValue
-                                                                ? code[index]
-                                                                : "",
-                                                            style: TextStyle(
-                                                              height: 1.2,
-                                                              fontSize:
-                                                                  otpBoxSize <
-                                                                          54
-                                                                      ? 20
-                                                                      : 24,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              color: hasValue
-                                                                  ? const Color(
-                                                                      0xFF030744)
-                                                                  : const Color(
-                                                                          0xFF030744)
-                                                                      .withValues(
-                                                                          alpha:
-                                                                              0.25),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24),
-                                  child: ActionButton(
-                                    text: "Verify",
-                                    onTap: () {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      vm.verifyCode("${widget.purpose}");
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Text("Didn't receive the code?"),
-                                    Visibility(
-                                      visible: resendSecs > 0,
                                       child: Padding(
-                                        padding: const EdgeInsets.all(4),
-                                        child: Text(
-                                          "($resendSecs)",
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        padding: EdgeInsets.only(
+                                          top: 2,
+                                          right: 4,
+                                          bottom: 2,
+                                        ),
+                                        child: Icon(
+                                          Icons.chevron_left,
+                                          color: Color(0xFF030744),
+                                          size: 38,
                                         ),
                                       ),
                                     ),
-                                    Visibility(
-                                      visible: resendSecs == 0,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          vm.resendCode();
-                                          setState(() {
-                                            resendSecs = maxResendSeconds;
-                                          });
-                                          startCountDown();
-                                        },
-                                        child: const Padding(
-                                          padding: EdgeInsets.all(4),
-                                          child: Text(
-                                            "Resend",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF007BFF),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                                const SizedBox(height: 20),
-                                Center(
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      await showFacebookSupportDialog(context);
-                                    },
-                                    child: RichText(
-                                      text: const TextSpan(
+                                const SizedBox(width: 2),
+                                const Text(
+                                  "Verify Code",
+                                  style: TextStyle(
+                                    height: 1,
+                                    fontSize: 25,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF030744),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: imageWidth,
+                              height: imageHeight,
+                              child: NetworkImageWidget(
+                                imageUrl: AppImages.verify,
+                                width: imageWidth,
+                                height: imageHeight,
+                                memCacheWidth: 600,
+                                fit: BoxFit.fitWidth,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 32,
+                                left: 24,
+                                right: 24,
+                              ),
+                              child: SizedBox(
+                                width: double.infinity.clamp(0, 800),
+                                child: Center(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        const TextSpan(
+                                          text:
+                                              "We have sent a 6-digit code to ",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontFamily: "Inter",
+                                            fontWeight: FontWeight.w400,
+                                            color: Color(0xFF030744),
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: "0${widget.phone}",
+                                          style: const TextStyle(
+                                            height: 1,
+                                            fontSize: 14,
+                                            fontFamily: "Inter",
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF007BFF),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Center(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 24),
+                                child: SizedBox(
+                                  width: double.infinity.clamp(0, 800),
+                                  child: SizedBox(
+                                    height: otpBoxSize,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        _codeFocusNode.requestFocus();
+                                      },
+                                      child: Stack(
+                                        alignment: Alignment.center,
                                         children: [
-                                          TextSpan(
-                                            text: "Need help now? ",
-                                            style: TextStyle(
-                                              height: 1.15,
-                                              fontWeight: FontWeight.w400,
-                                              color: Color(0xFF030744),
+                                          Positioned.fill(
+                                            child: Opacity(
+                                              opacity: 0.02,
+                                              child: TextField(
+                                                controller: vm.codeTEC,
+                                                focusNode: _codeFocusNode,
+                                                autofocus: false,
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                textInputAction:
+                                                    TextInputAction.done,
+                                                textAlignVertical:
+                                                    TextAlignVertical.center,
+                                                scrollPadding:
+                                                    const EdgeInsets.only(
+                                                  left: 24,
+                                                  top: 24,
+                                                  right: 24,
+                                                  bottom: 120,
+                                                ),
+                                                autofillHints: const [
+                                                  AutofillHints.oneTimeCode,
+                                                ],
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter
+                                                      .digitsOnly,
+                                                  LengthLimitingTextInputFormatter(
+                                                      6),
+                                                ],
+                                                autocorrect: false,
+                                                enableSuggestions: false,
+                                                showCursor: false,
+                                                decoration:
+                                                    const InputDecoration(
+                                                  border: InputBorder.none,
+                                                  contentPadding:
+                                                      EdgeInsets.zero,
+                                                  counterText: "",
+                                                ),
+                                                onChanged: (_) {
+                                                  setState(() {});
+                                                },
+                                                onSubmitted: (_) {
+                                                  FocusManager
+                                                      .instance.primaryFocus
+                                                      ?.unfocus();
+                                                  vm.verifyCode(
+                                                      "${widget.purpose}");
+                                                },
+                                              ),
                                             ),
                                           ),
-                                          TextSpan(
-                                            text: "Contact",
-                                            style: TextStyle(
-                                              height: 1.15,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF007BFF),
-                                            ),
-                                          ),
-                                          TextSpan(
-                                            text: " or ",
-                                            style: TextStyle(
-                                              height: 1.15,
-                                              fontWeight: FontWeight.w400,
-                                              color: Color(0xFF030744),
-                                            ),
-                                          ),
-                                          TextSpan(
-                                            text: "Message",
-                                            style: TextStyle(
-                                              height: 1.15,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF007BFF),
-                                            ),
-                                          ),
-                                          TextSpan(
-                                            text: " us!",
-                                            style: TextStyle(
-                                              height: 1.15,
-                                              fontWeight: FontWeight.w400,
-                                              color: Color(0xFF030744),
+                                          IgnorePointer(
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: List.generate(
+                                                6,
+                                                (index) {
+                                                  final code = vm.codeTEC.text;
+                                                  final hasValue =
+                                                      index < code.length;
+                                                  final isActive =
+                                                      _codeFocusNode.hasFocus &&
+                                                          index ==
+                                                              code.length
+                                                                  .clamp(0, 5);
+                                                  return Container(
+                                                    width: otpBoxSize,
+                                                    height: otpBoxSize,
+                                                    margin: EdgeInsets.only(
+                                                      right: index == 5
+                                                          ? 0
+                                                          : otpSpacing,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                      border: Border.all(
+                                                        color: isActive
+                                                            ? const Color(
+                                                                0xFF007BFF)
+                                                            : const Color(
+                                                                0xFF030744),
+                                                      ),
+                                                    ),
+                                                    child: Center(
+                                                      child: Text(
+                                                        hasValue
+                                                            ? code[index]
+                                                            : "",
+                                                        style: TextStyle(
+                                                          height: 1.2,
+                                                          fontSize:
+                                                              otpBoxSize < 54
+                                                                  ? 20
+                                                                  : 24,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: hasValue
+                                                              ? const Color(
+                                                                  0xFF030744)
+                                                              : const Color(
+                                                                      0xFF030744)
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.25),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -550,17 +407,132 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
                                     ),
                                   ),
                                 ),
-                                SizedBox(
-                                  height: mediaQuery.padding.bottom + 32,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              child: ActionButton(
+                                text: "Verify",
+                                onTap: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  vm.verifyCode("${widget.purpose}");
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text("Didn't receive the code?"),
+                                Visibility(
+                                  visible: resendSecs > 0,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: Text(
+                                      "($resendSecs)",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Visibility(
+                                  visible: resendSecs == 0,
+                                  child: WidgetButton(
+                                    onTap: () {
+                                      vm.resendCode();
+                                      setState(() {
+                                        resendSecs = maxResendSeconds;
+                                      });
+                                      startCountDown();
+                                    },
+                                    borderRadius: 6,
+                                    mainColor: Colors.transparent,
+                                    isTransparentColor: true,
+                                    useDefaultHoverColor: false,
+                                    suppressInteraction: true,
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Text(
+                                        "Resend",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF007BFF),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 20),
+                            Center(
+                              child: WidgetButton(
+                                onTap: () async {
+                                  await showFacebookSupportDialog(context);
+                                },
+                                borderRadius: 6,
+                                mainColor: Colors.transparent,
+                                isTransparentColor: true,
+                                useDefaultHoverColor: false,
+                                suppressInteraction: true,
+                                child: RichText(
+                                  text: const TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: "Need help? ",
+                                        style: TextStyle(
+                                          height: 1.15,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF030744),
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: "Contact",
+                                        style: TextStyle(
+                                          height: 1.15,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF007BFF),
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: " or ",
+                                        style: TextStyle(
+                                          height: 1.15,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF030744),
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: "Message",
+                                        style: TextStyle(
+                                          height: 1.15,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF007BFF),
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: " us!",
+                                        style: TextStyle(
+                                          height: 1.15,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF030744),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );

@@ -1,5 +1,35 @@
+import "package:flutter/foundation.dart";
+import "package:pwa/constants/strings.dart";
 import "package:pwa/utils/data.dart";
 import "package:pwa/utils/functions.dart";
+
+String _reviewDeviceForUserModel() {
+  if (kIsWeb) {
+    return isHuaweiLikeBrowser() ? "huawei" : "web";
+  }
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.iOS:
+      return "ios";
+    case TargetPlatform.android:
+      return "android";
+    default:
+      return "web";
+  }
+}
+
+bool _shouldMaskProviderRoleForReviewMode() {
+  final reviewVersionKey = switch (_reviewDeviceForUserModel()) {
+    "ios" => "disable_ibn",
+    "web" => "disable_wbn",
+    "huawei" => "disable_hbn",
+    "android" => "disable_gbn",
+    _ => null,
+  };
+  if (reviewVersionKey == null || AppStrings.homeSettingsObject == null) {
+    return false;
+  }
+  return "${AppStrings.homeSettingsObject?[reviewVersionKey]}" == versionCode;
+}
 
 class User {
   int? id;
@@ -29,6 +59,7 @@ class User {
   double? rating;
   bool? isTest;
   bool? isProvider;
+  bool? rawIsProvider;
   int? maxCancelCount;
   bool? isVerified;
   bool isSuspended;
@@ -63,6 +94,7 @@ class User {
     this.rating,
     this.isTest,
     this.isProvider,
+    this.rawIsProvider,
     this.maxCancelCount,
     this.isVerified,
     this.isSuspended = false,
@@ -72,8 +104,11 @@ class User {
 
   factory User.fromJson(Map<String, dynamic>? json) {
     try {
-      if (showParseText) {
-      }
+      if (showParseText) {}
+      final parsedIsProvider = parseBool(
+        json?["is_provider"] ?? json?["is_prv"],
+        "is_provider",
+      );
       return User(
         id: parseInt(
           json?["id"],
@@ -181,10 +216,9 @@ class User {
           json?["is_test"] ?? json?["is_dev"],
           "is_dev",
         ),
-        isProvider: parseBool(
-          json?["is_provider"] ?? json?["is_prv"],
-          "is_provider",
-        ),
+        isProvider:
+            _shouldMaskProviderRoleForReviewMode() ? false : parsedIsProvider,
+        rawIsProvider: parsedIsProvider,
         maxCancelCount: parseInt(
           json?["max_cancel_count"] ?? json?["cancellation_limit"],
           "cancellation_limit",
@@ -207,8 +241,7 @@ class User {
         ),
       );
     } catch (e) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return User();
     }
   }
@@ -257,8 +290,8 @@ class User {
         "rating": rating,
         "is_dev": isBool(isTest),
         "is_test": isBool(isTest),
-        "is_provider": isBool(isProvider),
-        "is_prv": isBool(isProvider),
+        "is_provider": isBool(rawIsProvider ?? isProvider),
+        "is_prv": isBool(rawIsProvider ?? isProvider),
         "max_cancel_count": maxCancelCount,
         "cancellation_limit": maxCancelCount,
         "is_kyc": isBool(isVerified),

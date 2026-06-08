@@ -59,7 +59,6 @@ async function focusClient(client, targetUrl) {
 }
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("Received background message: ", payload);
   const targetUrl =
       payload?.data?.url ||
       payload?.data?.link ||

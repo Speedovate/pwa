@@ -51,6 +51,7 @@ class CameraShellLayout extends StatelessWidget {
   final VoidCallback onBack;
   final Widget stage;
   final Widget bottomChild;
+  final bool hideBottomArea;
 
   const CameraShellLayout({
     required this.title,
@@ -58,6 +59,7 @@ class CameraShellLayout extends StatelessWidget {
     required this.onBack,
     required this.stage,
     required this.bottomChild,
+    this.hideBottomArea = false,
     super.key,
   });
 
@@ -65,11 +67,13 @@ class CameraShellLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
 
-    return SafeArea(
-      child: SizedBox(
-        height: mediaQuery.size.height -
-            mediaQuery.padding.top -
-            mediaQuery.padding.bottom,
+    return SizedBox(
+      height: mediaQuery.size.height,
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: mediaQuery.padding.top,
+          bottom: mediaQuery.padding.bottom,
+        ),
         child: Column(
           children: [
             Container(
@@ -88,9 +92,7 @@ class CameraShellLayout extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    height: isMobile ? 32 : 12,
-                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       const SizedBox(width: 4),
@@ -136,33 +138,71 @@ class CameraShellLayout extends StatelessWidget {
                 child: stage,
               ),
             ),
-            Container(
-              width: mediaQuery.size.width,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    blurRadius: 2,
-                    spreadRadius: 2,
-                    offset: Offset(0, -2),
-                    color: Colors.white,
-                  ),
-                ],
+            if (!hideBottomArea)
+              Container(
+                width: mediaQuery.size.width,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 2,
+                      spreadRadius: 2,
+                      offset: Offset(0, -2),
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Center(
+                      child: bottomChild,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 12),
-                  Center(
-                    child: bottomChild,
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class CameraUnavailableState extends StatelessWidget {
+  const CameraUnavailableState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.no_photography_outlined,
+          color: const Color(0xFF030744).withValues(alpha: 0.5),
+          size: 75,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          "Camera unavailable",
+          style: TextStyle(
+            height: 1,
+            fontSize: 20,
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "Please check your camera and try again",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            height: 1,
+            color: const Color(0xFF030744).withValues(alpha: 0.5),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -314,14 +354,14 @@ class CameraStageLayout extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final safeAspectRatio = aspectRatio <= 0 ? 1.0 : aspectRatio;
-        final boundedWidth = constraints.maxWidth.isFinite
-            ? constraints.maxWidth
-            : maxWidth;
+        final boundedWidth =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : maxWidth;
         final boundedHeight = constraints.maxHeight.isFinite
             ? constraints.maxHeight
             : double.infinity;
 
-        double resolvedWidth = maxWidth < boundedWidth ? maxWidth : boundedWidth;
+        double resolvedWidth =
+            maxWidth < boundedWidth ? maxWidth : boundedWidth;
         if (boundedHeight.isFinite) {
           final maxWidthFromHeight = boundedHeight * safeAspectRatio;
           if (resolvedWidth > maxWidthFromHeight) {
@@ -540,119 +580,137 @@ class CameraImageWidget extends StatelessWidget {
         ? mediaQuery.size.width
         : (mediaQuery.size.width - 40).clamp(0.0, 720.0);
     final isProfile = cameraType == "profile";
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        toolbarHeight: 0,
-        backgroundColor: Colors.white,
-      ),
-      body: CameraShellLayout(
-        title: cameraTitleForType(cameraType),
-        isMobile: isMobile,
-        onBack: () {
-          AlertService().showAppAlert(
-            title: "Are you sure?",
-            content: "You're about to leave this page",
-            hideCancel: false,
-            confirmText: "Go back",
-            confirmAction: () {
-              Get.back(result: true);
-              Get.back(result: true);
-              if (!replacedCaptureRoute) {
-                Get.back(result: true);
-              }
-            },
-          );
+    void handleBack() {
+      AlertService().showAppAlert(
+        title: "Are you sure?",
+        content: "You're about to leave this page",
+        hideCancel: false,
+        confirmText: "Leave",
+        confirmColor: Colors.red,
+        confirmAction: () {
+          Get.back(result: true);
+          Get.back(result: true);
+          if (!replacedCaptureRoute) {
+            Get.back(result: true);
+          }
         },
-        stage: CameraStageLayout(
-          maxWidth: previewWidth,
-          aspectRatio: 1 / 1.7777777777777777,
-          isProfile: isProfile,
-          cameraType: cameraType,
-          isCapturedPreview: true,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                fit: BoxFit.cover,
-                image: MemoryImage(imageBytes),
+      );
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          return;
+        }
+        handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: CameraShellLayout(
+          title: cameraTitleForType(cameraType),
+          isMobile: isMobile,
+          onBack: handleBack,
+          stage: CameraStageLayout(
+            maxWidth: previewWidth,
+            aspectRatio: 1 / 1.7777777777777777,
+            isProfile: isProfile,
+            cameraType: cameraType,
+            isCapturedPreview: true,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image: MemoryImage(imageBytes),
+                ),
               ),
             ),
           ),
-        ),
-        bottomChild: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 80,
-              height: 80,
-              child: WidgetButton(
-                borderRadius: 16,
-                onTap: () {
-                  Get.back();
-                  onRetake?.call();
-                },
-                child: Center(
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF030744),
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(10),
-                      ),
-                      boxShadow: <BoxShadow>[
-                        BoxShadow(
-                          blurRadius: 2,
-                          spreadRadius: 2,
-                          offset: Offset(0, 2),
-                          color: Colors.white,
+          bottomChild: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: WidgetButton(
+                  borderRadius: 16,
+                  mainColor: Colors.transparent,
+                  isTransparentColor: true,
+                  useDefaultHoverColor: false,
+                  interactionColor: const Color(0x14030744),
+                  onTap: () {
+                    Get.back();
+                    onRetake?.call();
+                  },
+                  child: Center(
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF030744),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.replay,
-                      color: Colors.white,
-                      size: 35,
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            blurRadius: 2,
+                            spreadRadius: 2,
+                            offset: Offset(0, 2),
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.replay,
+                        color: Colors.white,
+                        size: 35,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 80,
-              height: 80,
-              child: WidgetButton(
-                borderRadius: 16,
-                onTap: _onConfirm,
-                child: Center(
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF007BFF),
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(10),
-                      ),
-                      boxShadow: <BoxShadow>[
-                        BoxShadow(
-                          blurRadius: 2,
-                          spreadRadius: 2,
-                          offset: Offset(0, 2),
-                          color: Colors.white,
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: WidgetButton(
+                  borderRadius: 16,
+                  mainColor: Colors.transparent,
+                  isTransparentColor: true,
+                  useDefaultHoverColor: false,
+                  interactionColor: const Color(0xFF007BFF).withValues(
+                    alpha: 0.16,
+                  ),
+                  onTap: _onConfirm,
+                  child: Center(
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF007BFF),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(10),
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 35,
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            blurRadius: 2,
+                            spreadRadius: 2,
+                            offset: Offset(0, 2),
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 35,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

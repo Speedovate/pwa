@@ -24,13 +24,11 @@ class _SendViewState extends State<SendView> with WidgetsBindingObserver {
   SendViewModel sendViewModel = SendViewModel();
   final FocusNode _phoneFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  double _keyboardInset = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _keyboardInset = _currentKeyboardInset();
     _phoneFocusNode.addListener(_handlePhoneFocusChange);
   }
 
@@ -46,21 +44,9 @@ class _SendViewState extends State<SendView> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    final nextKeyboardInset = _currentKeyboardInset();
-    if ((_keyboardInset - nextKeyboardInset).abs() > 0.5) {
-      setState(() {
-        _keyboardInset = nextKeyboardInset;
-      });
-    }
     if (_phoneFocusNode.hasFocus) {
       _scrollToBottom();
     }
-  }
-
-  double _currentKeyboardInset() {
-    final dispatcher = WidgetsBinding.instance.platformDispatcher;
-    final view = dispatcher.implicitView ?? dispatcher.views.first;
-    return view.viewInsets.bottom / view.devicePixelRatio;
   }
 
   void _scrollToBottom() {
@@ -81,6 +67,34 @@ class _SendViewState extends State<SendView> with WidgetsBindingObserver {
     }
   }
 
+  bool _hasPendingSendDetails([SendViewModel? vm]) {
+    final text = ((vm ?? sendViewModel).phoneTEC.text).trim();
+    return text.isNotEmpty && text != "null";
+  }
+
+  void _leaveSendPage() {
+    Get.back();
+  }
+
+  void _confirmLeaveSendPage([SendViewModel? vm]) {
+    if (!_hasPendingSendDetails(vm)) {
+      _leaveSendPage();
+      return;
+    }
+
+    AlertService().showAppAlert(
+      title: "Are you sure?",
+      content: "You're about to leave this page",
+      hideCancel: false,
+      confirmText: "Leave",
+      confirmColor: Colors.red,
+      confirmAction: () {
+        Get.back();
+        _leaveSendPage();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -89,195 +103,140 @@ class _SendViewState extends State<SendView> with WidgetsBindingObserver {
         if (didPop) {
           return;
         }
-        if (sendViewModel.phoneTEC.text == "" ||
-            sendViewModel.phoneTEC.text == "null") {
-          Get.back();
-        } else {
-          AlertService().showAppAlert(
-            title: "Are you sure?",
-            content: "You're about to leave this page",
-            hideCancel: false,
-            confirmText: "Go back",
-            confirmAction: () {
-              Get.back();
-              Get.back();
-            },
-          );
-        }
+        _confirmLeaveSendPage();
       },
       child: ViewModelBuilder<SendViewModel>.reactive(
         viewModelBuilder: () => sendViewModel,
         onViewModelReady: (vm) => vm.initialise(),
         builder: (context, vm, child) {
           final mediaQuery = MediaQuery.of(context);
-          final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
           final screenWidth = mediaQuery.size.width;
-          final keyboardInset = mediaQuery.viewInsets.bottom > _keyboardInset
-              ? mediaQuery.viewInsets.bottom
-              : _keyboardInset;
           final imageWidth = (screenWidth - 48).clamp(220.0, 400.0);
           return GestureDetector(
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
             },
             child: Scaffold(
-              appBar: AppBar(
-                backgroundColor: Colors.white,
-                toolbarHeight: 0,
-              ),
               backgroundColor: Colors.white,
               body: Stack(
                 children: [
                   Positioned.fill(
-                    child: SafeArea(
-                      child: AnimatedPadding(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOut,
-                        padding: EdgeInsets.only(
-                          bottom: keyboardInset,
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return SingleChildScrollView(
-                              controller: _scrollController,
-                              physics: const BouncingScrollPhysics(),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight,
-                                ),
-                                child: Column(
-                                  children: [
-                                    SizedBox(
-                                      height: isMobile
-                                          ? mediaQuery.padding.top + 36
-                                          : 12,
-                                    ),
-                                    Row(
-                                      children: [
-                                        const SizedBox(width: 4),
-                                        WidgetButton(
-                                          onTap: () {
-                                            if (sendViewModel.phoneTEC.text ==
-                                                    "" ||
-                                                sendViewModel.phoneTEC.text ==
-                                                    "null") {
-                                              Get.back();
-                                            } else {
-                                              AlertService().showAppAlert(
-                                                title: "Are you sure?",
-                                                content:
-                                                    "You're about to leave this page",
-                                                hideCancel: false,
-                                                confirmText: "Go back",
-                                                confirmAction: () {
-                                                  Get.back();
-                                                  Get.back();
-                                                },
-                                              );
-                                            }
-                                          },
-                                          child: const SizedBox(
-                                            width: 58,
-                                            height: 58,
-                                            child: Center(
-                                              child: Padding(
-                                                padding: EdgeInsets.only(
-                                                  top: 2,
-                                                  right: 4,
-                                                  bottom: 2,
-                                                ),
-                                                child: Icon(
-                                                  Icons.chevron_left,
-                                                  color: Color(0xFF030744),
-                                                  size: 38,
-                                                ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          controller: _scrollController,
+                          physics: const BouncingScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                top: mediaQuery.padding.top,
+                              ),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      const SizedBox(width: 4),
+                                      WidgetButton(
+                                        onTap: () => _confirmLeaveSendPage(vm),
+                                        child: const SizedBox(
+                                          width: 58,
+                                          height: 58,
+                                          child: Center(
+                                            child: Padding(
+                                              padding: EdgeInsets.only(
+                                                top: 2,
+                                                right: 4,
+                                                bottom: 2,
+                                              ),
+                                              child: Icon(
+                                                Icons.chevron_left,
+                                                color: Color(0xFF030744),
+                                                size: 38,
                                               ),
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          () {
-                                            if (widget.purpose ==
-                                                "forgot_password") {
-                                              return "Forgot Password";
-                                            } else {
-                                              return "Get a Code";
-                                            }
-                                          }(),
-                                          style: const TextStyle(
-                                            height: 1,
-                                            fontSize: 25,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF030744),
-                                          ),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        () {
+                                          if (widget.purpose ==
+                                              "forgot_password") {
+                                            return "Forgot Password";
+                                          } else {
+                                            return "Get a Code";
+                                          }
+                                        }(),
+                                        style: const TextStyle(
+                                          height: 1,
+                                          fontSize: 25,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF030744),
                                         ),
-                                      ],
-                                    ),
-                                    SizedBox(
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    width: imageWidth,
+                                    child: NetworkImageWidget(
+                                      imageUrl: AppImages.auth,
                                       width: imageWidth,
-                                      child: NetworkImageWidget(
-                                        imageUrl: AppImages.auth,
-                                        width: imageWidth,
-                                        memCacheWidth: 600,
-                                        fit: BoxFit.fitWidth,
+                                      memCacheWidth: 600,
+                                      fit: BoxFit.fitWidth,
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                    ),
+                                    child: SizedBox(
+                                      width: double.infinity.clamp(0, 800),
+                                      child: TextFieldWidget(
+                                        controller: vm.phoneTEC,
+                                        focusNode: _phoneFocusNode,
+                                        hintText: "XXXXXXXXX",
+                                        labelText: "Phone Number",
+                                        textCapitalization:
+                                            TextCapitalization.none,
+                                        keyboardType: TextInputType.number,
+                                        textInputAction: TextInputAction.done,
+                                        obscureText: false,
+                                        showPrefix: true,
+                                        showSuffix: false,
+                                        prefixText: "+63",
+                                        suffixIcon: null,
+                                        onSuffixTap: null,
+                                        autoFocus: false,
+                                        maxLines: 1,
+                                        minLines: null,
                                       ),
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: SizedBox(
-                                        width: double.infinity.clamp(0, 800),
-                                        child: TextFieldWidget(
-                                          controller: vm.phoneTEC,
-                                          focusNode: _phoneFocusNode,
-                                          hintText: "XXXXXXXXX",
-                                          labelText: "Phone Number",
-                                          textCapitalization:
-                                              TextCapitalization.none,
-                                          keyboardType: TextInputType.number,
-                                          textInputAction:
-                                              TextInputAction.done,
-                                          obscureText: false,
-                                          showPrefix: true,
-                                          showSuffix: false,
-                                          prefixText: "+63",
-                                          suffixIcon: null,
-                                          onSuffixTap: null,
-                                          autoFocus: false,
-                                          maxLines: 1,
-                                          minLines: null,
-                                        ),
-                                      ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
                                     ),
-                                    const SizedBox(height: 24),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
-                                      child: ActionButton(
-                                        text: "Send Code",
-                                        onTap: () {
-                                          FocusManager.instance.primaryFocus
-                                              ?.unfocus();
-                                          vm.sendCode(widget.purpose);
-                                        },
-                                      ),
+                                    child: ActionButton(
+                                      text: "Send Code",
+                                      onTap: () {
+                                        FocusManager.instance.primaryFocus
+                                            ?.unfocus();
+                                        vm.sendCode(widget.purpose);
+                                      },
                                     ),
-                                    SizedBox(
-                                      height: MediaQuery.of(context)
-                                              .padding
-                                              .bottom +
-                                          32,
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 32),
+                                ],
                               ),
-                            );
-                          },
-                        ),
-                      ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],

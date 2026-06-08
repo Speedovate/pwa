@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/intro.view.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/models/user.model.dart';
@@ -63,9 +62,6 @@ class AuthService {
       AppStrings.userKey,
       normalizedStringMap,
     );
-    debugPrint(
-      '[PushDebug][Auth:saveUser] userId=${currentUser?.id} branchId=${currentUser?.branchID}',
-    );
     await syncStoredTopicsForCurrentSession();
     await PushService.syncTokenWithServer();
     return currentUser;
@@ -95,9 +91,6 @@ class AuthService {
         decoded,
       );
     } catch (_) {}
-    debugPrint(
-      '[PushDebug][Auth:getUserFromStorage] userId=${currentUser?.id} branchId=${currentUser?.branchID}',
-    );
     await AuthService().syncStoredTopicsForCurrentSession();
     return currentUser;
   }
@@ -134,7 +127,6 @@ class AuthService {
   }
 
   logout() async {
-    final shouldOpenReviewHome = AuthService.inReviewMode();
     AlertService().stopLoading(forceStop: true);
     final currentContext = Get.context;
     if (currentContext != null) {
@@ -148,27 +140,9 @@ class AuthService {
     dropoffAddress = null;
     pickupAddress = null;
     currentUser = null;
-    debugPrint('[PushDebug][Auth:logout] reset-to-guest');
     await syncStoredTopicsForCurrentSession();
     await StorageService.prefs?.remove(AppStrings.lastPushTopicSignature);
     await PushService.syncTokenWithServer(forceSync: true);
-    if (!shouldOpenReviewHome) {
-      Navigator.pushAndRemoveUntil(
-        Get.context!,
-        PageRouteBuilder(
-          reverseTransitionDuration: Duration.zero,
-          transitionDuration: Duration.zero,
-          pageBuilder: (
-            context,
-            a,
-            b,
-          ) =>
-              const IntroView(),
-        ),
-        (route) => false,
-      );
-      return;
-    }
     Navigator.pushAndRemoveUntil(
       Get.context!,
       PageRouteBuilder(
@@ -179,7 +153,7 @@ class AuthService {
           a,
           b,
         ) =>
-            const HomeView(),
+            const IntroView(),
       ),
       (route) => false,
     );
@@ -316,19 +290,19 @@ class AuthService {
 
   static String upgradeDownloadLink() {
     final resolvedLink = switch (device()) {
-      "ios" => AppStrings.iOSDownloadLink,
+      "ios" => "https://apps.apple.com/app/id6743928831",
       "android" => AppStrings.androidDownloadLink,
       _ => AppStrings.huaweiDownloadLink,
     };
     if (resolvedLink.trim().isNotEmpty) {
       return resolvedLink;
     }
+
     return "https://ppctoda.com";
   }
 
   subscribeToTopic(String topic) async {
     try {
-      debugPrint('[PushDebug][Topic:subscribe:start] $topic');
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       if (!topics.contains(topic)) {
         topics.add(topic);
@@ -337,25 +311,20 @@ class AuthService {
       if (!kIsWeb) {
         await FirebaseMessaging.instance.subscribeToTopic(topic);
       }
-      debugPrint('[PushDebug][Topic:subscribe:done] $topic');
     } catch (_) {
-      debugPrint('[PushDebug][Topic:subscribe:error] $topic');
       // Ignore topic persistence failures.
     }
   }
 
   unsubscribeFromTopic(String topic) async {
     try {
-      debugPrint('[PushDebug][Topic:unsubscribe:start] $topic');
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       topics.remove(topic);
       await StorageService.prefs?.setStringList("topics", topics);
       if (!kIsWeb) {
         await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
       }
-      debugPrint('[PushDebug][Topic:unsubscribe:done] $topic');
     } catch (_) {
-      debugPrint('[PushDebug][Topic:unsubscribe:error] $topic');
       // Ignore topic persistence failures.
     }
   }
@@ -370,14 +339,11 @@ class AuthService {
       "topics",
       topics,
     );
-    debugPrint('[PushDebug][Topic:sync] topics=$topics');
     if (!kIsWeb) {
       for (final topic in topics) {
         try {
           await FirebaseMessaging.instance.subscribeToTopic(topic);
-          debugPrint('[PushDebug][Topic:sync:subscribed] $topic');
         } catch (_) {
-          debugPrint('[PushDebug][Topic:sync:subscribe:error] $topic');
           // Ignore best-effort topic subscribe failures.
         }
       }

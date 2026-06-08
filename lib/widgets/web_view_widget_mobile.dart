@@ -35,6 +35,25 @@ class _WebViewWidgetState extends State<WebViewWidget> {
       "Mozilla/5.0 (Linux; Android 14; 23076RN4BI) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
 
+  void _handlePaymentStateMessage(String message) {
+    final normalizedMessage = message.toLowerCase();
+    final shouldShowLoading =
+        normalizedMessage.contains("payment processing issue") ||
+            normalizedMessage.contains("processing your top-up") ||
+            (normalizedMessage.contains("fetch start") &&
+                normalizedMessage.contains("payment.wallet-top-up-livewire"));
+    if (!shouldShowLoading) {
+      return;
+    }
+    if (!mounted || isLoading) {
+      return;
+    }
+    setState(() {
+      isLoading = true;
+      showError = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -42,13 +61,18 @@ class _WebViewWidgetState extends State<WebViewWidget> {
       const webview.PlatformWebViewControllerCreationParams(),
     );
     if (controller.platform is webview_android.AndroidWebViewController) {
-      webview_android.AndroidWebViewController.enableDebugging(true);
       (controller.platform as webview_android.AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
       unawaited(controller.setUserAgent(_androidMobileChromeUserAgent));
     }
     _controller = controller
       ..setJavaScriptMode(webview.JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        "PaymentState",
+        onMessageReceived: (message) {
+          _handlePaymentStateMessage(message.message);
+        },
+      )
       ..setNavigationDelegate(
         webview.NavigationDelegate(
           onNavigationRequest: (webview.NavigationRequest request) {
@@ -72,6 +96,7 @@ class _WebViewWidgetState extends State<WebViewWidget> {
           },
           onPageStarted: (url) {
             unawaited(_applyWebviewCorsWorkaround());
+            unawaited(_applyPaymentUiStateProbe());
             if (mounted) {
               setState(() {
                 isLoading = true;
@@ -81,6 +106,7 @@ class _WebViewWidgetState extends State<WebViewWidget> {
           },
           onPageFinished: (url) {
             unawaited(_applyWebviewCorsWorkaround());
+            unawaited(_applyPaymentUiStateProbe());
             if (mounted) {
               setState(() {
                 isLoading = false;
@@ -88,7 +114,7 @@ class _WebViewWidgetState extends State<WebViewWidget> {
               });
             }
           },
-          onWebResourceError: (_) {
+          onWebResourceError: (error) {
             if (mounted) {
               setState(() {
                 showError = true;
@@ -128,6 +154,7 @@ class _WebViewWidgetState extends State<WebViewWidget> {
       content: "Do you have a screenshot already?",
       hideCancel: false,
       confirmText: "Yes",
+      confirmColor: Colors.red,
       cancelText: "No",
       cancelAction: () {
         Get.back();
@@ -240,21 +267,185 @@ class _WebViewWidgetState extends State<WebViewWidget> {
     } catch (_) {}
   }
 
+  Future<void> _applyPaymentUiStateProbe() async {
+    try {
+      await _controller.runJavaScript('''
+        (function() {
+          if (window.__ppcTodaPaymentUiStateProbe) {
+            return;
+          }
+          window.__ppcTodaPaymentUiStateProbe = true;
+
+          var send = function(message) {
+            try {
+              PaymentState.postMessage(String(message).slice(0, 900));
+            } catch (e) {}
+          };
+
+          var normalize = function(value) {
+            return String(value || "").replace(/\\s+/g, " ").trim();
+          };
+
+          var interesting = /payment|processing|issue|error|failed|fail|gcash|maya|paymongo|checkout|wallet|load|top.?up|invalid|declined|success/i;
+          var lastText = "";
+
+          var scanVisibleText = function(reason) {
+            try {
+              var bodyText = normalize(document.body && document.body.innerText);
+              if (!bodyText || bodyText === lastText) {
+                return;
+              }
+              lastText = bodyText;
+              if (interesting.test(bodyText)) {
+                send("visible text changed reason=" + reason + " text=" + bodyText.slice(0, 900));
+              }
+            } catch (e) {
+              send("visible text scan error=" + e);
+            }
+          };
+
+          var describeElement = function(element) {
+            try {
+              if (!element) {
+                return "null";
+              }
+              var attrs = [];
+              if (element.id) attrs.push("#" + element.id);
+              if (element.className && typeof element.className === "string") {
+                attrs.push("." + normalize(element.className).replace(/ /g, "."));
+              }
+              var label = normalize(
+                element.innerText ||
+                element.value ||
+                element.getAttribute("aria-label") ||
+                element.getAttribute("name") ||
+                element.getAttribute("type") ||
+                element.tagName
+              );
+              return element.tagName + attrs.join("") + " text=" + label.slice(0, 250);
+            } catch (e) {
+              return "describe error=" + e;
+            }
+          };
+
+          document.addEventListener("click", function(event) {
+            send("click " + describeElement(event.target));
+            setTimeout(function() { scanVisibleText("afterClick"); }, 250);
+            setTimeout(function() { scanVisibleText("afterClickDelay"); }, 1200);
+          }, true);
+
+          document.addEventListener("submit", function(event) {
+            send("submit " + describeElement(event.target));
+            setTimeout(function() { scanVisibleText("afterSubmit"); }, 250);
+          }, true);
+
+          window.addEventListener("error", function(event) {
+          });
+
+          window.addEventListener("unhandledrejection", function(event) {
+          });
+
+          if (window.fetch && !window.__ppcTodaPaymentFetchStateProbe) {
+            window.__ppcTodaPaymentFetchStateProbe = true;
+            var originalFetch = window.fetch.bind(window);
+            window.fetch = function(input, init) {
+              var url = normalize(typeof input === "string" ? input : input && input.url);
+              var method = normalize(init && init.method) || "GET";
+              if (interesting.test(url)) {
+                send("fetch start method=" + method + " url=" + url);
+              }
+              return originalFetch(input, init).then(function(response) {
+                if (interesting.test(url) || !response.ok) {
+                  send("fetch done status=" + response.status + " ok=" + response.ok + " url=" + url);
+                  try {
+                    response.clone().text().then(function(body) {
+                      var text = normalize(body);
+                      if (interesting.test(text)) {
+                        send("fetch body url=" + url + " body=" + text.slice(0, 900));
+                      }
+                    }).catch(function(error) {
+                      send("fetch body read error url=" + url + " error=" + error);
+                    });
+                  } catch (e) {
+                    send("fetch body clone error url=" + url + " error=" + e);
+                  }
+                }
+                return response;
+              }).catch(function(error) {
+                send("fetch error url=" + url + " error=" + error);
+                throw error;
+              });
+            };
+          }
+
+          if (window.XMLHttpRequest && !window.__ppcTodaPaymentXhrStateProbe) {
+            window.__ppcTodaPaymentXhrStateProbe = true;
+            var OriginalXHR = window.XMLHttpRequest;
+            function StateProbeXHR() {
+              var xhr = new OriginalXHR();
+              var targetUrl = "";
+              var method = "";
+              var originalOpen = xhr.open;
+              xhr.open = function(nextMethod, url) {
+                method = normalize(nextMethod);
+                targetUrl = normalize(url);
+                if (interesting.test(targetUrl)) {
+                  send("xhr open method=" + method + " url=" + targetUrl);
+                }
+                return originalOpen.apply(xhr, arguments);
+              };
+              xhr.addEventListener("loadend", function() {
+                if (interesting.test(targetUrl) || xhr.status >= 400) {
+                  send("xhr done status=" + xhr.status + " method=" + method + " url=" + targetUrl);
+                  try {
+                    var text = normalize(xhr.responseText);
+                    if (interesting.test(text)) {
+                      send("xhr body url=" + targetUrl + " body=" + text.slice(0, 900));
+                    }
+                  } catch (e) {
+                    send("xhr body read error url=" + targetUrl + " error=" + e);
+                  }
+                }
+              });
+              xhr.addEventListener("error", function() {
+                send("xhr error method=" + method + " url=" + targetUrl);
+              });
+              return xhr;
+            }
+            window.XMLHttpRequest = StateProbeXHR;
+          }
+
+          try {
+            new MutationObserver(function() {
+              scanVisibleText("mutation");
+            }).observe(document.documentElement || document.body, {
+              childList: true,
+              subtree: true,
+              characterData: true
+            });
+          } catch (e) {
+          }
+
+          scanVisibleText("install");
+          setTimeout(function() { scanVisibleText("installDelay"); }, 1000);
+        })();
+      ''');
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final dividerColor = const Color(0xFF030744).withValues(alpha: 0.1);
     final mediaQuery = MediaQuery.of(context);
-
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        toolbarHeight: 0,
-        backgroundColor: Colors.white,
-      ),
-      body: SafeArea(
+      body: Padding(
+        padding: EdgeInsets.only(
+          top: mediaQuery.padding.top,
+        ),
         child: Column(
           children: [
-            SizedBox(height: mediaQuery.padding.top + 36),
+            const SizedBox(height: 12),
             Row(
               children: [
                 const SizedBox(width: 4),

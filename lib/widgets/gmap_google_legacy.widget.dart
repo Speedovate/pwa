@@ -19,6 +19,7 @@ class GoogleMapWidget extends StatefulWidget {
   final VoidCallback? onCameraMoveStart;
   final void Function(gmaps.LatLng)? onCameraMove;
   final VoidCallback? onLoadError;
+  final VoidCallback? onTap;
 
   const GoogleMapWidget({
     super.key,
@@ -30,6 +31,7 @@ class GoogleMapWidget extends StatefulWidget {
     this.onCameraMoveStart,
     this.onCameraMove,
     this.onLoadError,
+    this.onTap,
   });
 
   @override
@@ -47,6 +49,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   StreamSubscription<html.Event>? _touchStartSub;
   StreamSubscription<html.Event>? _mouseUpSub;
   StreamSubscription<html.Event>? _touchEndSub;
+  StreamSubscription? _clickSub;
   Timer? _centerIdleTimer;
   bool _mapInitialized = false;
   bool _isViewRegistered = false;
@@ -62,7 +65,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void initState() {
     super.initState();
     viewId = 'map-div-${DateTime.now().microsecondsSinceEpoch}';
-    MapService.debugLog('Legacy Google widget init: viewId=$viewId');
     _ensureHideGmapUiStyle();
     _initializeMap();
   }
@@ -70,10 +72,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void _initializeMap() {
     () async {
       try {
-        MapService.debugLog(
-            'Legacy Google widget waiting for Google Maps readiness');
         final ready = await MapService.ensureGoogleMapsReady();
-        MapService.debugLog('Legacy Google widget readiness returned $ready');
         if (!ready) {
           _handleLoadError();
           return;
@@ -81,7 +80,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         if (!mounted) {
           return;
         }
-        MapService.debugLog('Legacy Google widget registering platform view');
         ui.platformViewRegistry.registerViewFactory(
           viewId,
           (int _) {
@@ -116,8 +114,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                 ..mapTypeId = gmaps.MapTypeId.ROADMAP
                 ..styles = const [];
               _map = gmaps.Map(mapDiv as dynamic, mapOptions);
-              MapService.debugLog(
-                  'Legacy Google widget created gmaps.Map instance');
               _syncOverlays();
               widget.onMapCreated?.call(_map!);
               _dragStartSub = _map!.onDragstart.listen(
@@ -140,10 +136,13 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                   _emitCameraMoveEnd(_map?.center);
                 },
               );
+              _clickSub = _map!.onClick.listen(
+                (_) {
+                  widget.onTap?.call();
+                },
+              );
               _mapInitialized = true;
-            } catch (error) {
-              MapService.debugLog(
-                  'Legacy Google widget map creation error: $error');
+            } catch (_) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _handleLoadError();
               });
@@ -152,12 +151,10 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           },
         );
         _isViewRegistered = true;
-        MapService.debugLog('Legacy Google widget platform view registered');
         if (mounted) {
           setState(() {});
         }
-      } catch (error) {
-        MapService.debugLog('Legacy Google widget initialize error: $error');
+      } catch (_) {
         _handleLoadError();
       }
     }();
@@ -193,7 +190,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       return;
     }
     _hasLoadError = true;
-    MapService.debugLog('Legacy Google widget handling load error');
     widget.onLoadError?.call();
   }
 
@@ -350,6 +346,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     _touchStartSub?.cancel();
     _mouseUpSub?.cancel();
     _touchEndSub?.cancel();
+    _clickSub?.cancel();
     super.dispose();
   }
 
