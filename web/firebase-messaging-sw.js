@@ -114,7 +114,7 @@ async function showParsedNotification(payload) {
     {
       body,
       icon: "/icons/webiconsmall.png",
-      badge: "/icons/webiconsmall.png",
+      badge: "/icons/notification-badge.png",
       tag: notificationTagFromPayload(payload, title, body),
       renotify: false,
       data: {
