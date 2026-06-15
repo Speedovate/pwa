@@ -12,11 +12,19 @@ Future<gmaps.LatLng?> getMyLatLng({
 }) async {
   final useFastTimeout =
       !forceFresh && hasRealLocationFix && lastKnownRealLatLng != null;
+  if (!requestPermission) {
+    final permissionState = await _geolocationPermissionState();
+    if (permissionState != 'granted') {
+      return _useFallbackLatLng();
+    }
+  }
   try {
     lastGeolocationErrorMessage = null;
     final position = await _requestCurrentPosition(
       enableHighAccuracy: true,
-      timeout: useFastTimeout ? const Duration(seconds: 5) : null,
+      timeout: useFastTimeout
+          ? const Duration(seconds: 5)
+          : const Duration(seconds: 10),
       maximumAge: useFastTimeout ? const Duration(seconds: 30) : Duration.zero,
     );
     return _storeRealLatLng(position);
@@ -35,12 +43,18 @@ Future<gmaps.LatLng?> getMyLatLng({
         lastGeolocationErrorMessage = _describeGeolocationError(retryError);
       }
     }
-    final existingLocation =
-        _nonDefaultLatLng(lastKnownRealLatLng) ?? _nonDefaultLatLng(initLatLng);
-    initLatLng = existingLocation ?? defaultLatLng;
-    lastGeolocationErrorMessage ??= _describeGeolocationError(e);
-    return initLatLng;
+    return _useFallbackLatLng(error: e);
   }
+}
+
+gmaps.LatLng _useFallbackLatLng({Object? error}) {
+  final existingLocation =
+      _nonDefaultLatLng(lastKnownRealLatLng) ?? _nonDefaultLatLng(initLatLng);
+  initLatLng = existingLocation ?? defaultLatLng;
+  if (error != null) {
+    lastGeolocationErrorMessage ??= _describeGeolocationError(error);
+  }
+  return initLatLng!;
 }
 
 Future<html.Geoposition> _requestCurrentPosition({
@@ -100,12 +114,16 @@ String _describeGeolocationError(Object error) {
 }
 
 Future<bool> _isGeolocationDenied() async {
+  return await _geolocationPermissionState() == 'denied';
+}
+
+Future<String?> _geolocationPermissionState() async {
   try {
     final permissions = globalContext
         .getProperty<JSObject>('navigator'.toJS)
         .getProperty<JSObject?>('permissions'.toJS);
     if (permissions == null) {
-      return false;
+      return null;
     }
     final queryPromise = permissions.callMethod<JSPromise<JSObject?>>(
       'query'.toJS,
@@ -115,8 +133,8 @@ Future<bool> _isGeolocationDenied() async {
     );
     final status = await queryPromise.toDart;
     final state = status?.getProperty<JSString?>('state'.toJS)?.toDart;
-    return '$state' == 'denied';
+    return '$state';
   } catch (_) {
-    return false;
+    return null;
   }
 }

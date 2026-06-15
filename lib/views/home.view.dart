@@ -933,13 +933,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
 
   Widget _buildHomeDrawer(HomeViewModel vm, {bool useScaffoldDrawer = false}) {
     final mediaQuery = MediaQuery.of(context);
-    final drawerTopPadding = kIsWeb && AuthService.device() == "huawei"
-        ? 0.0
-        : mediaQuery.padding.top;
     final content = Container(
       color: Colors.white,
       child: Padding(
-        padding: EdgeInsets.only(top: drawerTopPadding),
+        padding: EdgeInsets.only(top: mediaQuery.padding.top),
         child: Column(
           children: [
             WidgetButton(
