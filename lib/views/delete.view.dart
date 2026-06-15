@@ -228,7 +228,7 @@ class _DeleteViewState extends State<DeleteView> with WidgetsBindingObserver {
                                   onSuffixTap: null,
                                   autoFocus: false,
                                   maxLines: null,
-                                  minLines: 3,
+                                  minLines: 1,
                                 ),
                               ),
                             ),

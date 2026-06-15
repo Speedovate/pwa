@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/adrycallencatapang/StudioProjects/pt_client/build/ios/Debug-iphoneos/Runner.app/Runner'
-relocations:     []
-...

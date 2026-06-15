@@ -171,7 +171,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
         focusNode: internalFocusNode,
         readOnly: widget.readOnly,
         style: TextStyle(
-          height: 1,
+          height: 1.2,
           fontSize: widget.fontSize,
           fontFamily: "Inter",
           fontWeight: FontWeight.bold,
