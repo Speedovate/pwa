@@ -37,7 +37,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyA3tvPnJN8hy3HksAFLDkMHDAC6wMeXS-Q',
-    appId: '1:599344409686:web:7aa57f72d04043dd675ff7',
+    appId: '1:599344409686:web:ae1f18c90ac11007675ff7',
     messagingSenderId: '599344409686',
     projectId: 'toda-pal',
     authDomain: 'toda-pal.firebaseapp.com',

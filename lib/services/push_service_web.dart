@@ -60,7 +60,7 @@ class PushService {
     await _registerServiceWorker();
     _attachForegroundListener();
     _attachTokenRefreshListener();
-    await syncTokenWithServer(requestPermission: false);
+    await syncTokenWithServer(requestPermission: true);
     _notifDebug('web initialize complete');
   }
 
