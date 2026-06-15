@@ -1263,6 +1263,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 ),
               ),
               onTap: () async {
+                if (kIsWeb && AuthService.device() == "huawei") {
+                  await refreshWebAppWithCacheBust();
+                  return;
+                }
                 await launchUrl(
                   Uri.parse("https://ppctoda.com"),
                   mode: LaunchMode.externalApplication,

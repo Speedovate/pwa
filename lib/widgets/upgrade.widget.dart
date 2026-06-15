@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
@@ -222,7 +223,7 @@ class UpgradeWidget extends StatelessWidget {
                         child: ActionButton(
                           text: "Update",
                           onTap: () async {
-                            if (GetPlatform.isWeb) {
+                            if (kIsWeb && AuthService.device() == "huawei") {
                               await refreshWebAppWithCacheBust();
                               return;
                             }
