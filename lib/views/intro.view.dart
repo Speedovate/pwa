@@ -29,16 +29,17 @@ class _IntroViewState extends State<IntroView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!kIsWeb) {
-        unawaited(
-          _requestMobilePermissions(),
-        );
-      }
+      unawaited(
+        _requestStartupPermissions(),
+      );
     });
   }
 
-  Future<void> _requestMobilePermissions() async {
+  Future<void> _requestStartupPermissions() async {
     await PushService.requestNotificationPermissionsIfNeeded();
+    if (kIsWeb) {
+      return;
+    }
     await getMyLatLng(
       forceFresh: true,
       requestPermission: true,

@@ -80,11 +80,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     _initialCenterFuture = _loadInitialCenter();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_handlePendingHomeDrawerDialog());
-      if (!kIsWeb) {
-        unawaited(
-          _requestMobilePermissions(),
-        );
-      }
+      unawaited(
+        _requestStartupPermissions(),
+      );
     });
   }
 
@@ -195,8 +193,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     return latLng;
   }
 
-  Future<void> _requestMobilePermissions() async {
+  Future<void> _requestStartupPermissions() async {
     await PushService.requestNotificationPermissionsIfNeeded();
+    if (kIsWeb) {
+      return;
+    }
     final latLng = await getMyLatLng(
       forceFresh: true,
       requestPermission: true,

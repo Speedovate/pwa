@@ -11,7 +11,6 @@ import 'package:pwa/models/user.model.dart';
 import 'package:pwa/services/push.service.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/services/storage.service.dart';
-import 'package:pwa/utils/browser_utils.dart';
 
 class AuthService {
   static String? bearerToken;
@@ -189,7 +188,7 @@ class AuthService {
 
   static String device() {
     if (kIsWeb) {
-      return isHuaweiLikeBrowser() ? "huawei" : "web";
+      return "huawei";
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.iOS:
@@ -209,15 +208,27 @@ class AuthService {
       "android" => "disable_gbn",
       _ => null,
     };
-    if (reviewVersionKey == null || AppStrings.homeSettingsObject == null) {
+    final homeSettings = AppStrings.homeSettingsObject;
+    if (reviewVersionKey == null || homeSettings is! Map) {
       return false;
     }
-    return "${AppStrings.homeSettingsObject?[reviewVersionKey]}" == versionCode;
+    return "${homeSettings[reviewVersionKey]}" == versionCode;
   }
 
   static Map<String, dynamic>? _upgradeConfigFor(String appKey) {
-    final upgradeConfig =
-        AppStrings.appSettingsObject?["strings"]?["upgrade"]?[appKey];
+    final appSettings = AppStrings.appSettingsObject;
+    if (appSettings is! Map) {
+      return null;
+    }
+    final strings = appSettings["strings"];
+    if (strings is! Map) {
+      return null;
+    }
+    final upgrade = strings["upgrade"];
+    if (upgrade is! Map) {
+      return null;
+    }
+    final upgradeConfig = upgrade[appKey];
     if (upgradeConfig is Map<String, dynamic>) {
       return upgradeConfig;
     }

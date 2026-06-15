@@ -5,7 +5,7 @@ import "package:pwa/utils/functions.dart";
 
 String _reviewDeviceForUserModel() {
   if (kIsWeb) {
-    return isHuaweiLikeBrowser() ? "huawei" : "web";
+    return "huawei";
   }
   switch (defaultTargetPlatform) {
     case TargetPlatform.iOS:
