@@ -13,6 +13,19 @@ firebase.initializeApp({
   appId: "1:599344409686:web:ae1f18c90ac11007675ff7"
 });
 
+self.addEventListener('push', function(event) {
+  event.stopImmediatePropagation();
+
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (error) {
+    notifDebug('web sw push payload parse failed', { error: `${error}` });
+  }
+
+  event.waitUntil(showParsedNotification(payload));
+});
+
 const messaging = firebase.messaging();
 const PWA_STATE_CACHE = 'pwa-notification-state';
 const PWA_STATE_URL = '/__pwa_install_state__';
@@ -59,6 +72,58 @@ function notificationBodyFromPayload(payload) {
   );
 }
 
+function notificationTargetUrlFromPayload(payload) {
+  return (
+    payload?.data?.url ||
+    payload?.data?.link ||
+    payload?.fcmOptions?.link ||
+    payload?.notification?.click_action ||
+    '/'
+  );
+}
+
+function notificationTagFromPayload(payload, title, body) {
+  return (
+    payload?.data?.notification_id ||
+    payload?.data?.id ||
+    payload?.messageId ||
+    payload?.message_id ||
+    `${title}:${body}`
+  );
+}
+
+async function showParsedNotification(payload) {
+  notifDebug('web sw receive push message', payload);
+  const targetUrl = notificationTargetUrlFromPayload(payload);
+  const title = notificationTitleFromPayload(payload);
+  const body = notificationBodyFromPayload(payload);
+  notifDebug('web sw parse result', { title, body });
+  if (!title && !body) {
+    notifDebug('web sw notification skipped empty title/body', payload);
+    return;
+  }
+  notifDebug('web sw create notification', {
+    title,
+    body,
+    targetUrl,
+    data: payload?.data || {},
+  });
+
+  await self.registration.showNotification(
+    title,
+    {
+      body,
+      icon: "/icons/webiconsmall.png",
+      badge: "/icons/webiconsmall.png",
+      tag: notificationTagFromPayload(payload, title, body),
+      renotify: false,
+      data: {
+        url: new URL(targetUrl, self.location.origin).href,
+      },
+    }
+  );
+}
+
 async function rememberPwaState(state) {
   const cache = await caches.open(PWA_STATE_CACHE);
   await cache.put(
@@ -98,40 +163,6 @@ async function focusClient(client, targetUrl) {
   }
   return client;
 }
-
-messaging.onBackgroundMessage((payload) => {
-  notifDebug('web sw receive background message', payload);
-  const targetUrl =
-      payload?.data?.url ||
-      payload?.data?.link ||
-      payload?.fcmOptions?.link ||
-      payload?.notification?.click_action ||
-      '/';
-  const title = notificationTitleFromPayload(payload);
-  const body = notificationBodyFromPayload(payload);
-  notifDebug('web sw parse result', { title, body });
-  if (!title && !body) {
-    notifDebug('web sw notification skipped empty title/body', payload);
-    return;
-  }
-  notifDebug('web sw create notification', {
-    title,
-    body,
-    targetUrl,
-    data: payload?.data || {},
-  });
-
-  self.registration.showNotification(
-    title,
-    {
-      body,
-      icon: "/icons/webiconsmall.png",
-      data: {
-        url: new URL(targetUrl, self.location.origin).href,
-      },
-    }
-  );
-});
 
 self.addEventListener('message', function(event) {
   const data = event.data;
