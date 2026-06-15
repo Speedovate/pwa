@@ -51,6 +51,12 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="basic_channel" />
         <meta-data
+            android:name="com.ppctoda.customer.notification_booking_sound"
+            android:resource="@raw/alert" />
+        <meta-data
+            android:name="com.ppctoda.customer.notification_basic_sound"
+            android:resource="@raw/sound" />
+        <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBulbBRV3toC3XWR9TRVACFTmjgfcsD0TU" />
     </application>

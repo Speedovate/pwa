@@ -830,13 +830,17 @@ Map<String, dynamic> parseJwt(String token) {
 Future<bool> subscribeToServer() async {
   final token = fcmToken?.trim();
   if (token == null || token.isEmpty || token == "null") {
-    debugPrint('[PPC_NOTIF_DEBUG] server subscribe skipped missing token');
+    debugPrint(
+      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+      'server subscribe skipped missing token',
+    );
     return false;
   }
   if (AuthService.isLoggedIn()) {
     final topics = StorageService.prefs?.getStringList("topics") ?? [];
     debugPrint(
-      '[PPC_NOTIF_DEBUG] server subscribe loggedIn=true '
+      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+      'server subscribe loggedIn=true '
       'tokenLength=${token.length} topics=${topics.join(",")}',
     );
     try {
@@ -845,23 +849,31 @@ Future<bool> subscribeToServer() async {
         topics: topics,
       );
       if (apiResponse.allGood) {
-        debugPrint('[PPC_NOTIF_DEBUG] server subscribe success loggedIn=true');
+        debugPrint(
+          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+          'server subscribe success loggedIn=true message=${apiResponse.message}',
+        );
         return true;
       } else {
         debugPrint(
-          '[PPC_NOTIF_DEBUG] server subscribe failed loggedIn=true '
+          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+          'server subscribe failed loggedIn=true '
           'message=${apiResponse.message}',
         );
         throw apiResponse.message;
       }
     } catch (e) {
-      debugPrint('[PPC_NOTIF_DEBUG] server subscribe exception=$e');
+      debugPrint(
+        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+        'server subscribe exception loggedIn=true error=$e',
+      );
       // Ignore FCM registration failures for signed-out users.
     }
   } else {
     final topics = ["all"];
     debugPrint(
-      '[PPC_NOTIF_DEBUG] server subscribe loggedIn=false '
+      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+      'server subscribe loggedIn=false '
       'tokenLength=${token.length} topics=${topics.join(",")}',
     );
     try {
@@ -870,20 +882,31 @@ Future<bool> subscribeToServer() async {
         topics: topics,
       );
       if (apiResponse.allGood) {
-        debugPrint('[PPC_NOTIF_DEBUG] server subscribe success loggedIn=false');
+        debugPrint(
+          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+          'server subscribe success loggedIn=false message=${apiResponse.message}',
+        );
         return true;
       } else {
         debugPrint(
-          '[PPC_NOTIF_DEBUG] server subscribe failed loggedIn=false '
+          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+          'server subscribe failed loggedIn=false '
           'message=${apiResponse.message}',
         );
         throw apiResponse.message;
       }
     } catch (e) {
-      debugPrint('[PPC_NOTIF_DEBUG] server subscribe exception=$e');
+      debugPrint(
+        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+        'server subscribe exception loggedIn=false error=$e',
+      );
       // Ignore FCM registration failures for signed-out users.
     }
   }
+  debugPrint(
+    '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+    'server subscribe returning false',
+  );
   return false;
 }
 

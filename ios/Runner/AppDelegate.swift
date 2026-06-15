@@ -26,14 +26,23 @@ import UserNotifications
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
+    print("[PPC_NOTIF_DEBUG] \(Date().iso8601String) ios native willPresent id=\(notification.request.identifier) userInfo=\(notification.request.content.userInfo)")
     if notification.request.trigger is UNPushNotificationTrigger {
+      print("[PPC_NOTIF_DEBUG] \(Date().iso8601String) ios native suppress remote foreground for flutter local render")
       completionHandler([])
       return
     }
+    print("[PPC_NOTIF_DEBUG] \(Date().iso8601String) ios native present local notification")
     if #available(iOS 14.0, *) {
       completionHandler([.banner, .list, .sound, .badge])
     } else {
       completionHandler([.alert, .sound, .badge])
     }
+  }
+}
+
+private extension Date {
+  var iso8601String: String {
+    ISO8601DateFormatter().string(from: self)
   }
 }

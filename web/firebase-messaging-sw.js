@@ -18,6 +18,47 @@ const PWA_STATE_CACHE = 'pwa-notification-state';
 const PWA_STATE_URL = '/__pwa_install_state__';
 const standaloneClientIds = new Set();
 
+function notifDebug(message, data) {
+  console.log(
+    `[PPC_NOTIF_DEBUG] ${new Date().toISOString()} ${message}`,
+    data || ''
+  );
+}
+
+function normalizeWhitespace(value) {
+  const text = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
+  return text.toLowerCase() === 'null' ? '' : text;
+}
+
+function parseNotificationTitle(title) {
+  const normalizedTitle = normalizeWhitespace(title).toLowerCase();
+  if (normalizedTitle.includes('ride status update')) {
+    notifDebug('web sw parse title matched ride status update', { raw: title });
+    return 'Booking Update';
+  }
+  const parsed = normalizeWhitespace(title);
+  notifDebug('web sw parse title unchanged', { raw: title, parsed });
+  return parsed;
+}
+
+function parseNotificationBody(body) {
+  const parsed = normalizeWhitespace(body).replace(/ride booking/gi, 'booking');
+  notifDebug('web sw parse body', { raw: body, parsed });
+  return parsed;
+}
+
+function notificationTitleFromPayload(payload) {
+  return parseNotificationTitle(
+    payload?.data?.title ?? payload?.notification?.title ?? ''
+  );
+}
+
+function notificationBodyFromPayload(payload) {
+  return parseNotificationBody(
+    payload?.data?.body ?? payload?.notification?.body ?? ''
+  );
+}
+
 async function rememberPwaState(state) {
   const cache = await caches.open(PWA_STATE_CACHE);
   await cache.put(
@@ -59,17 +100,31 @@ async function focusClient(client, targetUrl) {
 }
 
 messaging.onBackgroundMessage((payload) => {
+  notifDebug('web sw receive background message', payload);
   const targetUrl =
       payload?.data?.url ||
       payload?.data?.link ||
       payload?.fcmOptions?.link ||
       payload?.notification?.click_action ||
       '/';
+  const title = notificationTitleFromPayload(payload);
+  const body = notificationBodyFromPayload(payload);
+  notifDebug('web sw parse result', { title, body });
+  if (!title && !body) {
+    notifDebug('web sw notification skipped empty title/body', payload);
+    return;
+  }
+  notifDebug('web sw create notification', {
+    title,
+    body,
+    targetUrl,
+    data: payload?.data || {},
+  });
 
   self.registration.showNotification(
-   payload.data["title"] ?? payload.notification?.title ?? '',
+    title,
     {
-      body: payload.data["body"] ?? payload.notification?.body ?? '',
+      body,
       icon: "/icons/webiconsmall.png",
       data: {
         url: new URL(targetUrl, self.location.origin).href,
@@ -102,6 +157,7 @@ self.addEventListener('message', function(event) {
 });
 
 self.addEventListener('notificationclick', function(event) {
+  notifDebug('web sw notification click', event.notification?.data || {});
   event.notification.close();
 
   const targetUrl = event.notification?.data?.url || self.location.origin;

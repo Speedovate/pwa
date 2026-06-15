@@ -84,7 +84,8 @@ class AuthRequest extends HttpService {
       };
       final fcmUrl = "${Api.baseUrl}${Api.fcm}";
       debugPrint(
-        '[PPC_NOTIF_DEBUG] fcm request POST url=$fcmUrl '
+        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+        'fcm request POST url=$fcmUrl '
         'tokenLength=${token.length} topics=${topics.join(",")}',
       );
       final apiResult = await post(
@@ -92,19 +93,35 @@ class AuthRequest extends HttpService {
         body,
       );
       final postResponse = ApiResponse.fromResponse(apiResult);
+      debugPrint(
+        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+        'fcm request POST response success=${postResponse.allGood} '
+        'message=${postResponse.message}',
+      );
       if (!postResponse.message.contains('POST method is not supported')) {
         return postResponse;
       }
 
       debugPrint(
-        '[PPC_NOTIF_DEBUG] fcm request fallback GET url=$fcmUrl',
+        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+        'fcm request fallback GET url=$fcmUrl',
       );
       final fallbackResult = await get(
         fcmUrl,
         queryParameters: body,
       );
-      return ApiResponse.fromResponse(fallbackResult);
+      final fallbackResponse = ApiResponse.fromResponse(fallbackResult);
+      debugPrint(
+        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+        'fcm request fallback GET response success=${fallbackResponse.allGood} '
+        'message=${fallbackResponse.message}',
+      );
+      return fallbackResponse;
     } catch (e) {
+      debugPrint(
+        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
+        'fcm request failed error=$e',
+      );
       throw e.toString();
     }
   }
