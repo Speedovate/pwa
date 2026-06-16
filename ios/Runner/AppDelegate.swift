@@ -28,6 +28,9 @@ import UserNotifications
   ) {
     print("[PPC_NOTIF_DEBUG] \(Date().iso8601String) ios native willPresent id=\(notification.request.identifier) userInfo=\(notification.request.content.userInfo)")
     if notification.request.trigger is UNPushNotificationTrigger {
+      super.userNotificationCenter(center, willPresent: notification) { _ in
+        print("[PPC_NOTIF_DEBUG] \(Date().iso8601String) ios native forwarded remote foreground to flutter plugins")
+      }
       print("[PPC_NOTIF_DEBUG] \(Date().iso8601String) ios native suppress remote foreground for flutter local render")
       completionHandler([])
       return
