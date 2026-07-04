@@ -57,6 +57,9 @@ class HttpService {
     String url, {
     Map<String, dynamic>? queryParameters,
     bool includeHeaders = true,
+    Duration? connectTimeout,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -73,13 +76,18 @@ class HttpService {
     );
 
     try {
-      return _handleResponse(
-        await dio.get(
-          uri,
-          options: options,
-          queryParameters: queryParameters,
+      return _runWithTimeoutOverrides(
+        connectTimeout: connectTimeout,
+        sendTimeout: sendTimeout,
+        receiveTimeout: receiveTimeout,
+        action: () async => _handleResponse(
+          await dio.get(
+            uri,
+            options: options,
+            queryParameters: queryParameters,
+          ),
+          requestStartedAt: requestStartedAt,
         ),
-        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -95,6 +103,9 @@ class HttpService {
     String url,
     dynamic body, {
     bool includeHeaders = true,
+    Duration? connectTimeout,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -111,13 +122,18 @@ class HttpService {
     );
 
     try {
-      return _handleResponse(
-        await dio.post(
-          uri,
-          data: _convertBool(body),
-          options: options,
+      return _runWithTimeoutOverrides(
+        connectTimeout: connectTimeout,
+        sendTimeout: sendTimeout,
+        receiveTimeout: receiveTimeout,
+        action: () async => _handleResponse(
+          await dio.post(
+            uri,
+            data: _convertBool(body),
+            options: options,
+          ),
+          requestStartedAt: requestStartedAt,
         ),
-        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -133,6 +149,9 @@ class HttpService {
     String url,
     dynamic body, {
     bool includeHeaders = true,
+    Duration? connectTimeout,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -149,13 +168,18 @@ class HttpService {
     );
 
     try {
-      return _handleResponse(
-        await dio.post(
-          uri,
-          data: FormData.fromMap(_convertBool(body)),
-          options: options,
+      return _runWithTimeoutOverrides(
+        connectTimeout: connectTimeout,
+        sendTimeout: sendTimeout,
+        receiveTimeout: receiveTimeout,
+        action: () async => _handleResponse(
+          await dio.post(
+            uri,
+            data: FormData.fromMap(_convertBool(body)),
+            options: options,
+          ),
+          requestStartedAt: requestStartedAt,
         ),
-        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -172,6 +196,9 @@ class HttpService {
     dynamic body, {
     FormData? formData,
     bool includeHeaders = true,
+    Duration? connectTimeout,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -190,13 +217,18 @@ class HttpService {
     try {
       final effectiveFormData =
           formData ?? FormData.fromMap(_convertBool(body ?? {}));
-      return _handleResponse(
-        await dio.post(
-          uri,
-          data: effectiveFormData,
-          options: options,
+      return _runWithTimeoutOverrides(
+        connectTimeout: connectTimeout,
+        sendTimeout: sendTimeout,
+        receiveTimeout: receiveTimeout,
+        action: () async => _handleResponse(
+          await dio.post(
+            uri,
+            data: effectiveFormData,
+            options: options,
+          ),
+          requestStartedAt: requestStartedAt,
         ),
-        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -207,6 +239,35 @@ class HttpService {
       throw "An unexpected error occurred: $e";
     } finally {
       slowRequestTimer.cancel();
+    }
+  }
+
+  Future<T> _runWithTimeoutOverrides<T>({
+    required Future<T> Function() action,
+    Duration? connectTimeout,
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
+  }) async {
+    final previousConnectTimeout = dio.options.connectTimeout;
+    final previousSendTimeout = dio.options.sendTimeout;
+    final previousReceiveTimeout = dio.options.receiveTimeout;
+
+    if (connectTimeout != null) {
+      dio.options.connectTimeout = connectTimeout;
+    }
+    if (sendTimeout != null) {
+      dio.options.sendTimeout = sendTimeout;
+    }
+    if (receiveTimeout != null) {
+      dio.options.receiveTimeout = receiveTimeout;
+    }
+
+    try {
+      return await action();
+    } finally {
+      dio.options.connectTimeout = previousConnectTimeout;
+      dio.options.sendTimeout = previousSendTimeout;
+      dio.options.receiveTimeout = previousReceiveTimeout;
     }
   }
 

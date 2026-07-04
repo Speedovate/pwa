@@ -11,6 +11,10 @@ import 'package:pwa/models/api_response.model.dart';
 
 class AuthRequest extends HttpService {
   static const int _mobileUploadMaxLongSide = 1080;
+  static const int _webUploadMaxLongSide = 1080;
+  static const Duration _authConnectTimeout = Duration(seconds: 60);
+  static const Duration _authSendTimeout = Duration(seconds: 120);
+  static const Duration _authReceiveTimeout = Duration(seconds: 120);
 
   String _selfieUploadFilename({
     bool mobileProfileUpdate = false,
@@ -63,12 +67,13 @@ class AuthRequest extends HttpService {
     if (selfieFileNeedsHorizontalFlip) {
       effectiveBytes = await _flipImageBytesHorizontally(effectiveBytes);
     }
-    if (!kIsWeb) {
-      effectiveBytes = await _resizeImageBytesForUpload(
-        effectiveBytes,
-        maxLongSide: _mobileUploadMaxLongSide,
-      );
-    }
+    int uploadMaxLongSide = kIsWeb
+        ? _webUploadMaxLongSide
+        : _mobileUploadMaxLongSide;
+    effectiveBytes = await _resizeImageBytesForUpload(
+      effectiveBytes,
+      maxLongSide: uploadMaxLongSide,
+    );
     return effectiveBytes;
   }
 
@@ -131,6 +136,9 @@ class AuthRequest extends HttpService {
           "password": password,
           "role": "client",
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -150,6 +158,9 @@ class AuthRequest extends HttpService {
           "provider": "google",
           "firebase_id_token": idToken,
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -177,6 +188,9 @@ class AuthRequest extends HttpService {
           "email": email,
           "phone": phone,
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -195,6 +209,9 @@ class AuthRequest extends HttpService {
           "type": type,
           "phone": phone,
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -213,6 +230,9 @@ class AuthRequest extends HttpService {
           "code": code,
           "phone": phone,
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -290,6 +310,9 @@ class AuthRequest extends HttpService {
         Api.authSignUp,
         null,
         formData: formData,
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -369,6 +392,9 @@ class AuthRequest extends HttpService {
         Api.authSignUp,
         null,
         formData: formData,
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -385,6 +411,9 @@ class AuthRequest extends HttpService {
         queryParameters: {
           "phone": phone,
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -403,6 +432,9 @@ class AuthRequest extends HttpService {
           "phone": phone,
           "password": password,
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -424,6 +456,9 @@ class AuthRequest extends HttpService {
           "new_password": nPassword,
           "new_password_confirmation": cPassword,
         },
+        connectTimeout: _authConnectTimeout,
+        sendTimeout: _authSendTimeout,
+        receiveTimeout: _authReceiveTimeout,
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
