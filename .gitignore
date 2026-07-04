@@ -42,6 +42,7 @@ app.*.map.json
 /build/*
 !/build/web/
 !/build/web/**
+/build/web/.DS_Store
 /android/app/debug
 /android/app/profile
 /android/app/release
