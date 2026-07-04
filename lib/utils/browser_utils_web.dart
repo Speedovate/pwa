@@ -3,6 +3,7 @@
 import 'dart:html' as html;
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 String browserUserAgent() => html.window.navigator.userAgent.toLowerCase();
@@ -62,12 +63,22 @@ Future<void> openExternalUrl(
   bool sameTab = false,
 }) async {
   try {
+    debugPrint(
+      "[TEMP][OPEN_EXTERNAL_URL] sameTab=$sameTab url=$url currentHref=${html.window.location.href}",
+    );
     if (sameTab) {
+      debugPrint(
+        "[TEMP][OPEN_EXTERNAL_URL_BRANCH] action=location.assign url=$url",
+      );
       html.window.location.assign(url);
       return;
     }
+    debugPrint("[TEMP][OPEN_EXTERNAL_URL_BRANCH] action=window.open url=$url");
     html.window.open(url, '_blank');
   } catch (_) {
+    debugPrint(
+      "[TEMP][OPEN_EXTERNAL_URL_BRANCH] action=launchUrlFallback url=$url",
+    );
     await launchUrl(
       Uri.parse(url),
       mode: LaunchMode.externalApplication,
