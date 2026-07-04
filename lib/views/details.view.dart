@@ -11,7 +11,10 @@ import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pwa/views/chat.view.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/models/address.model.dart';
+import 'package:pwa/utils/map_layers.dart';
+import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/peer_user.model.dart';
+import 'package:pwa/utils/map_controller.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -19,7 +22,9 @@ import 'package:pwa/models/chat_entity.model.dart';
 import 'package:pwa/view_models/details.vm.dart';
 import 'package:pwa/view_models/home.vm.dart';
 import 'package:pwa/models/coordinates.model.dart';
+import 'package:pwa/widgets/gmap.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:pwa/utils/order_status_style.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class DetailsView extends StatefulWidget {
@@ -140,6 +145,148 @@ class _DetailsViewState extends State<DetailsView> {
     }
 
     await _openReadOnlyChat();
+  }
+
+  Widget _buildHeaderStatusChip() {
+    final color = orderStatusTextColor(
+      widget.order.status,
+      reason: widget.order.reason,
+    );
+    final backgroundColor = orderStatusChipBackgroundColor(
+      widget.order.status,
+      reason: widget.order.reason,
+    );
+
+    return SizedBox(
+      height: 25,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 9,
+          vertical: 0,
+        ),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Center(
+          child: Text(
+            orderStatusLabel(
+              widget.order.status,
+              reason: widget.order.reason,
+            ),
+            style: TextStyle(
+              height: 1,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _orderDateLabel() {
+    final createdAt = widget.order.createdAt;
+    if (createdAt == null) {
+      return "Date unavailable";
+    }
+    return "${DateFormat("MMM d, y").format(createdAt)} • ${DateFormat("h:mm a").format(createdAt)}";
+  }
+
+  bool get _hasOrderMapCoordinates {
+    final taxiOrder = widget.order.taxiOrder;
+    return taxiOrder?.pickupLatitude != null &&
+        taxiOrder?.pickupLongitude != null &&
+        taxiOrder?.dropoffLatitude != null &&
+        taxiOrder?.dropoffLongitude != null;
+  }
+
+  List<MapMarkerData> _orderMapMarkers() {
+    final taxiOrder = widget.order.taxiOrder!;
+    return [
+      if (_shouldShowDriverMapMarker)
+        MapMarkerData(
+          id: "driverMarker",
+          position: taxiOrder.driverAcceptLatLng,
+          imageUrl: AppImages.driver,
+          width: 25,
+          height: 25,
+          flat: false,
+          anchor: const Offset(0.5, 1.0),
+        ),
+      MapMarkerData(
+        id: "pickupMarker",
+        position: taxiOrder.pickupLatLng,
+        imageUrl: "",
+        width: 40,
+        height: 40,
+      ),
+      MapMarkerData(
+        id: "dropoffMarker",
+        position: taxiOrder.dropoffLatLng,
+        imageUrl: "",
+        width: 40,
+        height: 40,
+      ),
+    ];
+  }
+
+  bool get _shouldShowDriverMapMarker =>
+      widget.order.hasAssignedDriver &&
+      (widget.order.taxiOrder?.hasValidDriverAcceptCoordinates ?? false);
+
+  List<gmaps.LatLng> _orderMapBoundsCoordinates() {
+    final taxiOrder = widget.order.taxiOrder!;
+    return [
+      taxiOrder.pickupLatLng,
+      taxiOrder.dropoffLatLng,
+      if (_shouldShowDriverMapMarker) taxiOrder.driverAcceptLatLng,
+    ];
+  }
+
+  void _fitOrderMapBounds(AppMapController map) {
+    final taxiOrder = widget.order.taxiOrder;
+    if (taxiOrder == null || !_hasOrderMapCoordinates) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      map.fitToCoordinates(
+        _orderMapBoundsCoordinates(),
+        padding: const EdgeInsets.all(50),
+        animated: false,
+      );
+    });
+  }
+
+  Widget _buildOrderMap() {
+    if (!_hasOrderMapCoordinates) {
+      return const SizedBox.shrink();
+    }
+
+    final taxiOrder = widget.order.taxiOrder!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
+        child: SizedBox(
+          height: 200,
+          child: GoogleMapWidget(
+            center: taxiOrder.pickupLatLng,
+            initialZoom: 11,
+            padding: const EdgeInsets.only(top: 50),
+            enableGestures: true,
+            markers: _orderMapMarkers(),
+            polylines: const [],
+            onMapCreated: _fitOrderMapBounds,
+          ),
+        ),
+      ),
+    );
   }
 
   Address _historyRouteAddress({
@@ -283,12 +430,15 @@ class _DetailsViewState extends State<DetailsView> {
         final isProvider = isBool(AuthService.currentUser?.isProvider);
         final discount = widget.order.discount ?? 0;
         final markupAmount =
-            (vm.orderData?["markup_amount"] as num?)?.toDouble() ?? 0;
+            (vm.orderData?["markup_amount"] as num?)?.toDouble() ??
+                widget.order.resolvedMarkupAmount;
         final sourceLabel = widget.order.taxiOrder?.isWalkIn == true
             ? "Via Spot"
             : isProvider && markupAmount > 0
                 ? "Via App | Guest"
-                : isProvider && discount > 0
+                : isProvider &&
+                        (widget.order.appearsToBeProviderStaffFare ||
+                            discount > 0)
                     ? "Via App | Staff"
                     : "Via App";
 
@@ -335,21 +485,26 @@ class _DetailsViewState extends State<DetailsView> {
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              DateFormat("dd MMM yyyy, h:mm a").format(
-                                widget.order.createdAt!,
-                              ),
+                        const SizedBox(width: 2),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              "#${widget.order.id}",
                               style: const TextStyle(
-                                height: 1.05,
+                                height: 1,
+                                fontSize: 25,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF030744),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            _buildHeaderStatusChip(),
+                          ],
                         ),
-                        const SizedBox(width: 64),
+                        const Expanded(child: SizedBox.shrink()),
+                        const SizedBox(width: 12),
                       ],
                     ),
                     const SizedBox(
@@ -545,118 +700,18 @@ class _DetailsViewState extends State<DetailsView> {
                         child: Column(
                           children: [
                             const SizedBox(height: 16),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: () {
-                                  final status = widget.order.status;
-                                  if (status == "pending") {
-                                    return Colors.blue.shade100;
-                                  } else if (status == "preparing") {
-                                    return Colors.blue.shade100;
-                                  } else if (status == "ready") {
-                                    return Colors.blue.shade100;
-                                  } else if (status == "enroute") {
-                                    return Colors.orange.shade100;
-                                  } else if (status == "failed") {
-                                    return Colors.red.shade100;
-                                  } else if (status == "cancelled") {
-                                    if (widget.order.reason == "rebook") {
-                                      return Colors.orange.shade100;
-                                    } else if (widget.order.reason == "pass") {
-                                      return Colors.orange.shade100;
-                                    } else {
-                                      return Colors.red.shade100;
-                                    }
-                                  } else if (status == "delivered") {
-                                    return Colors.green.shade100;
-                                  } else {
-                                    return Colors.blue.shade100;
-                                  }
-                                }(),
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(4),
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                  horizontal: 8,
-                                ),
-                                child: Text(
-                                  () {
-                                    final status = widget.order.status;
-                                    if (status == "pending") {
-                                      return "Searching";
-                                    } else if (status == "preparing") {
-                                      return "Waiting";
-                                    } else if (status == "ready") {
-                                      return "Arrived";
-                                    } else if (status == "enroute") {
-                                      return "Ongoing";
-                                    } else if (status == "failed") {
-                                      return "Failed";
-                                    } else if (status == "cancelled") {
-                                      if (widget.order.reason == "rebook") {
-                                        return "Rebooked";
-                                      } else if (widget.order.reason ==
-                                          "pass") {
-                                        return "Passed";
-                                      } else {
-                                        return "Cancelled";
-                                      }
-                                    } else if (status == "delivered") {
-                                      return "Completed";
-                                    } else {
-                                      return "Connecting";
-                                    }
-                                  }(),
-                                  style: TextStyle(
-                                    height: 1,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w400,
-                                    color: () {
-                                      final status = widget.order.status;
-                                      if (status == "pending") {
-                                        return Colors.blue;
-                                      } else if (status == "preparing") {
-                                        return Colors.blue;
-                                      } else if (status == "ready") {
-                                        return Colors.blue;
-                                      } else if (status == "enroute") {
-                                        return Colors.orange;
-                                      } else if (status == "failed") {
-                                        return Colors.red;
-                                      } else if (status == "cancelled") {
-                                        if (widget.order.reason == "rebook") {
-                                          return Colors.orange;
-                                        } else if (widget.order.reason ==
-                                            "pass") {
-                                          return Colors.orange;
-                                        } else {
-                                          return Colors.red;
-                                        }
-                                      } else if (status == "delivered") {
-                                        return Colors.green;
-                                      } else {
-                                        return Colors.blue;
-                                      }
-                                    }(),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 12,
-                            ),
                             Text(
-                              "#${widget.order.id}",
+                              _orderDateLabel(),
                               style: const TextStyle(
-                                height: 1,
+                                height: 1.05,
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
                                 color: Color(0xFF030744),
                               ),
                             ),
+                            if (_hasOrderMapCoordinates) ...[
+                              const SizedBox(height: 16),
+                              _buildOrderMap(),
+                            ],
                             const SizedBox(height: 16),
                             Padding(
                               padding: const EdgeInsets.symmetric(
@@ -839,7 +894,7 @@ class _DetailsViewState extends State<DetailsView> {
                                       ),
                                       const Expanded(child: SizedBox.shrink()),
                                       Text(
-                                        "₱${((widget.order.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && (widget.order.discount ?? 0) == 0 ? (vm.orderData?["markup_amount"] ?? 0) : 0)).toStringAsFixed(0)}",
+                                        "₱${((widget.order.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && markupAmount > 0 ? markupAmount : 0)).toStringAsFixed(0)}",
                                         style: const TextStyle(
                                           color: Color(0xFF030744),
                                         ),

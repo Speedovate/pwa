@@ -36,6 +36,8 @@ bool isGoogleAuthLikelySupported() => !isIOSLikeBrowser();
 
 bool isWebPushLikelySupported() => html.window.navigator.serviceWorker != null;
 
+bool isBrowserOnline() => html.window.navigator.onLine ?? true;
+
 Future<bool> tryNativeShare({
   required String title,
   required String text,
@@ -55,8 +57,15 @@ Future<bool> tryNativeShare({
   }
 }
 
-Future<void> openExternalUrl(String url) async {
+Future<void> openExternalUrl(
+  String url, {
+  bool sameTab = false,
+}) async {
   try {
+    if (sameTab) {
+      html.window.location.assign(url);
+      return;
+    }
     html.window.open(url, '_blank');
   } catch (_) {
     await launchUrl(

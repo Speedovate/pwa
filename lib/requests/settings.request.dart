@@ -6,11 +6,7 @@ import 'package:pwa/models/api_response.model.dart';
 class SettingsRequest extends HttpService {
   Future<ApiResponse> homeSettingsRequest() async {
     try {
-      final apiResult = await get(Api.homeConfigs).timeout(
-        const Duration(
-          seconds: 30,
-        ),
-      );
+      final apiResult = await get(Api.homeConfigs);
       final apiResponse = ApiResponse.fromResponse(apiResult);
       return apiResponse;
     } catch (e) {
@@ -20,11 +16,7 @@ class SettingsRequest extends HttpService {
 
   Future<ApiResponse> appSettingsRequest() async {
     try {
-      final apiResult = await get(Api.appConfigs).timeout(
-        const Duration(
-          seconds: 30,
-        ),
-      );
+      final apiResult = await get(Api.appConfigs);
       final apiResponse = ApiResponse.fromResponse(apiResult);
       return apiResponse;
     } catch (e) {
@@ -37,8 +29,6 @@ class SettingsRequest extends HttpService {
       final apiResult = await get(
         "${Api.baseUrl}${Api.banners}",
         includeHeaders: true,
-      ).timeout(
-        const Duration(seconds: 30),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {

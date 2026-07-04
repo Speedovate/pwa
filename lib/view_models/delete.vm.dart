@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -100,20 +101,7 @@ class DeleteViewModel extends BaseViewModel {
               return;
             }
             AlertService().stopLoading();
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(
-              Get.context!,
-            ).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  e.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            );
+            showError(e);
           }
         },
       );

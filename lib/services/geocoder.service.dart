@@ -9,6 +9,7 @@ import 'package:pwa/models/address.model.dart';
 import 'package:pwa/services/http.service.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/models/api_response.model.dart';
+import 'package:pwa/services/connection_banner.service.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
 
 class GeocoderService extends HttpService {
@@ -16,10 +17,13 @@ class GeocoderService extends HttpService {
 
   GeocoderService._();
 
+  bool get _defaultUseExternal =>
+      !ConnectionBannerService.isServerBannerVisible;
+
   Future<List<Address>> findAddressesFromCoordinates(
       Coordinates coordinates) async {
     final useExternal = isBool(
-      AppStrings.appSettingsObject?["strings"][useExt] ?? true,
+      AppStrings.appSettingsObject?["strings"][useExt] ?? _defaultUseExternal,
     );
     final apiResult = await get(
       !useExternal
@@ -30,7 +34,7 @@ class GeocoderService extends HttpService {
         "lng": coordinates.longitude,
       },
       includeHeaders: !useExternal,
-    ).timeout(const Duration(seconds: 30));
+    );
 
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {
@@ -53,7 +57,7 @@ class GeocoderService extends HttpService {
   Future<List<Address>> findAddressesFromQuery(String keyword) async {
     String latLng = "${initLatLng?.lat},${initLatLng?.lng}";
     bool useExternal = isBool(
-      AppStrings.appSettingsObject?["strings"][useExt] ?? true,
+      AppStrings.appSettingsObject?["strings"][useExt] ?? _defaultUseExternal,
     );
     List<Address> results = [];
     if (useExternal) {
@@ -65,7 +69,7 @@ class GeocoderService extends HttpService {
             "location": latLng,
           },
           includeHeaders: false,
-        ).timeout(const Duration(seconds: 30));
+        );
         final apiResponse = ApiResponse.fromResponse(response);
         if (apiResponse.allGood) {
           return (apiResponse.data).map((e) {
@@ -84,7 +88,7 @@ class GeocoderService extends HttpService {
           "keyword": keyword,
           "location": latLng,
         },
-      ).timeout(const Duration(seconds: 30));
+      );
       final apiResponse = ApiResponse.fromResponse(mainResponse);
       if (apiResponse.allGood) {
         results.addAll(
@@ -104,7 +108,7 @@ class GeocoderService extends HttpService {
           "location": latLng,
         },
         includeHeaders: false,
-      ).timeout(const Duration(seconds: 30));
+      );
 
       final apiResponse = ApiResponse.fromResponse(backrideResponse);
       if (apiResponse.allGood) {
@@ -122,7 +126,7 @@ class GeocoderService extends HttpService {
 
   Future<Address> fetchPlaceDetails(Address address) async {
     final useExternal = isBool(
-      AppStrings.appSettingsObject?["strings"][useExt] ?? true,
+      AppStrings.appSettingsObject?["strings"][useExt] ?? _defaultUseExternal,
     );
     final apiResult = await get(
       !useExternal
@@ -132,7 +136,7 @@ class GeocoderService extends HttpService {
         "place_id": address.gMapPlaceId,
       },
       includeHeaders: !useExternal,
-    ).timeout(const Duration(seconds: 30));
+    );
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {
       try {
@@ -150,7 +154,7 @@ class GeocoderService extends HttpService {
     String purpose,
   ) async {
     final useExternal = isBool(
-      AppStrings.appSettingsObject?["strings"][useExt] ?? true,
+      AppStrings.appSettingsObject?["strings"][useExt] ?? _defaultUseExternal,
     );
     final apiResult = await get(
       !useExternal
@@ -163,7 +167,7 @@ class GeocoderService extends HttpService {
         "destination": "${pointB.lat},${pointB.lng}",
       },
       includeHeaders: !useExternal,
-    ).timeout(const Duration(seconds: 30));
+    );
     final apiResponse = ApiResponse.fromResponse(apiResult);
     if (apiResponse.allGood) {
       final decoded = decodeEncodedPolyline(

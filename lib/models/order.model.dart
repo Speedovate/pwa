@@ -19,6 +19,7 @@ class Order {
   double? total;
   double? discount;
   double? subTotal;
+  double? markupAmount;
   bool? canRate;
   bool? canRateDriver;
   String? type;
@@ -35,6 +36,7 @@ class Order {
   User? user;
   Driver? driver;
   TaxiOrder? taxiOrder;
+  List<OrderStatus> statuses;
 
   Order({
     this.id,
@@ -45,6 +47,7 @@ class Order {
     this.total,
     this.discount,
     this.subTotal,
+    this.markupAmount,
     this.canRate,
     this.canRateDriver,
     this.type,
@@ -61,12 +64,12 @@ class Order {
     this.user,
     this.driver,
     this.taxiOrder,
+    this.statuses = const [],
   });
 
   factory Order.fromJson(Map<String, dynamic>? json) {
     try {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return Order(
         id: parseInt(json?["id"], "id"),
         userId: parseInt(json?["user_id"], "user_id"),
@@ -77,6 +80,7 @@ class Order {
         total: parseDouble(json?["total"], "total"),
         discount: parseDouble(json?["discount"], "discount"),
         subTotal: parseDouble(json?["sub_total"], "sub_total"),
+        markupAmount: parseDouble(json?["markup_amount"], "markup_amount"),
         canRate: parseBool(json?["can_rate"], "can_rate"),
         canRateDriver: parseBool(json?["can_rate_driver"], "can_rate_driver"),
         type: parseString(json?["type"], "type"),
@@ -98,10 +102,14 @@ class Order {
         taxiOrder: json?["taxi_order"] == null
             ? null
             : TaxiOrder.fromJson(json?["taxi_order"]),
+        statuses: json?["statuses"] is List
+            ? (json?["statuses"] as List)
+                .map((status) => OrderStatus.fromJson(status))
+                .toList()
+            : [],
       );
     } catch (e) {
-      if (showParseText) {
-      }
+      if (showParseText) {}
       return Order();
     }
   }
@@ -115,6 +123,7 @@ class Order {
         "total": total,
         "discount": discount,
         "sub_total": subTotal,
+        "markup_amount": markupAmount,
         "can_rate": canRate,
         "can_rate_driver": canRateDriver,
         "type": type,
@@ -131,6 +140,7 @@ class Order {
         "user": user?.toJson(),
         "driver": driver?.toJson(),
         "taxi_order": taxiOrder?.toJson(),
+        "statuses": statuses.map((status) => status.toJson()).toList(),
       };
 
   bool get isCompleted =>
@@ -142,8 +152,91 @@ class Order {
         ["cancelled", "delivered"].contains(status);
   }
 
+  bool get hasAssignedDriver {
+    if (driver != null) {
+      return true;
+    }
+    final normalizedDriverId = "${driverId ?? ""}".trim().toLowerCase();
+    return normalizedDriverId.isNotEmpty && normalizedDriverId != "null";
+  }
+
+  double get resolvedMarkupAmount {
+    return markupAmount ?? 0;
+  }
+
+  bool get appearsToBeProviderGuestFare {
+    if (resolvedMarkupAmount > 0) {
+      return true;
+    }
+    final totalValue = total ?? 0;
+    final subTotalValue = subTotal ?? 0;
+    if (totalValue <= 0 || subTotalValue <= 0) {
+      return false;
+    }
+    return totalValue - subTotalValue > 20.0001;
+  }
+
+  bool get appearsToBeProviderStaffFare {
+    if (resolvedMarkupAmount > 0) {
+      return false;
+    }
+    final totalValue = total ?? 0;
+    final subTotalValue = subTotal ?? 0;
+    if (totalValue <= 0 || subTotalValue <= 0) {
+      return false;
+    }
+    final delta = totalValue - subTotalValue;
+    return delta.abs() <= 0.0001 || (delta - 20).abs() <= 0.0001;
+  }
+
   gmaps.LatLng get driverLatLng => gmaps.LatLng(
         driver?.lat ?? 0.0,
         driver?.lng ?? 0.0,
       );
+}
+
+class OrderStatus {
+  int? id;
+  String? name;
+  String? reason;
+  String? modelType;
+  int? modelId;
+  DateTime? createdAt;
+  DateTime? updatedAt;
+
+  OrderStatus({
+    this.id,
+    this.name,
+    this.reason,
+    this.modelType,
+    this.modelId,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory OrderStatus.fromJson(Map<String, dynamic>? json) {
+    try {
+      return OrderStatus(
+        id: parseInt(json?["id"], "id"),
+        name: parseString(json?["name"], "name"),
+        reason: parseString(json?["reason"], "reason"),
+        modelType: parseString(json?["model_type"], "model_type"),
+        modelId: parseInt(json?["model_id"], "model_id"),
+        createdAt: parseDateTime(json?["created_at"], "created_at"),
+        updatedAt: parseDateTime(json?["updated_at"], "updated_at"),
+      );
+    } catch (_) {
+      return OrderStatus();
+    }
+  }
+
+  Map<String, dynamic> toJson() => {
+        "id": id,
+        "name": name,
+        "reason": reason,
+        "model_type": modelType,
+        "model_id": modelId,
+        "created_at": createdAt?.toIso8601String(),
+        "updated_at": updatedAt?.toIso8601String(),
+      };
 }

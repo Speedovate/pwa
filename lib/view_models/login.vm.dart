@@ -104,20 +104,7 @@ class LoginViewModel extends BaseViewModel {
         await handleDeviceLogin(apiResponse);
       } catch (e) {
         AlertService().stopLoading(forceStop: true);
-        ScaffoldMessenger.of(Get.context!).clearSnackBars();
-        ScaffoldMessenger.of(
-          Get.context!,
-        ).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              e.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
+        showError(e);
       }
     }
   }
@@ -188,7 +175,7 @@ class LoginViewModel extends BaseViewModel {
       if (apiResponse.allGood) {
         await handleDeviceLogin(apiResponse);
       } else {
-        throw Exception(apiResponse.message);
+        throw apiResponse.message;
       }
     } on FirebaseAuthException catch (e) {
       showError(e.message ?? e.code);
@@ -214,7 +201,7 @@ class LoginViewModel extends BaseViewModel {
       AlertService().showAppAlert(
         asset: AppLotties.error,
         title: "Login Failed",
-        content: apiResponse.message,
+        content: cleanErrorMessage(apiResponse.message),
       );
     } else {
       final fbToken = apiResponse.body?["fb_token"];

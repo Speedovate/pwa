@@ -202,7 +202,7 @@ class _SettingsViewState extends State<SettingsView> {
                           ),
                           SizedBox(width: 12),
                           Text(
-                            "Logout",
+                            "Logout Account",
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,

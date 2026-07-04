@@ -69,6 +69,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   final List<String> _pendingAutomaticPartnerDisplays = [];
   bool _acceptedDefaultLocationFallback = false;
   bool _keepHomeMapInteractionBlocked = false;
+  bool _isPressingPartnerButton = false;
+  bool _isPressingPartnerDisplay = false;
 
   @override
   void initState() {
@@ -126,6 +128,24 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
+  void _setPartnerButtonPressActive(bool isPressed) {
+    if (_isPressingPartnerButton == isPressed || !mounted) {
+      return;
+    }
+    setState(() {
+      _isPressingPartnerButton = isPressed;
+    });
+  }
+
+  void _setPartnerDisplayPressActive(bool isPressed) {
+    if (_isPressingPartnerDisplay == isPressed || !mounted) {
+      return;
+    }
+    setState(() {
+      _isPressingPartnerDisplay = isPressed;
+    });
+  }
+
   Future<void> _handlePendingHomeDrawerDialog() async {
     final pendingDialog = consumeHomeDrawerDialog();
     if (pendingDialog == null || !mounted) {
@@ -180,7 +200,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     }
     final latLng = await getMyLatLng(
       forceFresh: true,
-      requestPermission: false,
+      requestPermission: true,
     );
     if (lastGeolocationErrorMessage != null &&
         !_acceptedDefaultLocationFallback) {
@@ -195,23 +215,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
 
   Future<void> _requestStartupPermissions() async {
     await PushService.requestNotificationPermissionsIfNeeded();
-    if (kIsWeb) {
-      return;
-    }
-    final latLng = await getMyLatLng(
-      forceFresh: true,
-      requestPermission: true,
-    );
-    if (!mounted ||
-        latLng == null ||
-        homeViewModel.isResolvingInitialOngoingOrder ||
-        homeViewModel.ongoingOrder != null) {
-      return;
-    }
-    setState(() {
-      _homeMapCenter = latLng;
-      _initialCenterFuture = Future.value(latLng);
-    });
   }
 
   void _retryInitialCenter() {
@@ -286,6 +289,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     if (_hasQueuedAutomaticPartnerDisplays ||
         _activePartnerDisplay != null ||
         AuthService.inReviewMode() ||
+        vm.shouldSuppressAutomaticPartnerDisplays ||
         vm.ongoingOrder != null ||
         !isBool(AppStrings.homeSettingsObject?["show_ad"] ?? true)) {
       return;
@@ -295,7 +299,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     if (gBanners.isEmpty) {
       await SplashViewModel().getBanners();
     }
-    if (!mounted || _activePartnerDisplay != null) {
+    if (!mounted ||
+        _activePartnerDisplay != null ||
+        vm.shouldSuppressAutomaticPartnerDisplays ||
+        vm.ongoingOrder != null) {
       return;
     }
 
@@ -345,6 +352,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         : null;
     setState(() {
       _activePartnerDisplay = nextAutomaticPartner;
+      _isPressingPartnerDisplay = false;
       showBranch = false;
     });
     if (nextAutomaticPartner == null) {
@@ -357,6 +365,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     _isShowingAutomaticPartnerDisplay = false;
     setState(() {
       _activePartnerDisplay = null;
+      _isPressingPartnerDisplay = false;
       showBranch = false;
     });
   }
@@ -682,7 +691,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   Future<void> _openSupportChannel([HomeViewModel? vm]) async {
     final canRequestCancellation = vm != null &&
         vm.ongoingOrder != null &&
-        !vm.isEnrouteOrBeyondStatus(vm.ongoingOrder?.status);
+        canShowRequestCancellationPill(
+          status: vm.ongoingOrder?.status,
+          driver: vm.ongoingOrder?.driver,
+          driverId: vm.ongoingOrder?.driverId,
+        );
     await showFacebookSupportDialog(
       context,
       showRequestCancellation: canRequestCancellation,
@@ -698,26 +711,104 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  bool _canShowRequestCancellationPill(String? status) {
-    final normalized = (status ?? "").trim().toLowerCase();
-    return ![
-      "enroute",
-      "delivered",
-      "completed",
-      "successful",
-      "cancelled",
-    ].contains(normalized);
+  bool _canShowRequestCancellationPill(HomeViewModel vm, String? status) {
+    return canShowRequestCancellationPill(
+      status: status,
+      driver: vm.ongoingOrder?.driver,
+      driverId: vm.ongoingOrder?.driverId,
+    );
   }
 
   String? _homeRequestMessageType(String? message) {
-    final normalized = (message ?? "").trim().toLowerCase();
-    if (normalized == "request cancellation") {
-      return "cancellation";
+    return requestMessageType(message);
+  }
+
+  String _homePreviewMessageText(HomeViewModel vm, String? message) {
+    final text = (message ?? "").trim();
+    final requestLabel = displayRequestMessageLabel(text);
+    if (requestLabel.isNotEmpty) {
+      return requestLabel;
     }
-    if (normalized == "request pass") {
-      return "pass";
+    return _homeDisplayContextualParticipantNames(vm, text);
+  }
+
+  String _homeDisplayContextualParticipantNames(
+    HomeViewModel vm,
+    String text,
+  ) {
+    final driverName = (vm.ongoingOrder?.driver?.name ?? "").trim();
+    final currentUserName = (AuthService.currentUser?.name ?? "").trim();
+    var displayText = _homeReplaceDisplayName(
+      text,
+      name: driverName,
+      plainReplacement: "your driver",
+      possessiveReplacement: "your driver's",
+    );
+    displayText = _homeReplaceDisplayName(
+      displayText,
+      name: currentUserName,
+      plainReplacement: "you",
+      possessiveReplacement: "your",
+    );
+    displayText = _homeRemoveParticipantHasPrefix(displayText);
+    return _homeCapitalizeLeadingContextReplacement(displayText);
+  }
+
+  String _homeRemoveParticipantHasPrefix(String text) {
+    return text.replaceFirstMapped(
+      RegExp(r'^(your driver|driver)\s+has\s+', caseSensitive: false),
+      (match) => "${match.group(1) ?? ""} ",
+    );
+  }
+
+  String _homeReplaceDisplayName(
+    String text, {
+    required String name,
+    required String plainReplacement,
+    required String possessiveReplacement,
+  }) {
+    if (name.isEmpty || name.toLowerCase() == "null") {
+      return text;
     }
-    return null;
+
+    final escapedName = name
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .map(RegExp.escape)
+        .join(r'\s+');
+    if (escapedName.isEmpty) {
+      return text;
+    }
+
+    final possessivePattern = RegExp(
+      "(^|[^A-Za-z0-9_])$escapedName['’]s\\b",
+      caseSensitive: false,
+    );
+    final possessiveText = text.replaceAllMapped(
+      possessivePattern,
+      (match) => "${match.group(1) ?? ""}$possessiveReplacement",
+    );
+    final namePattern = RegExp(
+      "(^|[^A-Za-z0-9_])$escapedName\\b",
+      caseSensitive: false,
+    );
+    return possessiveText.replaceAllMapped(
+      namePattern,
+      (match) => "${match.group(1) ?? ""}$plainReplacement",
+    );
+  }
+
+  String _homeCapitalizeLeadingContextReplacement(String text) {
+    if (text.startsWith("your driver")) {
+      return "Your driver${text.substring(11)}";
+    }
+    if (text.startsWith("your")) {
+      return "Your${text.substring(4)}";
+    }
+    if (text.startsWith("you")) {
+      return "You${text.substring(3)}";
+    }
+    return text;
   }
 
   bool _shouldShowAcceptedCancelRequestActions(String? message) {
@@ -739,12 +830,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
           child: QuickChatPills(
             options: options,
             horizontalPadding: 20,
+            enabled: !vm.isSendingQuickChat,
             showRequestCancellation: _canShowRequestCancellationPill(
+                  vm,
                   vm.ongoingOrder?.status,
                 ) &&
                 !vm.hasAcceptedCancelRequest,
             onSelected: (option) async {
-              await vm.sendQuickChatMessage(option);
+              await vm.sendQuickChatMessage(
+                option,
+                openChatAfter: true,
+              );
             },
             onRequestCancellation: () async {
               await vm.sendQuickChatMessage(
@@ -764,14 +860,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       vm,
       requestType: "cancellation",
       color: Colors.red,
-    );
-  }
-
-  Widget _buildHomeRequestPassActions(HomeViewModel vm) {
-    return _buildHomeRequestActions(
-      vm,
-      requestType: "pass",
-      color: const Color(0xFF007BFF),
     );
   }
 
@@ -809,6 +897,15 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
           ),
         ),
       );
+    }
+
+    final canShowGetNewDriverNow = canShowGetNewDriverNowAction(
+      status: vm.ongoingOrder?.status,
+      driver: vm.ongoingOrder?.driver,
+      driverId: vm.ongoingOrder?.driverId,
+    );
+    if (!canShowGetNewDriverNow) {
+      return const SizedBox.shrink();
     }
 
     return Padding(
@@ -856,9 +953,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
           required String label,
           required Future<void> Function() onTap,
         }) {
-          final isUpdating = requestType == "cancellation"
-              ? vm.isUpdatingRequestCancellation
-              : vm.isUpdatingRequestPass;
+          final isUpdating = vm.isUpdatingRequestCancellation;
           return WidgetButton(
             onTap: isUpdating ? () {} : () async => onTap(),
             mainColor: color.withValues(alpha: 0.08),
@@ -912,16 +1007,12 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 if (index == 0) {
                   return buildPill(
                     label: "Reject",
-                    onTap: () => requestType == "cancellation"
-                        ? vm.updateRequestCancellationStatus("rejected")
-                        : vm.updateRequestPassStatus("rejected"),
+                    onTap: () => vm.updateRequestCancellationStatus("rejected"),
                   );
                 }
                 return buildPill(
                   label: "Accept",
-                  onTap: () => requestType == "cancellation"
-                      ? vm.updateRequestCancellationStatus("accepted")
-                      : vm.updateRequestPassStatus("accepted"),
+                  onTap: () => vm.updateRequestCancellationStatus("accepted"),
                 );
               },
             ),
@@ -1133,7 +1224,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               ),
             ListTileWidget(
               leading: const Icon(
-                Icons.headset_outlined,
+                Icons.headset_mic_outlined,
                 color: Color(
                   0xFF030744,
                 ),
@@ -1348,7 +1439,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   }
 
   bool _isBookingSelectionFlow(HomeViewModel vm) {
-    return vm.ongoingOrder == null || vm.ongoingOrder?.status == "cancelled";
+    final status = (vm.ongoingOrder?.status ?? "").trim().toLowerCase();
+    return vm.ongoingOrder == null ||
+        (status == "cancelled" && !vm.isShowingTerminalOrderTransition);
   }
 
   Future<void> _syncHomeAfterMapSelection(
@@ -1439,6 +1532,99 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       pickup: pickup,
       dropoff: dropoff,
       animateMap: true,
+    );
+  }
+
+  Future<void> _clearHomeBookingAddress(
+    HomeViewModel vm, {
+    required bool isPickup,
+  }) async {
+    if (!_isBookingSelectionFlow(vm)) {
+      return;
+    }
+
+    if (isPickup
+        ? pickupAddress == null
+        : dropoffAddress == null) {
+      return;
+    }
+
+    vm.resetManualPaymentMethodOverride();
+    vm.clearGMapDetails();
+    availableDriver = null;
+    vm.selectedVehicle = null;
+    vm.vehicleTypes = [];
+    vm.appliedCoupon = null;
+    vm.promoCodeTEC.clear();
+    locUnavailable = false;
+
+    if (isPickup) {
+      pickupAddress = null;
+      vm.clearPickupDisplayState();
+    } else {
+      dropoffAddress = null;
+      if (pickupAddress != null) {
+        vm.syncPickupDisplayFromAddress();
+      } else {
+        vm.clearPickupDisplayState();
+      }
+    }
+
+    vm.calculateTotalAmount(notify: false);
+    if (mounted) {
+      setState(() {});
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    if (!isPickup && pickupAddress != null) {
+      await _syncHomeAfterMapSelection(
+        vm,
+        isPickupFlow: true,
+      );
+      return;
+    }
+  }
+
+  Widget _buildAddressClearButton(
+    HomeViewModel vm, {
+    required bool isPickup,
+    required bool show,
+  }) {
+    if (!show) {
+      return const SizedBox(width: 12);
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: WidgetButton(
+            onTap: () async {
+              await _clearHomeBookingAddress(
+                vm,
+                isPickup: isPickup,
+              );
+            },
+            borderRadius: 1000,
+            mainColor: Colors.transparent,
+            isTransparentColor: true,
+            useDefaultHoverColor: false,
+            suppressInteraction: true,
+            child: Icon(
+              Icons.close,
+              size: 24,
+              color: const Color(0xFF030744).withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+      ],
     );
   }
 
@@ -1740,19 +1926,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               dialogSetState(() {
                                 isApplyingPromo = false;
                               });
-                              ScaffoldMessenger.of(Get.context!)
-                                  .clearSnackBars();
-                              ScaffoldMessenger.of(Get.context!).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: Colors.red,
-                                  content: Text(
-                                    "$e",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              );
+                              showError(e);
                             }
                             return;
                           },
@@ -1801,7 +1975,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         final isProvider = isBool(AuthService.currentUser?.isProvider);
         final ongoingDiscount = vm.ongoingOrder?.discount ?? 0;
         final ongoingMarkupAmount =
-            (vm.order?["markup_amount"] as num?)?.toDouble() ?? 0;
+            (vm.order?["markup_amount"] as num?)?.toDouble() ??
+                vm.ongoingOrder?.resolvedMarkupAmount ??
+                0;
         final double bookingCardSize =
             ((mediaQuery.size.width - 64) / 3).clamp(0, 120).toDouble();
         const bottomSheetBottomSpacing = 32.0;
@@ -1809,11 +1985,23 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             ? "Via Spot"
             : isProvider && ongoingMarkupAmount > 0
                 ? "Via App | Guest"
-                : isProvider && ongoingDiscount > 0
+                : isProvider &&
+                        ((vm.ongoingOrder?.appearsToBeProviderStaffFare ??
+                                false) ||
+                            ongoingDiscount > 0)
                     ? "Via App | Staff"
                     : "Via App";
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || vm.isResolvingInitialOngoingOrder) {
+            return;
+          }
+          if (vm.shouldSuppressAutomaticPartnerDisplays ||
+              vm.ongoingOrder != null) {
+            if (_activePartnerDisplay != null ||
+                _pendingAutomaticPartnerDisplays.isNotEmpty ||
+                _isShowingAutomaticPartnerDisplay) {
+              _clearPartnerDisplay();
+            }
             return;
           }
           unawaited(_queueAutomaticPartnerDisplaysIfNeeded(vm));
@@ -1987,7 +2175,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   final resolvedCenter = snapshot.data!;
                   final currentCenter = _homeMapCenter;
                   final hasActiveOngoingOrder = vm.ongoingOrder != null &&
-                      vm.ongoingOrder?.status != "cancelled" &&
+                      (vm.ongoingOrder?.status != "cancelled" ||
+                          vm.isShowingTerminalOrderTransition) &&
                       !vm.isCompletedReceiptStatus(vm.ongoingOrder?.status);
                   final hasBookingSelection =
                       pickupAddress != null || dropoffAddress != null;
@@ -2012,18 +2201,27 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                           vm.showMapLoadingIndicator,
                                       builder:
                                           (_, showMapLoadingIndicator, __) {
+                                        final shouldShowHomeMapLoadingIndicator =
+                                            showMapLoadingIndicator ||
+                                                (vm.ongoingOrder == null &&
+                                                    !vm.showBottomUi.value &&
+                                                    (vm.isResolvingInitialOngoingOrder ||
+                                                        vm.isInitializing ||
+                                                        vm.isCameraMovePending));
                                         final canInteractWithMap =
                                             !_keepHomeMapInteractionBlocked &&
-                                                !showMapLoadingIndicator &&
+                                                !_isPressingPartnerButton &&
+                                                !_isPressingPartnerDisplay &&
+                                                !shouldShowHomeMapLoadingIndicator &&
                                                 !vm.isMapInteractionLocked;
                                         return GoogleMapWidget(
                                           center: vm.mapCenter ?? center,
                                           enableGestures: !vm.isDisabled &&
                                               !vm.showAnalytics &&
                                               (hasActiveOngoingOrder ||
-                                                  ((hasBookingSelection ||
-                                                          _activePartnerDisplay ==
-                                                              null) &&
+                                                  (hasBookingSelection &&
+                                                      canInteractWithMap) ||
+                                                  (!hasBookingSelection &&
                                                       canInteractWithMap)),
                                           markers: vm.markers,
                                           polylines: vm.polylines,
@@ -2045,6 +2243,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                               );
                                               await LoadViewModel()
                                                   .getLoadBalance();
+                                              vm.syncAutomaticPaymentMethodForCurrentBooking();
                                             });
                                           },
                                           onCameraMoveStart: () {
@@ -2191,6 +2390,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                 if (vm.ongoingOrder == null) {
                                                   await LoadViewModel()
                                                       .getLoadBalance();
+                                                  vm.syncAutomaticPaymentMethodForCurrentBooking();
                                                   if (pickupAddress != null &&
                                                       dropoffAddress != null) {
                                                     final preservedPickup =
@@ -2325,6 +2525,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                     PartnerButtonWidget(
                                                       image: AppImages.mnb,
                                                       show: true,
+                                                      onPressChanged:
+                                                          _setPartnerButtonPressActive,
                                                       onTap: () async {
                                                         await _showPartnerDisplayWithBanners(
                                                           "mnb",
@@ -2338,6 +2540,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                       PartnerButtonWidget(
                                                         image: AppImages.logo,
                                                         show: true,
+                                                        onPressChanged:
+                                                            _setPartnerButtonPressActive,
                                                         borderColor:
                                                             const Color(
                                                           0xFF007BFF,
@@ -2356,6 +2560,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                     PartnerButtonWidget(
                                                       image: AppImages.sbb,
                                                       show: true,
+                                                      onPressChanged:
+                                                          _setPartnerButtonPressActive,
                                                       onTap: () async {
                                                         await _showPartnerDisplayWithBanners(
                                                           "sbb",
@@ -2372,7 +2578,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                           vm.showMapLoadingIndicator,
                                       builder:
                                           (_, showMapLoadingIndicator, __) {
-                                        if (!showMapLoadingIndicator) {
+                                        final shouldShowHomeMapLoadingIndicator =
+                                            showMapLoadingIndicator ||
+                                                (vm.ongoingOrder == null &&
+                                                    !vm.showBottomUi.value &&
+                                                    (vm.isResolvingInitialOngoingOrder ||
+                                                        vm.isInitializing ||
+                                                        vm.isCameraMovePending));
+                                        if (!shouldShowHomeMapLoadingIndicator) {
                                           return const SizedBox.shrink();
                                         }
                                         return Positioned(
@@ -3395,7 +3608,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                 ),
                                                                                 Expanded(
                                                                                   child: Column(
-                                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                    crossAxisAlignment:
+                                                                                        CrossAxisAlignment.start,
                                                                                     children: [
                                                                                       Padding(
                                                                                         padding: const EdgeInsets.only(
@@ -3795,7 +4009,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                                 )) {
                                                                                                   AlertService().showLoading();
                                                                                                   try {
-                                                                                                    await vm.applyProviderStaffPromoCode();
+                                                                                                    await vm.selectProviderStaffRiderType();
                                                                                                     AlertService().stopLoading(
                                                                                                       forceStop: true,
                                                                                                     );
@@ -3803,22 +4017,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                                     AlertService().stopLoading(
                                                                                                       forceStop: true,
                                                                                                     );
-                                                                                                    ScaffoldMessenger.of(
-                                                                                                      Get.context!,
-                                                                                                    ).clearSnackBars();
-                                                                                                    ScaffoldMessenger.of(
-                                                                                                      Get.context!,
-                                                                                                    ).showSnackBar(
-                                                                                                      SnackBar(
-                                                                                                        backgroundColor: Colors.red,
-                                                                                                        content: Text(
-                                                                                                          "$e",
-                                                                                                          style: const TextStyle(
-                                                                                                            color: Colors.white,
-                                                                                                          ),
-                                                                                                        ),
-                                                                                                      ),
-                                                                                                    );
+                                                                                                    showError(e);
                                                                                                   }
                                                                                                 } else {
                                                                                                   _showPromoDialog(
@@ -3961,6 +4160,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                         800,
                                                       ),
                                                       child: GestureDetector(
+                                                        behavior:
+                                                            HitTestBehavior
+                                                                .opaque,
                                                         onTap: () async {
                                                           if (!AuthService
                                                               .isLoggedIn()) {
@@ -4270,8 +4472,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                   ),
                                                                 ),
                                                               ),
-                                                              const SizedBox(
-                                                                width: 12,
+                                                              _buildAddressClearButton(
+                                                                vm,
+                                                                isPickup: false,
+                                                                show: vm
+                                                                        .ongoingOrder ==
+                                                                    null &&
+                                                                    dropoffAddress !=
+                                                                        null,
                                                               ),
                                                             ],
                                                           ),
@@ -4692,15 +4900,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               ],
                             ),
                           ),
-                        vm.ongoingOrder == null ||
-                                vm.ongoingOrder?.status == "cancelled"
+                        !vm.hasCompletedReceiptOrder
                             ? const SizedBox.shrink()
                             : !vm.isCompletedReceiptStatus(vm.lastStatus) ||
                                     !vm.isCompletedReceiptStatus(
-                                      vm.ongoingOrder?.status,
+                                      vm.completedReceiptOrder?.status,
                                     )
                                 ? const SizedBox.shrink()
-                                : bookingId != vm.ongoingOrder?.id
+                                : bookingId != vm.completedReceiptOrder?.id
                                     ? const SizedBox.shrink()
                                     : Positioned(
                                         top: 0,
@@ -4853,7 +5060,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                       BoxDecoration(
                                                                     color: () {
                                                                       final status = vm
-                                                                          .ongoingOrder
+                                                                          .completedReceiptOrder
                                                                           ?.status;
                                                                       if (status ==
                                                                           "pending") {
@@ -4919,7 +5126,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                     child: Text(
                                                                       () {
                                                                         final status = vm
-                                                                            .ongoingOrder
+                                                                            .completedReceiptOrder
                                                                             ?.status;
                                                                         if (status ==
                                                                             "pending") {
@@ -4959,7 +5166,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                         color:
                                                                             () {
                                                                           final status = vm
-                                                                              .ongoingOrder
+                                                                              .completedReceiptOrder
                                                                               ?.status;
                                                                           if (status ==
                                                                               "pending") {
@@ -4996,7 +5203,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                   height: 12,
                                                                 ),
                                                                 Text(
-                                                                  "#${vm.ongoingOrder?.id}",
+                                                                  "#${vm.completedReceiptOrder?.id}",
                                                                   style:
                                                                       const TextStyle(
                                                                     height:
@@ -5016,7 +5223,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                   DateFormat(
                                                                     "MMMM dd, yyy - h:mm a",
                                                                   ).format(
-                                                                    vm.ongoingOrder
+                                                                    vm.completedReceiptOrder
                                                                             ?.createdAt ??
                                                                         DateTime
                                                                             .now(),
@@ -5090,13 +5297,13 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                           Text(
                                                                         "${capitalizeWords(
                                                                           vm
-                                                                              .ongoingOrder
+                                                                              .completedReceiptOrder
                                                                               ?.driver
                                                                               ?.vehicle
                                                                               ?.vehicleType
                                                                               ?.name,
                                                                           alt:
-                                                                              "Failed",
+                                                                              "Completed",
                                                                         )} Booking",
                                                                         style:
                                                                             const TextStyle(
@@ -5177,7 +5384,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                       child:
                                                                           Text(
                                                                         capitalizeWords(
-                                                                          vm.ongoingOrder?.taxiOrder
+                                                                          vm.completedReceiptOrder?.taxiOrder
                                                                               ?.pickupAddress,
                                                                         ),
                                                                         maxLines:
@@ -5219,7 +5426,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                       child:
                                                                           Text(
                                                                         capitalizeWords(
-                                                                          vm.ongoingOrder?.taxiOrder
+                                                                          vm.completedReceiptOrder?.taxiOrder
                                                                               ?.dropoffAddress,
                                                                         ),
                                                                         maxLines:
@@ -5333,7 +5540,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                           .shrink(),
                                                                     ),
                                                                     Text(
-                                                                      "₱${vm.displayedPendingDriverOngoingOrderFare.toStringAsFixed(0)}",
+                                                                      "₱${vm.displayedCompletedReceiptFare.toStringAsFixed(0)}",
                                                                       style:
                                                                           const TextStyle(
                                                                         color:
@@ -5379,7 +5586,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                           .shrink(),
                                                                     ),
                                                                     Text(
-                                                                      vm.ongoingOrder?.paymentMethodId ==
+                                                                      vm.completedReceiptOrder?.paymentMethodId ==
                                                                               1
                                                                           ? "Cash"
                                                                           : "Load",
@@ -5594,7 +5801,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                           : Padding(
                                               padding: const EdgeInsets.all(20),
                                               child: Text(
-                                                "Message: ${vm.dvrMessage}",
+                                                "Message: ${_homePreviewMessageText(vm, vm.dvrMessage)}",
                                               ),
                                             ),
                                       !isPhotoUrlMessage(vm.dvrMessage)
@@ -5667,11 +5874,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                             vm.dvrMessage,
                                           )) {
                                             return _buildHomeAcceptedCancelRequestActions(
-                                              vm,
-                                            );
-                                          }
-                                          if (requestMessageType == "pass") {
-                                            return _buildHomeRequestPassActions(
                                               vm,
                                             );
                                           }
@@ -5805,6 +6007,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               onClose: () {
                                 unawaited(_closePartnerDisplay());
                               },
+                              onPressChanged: _setPartnerDisplayPressActive,
                               isLoggedIn: () => AuthService.isLoggedIn(),
                               onSelectDropoff: (
                                 latLng,
@@ -5840,6 +6043,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                   },
                                 );
                               },
+                              onPressChanged: _setPartnerDisplayPressActive,
                               isLoggedIn: () => AuthService.isLoggedIn(),
                               onSelectDropoff: (
                                 latLng,
@@ -5903,6 +6107,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                   },
                                 );
                               },
+                              onPressChanged: _setPartnerDisplayPressActive,
                               isLoggedIn: () => AuthService.isLoggedIn(),
                               onSelectDropoff: (
                                 latLng,

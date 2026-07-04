@@ -7,6 +7,7 @@ import 'package:pwa/models/address.model.dart';
 import 'package:pwa/models/chat_media.model.dart';
 import 'package:pwa/models/vehicle_type.model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
 import 'package:pwa/models/available_driver.model.dart';
 
@@ -30,6 +31,15 @@ bool isSharing = false;
 bool isChatViewOpen = false;
 bool isLoadingDialogOpen = false;
 final ValueNotifier<bool> isLoadingDialogOpenListenable = ValueNotifier(false);
+Map<String, dynamic>? latestOpenedNotificationPayload;
+final ValueNotifier<Map<String, dynamic>?>
+    latestOpenedNotificationPayloadListenable = ValueNotifier(null);
+const String notificationDiagnosticsStorageKey =
+    'notification_diagnostics_log_v1';
+const int notificationDiagnosticsMaxEntries = 300;
+List<String> notificationDiagnosticsLogEntries = [];
+final ValueNotifier<List<String>> notificationDiagnosticsLogListenable =
+    ValueNotifier(const []);
 Address? pickupAddress;
 bool isTourist = false;
 bool showBranch = false;
@@ -93,6 +103,69 @@ void setLoadingDialogOpen(bool isOpen) {
   }
   isLoadingDialogOpen = isOpen;
   isLoadingDialogOpenListenable.value = isOpen;
+}
+
+void setLatestOpenedNotificationPayload(Map<String, dynamic>? payload) {
+  latestOpenedNotificationPayload = payload;
+  latestOpenedNotificationPayloadListenable.value = payload;
+}
+
+Future<void> loadNotificationDiagnosticsLog() async {
+  await StorageService.getPrefs();
+  final entries = StorageService.prefs?.getStringList(
+        notificationDiagnosticsStorageKey,
+      ) ??
+      const <String>[];
+  notificationDiagnosticsLogEntries = List<String>.from(entries);
+  notificationDiagnosticsLogListenable.value =
+      List<String>.unmodifiable(notificationDiagnosticsLogEntries);
+}
+
+Future<void> appendNotificationDiagnosticLog({
+  required String source,
+  required String message,
+}) async {
+  final trimmedMessage = message.trim();
+  if (trimmedMessage.isEmpty) {
+    return;
+  }
+
+  await StorageService.getPrefs();
+  if (notificationDiagnosticsLogEntries.isEmpty) {
+    final storedEntries = StorageService.prefs?.getStringList(
+          notificationDiagnosticsStorageKey,
+        ) ??
+        const <String>[];
+    notificationDiagnosticsLogEntries = List<String>.from(storedEntries);
+  }
+
+  final timestamp = DateTime.now().toIso8601String();
+  final entry = '[$timestamp][$source] $trimmedMessage';
+  notificationDiagnosticsLogEntries = [
+    ...notificationDiagnosticsLogEntries,
+    entry,
+  ];
+  if (notificationDiagnosticsLogEntries.length >
+      notificationDiagnosticsMaxEntries) {
+    notificationDiagnosticsLogEntries = notificationDiagnosticsLogEntries
+        .sublist(
+      notificationDiagnosticsLogEntries.length -
+          notificationDiagnosticsMaxEntries,
+    );
+  }
+  notificationDiagnosticsLogListenable.value =
+      List<String>.unmodifiable(notificationDiagnosticsLogEntries);
+  await StorageService.prefs?.setStringList(
+    notificationDiagnosticsStorageKey,
+    notificationDiagnosticsLogEntries,
+  );
+}
+
+Future<void> clearNotificationDiagnosticsLog() async {
+  notificationDiagnosticsLogEntries = [];
+  notificationDiagnosticsLogListenable.value = const [];
+  await StorageService.getPrefs();
+  await StorageService.prefs?.remove(notificationDiagnosticsStorageKey);
 }
 
 void setChatFile(Uint8List? fileBytes) {

@@ -2,7 +2,6 @@ import 'package:pwa/constants/api.dart';
 import 'package:pwa/services/http.service.dart';
 import 'package:pwa/models/peer_user.model.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:flutter/foundation.dart';
 
 class ChatRequest extends HttpService {
   Future<ApiResponse> sendNotification({
@@ -13,11 +12,6 @@ class ChatRequest extends HttpService {
     required PeerUser user,
     required PeerUser otherUser,
   }) async {
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'chat notification request start topic=$topic title=$title '
-      'bodyLength=${body.length} path=$path user=${user.id} peer=${otherUser.id}',
-    );
     dynamic userObject = {
       "id": user.id,
       "name": user.name,
@@ -39,23 +33,9 @@ class ChatRequest extends HttpService {
           "user": userObject,
           "peer": otherUserObject,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
-      final response = ApiResponse.fromResponse(apiResult);
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'chat notification request complete topic=$topic '
-        'success=${response.allGood} message=${response.message}',
-      );
-      return response;
-    } catch (e) {
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'chat notification request failed topic=$topic error=$e',
-      );
+      return ApiResponse.fromResponse(apiResult);
+    } catch (_) {
       rethrow;
     }
   }

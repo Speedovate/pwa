@@ -2,7 +2,6 @@
 
 import 'dart:math';
 import 'dart:async';
-import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
@@ -711,27 +710,16 @@ class GMapViewModel extends BaseViewModel {
             } catch (_) {
               apiResponse = null;
             }
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(
-              Get.context!,
-            ).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  (apiResponse?.message.contains("service") ?? false)
-                      ? "Please try another location"
-                      : e.toString().toLowerCase().contains("dio")
-                          ? "There was an error while processing"
-                              " your request. Please try again later"
-                          : e.toString().toLowerCase().contains("bad")
-                              ? "There was a problem with your location "
-                                  "detection or your internet connection"
-                              : e.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            showError(
+              (apiResponse?.message.contains("service") ?? false)
+                  ? "Please try another location"
+                  : e.toString().toLowerCase().contains("dio")
+                      ? "There was an error while processing"
+                          " your request. Please try again later"
+                      : e.toString().toLowerCase().contains("bad")
+                          ? "There was a problem with your location "
+                              "detection or your internet connection"
+                          : e,
             );
           }
           if (gVehicleTypes.isEmpty) {

@@ -437,20 +437,7 @@ class RegisterViewModel extends BaseViewModel {
               apiResponse.body!["data"]["countdown_remaining"].toString(),
             );
             AlertService().stopLoading(forceStop: true);
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(
-              Get.context!,
-            ).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  apiResponse.message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            );
+            showError(apiResponse.message);
           }
         }
         AlertService().stopLoading(forceStop: true);
@@ -503,20 +490,7 @@ class RegisterViewModel extends BaseViewModel {
           ),
         );
       } else {
-        ScaffoldMessenger.of(Get.context!).clearSnackBars();
-        ScaffoldMessenger.of(
-          Get.context!,
-        ).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              e.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
+        showError(e);
       }
     }
   }
@@ -622,20 +596,7 @@ class RegisterViewModel extends BaseViewModel {
       }
     } catch (e) {
       AlertService().stopLoading(forceStop: true);
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            e.toString(),
-            style: const TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError(e);
     }
   }
 }

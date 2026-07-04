@@ -11,6 +11,7 @@ import 'package:pwa/widgets/network_image.widget.dart';
 class PartnerDisplayWidget extends StatefulWidget {
   final bool show;
   final VoidCallback onClose;
+  final ValueChanged<bool>? onPressChanged;
   final bool Function() isLoggedIn;
   final void Function(gmaps.LatLng dropoff, String branchName) onSelectDropoff;
   final List<BannerModel> banners;
@@ -24,6 +25,7 @@ class PartnerDisplayWidget extends StatefulWidget {
     super.key,
     required this.show,
     required this.onClose,
+    this.onPressChanged,
     required this.isLoggedIn,
     required this.onSelectDropoff,
     required this.banners,
@@ -76,6 +78,10 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
     bannerIndex = 0;
   }
 
+  void _setPressActive(bool isPressed) {
+    widget.onPressChanged?.call(isPressed);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.show) return const SizedBox.shrink();
@@ -114,17 +120,22 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
                       });
                     }
                   },
-                  child: Container(
-                    width: clampedWidth - (showBranchContent ? 72 : 40),
-                    height: showBranchContent ? null : clampedWidth - 20,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: showBranchContent
-                          ? _buildBranchSelection()
-                          : _buildBannerCarousel(clampedWidth),
+                  child: Listener(
+                    onPointerDown: (_) => _setPressActive(true),
+                    onPointerUp: (_) => _setPressActive(false),
+                    onPointerCancel: (_) => _setPressActive(false),
+                    child: Container(
+                      width: clampedWidth - (showBranchContent ? 72 : 40),
+                      height: showBranchContent ? null : clampedWidth - 20,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: showBranchContent
+                            ? _buildBranchSelection()
+                            : _buildBannerCarousel(clampedWidth),
+                      ),
                     ),
                   ),
                 ),
@@ -207,7 +218,7 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
             mainColor: Colors.transparent,
             isTransparentColor: true,
             useDefaultHoverColor: false,
-            interactionColor: primaryColor.withValues(alpha: 0.12),
+            suppressInteraction: true,
             child: bannerImage,
           );
         }).toList(),
@@ -320,45 +331,47 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
   Widget _branchButton(Branch branch) {
     final isSelected = selectedBranch == branch.id;
 
-    return WidgetButton(
-      onTap: () {
-        setState(() {
-          selectedBranch = branch.id;
-        });
-      },
-      borderRadius: 8,
-      mainColor: Colors.transparent,
-      isTransparentColor: true,
-      useDefaultHoverColor: false,
-      interactionColor: accentColor.withValues(alpha: 0.14),
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 14,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? accentColor : primaryColor,
-            width: isSelected ? 1.5 : 1,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+      child: WidgetButton(
+        onTap: () {
+          setState(() {
+            selectedBranch = branch.id;
+          });
+        },
+        borderRadius: 8,
+        mainColor: Colors.transparent,
+        isTransparentColor: true,
+        useDefaultHoverColor: false,
+        interactionColor: accentColor.withValues(alpha: 0.14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 14,
           ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                branch.name,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  height: 1,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? accentColor : primaryColor,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? accentColor : primaryColor,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  branch.name,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    height: 1,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? accentColor : primaryColor,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/views/login.view.dart';
@@ -37,9 +36,6 @@ class _IntroViewState extends State<IntroView> {
 
   Future<void> _requestStartupPermissions() async {
     await PushService.requestNotificationPermissionsIfNeeded();
-    if (kIsWeb) {
-      return;
-    }
     await getMyLatLng(
       forceFresh: true,
       requestPermission: true,

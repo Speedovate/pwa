@@ -9,6 +9,7 @@ class ActionButton extends StatefulWidget {
   final VoidCallback onTap;
   final Color? borderColor;
   final VoidCallback? onLongPress;
+  final double borderRadius;
 
   const ActionButton({
     super.key,
@@ -23,6 +24,7 @@ class ActionButton extends StatefulWidget {
     this.mainColor = const Color(0xFF007BFF),
     this.borderColor,
     this.onLongPress,
+    this.borderRadius = 8,
   });
 
   @override
@@ -71,7 +73,7 @@ class _ActionButtonState extends State<ActionButton> {
                 border: widget.borderColor != null
                     ? Border.all(color: widget.borderColor!)
                     : null,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(widget.borderRadius),
               ),
               child: Center(
                 child: Text(

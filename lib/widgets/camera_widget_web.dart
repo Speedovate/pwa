@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'dart:ui_web' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/widgets/camera_widget_shared.dart';
 
@@ -123,10 +124,10 @@ class _CameraWidgetState extends State<CameraWidget> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = cleanErrorMessage(e);
         });
       }
-      _showError(e.toString());
+      _showError(e);
     }
   }
 
@@ -181,20 +182,12 @@ class _CameraWidgetState extends State<CameraWidget> {
       );
     } catch (e) {
       if (mounted) setState(() => _isCapturing = false);
-      _showError(e.toString());
+      _showError(e);
     }
   }
 
-  void _showError(String msg) {
-    final ctx = Get.context;
-    if (ctx != null) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  void _showError(Object error) {
+    showError(error, context: Get.context);
   }
 
   void _popCameraRoute() {

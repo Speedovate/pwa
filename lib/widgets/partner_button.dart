@@ -3,6 +3,7 @@ import 'package:pwa/widgets/network_image.widget.dart';
 
 class PartnerButtonWidget extends StatefulWidget {
   final VoidCallback? onTap;
+  final ValueChanged<bool>? onPressChanged;
   final String image;
   final bool show;
   final Color? borderColor;
@@ -12,6 +13,7 @@ class PartnerButtonWidget extends StatefulWidget {
     required this.onTap,
     required this.image,
     required this.show,
+    this.onPressChanged,
     this.borderColor,
     this.borderWidth = 0,
     super.key,
@@ -51,6 +53,7 @@ class _PartnerButtonWidgetState extends State<PartnerButtonWidget> {
           child: _PartnerImageSurface(
             imageUrl: widget.image,
             onTap: widget.onTap,
+            onPressChanged: widget.onPressChanged,
             primaryColor: _primaryColor,
           ),
         ),
@@ -63,11 +66,13 @@ class _PartnerImageSurface extends StatefulWidget {
   const _PartnerImageSurface({
     required this.imageUrl,
     required this.onTap,
+    this.onPressChanged,
     required this.primaryColor,
   });
 
   final String imageUrl;
   final VoidCallback? onTap;
+  final ValueChanged<bool>? onPressChanged;
   final Color primaryColor;
 
   @override
@@ -82,6 +87,7 @@ class _PartnerImageSurfaceState extends State<_PartnerImageSurface> {
     setState(() {
       _pressed = value;
     });
+    widget.onPressChanged?.call(value);
   }
 
   @override

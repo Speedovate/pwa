@@ -9,6 +9,7 @@ import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/utils/data.dart';
+import 'package:pwa/utils/functions.dart';
 
 class ChangeViewModel extends BaseViewModel {
   AuthRequest authRequest = AuthRequest();
@@ -115,20 +116,7 @@ class ChangeViewModel extends BaseViewModel {
         }
       } catch (e) {
         AlertService().stopLoading(forceStop: true);
-        ScaffoldMessenger.of(Get.context!).clearSnackBars();
-        ScaffoldMessenger.of(
-          Get.context!,
-        ).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              e.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
+        showError(e);
       }
     }
   }
@@ -262,20 +250,7 @@ class ChangeViewModel extends BaseViewModel {
         }
       } catch (e) {
         AlertService().stopLoading(forceStop: true);
-        ScaffoldMessenger.of(Get.context!).clearSnackBars();
-        ScaffoldMessenger.of(
-          Get.context!,
-        ).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              e.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
+        showError(e);
       }
     }
   }

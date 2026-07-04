@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:stacked/stacked.dart';
@@ -407,17 +406,10 @@ class MapViewModel extends BaseViewModel {
             if (!apiResponse.allGood) {
               mapUnavailable = true;
             }
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(Get.context!).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  apiResponse.message.contains("service")
-                      ? "Please try another location"
-                      : e.toString(),
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
+            showError(
+              apiResponse.message.contains("service")
+                  ? "Please try another location"
+                  : e,
             );
           }
           if (gVehicleTypes.isEmpty) {

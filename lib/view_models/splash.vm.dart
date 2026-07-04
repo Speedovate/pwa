@@ -17,6 +17,7 @@ import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/models/api_response.model.dart';
 import 'package:pwa/requests/settings.request.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:pwa/services/startup.service.dart';
 
 class SplashViewModel extends BaseViewModel {
   StreamSubscription? configStream;
@@ -25,34 +26,59 @@ class SplashViewModel extends BaseViewModel {
   SettingsRequest settingsRequest = SettingsRequest();
 
   Future<void> initialise() async {
-    await getAppUser();
-    await AuthService().syncStoredTopicsForCurrentSession();
-    await AppStrings.getAppSettingsFromStorage();
-    await AppStrings.getHomeSettingsFromStorage();
-    if (AppStrings.appSettingsObject == null) {
-      await getSettings();
-    }
+    final firebaseReadyFuture = StartupService.ensureFirebaseReady();
+    await StartupService.ensurePrefsReady();
+    await Future.wait([
+      getAppUser(),
+      AppStrings.getAppSettingsFromStorage(),
+      AppStrings.getHomeSettingsFromStorage(),
+    ]);
     _handleUpgradeGate();
-    await AuthService.ensureUserNameInFirestore();
-    if (isIOSLikeBrowser()) {
-      initLatLng = defaultLatLng;
-      lastGeolocationErrorMessage = null;
-    } else {
-      await getMyLatLng(
-        forceFresh: true,
-        requestPermission: false,
-      );
+    if (AuthService.isLoggedIn()) {
+      await firebaseReadyFuture;
     }
-    subscribeToServer();
-    startListeningToConfigs();
-    startListeningToHotspots();
     isAdSeen = StorageService.prefs?.getBool("is_ad_seen") ??
         !AuthService.isLoggedIn();
     isAd1Seen = StorageService.prefs?.getBool("is_ad_1_seen") ??
         !AuthService.isLoggedIn();
-    unawaited(getBanners());
-    unawaited(getVehicles());
+    unawaited(_runBackgroundBootstrap());
     await goToNextPage();
+  }
+
+  Future<void> _runBackgroundBootstrap() async {
+    unawaited(StartupService.warmUpCameras());
+    unawaited(_primeInitialLocation());
+    unawaited(
+      Future.wait([
+        getBanners(),
+        getVehicles(),
+      ]),
+    );
+    if (AppStrings.appSettingsObject == null) {
+      unawaited(getSettings());
+    }
+    await StartupService.ensureFirebaseReady();
+    if (AuthService.isLoggedIn()) {
+      unawaited(AuthService().syncStoredTopicsForCurrentSession());
+      unawaited(AuthService.ensureUserNameInFirestore());
+    }
+    if (AppStrings.appSettingsObject != null) {
+      subscribeToServer();
+      startListeningToConfigs();
+      startListeningToHotspots();
+    }
+  }
+
+  Future<void> _primeInitialLocation() async {
+    if (isIOSLikeBrowser()) {
+      initLatLng = defaultLatLng;
+      lastGeolocationErrorMessage = null;
+      return;
+    }
+    await getMyLatLng(
+      forceFresh: true,
+      requestPermission: false,
+    );
   }
 
   bool _handleUpgradeGate() {
@@ -76,16 +102,24 @@ class SplashViewModel extends BaseViewModel {
 
   Future<void> getSettings() async {
     try {
-      ApiResponse hResponse = await settingsRequest.homeSettingsRequest();
-      await AppStrings.saveHomeSettingsToStorage(
-        jsonEncode(hResponse.body),
-      );
-      await AppStrings.getHomeSettingsFromStorage();
-      ApiResponse aResponse = await settingsRequest.appSettingsRequest();
-      await AppStrings.saveAppSettingsToStorage(
-        jsonEncode(aResponse.body),
-      );
-      await AppStrings.getAppSettingsFromStorage();
+      final responses = await Future.wait([
+        settingsRequest.homeSettingsRequest(),
+        settingsRequest.appSettingsRequest(),
+      ]);
+      final hResponse = responses[0];
+      final aResponse = responses[1];
+      if (hResponse.allGood) {
+        await AppStrings.saveHomeSettingsToStorage(
+          jsonEncode(hResponse.body),
+        );
+        await AppStrings.getHomeSettingsFromStorage();
+      }
+      if (aResponse.allGood) {
+        await AppStrings.saveAppSettingsToStorage(
+          jsonEncode(aResponse.body),
+        );
+        await AppStrings.getAppSettingsFromStorage();
+      }
       try {
         notifyListeners();
         if (AuthService.isLoggedIn()) {

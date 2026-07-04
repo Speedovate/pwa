@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/requests/auth.request.dart';
@@ -47,7 +48,7 @@ class SettingsViewModel extends BaseViewModel {
                     .contains("internal")
             ? "There was an error while processing"
                 " your request. Please try again later"
-            : apiResponse.message,
+            : cleanErrorMessage(apiResponse.message),
       );
     }
   }

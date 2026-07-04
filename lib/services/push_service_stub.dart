@@ -40,12 +40,18 @@ const AndroidNotificationChannel _bookingNotificationChannel =
 );
 const String _basicDarwinNotificationSound = 'sound.wav';
 const String _bookingDarwinNotificationSound = 'alert.wav';
-const String _notifDebugTag = 'PPC_NOTIF_DEBUG';
+const String _pendingOpenedNotificationPayloadStorageKey =
+    'pending_opened_notification_payload';
 const Duration _notificationDedupeWindow = Duration(minutes: 5);
 final Map<String, DateTime> _shownNotificationKeys = {};
 
 void _notifDebug(String message) {
-  debugPrint('[$_notifDebugTag] ${DateTime.now().toIso8601String()} $message');
+  unawaited(
+    appendNotificationDiagnosticLog(
+      source: 'push_mobile_${defaultTargetPlatform.name}',
+      message: message,
+    ),
+  );
 }
 
 String _cleanNotificationText(Object? value) {
@@ -160,7 +166,23 @@ bool _isRideStatusUpdate(RemoteMessage message) {
 }
 
 @pragma('vm:entry-point')
-void _handleLocalNotificationResponse(NotificationResponse response) {}
+Future<void> _handleLocalNotificationResponse(
+  NotificationResponse response,
+) async {
+  final payload = response.payload;
+  if (payload == null || payload.trim().isEmpty) {
+    return;
+  }
+  try {
+    final decoded = jsonDecode(payload);
+    if (decoded is Map) {
+      await PushService.recordOpenedNotificationPayload(
+        Map<String, dynamic>.from(decoded),
+        source: 'local_notification_response',
+      );
+    }
+  } catch (_) {}
+}
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -192,6 +214,8 @@ class PushService {
   static StreamSubscription<RemoteMessage>? _messageOpenedSubscription;
   static bool _localNotificationsInitialized = false;
   static bool _hasRequestedRuntimePermissions = false;
+  static Timer? _syncRetryTimer;
+  static int _syncRetryAttempt = 0;
 
   static Future<void> initialize() async {
     _notifDebug(
@@ -199,10 +223,13 @@ class PushService {
       'review=${AuthService.inReviewMode()} loggedIn=${AuthService.isLoggedIn()}',
     );
     await _ensureLocalNotificationsInitialized();
+    await _enableAutoInit();
     await _configureForegroundPresentation();
     _attachForegroundListener();
     _attachOpenListener();
     _attachTokenRefreshListener();
+    await _restorePendingOpenedNotificationPayload();
+    await _handleInitialRemoteMessage();
     _notifDebug('background handler attaching');
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     unawaited(
@@ -274,6 +301,10 @@ class PushService {
         final apnsToken = await _waitForAPNSToken();
         if (apnsToken == null || apnsToken.isEmpty) {
           _notifDebug('sync token stop missing APNs token');
+          _scheduleSyncRetry(
+            requestPermission: false,
+            forceSync: true,
+          );
           return;
         }
       }
@@ -281,6 +312,10 @@ class PushService {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) {
         _notifDebug('sync token stop missing FCM token');
+        _scheduleSyncRetry(
+          requestPermission: false,
+          forceSync: true,
+        );
         return;
       }
 
@@ -295,14 +330,67 @@ class PushService {
       final syncedToServer = await subscribeToServer();
       if (!syncedToServer) {
         _notifDebug('sync token stop server subscribe failed');
+        _scheduleSyncRetry(
+          requestPermission: false,
+          forceSync: true,
+        );
         return;
       }
       await _rememberSyncedState(token, topicSignature);
+      _clearSyncRetryState();
       _notifDebug('sync token complete topics=$topicSignature');
     } catch (e) {
       _notifDebug('sync token failed error=$e');
+      _scheduleSyncRetry(
+        requestPermission: false,
+        forceSync: true,
+      );
       // Keep push sync non-blocking.
     }
+  }
+
+  static Future<void> _enableAutoInit() async {
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    } catch (_) {}
+  }
+
+  static void _scheduleSyncRetry({
+    required bool requestPermission,
+    required bool forceSync,
+  }) {
+    if (_syncRetryAttempt >= 6) {
+      return;
+    }
+    if (_syncRetryTimer?.isActive == true) {
+      return;
+    }
+
+    const retryDelays = <Duration>[
+      Duration(seconds: 2),
+      Duration(seconds: 4),
+      Duration(seconds: 8),
+      Duration(seconds: 15),
+      Duration(seconds: 30),
+      Duration(minutes: 1),
+    ];
+    final delay = retryDelays[_syncRetryAttempt];
+    _syncRetryAttempt += 1;
+    _syncRetryTimer = Timer(delay, () {
+      _syncRetryTimer = null;
+      unawaited(
+        syncTokenWithServer(
+          requestPermission: requestPermission,
+          forceSync: forceSync,
+        ),
+      );
+    });
+  }
+
+  static void _clearSyncRetryState() {
+    _syncRetryTimer?.cancel();
+    _syncRetryTimer = null;
+    _syncRetryAttempt = 0;
   }
 
   static Future<String?> _waitForAPNSToken() async {
@@ -476,15 +564,81 @@ class PushService {
     _notifDebug(
         'open listener attaching existing=${_messageOpenedSubscription != null}');
     _messageOpenedSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen(
-      (RemoteMessage message) {
-        _notifDebug(
-          'notification opened messageId=${message.messageId} '
-          'sentTime=${message.sentTime} data=${message.data}',
+      (RemoteMessage message) async {
+        await _handleOpenedRemoteMessage(
+          message,
+          source: 'on_message_opened_app',
         );
       },
       onError: (Object error) {
         _notifDebug('open listener error=$error');
       },
+    );
+  }
+
+  static Future<void> _handleInitialRemoteMessage() async {
+    try {
+      final message = await FirebaseMessaging.instance.getInitialMessage();
+      if (message == null) {
+        return;
+      }
+      await _handleOpenedRemoteMessage(
+        message,
+        source: 'initial_remote_message',
+      );
+    } catch (e) {
+      _notifDebug('initial message handling failed error=$e');
+    }
+  }
+
+  static Future<void> _handleOpenedRemoteMessage(
+    RemoteMessage message, {
+    required String source,
+  }) async {
+    _notifDebug(
+      'notification opened source=$source messageId=${message.messageId} '
+      'sentTime=${message.sentTime} data=${message.data}',
+    );
+    await recordOpenedNotificationPayload(
+      Map<String, dynamic>.from(message.data),
+      source: source,
+    );
+  }
+
+  static Future<void> _restorePendingOpenedNotificationPayload() async {
+    await StorageService.getPrefs();
+    final rawPayload = StorageService.prefs?.getString(
+      _pendingOpenedNotificationPayloadStorageKey,
+    );
+    if (rawPayload == null || rawPayload.trim().isEmpty) {
+      return;
+    }
+    try {
+      final decoded = jsonDecode(rawPayload);
+      if (decoded is Map) {
+        setLatestOpenedNotificationPayload(
+          Map<String, dynamic>.from(decoded),
+        );
+      }
+    } catch (_) {
+      await StorageService.prefs?.remove(
+        _pendingOpenedNotificationPayloadStorageKey,
+      );
+      return;
+    }
+  }
+
+  static Future<void> recordOpenedNotificationPayload(
+    Map<String, dynamic> payload, {
+    required String source,
+  }) async {
+    final normalizedPayload = Map<String, dynamic>.from(payload);
+    normalizedPayload['__open_source'] = source;
+    setLatestOpenedNotificationPayload(normalizedPayload);
+    await StorageService.getPrefs();
+    await StorageService.prefs?.setString(
+      _pendingOpenedNotificationPayloadStorageKey,
+      jsonEncode(normalizedPayload),
     );
   }
 

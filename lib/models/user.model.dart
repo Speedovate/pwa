@@ -13,14 +13,13 @@ String _reviewDeviceForUserModel() {
     case TargetPlatform.android:
       return "android";
     default:
-      return "web";
+      return "huawei";
   }
 }
 
 bool _shouldMaskProviderRoleForReviewMode() {
   final reviewVersionKey = switch (_reviewDeviceForUserModel()) {
     "ios" => "disable_ibn",
-    "web" => "disable_wbn",
     "huawei" => "disable_hbn",
     "android" => "disable_gbn",
     _ => null,
@@ -37,6 +36,7 @@ class User {
   int? prevBranchID;
   int? actualBranchID;
   int? versionCodeInstalled;
+  String? devicePlatform;
   String? code;
   String? licenseNumber;
   String? franchiseNumber;
@@ -72,6 +72,7 @@ class User {
     this.prevBranchID,
     this.actualBranchID,
     this.versionCodeInstalled = 0,
+    this.devicePlatform,
     this.code,
     this.licenseNumber,
     this.franchiseNumber,
@@ -131,6 +132,10 @@ class User {
               "version_code_installed",
             ) ??
             0,
+        devicePlatform: parseString(
+          json?["device_platform"],
+          "device_platform",
+        ),
         code: parseString(
           json?["code"] ?? json?["referral_code"],
           "referral_code",
@@ -255,6 +260,7 @@ class User {
         "prev_branch_id": prevBranchID,
         "actual_branch_id": actualBranchID,
         "version_code_installed": versionCodeInstalled ?? 0,
+        "device_platform": devicePlatform,
         "code": code,
         "referral_code": code,
         "license_number": licenseNumber,

@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/utils/data.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/widgets/camera_widget_shared.dart';
 
@@ -146,7 +147,7 @@ class _CameraWidgetState extends State<CameraWidget>
         return;
       }
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = cleanErrorMessage(e);
       });
     }
   }
@@ -207,7 +208,7 @@ class _CameraWidgetState extends State<CameraWidget>
       }
       AlertService().showAppAlert(
         title: 'Error',
-        content: e.toString(),
+        content: cleanErrorMessage(e),
       );
     } finally {
       if (mounted) {

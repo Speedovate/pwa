@@ -31,12 +31,7 @@ const PWA_STATE_CACHE = 'pwa-notification-state';
 const PWA_STATE_URL = '/__pwa_install_state__';
 const standaloneClientIds = new Set();
 
-function notifDebug(message, data) {
-  console.log(
-    `[PPC_NOTIF_DEBUG] ${new Date().toISOString()} ${message}`,
-    data || ''
-  );
-}
+function notifDebug(message, data) {}
 
 function normalizeWhitespace(value) {
   const text = `${value ?? ''}`.replace(/\s+/g, ' ').trim();

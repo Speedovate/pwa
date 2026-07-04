@@ -143,4 +143,13 @@ class TaxiOrder {
       driverAcceptLongitude ?? 0.0,
     );
   }
+
+  bool get hasValidDriverAcceptCoordinates {
+    final lat = driverAcceptLatitude;
+    final lng = driverAcceptLongitude;
+    if (lat == null || lng == null) {
+      return false;
+    }
+    return lat != 0.0 || lng != 0.0;
+  }
 }

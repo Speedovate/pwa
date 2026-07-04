@@ -12,6 +12,8 @@ import 'package:pwa/widgets/network_image.widget.dart';
 
 class GoogleMapWidget extends StatefulWidget {
   final app_maps.LatLng center;
+  final double initialZoom;
+  final EdgeInsets padding;
   final bool enableGestures;
   final List<MapMarkerData> markers;
   final List<MapPolylineData> polylines;
@@ -23,6 +25,8 @@ class GoogleMapWidget extends StatefulWidget {
   const GoogleMapWidget({
     super.key,
     required this.center,
+    this.initialZoom = 16,
+    this.padding = EdgeInsets.zero,
     this.enableGestures = true,
     this.markers = const [],
     this.polylines = const [],
@@ -73,6 +77,14 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     return source != fmap.MapEventSource.mapController;
   }
 
+  bool _isPinMarker(MapMarkerData marker) {
+    return marker.id == 'pickupMarker' || marker.id == 'dropoffMarker';
+  }
+
+  Color _pinMarkerColor(MapMarkerData marker) {
+    return marker.id == 'dropoffMarker' ? Colors.red : const Color(0xFF007BFF);
+  }
+
   void _handleLeafletMapEvent(fmap.MapEvent event) {
     if (!_leafletMapReady || !widget.enableGestures) {
       return;
@@ -106,7 +118,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       mapController: _leafletMapController,
       options: fmap.MapOptions(
         initialCenter: widget.center.toLeafletLatLng(),
-        initialZoom: 16,
+        initialZoom: widget.initialZoom,
         interactionOptions: fmap.InteractionOptions(
           flags: widget.enableGestures
               ? fmap.InteractiveFlag.all
@@ -156,16 +168,22 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                     child: Center(
                       child: Transform.rotate(
                         angle: marker.rotationDegrees * math.pi / 180,
-                        child: NetworkImageWidget(
-                          imageUrl: marker.imageUrl,
-                          memCacheWidth: 600,
-                          width: marker.width,
-                          height: marker.height,
-                          fit: BoxFit.contain,
-                          errorWidget: (context, imageUrl, error) {
-                            return const SizedBox.shrink();
-                          },
-                        ),
+                        child: _isPinMarker(marker)
+                            ? Icon(
+                                Icons.location_on,
+                                color: _pinMarkerColor(marker),
+                                size: marker.width,
+                              )
+                            : NetworkImageWidget(
+                                imageUrl: marker.imageUrl,
+                                memCacheWidth: 600,
+                                width: marker.width,
+                                height: marker.height,
+                                fit: BoxFit.contain,
+                                errorWidget: (context, imageUrl, error) {
+                                  return const SizedBox.shrink();
+                                },
+                              ),
                       ),
                     ),
                   ),
@@ -182,6 +200,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       return legacy_google.GoogleMapWidget(
         key: const ValueKey('legacy-google-map'),
         center: widget.center,
+        initialZoom: widget.initialZoom,
+        padding: widget.padding,
         enableGestures: widget.enableGestures,
         markers: widget.markers,
         polylines: widget.polylines,

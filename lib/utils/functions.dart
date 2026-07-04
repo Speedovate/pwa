@@ -1,24 +1,23 @@
+import 'dart:convert';
 export 'browser_utils.dart';
 export 'location_helper.dart';
-
-import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/requests/auth.request.dart';
-import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/utils/browser_utils.dart';
+import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/widgets/camera.widget.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:pwa/requests/auth.request.dart';
+import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/web_view.widget.dart';
-import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 const String facebookSupportUrl = "https://www.facebook.com/ppctodaofficial";
 const String telSupportUrl = "tel:+639686410532";
@@ -231,6 +230,55 @@ Future<void> showFacebookSupportDialog(
   );
 }
 
+bool canShowRequestCancellationPill({
+  String? status,
+  dynamic driver,
+  dynamic driverId,
+}) {
+  final hasAssignedDriver = hasAssignedDriverForOrder(
+    driver: driver,
+    driverId: driverId,
+  );
+  final normalizedStatus = (status ?? "").trim().toLowerCase();
+  if (normalizedStatus == "pending" && !hasAssignedDriver) {
+    return false;
+  }
+  return ![
+    "enroute",
+    "delivered",
+    "completed",
+    "successful",
+    "cancelled",
+  ].contains(normalizedStatus);
+}
+
+bool hasAssignedDriverForOrder({
+  dynamic driver,
+  dynamic driverId,
+}) {
+  if (driver != null) {
+    return true;
+  }
+  final normalizedDriverId = "${driverId ?? ""}".trim().toLowerCase();
+  return normalizedDriverId.isNotEmpty && normalizedDriverId != "null";
+}
+
+bool canShowGetNewDriverNowAction({
+  String? status,
+  dynamic driver,
+  dynamic driverId,
+}) {
+  final normalizedStatus = (status ?? "").trim().toLowerCase();
+  final hasAssignedDriver = hasAssignedDriverForOrder(
+    driver: driver,
+    driverId: driverId,
+  );
+  if (normalizedStatus == "pending" && !hasAssignedDriver) {
+    return false;
+  }
+  return true;
+}
+
 Widget _supportDialogButton({
   required String label,
   required IconData icon,
@@ -304,6 +352,32 @@ String capitalizeWords(
       },
     ).join(' ');
   }
+}
+
+String normalizeRequestMessage(dynamic input) {
+  return "${input ?? ""}".trim().toLowerCase();
+}
+
+bool isRequestCancellationMessage(dynamic input) {
+  return normalizeRequestMessage(input) == "request cancellation";
+}
+
+String? requestMessageType(dynamic input) {
+  if (isRequestCancellationMessage(input)) {
+    return "cancellation";
+  }
+  return null;
+}
+
+String displayRequestMessageLabel(
+  dynamic input, {
+  String alt = "",
+}) {
+  final type = requestMessageType(input);
+  if (type == "cancellation") {
+    return capitalizeWords("request cancellation", alt: alt);
+  }
+  return alt;
 }
 
 String capitalizeSentences(
@@ -577,9 +651,13 @@ openWebview(
   bool isFromWallet = false,
 }) {
   bool isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
-  bool isExternal = Uri.tryParse(url)?.host != Uri.base.host;
-  if (!isMobile && isExternal && !isFromWallet) {
-    openExternalUrl(url);
+  final parsedUrl = Uri.tryParse(url);
+  bool isExternal = parsedUrl?.host != Uri.base.host;
+  if (!isMobile && isExternal) {
+    openExternalUrl(
+      url,
+      sameTab: isFromWallet,
+    );
     return;
   }
   Navigator.push(
@@ -649,7 +727,7 @@ Future<dynamic> showCameraSource({
   } catch (e) {
     AlertService().showAppAlert(
       title: "Error",
-      content: e.toString(),
+      content: cleanErrorMessage(e),
     );
     return null;
   }
@@ -661,54 +739,130 @@ Future<dynamic> showImageSource({
   String cameraType = "profile",
 }) async {
   return showModalBottomSheet(
-    context: Get.context!,
+    context: Get.overlayContext ?? Get.context!,
     useSafeArea: false,
+    backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.zero,
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(18),
+      ),
     ),
-    builder: (context) => Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ListTileWidget(
-          onTap: () {
-            Get.back();
-            showCameraSource(
-              isEdit: isEdit,
-              cameraType: cameraType,
-            );
-          },
-          leading: const Icon(Icons.camera_alt),
-          title: const Text("Camera"),
-        ),
-        hideGallery
-            ? const SizedBox.shrink()
-            : ListTileWidget(
-                onTap: () async {
-                  Get.back();
-                  try {
-                    final ImagePicker picker = ImagePicker();
-                    final XFile? image =
-                        await picker.pickImage(source: ImageSource.gallery);
-                    if (image != null) {
-                      selfieFile = await image.readAsBytes();
-                      selfieFileNeedsHorizontalFlip = false;
-                      selfieFileFromMobileCamera = false;
-                      Get.forceAppUpdate();
-                    }
-                  } catch (e) {
-                    showPermissionSettingsDialog(
-                      permissionName: "Photos",
-                      reason: 'Please allow photo access in Settings '
-                          'so you can choose an image from your gallery.',
-                    );
-                  }
-                },
-                leading: const Icon(Icons.image),
-                title: const Text("Gallery"),
+    builder: (sheetContext) {
+      return SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 42,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.circular(999),
               ),
-      ],
-    ),
+            ),
+            const SizedBox(height: 14),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Profile Photo",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontFamily: "Inter",
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF030744),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTileWidget(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 14,
+              ),
+              leading: const Icon(
+                Icons.camera_alt_outlined,
+                color: Color(0xFF030744),
+              ),
+              title: const Text(
+                "Camera",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontFamily: "Inter",
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF030744),
+                ),
+              ),
+              onTap: () async {
+                FocusManager.instance.primaryFocus?.unfocus();
+                Navigator.of(sheetContext).pop();
+                await showCameraSource(
+                  isEdit: isEdit,
+                  cameraType: cameraType,
+                );
+              },
+            ),
+            if (!hideGallery)
+              Divider(
+                height: 1,
+                color: Colors.black.withValues(alpha: 0.08),
+              ),
+            if (!hideGallery)
+              ListTileWidget(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                leading: const Icon(
+                  Icons.image_outlined,
+                  color: Color(0xFF030744),
+                ),
+                title: const Text(
+                  "Gallery",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontFamily: "Inter",
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF030744),
+                  ),
+                ),
+                onTap: () async {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  Navigator.of(sheetContext).pop();
+                  await showGallerySource(cameraType: cameraType);
+                },
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      );
+    },
   );
+}
+
+Future<dynamic> showGallerySource({
+  String cameraType = "profile",
+}) async {
+  try {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      selfieFile = await image.readAsBytes();
+      selfieFileNeedsHorizontalFlip = false;
+      selfieFileFromMobileCamera = false;
+      Get.forceAppUpdate();
+    }
+  } catch (_) {
+    showPermissionSettingsDialog(
+      permissionName: "Photos",
+      reason: 'Please allow photo access in Settings '
+          'so you can choose an image from your gallery.',
+    );
+  }
 }
 
 share(String text) async {
@@ -749,15 +903,15 @@ void showSuccess(
   );
 }
 
-showError(Object error) {
-  final context = Get.context;
-  if (context == null) return;
-  String message = error.toString();
-  if (message.startsWith("Exception: ")) {
-    message = message.replaceFirst("Exception: ", "");
-  }
-  ScaffoldMessenger.of(context).clearSnackBars();
-  ScaffoldMessenger.of(context).showSnackBar(
+void showError(
+  Object error, {
+  BuildContext? context,
+}) {
+  final currentContext = context ?? Get.context;
+  if (currentContext == null) return;
+  final message = cleanErrorMessage(error);
+  ScaffoldMessenger.of(currentContext).clearSnackBars();
+  ScaffoldMessenger.of(currentContext).showSnackBar(
     SnackBar(
       backgroundColor: Colors.red,
       content: Text(
@@ -806,15 +960,28 @@ String googleAuthErrorMessage(
     return fallback;
   }
 
-  var message = error.toString().trim();
-  if (message.startsWith("Exception: ")) {
-    message = message.replaceFirst("Exception: ", "");
-  }
-  if (message.startsWith("Bad state: ")) {
-    message = message.replaceFirst("Bad state: ", "");
-  }
+  final message = cleanErrorMessage(error);
   if (message.isEmpty || message.toLowerCase() == "null") {
     return fallback;
+  }
+  return message;
+}
+
+String cleanErrorMessage(Object? error) {
+  var message = "${error ?? ""}".trim();
+  final prefixes = [
+    "Exception: ",
+    "Bad state: ",
+    "Error: ",
+    "FlutterError: ",
+  ];
+  for (final prefix in prefixes) {
+    while (message.startsWith(prefix)) {
+      message = message.replaceFirst(prefix, "").trim();
+    }
+  }
+  if (message.isEmpty || message.toLowerCase() == "null") {
+    return "Something went wrong.";
   }
   return message;
 }
@@ -830,83 +997,39 @@ Map<String, dynamic> parseJwt(String token) {
 Future<bool> subscribeToServer() async {
   final token = fcmToken?.trim();
   if (token == null || token.isEmpty || token == "null") {
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'server subscribe skipped missing token',
-    );
     return false;
   }
   if (AuthService.isLoggedIn()) {
     final topics = StorageService.prefs?.getStringList("topics") ?? [];
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'server subscribe loggedIn=true '
-      'tokenLength=${token.length} topics=${topics.join(",")}',
-    );
     try {
       ApiResponse apiResponse = await AuthRequest().fcmRequest(
         token: token,
         topics: topics,
       );
       if (apiResponse.allGood) {
-        debugPrint(
-          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-          'server subscribe success loggedIn=true message=${apiResponse.message}',
-        );
         return true;
       } else {
-        debugPrint(
-          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-          'server subscribe failed loggedIn=true '
-          'message=${apiResponse.message}',
-        );
         throw apiResponse.message;
       }
     } catch (e) {
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'server subscribe exception loggedIn=true error=$e',
-      );
       // Ignore FCM registration failures for signed-out users.
     }
   } else {
     final topics = ["all"];
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'server subscribe loggedIn=false '
-      'tokenLength=${token.length} topics=${topics.join(",")}',
-    );
     try {
       ApiResponse apiResponse = await AuthRequest().fcmRequest(
         token: token,
         topics: topics,
       );
       if (apiResponse.allGood) {
-        debugPrint(
-          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-          'server subscribe success loggedIn=false message=${apiResponse.message}',
-        );
         return true;
       } else {
-        debugPrint(
-          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-          'server subscribe failed loggedIn=false '
-          'message=${apiResponse.message}',
-        );
         throw apiResponse.message;
       }
     } catch (e) {
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'server subscribe exception loggedIn=false error=$e',
-      );
       // Ignore FCM registration failures for signed-out users.
     }
   }
-  debugPrint(
-    '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-    'server subscribe returning false',
-  );
   return false;
 }
 

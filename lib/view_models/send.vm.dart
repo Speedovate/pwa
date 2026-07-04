@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/verify.view.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
@@ -64,20 +65,7 @@ class SendViewModel extends BaseViewModel {
           }
         }
       } catch (e) {
-        ScaffoldMessenger.of(Get.context!).clearSnackBars();
-        ScaffoldMessenger.of(
-          Get.context!,
-        ).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              e.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
+        showError(e);
       }
     }
   }
@@ -97,20 +85,7 @@ class SendViewModel extends BaseViewModel {
             resendSecs = int.parse(
               apiResponse.body!["data"]["countdown_remaining"].toString(),
             );
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(
-              Get.context!,
-            ).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  apiResponse.message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            );
+            showError(apiResponse.message);
           }
         }
         Navigator.push(
@@ -139,20 +114,7 @@ class SendViewModel extends BaseViewModel {
       }
     } catch (e) {
       AlertService().stopLoading(forceStop: true);
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            e.toString(),
-            style: const TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError(e);
       Navigator.push(
         Get.context!,
         PageRouteBuilder(

@@ -24,6 +24,7 @@ import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/models/chat_entity.model.dart';
 import 'package:pwa/widgets/camera_widget_shared.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:pwa/utils/order_status_style.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:pwa/widgets/quick_chat_pills.widget.dart';
 import 'package:pwa/utils/web_viewport_helper.dart';
@@ -45,13 +46,50 @@ class ChatView extends StatefulWidget {
   State<ChatView> createState() => _ChatViewState();
 }
 
+class _ChatTimelineItem {
+  _ChatTimelineItem._({
+    this.message,
+    this.status,
+    this.dateDividerAt,
+    required this.createdAt,
+  });
+
+  factory _ChatTimelineItem.message(ChatMessage message) {
+    return _ChatTimelineItem._(
+      message: message,
+      createdAt: message.createdAt,
+    );
+  }
+
+  factory _ChatTimelineItem.status(OrderStatus status) {
+    return _ChatTimelineItem._(
+      status: status,
+      createdAt: status.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  factory _ChatTimelineItem.dateDivider(DateTime dateTime) {
+    return _ChatTimelineItem._(
+      dateDividerAt: dateTime,
+      createdAt: dateTime,
+    );
+  }
+
+  final ChatMessage? message;
+  final OrderStatus? status;
+  final DateTime? dateDividerAt;
+  final DateTime createdAt;
+
+  bool get isStatus => status != null;
+  bool get isDateDivider => dateDividerAt != null;
+}
+
 class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   static const int _chatUploadMaxLongSide = 1080;
   static const double _chatBubblePillTopPadding = 2;
   static const double _chatBubblePillHeight = 34;
   bool isMediaLoading = false;
   bool _isUpdatingRequestCancellation = false;
-  bool _isUpdatingRequestPass = false;
   double _webKeyboardInset = 0;
   double _mobileKeyboardInset = 0;
   final WebViewportObserver _viewportObserver = WebViewportObserver();
@@ -184,7 +222,18 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     String message,
   ) async {
     final trimmedMessage = message.trim();
-    if (vm.isBusy || trimmedMessage.isEmpty || trimmedMessage == "null") {
+    if (vm.isBusy ||
+        trimmedMessage.isEmpty ||
+        trimmedMessage.toLowerCase() == "null") {
+      return;
+    }
+    final isCancellationRequest = isRequestCancellationMessage(trimmedMessage);
+    if (isCancellationRequest) {
+      await _sendQuickChatText(
+        vm,
+        trimmedMessage,
+        isRequestCancellation: isCancellationRequest,
+      );
       return;
     }
 
@@ -202,31 +251,23 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     ChatViewModel vm,
     String message, {
     bool isRequestCancellation = false,
-    bool isRequestPass = false,
   }) async {
     final trimmedMessage = message.trim();
     if (widget.readOnly ||
         vm.isBusy ||
         trimmedMessage.isEmpty ||
-        trimmedMessage == "null") {
+        trimmedMessage.toLowerCase() == "null") {
       return;
     }
-    final normalizedMessage = trimmedMessage.toLowerCase();
     final isCancellationRequest =
-        isRequestCancellation || normalizedMessage == "request cancellation";
-    final isPassRequest = isRequestPass || normalizedMessage == "request pass";
-    if (isCancellationRequest || isPassRequest) {
+        isRequestCancellation || isRequestCancellationMessage(trimmedMessage);
+    if (isCancellationRequest) {
       final orderSnapshot =
           await fbStore.collection("orders").doc(widget.order.code).get();
       final data = orderSnapshot.data();
       final cancelStatus =
           "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
-      final passStatus =
-          "${data?["pass_request_status"] ?? ""}".trim().toLowerCase();
       if (isCancellationRequest && cancelStatus == "accepted") {
-        return;
-      }
-      if (isPassRequest && passStatus == "accepted") {
         return;
       }
     }
@@ -236,7 +277,6 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
         "driverSeen": false,
         "userMessage": trimmedMessage,
         if (isCancellationRequest) "cancel_request_status": "pending",
-        if (isPassRequest) "pass_request_status": "pending",
       },
     );
     await vm.sendMessage(
@@ -250,23 +290,13 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   }
 
   String? _requestMessageType(ChatMessage message) {
-    final normalized = message.text.trim().toLowerCase();
-    if (normalized == "request cancellation") {
-      return "cancellation";
-    }
-    if (normalized == "request pass") {
-      return "pass";
-    }
-    return null;
+    return requestMessageType(message.text);
   }
 
   String _displayMessageText(ChatMessage message) {
-    final requestType = _requestMessageType(message);
-    if (requestType == "cancellation") {
-      return "Request Cancellation";
-    }
-    if (requestType == "pass") {
-      return "Request Pass";
+    final requestLabel = displayRequestMessageLabel(message.text);
+    if (requestLabel.isNotEmpty) {
+      return requestLabel;
     }
     return _displayContextualParticipantNames(message.text);
   }
@@ -286,7 +316,15 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       plainReplacement: "you",
       possessiveReplacement: "your",
     );
+    displayText = _removeParticipantHasPrefix(displayText);
     return _capitalizeLeadingContextReplacement(displayText);
+  }
+
+  String _removeParticipantHasPrefix(String text) {
+    return text.replaceFirstMapped(
+      RegExp(r'^(your driver|driver)\s+has\s+', caseSensitive: false),
+      (match) => "${match.group(1) ?? ""} ",
+    );
   }
 
   String _replaceDisplayName(
@@ -340,14 +378,11 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   }
 
   bool _canShowRequestCancellationPill(String? status) {
-    final normalized = (status ?? "").trim().toLowerCase();
-    return ![
-      "enroute",
-      "delivered",
-      "completed",
-      "successful",
-      "cancelled",
-    ].contains(normalized);
+    return canShowRequestCancellationPill(
+      status: status,
+      driver: widget.order.driver,
+      driverId: _currentOrderDriverId,
+    );
   }
 
   bool _isEnrouteOrBeyondStatus(String? status) {
@@ -532,16 +567,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       AlertService().stopLoading(forceStop: true);
     } catch (e) {
       AlertService().stopLoading(forceStop: true);
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(Get.context!).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            e.toString(),
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      );
+      showError(e);
     }
   }
 
@@ -551,26 +577,17 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     required String status,
   }) async {
     final isCancellation = requestType == "cancellation";
-    final isPass = requestType == "pass";
-    final isUpdating = isCancellation
-        ? _isUpdatingRequestCancellation
-        : _isUpdatingRequestPass;
-    if (isUpdating) {
+    if (!isCancellation || _isUpdatingRequestCancellation) {
       return;
     }
 
     setState(() {
-      if (isCancellation) {
-        _isUpdatingRequestCancellation = true;
-      } else if (isPass) {
-        _isUpdatingRequestPass = true;
-      }
+      _isUpdatingRequestCancellation = true;
     });
     try {
       await fbStore.collection("orders").doc(widget.order.code).update(
         {
-          isCancellation ? "cancel_request_status" : "pass_request_status":
-              status,
+          "cancel_request_status": status,
         },
       );
       final currentUserName = (AuthService.currentUser?.name ?? "User").trim();
@@ -578,7 +595,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       await vm.sendMessage(
         ChatMessage(
           text:
-              "$currentUserName $status $otherParticipantName's ${isCancellation ? "cancel" : "pass"} request!",
+              "$currentUserName $status $otherParticipantName's cancel request!",
           user: widget.chatEntity.mainUser!.toChatUser(),
           createdAt: DateTime.now().toUtc(),
         ),
@@ -586,11 +603,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     } finally {
       if (mounted) {
         setState(() {
-          if (isCancellation) {
-            _isUpdatingRequestCancellation = false;
-          } else if (isPass) {
-            _isUpdatingRequestPass = false;
-          }
+          _isUpdatingRequestCancellation = false;
         });
       }
     }
@@ -640,16 +653,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       }
     } catch (e) {
       AlertService().stopLoading(forceStop: true);
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(Get.context!).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            e.toString(),
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      );
+      showError(e);
     }
   }
 
@@ -716,16 +720,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       }
     } catch (e) {
       AlertService().stopLoading(forceStop: true);
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(Get.context!).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            e.toString(),
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      );
+      showError(e);
     }
   }
 
@@ -775,10 +770,8 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       stream: fbStore.collection("orders").doc(widget.order.code).snapshots(),
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
-        final statusKey = requestType == "cancellation"
-            ? "cancel_request_status"
-            : "pass_request_status";
-        final rawStatus = "${data?[statusKey] ?? ""}".trim().toLowerCase();
+        final rawStatus =
+            "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
         final status =
             rawStatus.isEmpty || rawStatus == "null" ? "pending" : rawStatus;
         final statusText = status == "accepted"
@@ -842,17 +835,13 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
         final currentUserId = "${AuthService.currentUser?.id ?? ''}";
-        final statusKey = requestType == "cancellation"
-            ? "cancel_request_status"
-            : "pass_request_status";
-        final rawStatus = "${data?[statusKey] ?? ""}".trim().toLowerCase();
+        final rawStatus =
+            "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
         final status =
             rawStatus.isEmpty || rawStatus == "null" ? "pending" : rawStatus;
         final isSender =
             currentUserId.isNotEmpty && currentUserId == message.user.id;
-        final isUpdating = requestType == "cancellation"
-            ? _isUpdatingRequestCancellation
-            : _isUpdatingRequestPass;
+        final isUpdating = _isUpdatingRequestCancellation;
 
         if (isSender || status != "pending") {
           return _buildRequestStatus(
@@ -978,6 +967,15 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
           ),
         ),
       );
+    }
+
+    final canShowGetNewDriverNow = canShowGetNewDriverNowAction(
+      status: widget.order.status,
+      driver: widget.order.driver,
+      driverId: _currentOrderDriverId,
+    );
+    if (!canShowGetNewDriverNow) {
+      return const SizedBox.shrink();
     }
 
     return SizedBox(
@@ -1357,19 +1355,20 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
 
   bool _hasPendingChatDraft() {
     final message = _controller.text.trim();
-    return (message.isNotEmpty && message != "null") ||
+    return (message.isNotEmpty && message.toLowerCase() != "null") ||
         chatFileListenable.value != null ||
         chatFile != null;
   }
 
   String _chatImageUploadErrorMessage(Object error) {
-    final message = error.toString().replaceFirst("Exception: ", "").trim();
-    if (message.contains("try a smaller image")) {
+    final message = cleanErrorMessage(error);
+    final normalizedMessage = message.toLowerCase();
+    if (normalizedMessage.contains("try a smaller image")) {
       return message;
     }
-    if (message.contains("Server Error") ||
-        message.contains("Response:") ||
-        message.contains("{message:")) {
+    if (normalizedMessage.contains("server error") ||
+        normalizedMessage.contains("response:") ||
+        normalizedMessage.contains("{message:")) {
       return "The photo failed to upload. Please try a smaller image.";
     }
     if (message.isEmpty || message.toLowerCase() == "null") {
@@ -1414,6 +1413,304 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     );
   }
 
+  List<_ChatTimelineItem> _chatTimelineItems(List<ChatMessage> messages) {
+    final items = <_ChatTimelineItem>[
+      ...messages
+          .where(_messageHasVisibleContent)
+          .map(_ChatTimelineItem.message),
+      ..._orderStatusTimelineItems(),
+    ];
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return _withDateDividers(items);
+  }
+
+  List<_ChatTimelineItem> _withDateDividers(
+    List<_ChatTimelineItem> timelineItems,
+  ) {
+    if (timelineItems.isEmpty) {
+      return timelineItems;
+    }
+
+    final itemsWithDividers = <_ChatTimelineItem>[];
+    for (var index = 0; index < timelineItems.length; index++) {
+      final item = timelineItems[index];
+      itemsWithDividers.add(item);
+
+      if (index + 1 >= timelineItems.length) {
+        continue;
+      }
+
+      final olderItem = timelineItems[index + 1];
+      if (_shouldShowDateTimeDivider(
+        newerItem: item,
+        olderItem: olderItem,
+      )) {
+        itemsWithDividers.add(
+          _ChatTimelineItem.dateDivider(olderItem.createdAt),
+        );
+      }
+    }
+
+    return itemsWithDividers;
+  }
+
+  bool _shouldShowDateTimeDivider({
+    required _ChatTimelineItem newerItem,
+    required _ChatTimelineItem olderItem,
+  }) {
+    if (newerItem.message == null || olderItem.message == null) {
+      return false;
+    }
+
+    final newerDate = newerItem.createdAt.toLocal();
+    final olderDate = olderItem.createdAt.toLocal();
+    final isDifferentDay = newerDate.year != olderDate.year ||
+        newerDate.month != olderDate.month ||
+        newerDate.day != olderDate.day;
+    return isDifferentDay;
+  }
+
+  bool _shouldTopAlignTimelineItems(
+    List<_ChatTimelineItem> timelineItems,
+    double availableHeight,
+  ) {
+    const topClearance = 88.0;
+    var estimatedHeight = topClearance;
+    for (final item in timelineItems) {
+      if (item.isStatus || item.isDateDivider) {
+        estimatedHeight += 34;
+        continue;
+      }
+
+      final message = item.message;
+      if (message == null) {
+        continue;
+      }
+      estimatedHeight += _messageImageUrl(message) != null ? 286 : 64;
+    }
+    return estimatedHeight < availableHeight;
+  }
+
+  List<_ChatTimelineItem> _orderStatusTimelineItems() {
+    return widget.order.statuses
+        .where(
+          (status) =>
+              status.createdAt != null &&
+              (status.name ?? "").trim().isNotEmpty &&
+              (status.name ?? "").trim().toLowerCase() != "null",
+        )
+        .map(_ChatTimelineItem.status)
+        .toList();
+  }
+
+  ChatMessage? _previousMessageInTimeline(
+    List<_ChatTimelineItem> timelineItems,
+    int index,
+  ) {
+    for (var i = index - 1; i >= 0; i--) {
+      if (timelineItems[i].isDateDivider) {
+        return null;
+      }
+      final message = timelineItems[i].message;
+      if (message != null && _messageHasVisibleContent(message)) {
+        return message;
+      }
+    }
+    return null;
+  }
+
+  ChatMessage? _nextMessageInTimeline(
+    List<_ChatTimelineItem> timelineItems,
+    int index,
+  ) {
+    for (var i = index + 1; i < timelineItems.length; i++) {
+      if (timelineItems[i].isDateDivider) {
+        return null;
+      }
+      final message = timelineItems[i].message;
+      if (message != null && _messageHasVisibleContent(message)) {
+        return message;
+      }
+    }
+    return null;
+  }
+
+  String _orderStatusDividerLabel(OrderStatus status) {
+    return orderStatusLabel(
+      status.name,
+      reason: status.reason,
+    );
+  }
+
+  bool _isToday(DateTime date) {
+    final localDate = date.toLocal();
+    final now = DateTime.now();
+    return localDate.year == now.year &&
+        localDate.month == now.month &&
+        localDate.day == now.day;
+  }
+
+  String _orderStatusDividerDateTimeLabel(DateTime createdAt) {
+    final localCreatedAt = createdAt.toLocal();
+    if (_isToday(localCreatedAt)) {
+      return DateFormat("h:mm:ss a").format(localCreatedAt);
+    }
+    return "${DateFormat("MMM d, y").format(localCreatedAt)} • ${DateFormat("h:mm:ss a").format(localCreatedAt)}";
+  }
+
+  String _chatDateTimeDividerLabel(DateTime createdAt) {
+    final localCreatedAt = createdAt.toLocal();
+    return "${DateFormat("MMM d, y").format(localCreatedAt)} • ${DateFormat("h:mm a").format(localCreatedAt)}";
+  }
+
+  Color _orderStatusDividerColor(OrderStatus status) {
+    return orderStatusTextColor(
+      status.name,
+      reason: status.reason,
+    );
+  }
+
+  Color _orderStatusDividerBackgroundColor(OrderStatus status) {
+    return orderStatusBackgroundColor(
+      status.name,
+      reason: status.reason,
+    );
+  }
+
+  Widget _buildOrderStatusDivider(
+    OrderStatus status, {
+    bool hasItemBefore = false,
+    bool hasItemAfter = false,
+    bool hasStatusBefore = false,
+    bool hasStatusAfter = false,
+  }) {
+    final color = _orderStatusDividerColor(status);
+    final backgroundColor = _orderStatusDividerBackgroundColor(status);
+    final createdAt = status.createdAt;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        top: hasStatusAfter
+            ? 5
+            : hasItemAfter
+                ? 8
+                : 10,
+        bottom: hasStatusBefore
+            ? 5
+            : hasItemBefore
+                ? 8
+                : 10,
+        left: 16,
+        right: 16,
+      ),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            createdAt == null
+                ? _orderStatusDividerLabel(status)
+                : "${_orderStatusDividerLabel(status)} • ${_orderStatusDividerDateTimeLabel(createdAt)}",
+            style: TextStyle(
+              height: 1,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatDateTimeDivider(
+    DateTime createdAt, {
+    bool hasItemBefore = false,
+    bool hasItemAfter = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: hasItemAfter ? 8 : 10,
+        bottom: hasItemBefore ? 8 : 10,
+        left: 16,
+        right: 16,
+      ),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF030744).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            _chatDateTimeDividerLabel(createdAt),
+            style: const TextStyle(
+              height: 1,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF030744),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderStatusChip() {
+    final label = widget.readOnly
+        ? "Preview"
+        : orderStatusLabel(
+            widget.order.status,
+            reason: widget.order.reason,
+          );
+    final color = widget.readOnly
+        ? const Color(0xFF030744)
+        : orderStatusTextColor(
+            widget.order.status,
+            reason: widget.order.reason,
+          );
+    final backgroundColor = widget.readOnly
+        ? const Color(0xFF030744).withValues(alpha: 0.08)
+        : orderStatusChipBackgroundColor(
+            widget.order.status,
+            reason: widget.order.reason,
+          );
+
+    return SizedBox(
+      height: 25,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 9,
+          vertical: 0,
+        ),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              height: 1,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ChatViewModel chatViewModel = ChatViewModel();
@@ -1450,519 +1747,561 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                               onTap: () {
                                 FocusManager.instance.primaryFocus?.unfocus();
                               },
-                              child: ListView.builder(
-                                reverse: true,
-                                padding: EdgeInsets.only(
-                                  bottom: widget.readOnly
-                                      ? mediaQuery.padding.bottom + 12
-                                      : 12,
-                                ),
-                                itemCount: vm.messages.length,
-                                itemBuilder: (context, index) {
-                                  final message = vm.messages[index];
-                                  final imageUrl = _messageImageUrl(message);
-                                  final isImageMessage = imageUrl != null;
-                                  final messagePhoneNumber =
-                                      _philippineMobileNumberFromMessage(
-                                    message.text,
-                                  );
-                                  final requestMessageType =
-                                      _requestMessageType(message);
-                                  final isRequestMessage =
-                                      requestMessageType != null;
-                                  final requestAccentColor =
-                                      requestMessageType == "pass"
-                                          ? const Color(0xFF007BFF)
-                                          : Colors.red;
-                                  final requestBubbleColor =
-                                      requestMessageType == "pass"
-                                          ? const Color(0xFFEAF4FF)
-                                          : const Color(0xFFFFEBEA);
-                                  if (!_messageHasVisibleContent(message)) {
-                                    return const SizedBox.shrink();
-                                  } else if (message.user.id !=
-                                      "${AuthService.currentUser?.id}") {
-                                    return Padding(
-                                      padding: EdgeInsets.only(
-                                        top: vm.messages.isNotEmpty &&
-                                                index == vm.messages.length - 1
-                                            ? 83
-                                            : 0,
-                                      ),
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          if (isImageMessage) {
-                                            _showNetworkImagePreview(imageUrl);
-                                          }
-                                        },
-                                        onLongPress: widget.readOnly ||
-                                                !_canShowTextActions(
-                                                  message,
-                                                )
-                                            ? null
-                                            : () async {
-                                                await _showMessageActionsSheet(
-                                                  message.text,
-                                                );
+                              child: Builder(builder: (context) {
+                                final timelineItems =
+                                    _chatTimelineItems(vm.messages);
+                                return LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final shouldTopAlign =
+                                        _shouldTopAlignTimelineItems(
+                                      timelineItems,
+                                      constraints.maxHeight,
+                                    );
+                                    return ListView.builder(
+                                      reverse: !shouldTopAlign,
+                                      padding: const EdgeInsets.only(top: 88),
+                                      itemCount: timelineItems.length,
+                                      itemBuilder: (context, index) {
+                                        final timelineIndex = shouldTopAlign
+                                            ? timelineItems.length - 1 - index
+                                            : index;
+                                        final timelineItem =
+                                            timelineItems[timelineIndex];
+                                        final status = timelineItem.status;
+                                        final dateDividerAt =
+                                            timelineItem.dateDividerAt;
+                                        final isNewestTimelineItem =
+                                            timelineIndex == 0;
+
+                                        if (dateDividerAt != null) {
+                                          return _buildChatDateTimeDivider(
+                                            dateDividerAt,
+                                            hasItemBefore: timelineIndex > 0,
+                                            hasItemAfter: timelineIndex + 1 <
+                                                timelineItems.length,
+                                          );
+                                        }
+
+                                        if (status != null) {
+                                          return _buildOrderStatusDivider(
+                                            status,
+                                            hasItemBefore: timelineIndex > 0,
+                                            hasItemAfter: timelineIndex + 1 <
+                                                timelineItems.length,
+                                            hasStatusBefore: timelineIndex >
+                                                    0 &&
+                                                timelineItems[timelineIndex - 1]
+                                                    .isStatus,
+                                            hasStatusAfter: timelineIndex + 1 <
+                                                    timelineItems.length &&
+                                                timelineItems[timelineIndex + 1]
+                                                    .isStatus,
+                                          );
+                                        }
+
+                                        final message = timelineItem.message!;
+                                        final hasStatusBefore =
+                                            timelineIndex > 0 &&
+                                                timelineItems[timelineIndex - 1]
+                                                    .isStatus;
+                                        final hasStatusAfter =
+                                            timelineIndex + 1 <
+                                                    timelineItems.length &&
+                                                timelineItems[timelineIndex + 1]
+                                                    .isStatus;
+                                        final previousMessage =
+                                            _previousMessageInTimeline(
+                                          timelineItems,
+                                          timelineIndex,
+                                        );
+                                        final nextMessage =
+                                            _nextMessageInTimeline(
+                                          timelineItems,
+                                          timelineIndex,
+                                        );
+                                        final imageUrl =
+                                            _messageImageUrl(message);
+                                        final isImageMessage = imageUrl != null;
+                                        final messagePhoneNumber =
+                                            _philippineMobileNumberFromMessage(
+                                          message.text,
+                                        );
+                                        final requestMessageType =
+                                            _requestMessageType(message);
+                                        final isRequestMessage =
+                                            requestMessageType != null;
+                                        final requestAccentColor =
+                                            requestMessageType == "pass"
+                                                ? const Color(0xFF007BFF)
+                                                : Colors.red;
+                                        final requestBubbleColor =
+                                            requestMessageType == "pass"
+                                                ? const Color(0xFFEAF4FF)
+                                                : Colors.red.shade50;
+                                        if (!_messageHasVisibleContent(
+                                            message)) {
+                                          return const SizedBox.shrink();
+                                        } else if (message.user.id !=
+                                            "${AuthService.currentUser?.id}") {
+                                          return Padding(
+                                            padding: EdgeInsets.zero,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                if (isImageMessage) {
+                                                  _showNetworkImagePreview(
+                                                      imageUrl);
+                                                }
                                               },
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                            top: vm.messages[index].user.id ==
-                                                    () {
-                                                      try {
-                                                        return vm
-                                                            .messages[index + 1]
-                                                            .user
-                                                            .id;
-                                                      } catch (e) {
-                                                        return "";
-                                                      }
-                                                    }()
-                                                ? 0
-                                                : 12,
-                                            left: 12,
-                                            right: 12,
-                                          ),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              vm.messages[index].user.id ==
-                                                      () {
-                                                        try {
-                                                          return vm
-                                                              .messages[
-                                                                  index - 1]
-                                                              .user
-                                                              .id;
-                                                        } catch (e) {
-                                                          return "";
-                                                        }
-                                                      }()
-                                                  ? const SizedBox(width: 35)
-                                                  : GestureDetector(
-                                                      onTap: () {
-                                                        _showNetworkImagePreview(
-                                                          "${vm.messages[index].user.profileImage}",
-                                                          memCacheWidth: 600,
-                                                        );
-                                                      },
-                                                      child: ClipOval(
-                                                        child: SizedBox(
-                                                          width: 35,
-                                                          height: 35,
-                                                          child:
-                                                              NetworkImageWidget(
-                                                            fit: BoxFit.cover,
-                                                            memCacheWidth: 600,
-                                                            imageUrl:
-                                                                "${vm.messages[index].user.profileImage}",
-                                                            progressIndicatorBuilder:
-                                                                (
-                                                              context,
-                                                              imageUrl,
-                                                              progress,
-                                                            ) {
-                                                              return Container(
-                                                                decoration:
-                                                                    const BoxDecoration(
-                                                                  shape: BoxShape
-                                                                      .circle,
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                                child:
-                                                                    const Center(
-                                                                  child:
-                                                                      SizedBox(
-                                                                    width: 16,
-                                                                    height: 16,
-                                                                    child:
-                                                                        CircularProgressIndicator(
-                                                                      color:
-                                                                          Color(
-                                                                        0xFF007BFF,
-                                                                      ),
-                                                                      strokeWidth:
-                                                                          2,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            },
-                                                            errorWidget: (
-                                                              context,
-                                                              imageUrl,
-                                                              progress,
-                                                            ) {
-                                                              return Container(
-                                                                decoration:
-                                                                    const BoxDecoration(
-                                                                  shape: BoxShape
-                                                                      .circle,
-                                                                  color: Color(
-                                                                    0xFF030744,
-                                                                  ),
-                                                                ),
-                                                                child:
-                                                                    const Center(
-                                                                  child: Icon(
-                                                                    Icons
-                                                                        .person_outline_outlined,
-                                                                    color: Colors
-                                                                        .white,
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                              const SizedBox(width: 12),
-                                              Flexible(
-                                                child: Column(
+                                              onLongPress: widget.readOnly ||
+                                                      !_canShowTextActions(
+                                                        message,
+                                                      )
+                                                  ? null
+                                                  : () async {
+                                                      await _showMessageActionsSheet(
+                                                        message.text,
+                                                      );
+                                                    },
+                                              child: Padding(
+                                                padding: EdgeInsets.only(
+                                                  top: message.user.id ==
+                                                          nextMessage?.user.id
+                                                      ? 0
+                                                      : hasStatusAfter
+                                                          ? 0
+                                                          : 12,
+                                                  bottom: isNewestTimelineItem
+                                                      ? widget.readOnly
+                                                          ? mediaQuery.padding
+                                                                  .bottom +
+                                                              12
+                                                          : 12
+                                                      : hasStatusBefore
+                                                          ? 8
+                                                          : 0,
+                                                  left: 12,
+                                                  right: 12,
+                                                ),
+                                                child: Row(
                                                   crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
+                                                      CrossAxisAlignment.end,
                                                   children: [
-                                                    vm.messages[index].user
-                                                                .id ==
-                                                            () {
-                                                              try {
-                                                                return vm
-                                                                    .messages[
-                                                                        index +
-                                                                            1]
-                                                                    .user
-                                                                    .id;
-                                                              } catch (e) {
-                                                                return "";
-                                                              }
-                                                            }()
-                                                        ? const SizedBox
-                                                            .shrink()
-                                                        : Text(
-                                                            vm.messages[index]
-                                                                .user
-                                                                .getFullName(),
-                                                            style:
-                                                                const TextStyle(
-                                                              height: 1.15,
-                                                              fontSize: 12,
-                                                              color:
-                                                                  Colors.grey,
+                                                    message.user.id ==
+                                                            previousMessage
+                                                                ?.user.id
+                                                        ? const SizedBox(
+                                                            width: 35)
+                                                        : GestureDetector(
+                                                            onTap: () {
+                                                              _showNetworkImagePreview(
+                                                                "${message.user.profileImage}",
+                                                                memCacheWidth:
+                                                                    600,
+                                                              );
+                                                            },
+                                                            child: ClipOval(
+                                                              child: SizedBox(
+                                                                width: 35,
+                                                                height: 35,
+                                                                child:
+                                                                    NetworkImageWidget(
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                  memCacheWidth:
+                                                                      600,
+                                                                  imageUrl:
+                                                                      "${message.user.profileImage}",
+                                                                  progressIndicatorBuilder:
+                                                                      (
+                                                                    context,
+                                                                    imageUrl,
+                                                                    progress,
+                                                                  ) {
+                                                                    return Container(
+                                                                      decoration:
+                                                                          const BoxDecoration(
+                                                                        shape: BoxShape
+                                                                            .circle,
+                                                                        color: Colors
+                                                                            .white,
+                                                                      ),
+                                                                      child:
+                                                                          const Center(
+                                                                        child:
+                                                                            SizedBox(
+                                                                          width:
+                                                                              16,
+                                                                          height:
+                                                                              16,
+                                                                          child:
+                                                                              CircularProgressIndicator(
+                                                                            color:
+                                                                                Color(
+                                                                              0xFF007BFF,
+                                                                            ),
+                                                                            strokeWidth:
+                                                                                2,
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                                  errorWidget: (
+                                                                    context,
+                                                                    imageUrl,
+                                                                    progress,
+                                                                  ) {
+                                                                    return Container(
+                                                                      decoration:
+                                                                          const BoxDecoration(
+                                                                        shape: BoxShape
+                                                                            .circle,
+                                                                        color:
+                                                                            Color(
+                                                                          0xFF030744,
+                                                                        ),
+                                                                      ),
+                                                                      child:
+                                                                          const Center(
+                                                                        child:
+                                                                            Icon(
+                                                                          Icons
+                                                                              .person_outline_outlined,
+                                                                          color:
+                                                                              Colors.white,
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ),
                                                             ),
                                                           ),
-                                                    const SizedBox(height: 4),
-                                                    Container(
-                                                      padding: isImageMessage
-                                                          ? EdgeInsets.zero
-                                                          : const EdgeInsets
-                                                              .all(
-                                                              10,
-                                                            ),
-                                                      decoration: BoxDecoration(
-                                                        color: isRequestMessage
-                                                            ? requestBubbleColor
-                                                            : Colors
-                                                                .grey.shade200,
-                                                        borderRadius:
-                                                            const BorderRadius
-                                                                .all(
-                                                          Radius.circular(
-                                                            8,
-                                                          ),
-                                                        ),
-                                                        border: isRequestMessage
-                                                            ? Border.all(
-                                                                color: requestAccentColor
-                                                                    .withValues(
-                                                                  alpha: 0.18,
-                                                                ),
-                                                              )
-                                                            : null,
-                                                      ),
-                                                      child: isImageMessage
-                                                          ? Stack(
-                                                              alignment: Alignment
-                                                                  .bottomLeft,
-                                                              children: [
-                                                                _buildChatImage(
-                                                                  context,
-                                                                  imageUrl,
-                                                                ),
-                                                                _buildImageTimeBadge(
-                                                                  vm
-                                                                      .messages[
-                                                                          index]
-                                                                      .createdAt,
-                                                                ),
-                                                              ],
-                                                            )
-                                                          : Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Text(
-                                                                  _displayMessageText(
-                                                                    message,
-                                                                  ),
+                                                    const SizedBox(width: 12),
+                                                    Flexible(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          message.user.id ==
+                                                                  nextMessage
+                                                                      ?.user.id
+                                                              ? const SizedBox
+                                                                  .shrink()
+                                                              : Text(
+                                                                  message.user
+                                                                      .getFullName(),
                                                                   style:
-                                                                      TextStyle(
-                                                                    fontSize:
-                                                                        15,
-                                                                    height:
-                                                                        1.15,
-                                                                    color: isRequestMessage
-                                                                        ? requestAccentColor
-                                                                        : Colors
-                                                                            .black,
-                                                                    fontWeight: isRequestMessage
-                                                                        ? FontWeight
-                                                                            .w600
-                                                                        : FontWeight
-                                                                            .w400,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 5,
-                                                                ),
-                                                                if (!widget
-                                                                        .readOnly &&
-                                                                    messagePhoneNumber !=
-                                                                        null) ...[
-                                                                  _buildCallPhonePill(
-                                                                    messagePhoneNumber,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                ],
-                                                                if (isRequestMessage) ...[
-                                                                  _buildRequestActions(
-                                                                    vm: vm,
-                                                                    message:
-                                                                        message,
-                                                                    requestType:
-                                                                        requestMessageType,
-                                                                    color:
-                                                                        requestAccentColor,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                ],
-                                                                _buildAcceptedCancelRequestActions(
-                                                                  vm: vm,
-                                                                  message:
-                                                                      message,
-                                                                ),
-                                                                if (!widget
-                                                                        .readOnly &&
-                                                                    _shouldShowAcceptedCancelRequestActions(
-                                                                      message
-                                                                          .text,
-                                                                    ))
-                                                                  const SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                Text(
-                                                                  DateFormat(
-                                                                    "h:mm a",
-                                                                  ).format(
-                                                                    vm
-                                                                        .messages[
-                                                                            index]
-                                                                        .createdAt,
-                                                                  ),
-                                                                  style:
-                                                                      TextStyle(
+                                                                      const TextStyle(
                                                                     height:
                                                                         1.15,
                                                                     fontSize:
                                                                         12,
-                                                                    color: isRequestMessage
-                                                                        ? requestAccentColor
-                                                                        : Colors
-                                                                            .black,
+                                                                    color: Colors
+                                                                        .grey,
                                                                   ),
                                                                 ),
-                                                              ],
+                                                          const SizedBox(
+                                                              height: 4),
+                                                          Container(
+                                                            padding:
+                                                                isImageMessage
+                                                                    ? EdgeInsets
+                                                                        .zero
+                                                                    : const EdgeInsets
+                                                                        .all(
+                                                                        10,
+                                                                      ),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: isRequestMessage
+                                                                  ? requestBubbleColor
+                                                                  : Colors.grey
+                                                                      .shade200,
+                                                              borderRadius:
+                                                                  const BorderRadius
+                                                                      .all(
+                                                                Radius.circular(
+                                                                  8,
+                                                                ),
+                                                              ),
+                                                              border:
+                                                                  isRequestMessage
+                                                                      ? Border
+                                                                          .all(
+                                                                          color:
+                                                                              requestAccentColor.withValues(
+                                                                            alpha:
+                                                                                0.18,
+                                                                          ),
+                                                                        )
+                                                                      : null,
                                                             ),
+                                                            child:
+                                                                isImageMessage
+                                                                    ? Stack(
+                                                                        alignment:
+                                                                            Alignment.bottomLeft,
+                                                                        children: [
+                                                                          _buildChatImage(
+                                                                            context,
+                                                                            imageUrl,
+                                                                          ),
+                                                                          _buildImageTimeBadge(
+                                                                            message.createdAt,
+                                                                          ),
+                                                                        ],
+                                                                      )
+                                                                    : Column(
+                                                                        crossAxisAlignment:
+                                                                            CrossAxisAlignment.start,
+                                                                        children: [
+                                                                          Text(
+                                                                            _displayMessageText(
+                                                                              message,
+                                                                            ),
+                                                                            style:
+                                                                                TextStyle(
+                                                                              fontSize: 15,
+                                                                              height: 1.15,
+                                                                              color: isRequestMessage ? requestAccentColor : Colors.black,
+                                                                              fontWeight: isRequestMessage ? FontWeight.w600 : FontWeight.w400,
+                                                                            ),
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                5,
+                                                                          ),
+                                                                          if (!widget.readOnly &&
+                                                                              messagePhoneNumber != null) ...[
+                                                                            _buildCallPhonePill(
+                                                                              messagePhoneNumber,
+                                                                            ),
+                                                                            const SizedBox(
+                                                                              height: 5,
+                                                                            ),
+                                                                          ],
+                                                                          if (isRequestMessage) ...[
+                                                                            _buildRequestActions(
+                                                                              vm: vm,
+                                                                              message: message,
+                                                                              requestType: requestMessageType,
+                                                                              color: requestAccentColor,
+                                                                            ),
+                                                                            const SizedBox(
+                                                                              height: 5,
+                                                                            ),
+                                                                          ],
+                                                                          _buildAcceptedCancelRequestActions(
+                                                                            vm: vm,
+                                                                            message:
+                                                                                message,
+                                                                          ),
+                                                                          if (!widget.readOnly &&
+                                                                              _shouldShowAcceptedCancelRequestActions(
+                                                                                message.text,
+                                                                              ))
+                                                                            const SizedBox(
+                                                                              height: 5,
+                                                                            ),
+                                                                          Text(
+                                                                            DateFormat(
+                                                                              "h:mm a",
+                                                                            ).format(
+                                                                              message.createdAt,
+                                                                            ),
+                                                                            style:
+                                                                                TextStyle(
+                                                                              height: 1.15,
+                                                                              fontSize: 12,
+                                                                              color: isRequestMessage ? requestAccentColor : Colors.black,
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 50),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          return Padding(
+                                            padding: EdgeInsets.zero,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                if (isImageMessage) {
+                                                  _showNetworkImagePreview(
+                                                      imageUrl);
+                                                }
+                                              },
+                                              onLongPress: widget.readOnly ||
+                                                      !_canShowTextActions(
+                                                        message,
+                                                      )
+                                                  ? null
+                                                  : () async {
+                                                      await _showMessageActionsSheet(
+                                                        message.text,
+                                                      );
+                                                    },
+                                              child: Padding(
+                                                padding: EdgeInsets.only(
+                                                  top: message.user.id ==
+                                                          nextMessage?.user.id
+                                                      ? 4
+                                                      : hasStatusAfter
+                                                          ? 5
+                                                          : 12,
+                                                  bottom: isNewestTimelineItem
+                                                      ? widget.readOnly
+                                                          ? mediaQuery.padding
+                                                                  .bottom +
+                                                              12
+                                                          : 12
+                                                      : hasStatusBefore
+                                                          ? 8
+                                                          : 0,
+                                                  left: 12,
+                                                  right: 12,
+                                                ),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    const SizedBox(width: 50),
+                                                    Flexible(
+                                                      child: Container(
+                                                        padding: isImageMessage
+                                                            ? EdgeInsets.zero
+                                                            : const EdgeInsets
+                                                                .all(
+                                                                10,
+                                                              ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: isRequestMessage
+                                                              ? requestBubbleColor
+                                                              : const Color(
+                                                                  0xFF007BFF,
+                                                                ),
+                                                          borderRadius:
+                                                              const BorderRadius
+                                                                  .all(
+                                                            Radius.circular(
+                                                              8,
+                                                            ),
+                                                          ),
+                                                          border:
+                                                              isRequestMessage
+                                                                  ? Border.all(
+                                                                      color: requestAccentColor
+                                                                          .withValues(
+                                                                        alpha:
+                                                                            0.18,
+                                                                      ),
+                                                                    )
+                                                                  : null,
+                                                        ),
+                                                        child: isImageMessage
+                                                            ? Stack(
+                                                                alignment: Alignment
+                                                                    .bottomRight,
+                                                                children: [
+                                                                  _buildChatImage(
+                                                                    context,
+                                                                    imageUrl,
+                                                                  ),
+                                                                  _buildImageTimeBadge(
+                                                                    message
+                                                                        .createdAt,
+                                                                  ),
+                                                                ],
+                                                              )
+                                                            : Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .end,
+                                                                children: [
+                                                                  Text(
+                                                                    _displayMessageText(
+                                                                      message,
+                                                                    ),
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontSize:
+                                                                          14,
+                                                                      height:
+                                                                          1.15,
+                                                                      color: isRequestMessage
+                                                                          ? requestAccentColor
+                                                                          : Colors
+                                                                              .white,
+                                                                      fontWeight: isRequestMessage
+                                                                          ? FontWeight
+                                                                              .w600
+                                                                          : FontWeight
+                                                                              .w400,
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    height: 5,
+                                                                  ),
+                                                                  if (isRequestMessage) ...[
+                                                                    _buildRequestActions(
+                                                                      vm: vm,
+                                                                      message:
+                                                                          message,
+                                                                      requestType:
+                                                                          requestMessageType,
+                                                                      color:
+                                                                          requestAccentColor,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      height: 5,
+                                                                    ),
+                                                                  ],
+                                                                  Text(
+                                                                    DateFormat(
+                                                                      "h:mm a",
+                                                                    ).format(
+                                                                      message
+                                                                          .createdAt,
+                                                                    ),
+                                                                    style:
+                                                                        TextStyle(
+                                                                      height:
+                                                                          1.15,
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: isRequestMessage
+                                                                          ? requestAccentColor
+                                                                          : Colors
+                                                                              .white,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
                                               ),
-                                              const SizedBox(width: 50),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
+                                            ),
+                                          );
+                                        }
+                                      },
                                     );
-                                  } else {
-                                    return Padding(
-                                      padding: EdgeInsets.only(
-                                        top: vm.messages.isNotEmpty &&
-                                                index == vm.messages.length - 1
-                                            ? 83
-                                            : 0,
-                                      ),
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          if (isImageMessage) {
-                                            _showNetworkImagePreview(imageUrl);
-                                          }
-                                        },
-                                        onLongPress: widget.readOnly ||
-                                                !_canShowTextActions(
-                                                  message,
-                                                )
-                                            ? null
-                                            : () async {
-                                                await _showMessageActionsSheet(
-                                                  message.text,
-                                                );
-                                              },
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                            top: vm.messages[index].user.id ==
-                                                    () {
-                                                      try {
-                                                        return vm
-                                                            .messages[index + 1]
-                                                            .user
-                                                            .id;
-                                                      } catch (e) {
-                                                        return "";
-                                                      }
-                                                    }()
-                                                ? 4
-                                                : 12,
-                                            left: 12,
-                                            right: 12,
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.end,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              const SizedBox(width: 50),
-                                              Flexible(
-                                                child: Container(
-                                                  padding: isImageMessage
-                                                      ? EdgeInsets.zero
-                                                      : const EdgeInsets.all(
-                                                          10,
-                                                        ),
-                                                  decoration: BoxDecoration(
-                                                    color: isRequestMessage
-                                                        ? requestBubbleColor
-                                                        : const Color(
-                                                            0xFF007BFF,
-                                                          ),
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(
-                                                        8,
-                                                      ),
-                                                    ),
-                                                    border: isRequestMessage
-                                                        ? Border.all(
-                                                            color:
-                                                                requestAccentColor
-                                                                    .withValues(
-                                                              alpha: 0.18,
-                                                            ),
-                                                          )
-                                                        : null,
-                                                  ),
-                                                  child: isImageMessage
-                                                      ? Stack(
-                                                          alignment: Alignment
-                                                              .bottomRight,
-                                                          children: [
-                                                            _buildChatImage(
-                                                              context,
-                                                              imageUrl,
-                                                            ),
-                                                            _buildImageTimeBadge(
-                                                              vm.messages[index]
-                                                                  .createdAt,
-                                                            ),
-                                                          ],
-                                                        )
-                                                      : Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .end,
-                                                          children: [
-                                                            Text(
-                                                              _displayMessageText(
-                                                                message,
-                                                              ),
-                                                              style: TextStyle(
-                                                                fontSize: 14,
-                                                                height: 1.15,
-                                                                color: isRequestMessage
-                                                                    ? requestAccentColor
-                                                                    : Colors
-                                                                        .white,
-                                                                fontWeight: isRequestMessage
-                                                                    ? FontWeight
-                                                                        .w600
-                                                                    : FontWeight
-                                                                        .w400,
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                              height: 5,
-                                                            ),
-                                                            if (isRequestMessage) ...[
-                                                              _buildRequestActions(
-                                                                vm: vm,
-                                                                message:
-                                                                    message,
-                                                                requestType:
-                                                                    requestMessageType,
-                                                                color:
-                                                                    requestAccentColor,
-                                                              ),
-                                                              const SizedBox(
-                                                                height: 5,
-                                                              ),
-                                                            ],
-                                                            Text(
-                                                              DateFormat(
-                                                                "h:mm a",
-                                                              ).format(
-                                                                vm
-                                                                    .messages[
-                                                                        index]
-                                                                    .createdAt,
-                                                              ),
-                                                              style: TextStyle(
-                                                                height: 1.15,
-                                                                fontSize: 12,
-                                                                color: isRequestMessage
-                                                                    ? requestAccentColor
-                                                                    : Colors
-                                                                        .white,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
+                                  },
+                                );
+                              }),
                             ),
                           ),
                           ValueListenableBuilder<Uint8List?>(
@@ -1991,8 +2330,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                           : mediaQuery.padding.bottom)
                                       .toDouble();
                               final showQuickChatPills =
-                                  selectedChatFile == null &&
-                                      !isComposerFocused;
+                                  selectedChatFile == null;
                               final double imagePreviewHeight =
                                   mediaQuery.size.width.clamp(0.0, 450.0);
                               return Padding(
@@ -2425,22 +2763,8 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                               }
                                               setChatFile(null);
                                             } catch (e) {
-                                              ScaffoldMessenger.of(Get.context!)
-                                                  .clearSnackBars();
-                                              ScaffoldMessenger.of(
-                                                Get.context!,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  backgroundColor: Colors.red,
-                                                  content: Text(
-                                                    _chatImageUploadErrorMessage(
-                                                      e,
-                                                    ),
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
+                                              showError(
+                                                _chatImageUploadErrorMessage(e),
                                               );
                                             }
                                             vm.setBusy(false);
@@ -2555,13 +2879,8 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                         ),
                                       ),
                                     ),
-                                    if (widget.readOnly) ...[
-                                      const SizedBox(width: 4),
-                                      const Icon(
-                                        Icons.visibility_outlined,
-                                        color: Color(0xFF030744),
-                                      ),
-                                    ],
+                                    const SizedBox(width: 8),
+                                    _buildHeaderStatusChip(),
                                   ],
                                 ),
                                 const Expanded(child: SizedBox.shrink()),

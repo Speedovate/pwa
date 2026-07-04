@@ -13,6 +13,7 @@ import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:pwa/utils/order_status_style.dart';
 
 class OrderListItem extends StatefulWidget {
   const OrderListItem({
@@ -217,32 +218,10 @@ class _OrderListItemState extends State<OrderListItem> {
                     ),
                     Container(
                       decoration: BoxDecoration(
-                        color: () {
-                          final status = widget.order.status;
-                          if (status == "pending") {
-                            return Colors.blue.shade100;
-                          } else if (status == "preparing") {
-                            return Colors.blue.shade100;
-                          } else if (status == "ready") {
-                            return Colors.blue.shade100;
-                          } else if (status == "enroute") {
-                            return Colors.orange.shade100;
-                          } else if (status == "failed") {
-                            return Colors.red.shade100;
-                          } else if (status == "cancelled") {
-                            if (widget.order.reason == "rebook") {
-                              return Colors.orange.shade100;
-                            } else if (widget.order.reason == "pass") {
-                              return Colors.orange.shade100;
-                            } else {
-                              return Colors.red.shade100;
-                            }
-                          } else if (status == "delivered") {
-                            return Colors.green.shade100;
-                          } else {
-                            return Colors.blue.shade100;
-                          }
-                        }(),
+                        color: orderStatusChipBackgroundColor(
+                          widget.order.status,
+                          reason: widget.order.reason,
+                        ),
                         borderRadius: const BorderRadius.all(
                           Radius.circular(4),
                         ),
@@ -283,32 +262,10 @@ class _OrderListItemState extends State<OrderListItem> {
                             height: 1,
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
-                            color: () {
-                              final status = widget.order.status;
-                              if (status == "pending") {
-                                return Colors.blue;
-                              } else if (status == "preparing") {
-                                return Colors.blue;
-                              } else if (status == "ready") {
-                                return Colors.blue;
-                              } else if (status == "enroute") {
-                                return Colors.orange;
-                              } else if (status == "failed") {
-                                return Colors.red;
-                              } else if (status == "cancelled") {
-                                if (widget.order.reason == "rebook") {
-                                  return Colors.orange;
-                                } else if (widget.order.reason == "pass") {
-                                  return Colors.orange;
-                                } else {
-                                  return Colors.red;
-                                }
-                              } else if (status == "delivered") {
-                                return Colors.green;
-                              } else {
-                                return Colors.blue;
-                              }
-                            }(),
+                            color: orderStatusTextColor(
+                              widget.order.status,
+                              reason: widget.order.reason,
+                            ),
                           ),
                         ),
                       ),
@@ -440,9 +397,7 @@ class _OrderListItemState extends State<OrderListItem> {
                     Expanded(
                       child: Center(
                         child: Text(
-                          DateFormat("dd MMM yyyy, h:mm a").format(
-                            widget.order.createdAt!,
-                          ),
+                          "${DateFormat("MMM d, y").format(widget.order.createdAt!)} • ${DateFormat("h:mm a").format(widget.order.createdAt!)}",
                           style: const TextStyle(
                             height: 1.05,
                             fontSize: 12,
@@ -471,9 +426,12 @@ class _OrderListItemState extends State<OrderListItem> {
                               )
                             : Text(
                                 isBool(AuthService.currentUser?.isProvider)
-                                    ? widget.order.discount == 0
+                                    ? widget.order.appearsToBeProviderGuestFare
                                         ? "Guest"
-                                        : "Staff"
+                                        : widget.order
+                                                .appearsToBeProviderStaffFare
+                                            ? "Staff"
+                                            : "Via App"
                                     : "₱${widget.order.total?.toStringAsFixed(0)}",
                                 style: TextStyle(
                                   height: 1.05,

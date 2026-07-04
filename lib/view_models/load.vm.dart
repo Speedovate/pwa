@@ -222,6 +222,8 @@ class LoadViewModel extends BaseViewModel {
         link,
         isFromWallet: true,
       );
-    } catch (_) {}
+    } catch (error) {
+      // Top-up launch failures are intentionally ignored here.
+    }
   }
 }

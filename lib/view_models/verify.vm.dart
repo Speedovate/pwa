@@ -120,40 +120,14 @@ class VerifyViewModel extends BaseViewModel {
             resendSecs = int.parse(
               apiResponse.body!["data"]["countdown_remaining"].toString(),
             );
-            ScaffoldMessenger.of(Get.context!).clearSnackBars();
-            ScaffoldMessenger.of(
-              Get.context!,
-            ).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  apiResponse.message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            );
+            showError(apiResponse.message);
           }
         }
       } else {
         throw apiResponse.message;
       }
     } catch (e) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            e.toString(),
-            style: const TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError(e);
     }
   }
 
@@ -287,20 +261,7 @@ class VerifyViewModel extends BaseViewModel {
         }
       } catch (e) {
         AlertService().stopLoading();
-        ScaffoldMessenger.of(Get.context!).clearSnackBars();
-        ScaffoldMessenger.of(
-          Get.context!,
-        ).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              e.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
+        showError(e);
       }
     }
   }

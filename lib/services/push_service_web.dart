@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/storage.service.dart';
@@ -17,10 +16,16 @@ class PushService {
 
   static StreamSubscription<RemoteMessage>? _messageSubscription;
   static StreamSubscription<String>? _tokenRefreshSubscription;
+  static Timer? _syncRetryTimer;
+  static int _syncRetryAttempt = 0;
 
   static void _notifDebug(String message) {
-    debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} $message');
+    unawaited(
+      appendNotificationDiagnosticLog(
+        source: 'push_web',
+        message: message,
+      ),
+    );
   }
 
   static String _cleanNotificationText(Object? value) {
@@ -58,6 +63,7 @@ class PushService {
       return;
     }
     await _registerServiceWorker();
+    await _enableAutoInit();
     _attachForegroundListener();
     _attachTokenRefreshListener();
     await syncTokenWithServer(requestPermission: true);
@@ -72,9 +78,18 @@ class PushService {
       _notifDebug('web request permission skipped unsupported');
       return;
     }
-    await syncTokenWithServer(
+    final permission = await _resolvePermission(
       requestPermission: true,
-      forceSync: true,
+    );
+    _notifDebug('web request permission resolved=$permission');
+    if (permission != 'granted') {
+      return;
+    }
+    unawaited(
+      syncTokenWithServer(
+        requestPermission: false,
+        forceSync: true,
+      ),
     );
   }
 
@@ -105,6 +120,10 @@ class PushService {
       );
       if (token == null || token.isEmpty) {
         _notifDebug('web sync token stop missing fcm token');
+        _scheduleSyncRetry(
+          requestPermission: false,
+          forceSync: true,
+        );
         return;
       }
 
@@ -119,14 +138,29 @@ class PushService {
       final syncedToServer = await subscribeToServer();
       if (!syncedToServer) {
         _notifDebug('web sync token stop server subscribe failed');
+        _scheduleSyncRetry(
+          requestPermission: false,
+          forceSync: true,
+        );
         return;
       }
       await _rememberSyncedState(token, topicSignature);
+      _clearSyncRetryState();
       _notifDebug('web sync token complete topics=$topicSignature');
     } catch (e) {
       _notifDebug('web sync token failed error=$e');
+      _scheduleSyncRetry(
+        requestPermission: false,
+        forceSync: true,
+      );
       // Keep web push sync non-blocking.
     }
+  }
+
+  static Future<void> _enableAutoInit() async {
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    } catch (_) {}
   }
 
   static void _attachForegroundListener() {
@@ -202,6 +236,44 @@ class PushService {
       _notifDebug('web service worker register failed error=$e');
       // Service worker registration is best-effort only.
     }
+  }
+
+  static void _scheduleSyncRetry({
+    required bool requestPermission,
+    required bool forceSync,
+  }) {
+    if (_syncRetryAttempt >= 6) {
+      return;
+    }
+    if (_syncRetryTimer?.isActive == true) {
+      return;
+    }
+
+    const retryDelays = <Duration>[
+      Duration(seconds: 2),
+      Duration(seconds: 4),
+      Duration(seconds: 8),
+      Duration(seconds: 15),
+      Duration(seconds: 30),
+      Duration(minutes: 1),
+    ];
+    final delay = retryDelays[_syncRetryAttempt];
+    _syncRetryAttempt += 1;
+    _syncRetryTimer = Timer(delay, () {
+      _syncRetryTimer = null;
+      unawaited(
+        syncTokenWithServer(
+          requestPermission: requestPermission,
+          forceSync: forceSync,
+        ),
+      );
+    });
+  }
+
+  static void _clearSyncRetryState() {
+    _syncRetryTimer?.cancel();
+    _syncRetryTimer = null;
+    _syncRetryAttempt = 0;
   }
 
   static Future<String> _resolvePermission({

@@ -32,10 +32,6 @@ class OrderRequest extends HttpService {
         queryParameters: {
           "page": page,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -56,10 +52,6 @@ class OrderRequest extends HttpService {
     try {
       final apiResult = await get(
         "${Api.bookingOrders}/$id/media",
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -103,10 +95,6 @@ class OrderRequest extends HttpService {
         "${Api.bookingOrders}/$id/media",
         null,
         formData: formData,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResult.statusCode == 200 && apiResult.data is String) {

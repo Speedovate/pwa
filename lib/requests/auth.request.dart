@@ -83,45 +83,21 @@ class AuthRequest extends HttpService {
         "action": "subscribeTopics",
       };
       final fcmUrl = "${Api.baseUrl}${Api.fcm}";
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'fcm request POST url=$fcmUrl '
-        'tokenLength=${token.length} topics=${topics.join(",")}',
-      );
       final apiResult = await post(
         fcmUrl,
         body,
       );
       final postResponse = ApiResponse.fromResponse(apiResult);
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'fcm request POST response success=${postResponse.allGood} '
-        'message=${postResponse.message}',
-      );
       if (!postResponse.message.contains('POST method is not supported')) {
         return postResponse;
       }
 
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'fcm request fallback GET url=$fcmUrl',
-      );
       final fallbackResult = await get(
         fcmUrl,
         queryParameters: body,
       );
-      final fallbackResponse = ApiResponse.fromResponse(fallbackResult);
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'fcm request fallback GET response success=${fallbackResponse.allGood} '
-        'message=${fallbackResponse.message}',
-      );
-      return fallbackResponse;
+      return ApiResponse.fromResponse(fallbackResult);
     } catch (e) {
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'fcm request failed error=$e',
-      );
       throw e.toString();
     }
   }
@@ -131,10 +107,6 @@ class AuthRequest extends HttpService {
       final apiResult = await get(
         Api.authUser,
         includeHeaders: true,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -187,11 +159,7 @@ class AuthRequest extends HttpService {
 
   Future<ApiResponse> logoutRequest() async {
     try {
-      final apiResult = await get(Api.authSignOut).timeout(
-        const Duration(
-          seconds: 30,
-        ),
-      );
+      final apiResult = await get(Api.authSignOut);
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
       throw e.toString();
@@ -209,10 +177,6 @@ class AuthRequest extends HttpService {
           "email": email,
           "phone": phone,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -231,10 +195,6 @@ class AuthRequest extends HttpService {
           "type": type,
           "phone": phone,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -253,10 +213,6 @@ class AuthRequest extends HttpService {
           "code": code,
           "phone": phone,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -429,10 +385,6 @@ class AuthRequest extends HttpService {
         queryParameters: {
           "phone": phone,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -451,10 +403,6 @@ class AuthRequest extends HttpService {
           "phone": phone,
           "password": password,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -476,10 +424,6 @@ class AuthRequest extends HttpService {
           "new_password": nPassword,
           "new_password_confirmation": cPassword,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -499,10 +443,6 @@ class AuthRequest extends HttpService {
           "password": password,
           "reason": reason,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -538,10 +478,6 @@ class AuthRequest extends HttpService {
                   ),
                 ),
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {

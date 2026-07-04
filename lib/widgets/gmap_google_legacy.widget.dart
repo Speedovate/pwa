@@ -12,6 +12,8 @@ import 'package:pwa/utils/map_types.dart' as app_maps;
 
 class GoogleMapWidget extends StatefulWidget {
   final app_maps.LatLng center;
+  final double initialZoom;
+  final EdgeInsets padding;
   final bool enableGestures;
   final List<MapMarkerData> markers;
   final List<MapPolylineData> polylines;
@@ -24,6 +26,8 @@ class GoogleMapWidget extends StatefulWidget {
   const GoogleMapWidget({
     super.key,
     required this.center,
+    this.initialZoom = 16,
+    this.padding = EdgeInsets.zero,
     this.enableGestures = true,
     this.markers = const [],
     this.polylines = const [],
@@ -105,7 +109,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
             });
             try {
               final mapOptions = gmaps.MapOptions()
-                ..zoom = 16
+                ..zoom = widget.initialZoom
                 ..center = gmaps.LatLng(widget.center.lat, widget.center.lng)
                 ..clickableIcons = false
                 ..disableDefaultUI = true
@@ -217,6 +221,31 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     return a.lat == b.lat && a.lng == b.lng;
   }
 
+  bool _isPinMarker(MapMarkerData marker) {
+    return marker.id == 'pickupMarker' || marker.id == 'dropoffMarker';
+  }
+
+  String _pinMarkerSvgUrl(MapMarkerData marker) {
+    final color = marker.id == 'dropoffMarker' ? '#F44336' : '#007BFF';
+    final svg = '''
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path fill="$color" d="M32 4C21.5 4 13 12.5 13 23c0 14.3 19 37 19 37s19-22.7 19-37C51 12.5 42.5 4 32 4z"/>
+  <circle cx="32" cy="23" r="8" fill="white" fill-opacity="0.95"/>
+</svg>
+''';
+    return Uri.dataFromString(
+      svg,
+      mimeType: 'image/svg+xml',
+    ).toString();
+  }
+
+  String _markerIconUrl(MapMarkerData marker) {
+    if (_isPinMarker(marker)) {
+      return _pinMarkerSvgUrl(marker);
+    }
+    return marker.imageUrl;
+  }
+
   void _syncOverlays() {
     if (_map == null) {
       return;
@@ -235,7 +264,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         marker.position.lng,
       );
       final nextIcon = gmaps.Icon(
-        url: marker.imageUrl,
+        url: _markerIconUrl(marker),
         scaledSize: gmaps.Size(marker.width, marker.height),
       );
       final renderedMarker = _renderedMarkers[marker.id];

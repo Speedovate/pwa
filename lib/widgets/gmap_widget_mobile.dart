@@ -10,6 +10,8 @@ import 'package:pwa/utils/map_types.dart' as app_maps;
 
 class GoogleMapWidget extends StatefulWidget {
   final app_maps.LatLng center;
+  final double initialZoom;
+  final EdgeInsets padding;
   final bool enableGestures;
   final List<MapMarkerData> markers;
   final List<MapPolylineData> polylines;
@@ -21,6 +23,8 @@ class GoogleMapWidget extends StatefulWidget {
   const GoogleMapWidget({
     super.key,
     required this.center,
+    this.initialZoom = 16,
+    this.padding = EdgeInsets.zero,
     this.enableGestures = true,
     this.markers = const [],
     this.polylines = const [],
@@ -177,8 +181,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         position: gmaps.LatLng(marker.position.lat, marker.position.lng),
         rotation: marker.rotationDegrees,
         zIndex: marker.zIndex.toDouble(),
-        flat: !isPinMarker,
-        anchor: isPinMarker ? const Offset(0.5, 1.0) : const Offset(0.5, 0.5),
+        flat: marker.flat ?? !isPinMarker,
+        anchor: marker.anchor ??
+            (isPinMarker ? const Offset(0.5, 1.0) : const Offset(0.5, 0.5)),
         icon: _markerIconCache[iconKey] ?? gmaps.BitmapDescriptor.defaultMarker,
       );
     }).toSet();
@@ -207,8 +212,9 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     return gmaps.GoogleMap(
       initialCameraPosition: gmaps.CameraPosition(
         target: gmaps.LatLng(widget.center.lat, widget.center.lng),
-        zoom: 16,
+        zoom: widget.initialZoom,
       ),
+      padding: widget.padding,
       myLocationButtonEnabled: false,
       zoomControlsEnabled: false,
       compassEnabled: false,
@@ -222,7 +228,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         _appController = _MobileGoogleMapController(
           raw: controller,
           initialCenter: widget.center,
-          initialZoom: 16,
+          initialZoom: widget.initialZoom,
         );
         widget.onMapCreated?.call(_appController!);
       },

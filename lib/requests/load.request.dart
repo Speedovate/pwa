@@ -10,10 +10,6 @@ class LoadRequest extends HttpService {
       final apiResult = await get(
         Api.loadBalance,
         includeHeaders: true,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -38,10 +34,6 @@ class LoadRequest extends HttpService {
         {
           "amount": amount,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -63,10 +55,6 @@ class LoadRequest extends HttpService {
         queryParameters: {
           "page": page,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -92,10 +80,6 @@ class LoadRequest extends HttpService {
           "user_id": userId,
           "amount": amount,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {

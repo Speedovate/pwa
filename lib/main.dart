@@ -1,45 +1,40 @@
+import 'dart:async';
 import 'package:get/get.dart';
-import 'package:camera/camera.dart';
-import 'package:pwa/utils/data.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-import 'package:pwa/firebase_options.dart';
+import 'package:pwa/utils/data.dart';
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/splash.view.dart';
 import 'package:pwa/services/push.service.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:pwa/services/storage.service.dart';
+import 'package:pwa/services/startup.service.dart';
+import 'package:pwa/services/connection_banner.service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.web,
-    );
-  } else {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
-  await StorageService.getPrefs();
-  if (!kIsWeb) {
-    try {
-      cameras = await availableCameras().timeout(
-        const Duration(seconds: 5),
-      );
-    } catch (_) {
-      cameras = null;
-    }
-  }
   await SystemChrome.setPreferredOrientations(
     const [
       DeviceOrientation.portraitUp,
     ],
   );
-  await PushService.initialize();
+  ConnectionBannerService.setSupportDialogHandler((_) async {
+    final context = Get.context;
+    if (context == null) {
+      return;
+    }
+    await showFacebookSupportDialog(context);
+  });
+  unawaited(loadNotificationDiagnosticsLog());
   runApp(
     const MyApp(),
+  );
+  unawaited(
+    () async {
+      try {
+        await StartupService.waitForFirebaseReady();
+        await PushService.initialize();
+      } catch (_) {}
+    }(),
   );
 }
 
@@ -71,7 +66,12 @@ class MyApp extends StatelessWidget {
               textScaleFactor,
             ),
           ),
-          child: child ?? const SizedBox.shrink(),
+          child: Stack(
+            children: [
+              child ?? const SizedBox.shrink(),
+              ConnectionBannerService.buildOverlay(),
+            ],
+          ),
         );
       },
       home: const SplashView(),

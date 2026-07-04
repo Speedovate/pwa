@@ -11,12 +11,15 @@ bool isGoogleAuthLikelySupported() => true;
 
 bool isWebPushLikelySupported() => false;
 
+bool isBrowserOnline() => true;
+
 Future<bool> tryNativeShare({
   required String title,
   required String text,
   String? url,
 }) async {
-  final payload = [text, if (url != null && url.isNotEmpty) url].join(' ').trim();
+  final payload =
+      [text, if (url != null && url.isNotEmpty) url].join(' ').trim();
   if (payload.isEmpty) {
     return false;
   }
@@ -27,7 +30,10 @@ Future<bool> tryNativeShare({
   return true;
 }
 
-Future<void> openExternalUrl(String url) async {
+Future<void> openExternalUrl(
+  String url, {
+  bool sameTab = false,
+}) async {
   await launchUrl(
     Uri.parse(url),
     mode: LaunchMode.externalApplication,

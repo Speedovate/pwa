@@ -37,10 +37,6 @@ class TaxiRequest extends HttpService {
           "latitude": latitude,
           "longitude": longitude,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -54,14 +50,9 @@ class TaxiRequest extends HttpService {
       try {
         final apiResult = await get(
           Api.bookingDriver,
-        ).timeout(
-          const Duration(
-            seconds: 30,
-          ),
         );
         final apiResponse = ApiResponse.fromResponse(apiResult);
-        if (apiResponse.allGood) {
-        }
+        if (apiResponse.allGood) {}
         return apiResponse;
       } catch (e) {
         throw e.toString();
@@ -77,10 +68,6 @@ class TaxiRequest extends HttpService {
       final apiResult = await get(
         Api.bookingCurrent,
         includeHeaders: true,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -103,17 +90,19 @@ class TaxiRequest extends HttpService {
     try {
       final apiResult = await get(
         Api.bookingLast,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
-        return Order.fromJson(apiResponse.body["order"]);
-      } else {
-        throw apiResponse.message;
+        final order = apiResponse.body["order"];
+        if (order == null) {
+          return null;
+        }
+        return Order.fromJson(order);
       }
+      if (apiResponse.code == 500) {
+        return null;
+      }
+      throw apiResponse.message;
     } catch (e) {
       throw e.toString();
     }
@@ -134,10 +123,6 @@ class TaxiRequest extends HttpService {
           "is_mocked": isMocked,
           "earth_distance": earthDistance,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -149,10 +134,6 @@ class TaxiRequest extends HttpService {
     try {
       final apiResult = await get(
         Api.bookingVehicles,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -183,10 +164,6 @@ class TaxiRequest extends HttpService {
           "country_code": "PH",
           "is_pick_and_drop": false,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -206,10 +183,6 @@ class TaxiRequest extends HttpService {
       final apiResult = await get(
         "${Api.coupons}/$code",
         queryParameters: {},
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -229,10 +202,6 @@ class TaxiRequest extends HttpService {
       final apiResult = await post(
         Api.bookingSubmit,
         params,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -244,10 +213,6 @@ class TaxiRequest extends HttpService {
     try {
       final apiResult = await get(
         "${Api.bookingDriverInfo}/$id",
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       if (apiResponse.allGood) {
@@ -289,10 +254,6 @@ class TaxiRequest extends HttpService {
             "dropoff":
                 "${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}",
           },
-        ).timeout(
-          const Duration(
-            seconds: 30,
-          ),
         );
         final apiResponse = ApiResponse.fromResponse(
           apiResult,
@@ -320,10 +281,6 @@ class TaxiRequest extends HttpService {
           //           "dropoff": "${dropoff.coordinates.latitude},"
           //               "${dropoff.coordinates.longitude}",
           //         },
-          //       ).timeout(
-          //         const Duration(
-          //           seconds: 30,
-          //         ),
           //       );
           //       final apiResponse = ApiResponse.fromResponse(apiResult);
           //       if (apiResponse.allGood) {
@@ -361,10 +318,6 @@ class TaxiRequest extends HttpService {
         queryParameters: {
           "reason": reason,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -384,8 +337,6 @@ class TaxiRequest extends HttpService {
           "target_driver_id": targetDriverId,
           "reason": reason ?? "pass",
         },
-      ).timeout(
-        const Duration(seconds: 30),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -408,10 +359,6 @@ class TaxiRequest extends HttpService {
           "order_id": orderId,
           "driver_id": driverId,
         },
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {
@@ -433,10 +380,6 @@ class TaxiRequest extends HttpService {
         Api.bookingReport,
         null,
         formData: formData,
-      ).timeout(
-        const Duration(
-          seconds: 30,
-        ),
       );
       return ApiResponse.fromResponse(apiResult);
     } catch (e) {

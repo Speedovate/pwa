@@ -1,14 +1,14 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
-import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
-import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pwa/services/alert.service.dart';
+import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:webview_flutter/webview_flutter.dart' as webview;
 import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_android;
-import 'package:webview_flutter/webview_flutter.dart' as webview;
 
 class WebViewWidget extends StatefulWidget {
   const WebViewWidget({

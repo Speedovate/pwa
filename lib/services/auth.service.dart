@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -37,10 +38,6 @@ class AuthService {
   }
 
   Future<User?> saveUserToStorage(String stringMap) async {
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'auth save user start previousUser=${currentUser?.id}',
-    );
     final decoded = jsonDecode(stringMap);
     Map<String, dynamic> normalizedMap;
     if (decoded is Map<String, dynamic>) {
@@ -60,22 +57,12 @@ class AuthService {
     currentUser = User.fromJson(
       normalizedMap,
     );
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'auth save user parsed user=${currentUser?.id} '
-      'branch=${currentUser?.branchID} loggedIn=${isLoggedIn()}',
-    );
     final normalizedStringMap = jsonEncode(normalizedMap);
     await StorageService.prefs?.setString(
       AppStrings.userKey,
       normalizedStringMap,
     );
-    await syncStoredTopicsForCurrentSession();
-    await PushService.syncTokenWithServer();
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'auth save user complete user=${currentUser?.id}',
-    );
+    _syncPushForCurrentSessionInBackground("auth save user");
     return currentUser;
   }
 
@@ -103,15 +90,27 @@ class AuthService {
         decoded,
       );
     } catch (_) {}
-    await AuthService().syncStoredTopicsForCurrentSession();
-    if (isLoggedIn()) {
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'auth restored user sync push token user=${currentUser?.id}',
-      );
-      await PushService.syncTokenWithServer(forceSync: true);
-    }
+    _syncPushForCurrentSessionInBackground(
+      "auth restored user",
+      forceSync: isLoggedIn(),
+    );
     return currentUser;
+  }
+
+  static void _syncPushForCurrentSessionInBackground(
+    String reason, {
+    bool forceSync = false,
+  }) {
+    unawaited(
+      () async {
+        try {
+          await AuthService().syncStoredTopicsForCurrentSession();
+          await PushService.syncTokenWithServer(forceSync: forceSync);
+        } catch (e) {
+          // Keep push sync best-effort.
+        }
+      }(),
+    );
   }
 
   static Future<void> ensureUserNameInFirestore() async {
@@ -146,10 +145,6 @@ class AuthService {
   }
 
   logout() async {
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'auth logout start user=${currentUser?.id}',
-    );
     AlertService().stopLoading(forceStop: true);
     final currentContext = Get.context;
     if (currentContext != null) {
@@ -163,12 +158,10 @@ class AuthService {
     dropoffAddress = null;
     pickupAddress = null;
     currentUser = null;
-    await syncStoredTopicsForCurrentSession();
     await StorageService.prefs?.remove(AppStrings.lastPushTopicSignature);
-    await PushService.syncTokenWithServer(forceSync: true);
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'auth logout notification sync complete',
+    _syncPushForCurrentSessionInBackground(
+      "auth logout",
+      forceSync: true,
     );
     Navigator.pushAndRemoveUntil(
       Get.context!,
@@ -196,14 +189,13 @@ class AuthService {
       case TargetPlatform.android:
         return "android";
       default:
-        return "web";
+        return "huawei";
     }
   }
 
   static bool inReviewMode() {
     final reviewVersionKey = switch (device()) {
       "ios" => "disable_ibn",
-      "web" => "disable_wbn",
       "huawei" => "disable_hbn",
       "android" => "disable_gbn",
       _ => null,
@@ -347,22 +339,10 @@ class AuthService {
         topics.add(topic);
         await StorageService.prefs?.setStringList("topics", topics);
       }
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'topic persist subscribe topic=$topic stored=${topics.join(",")}',
-      );
       if (!kIsWeb) {
         await FirebaseMessaging.instance.subscribeToTopic(topic);
-        debugPrint(
-          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-          'firebase subscribe topic=$topic',
-        );
       }
     } catch (e) {
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'topic subscribe failed topic=$topic error=$e',
-      );
       // Ignore topic persistence failures.
     }
   }
@@ -372,22 +352,10 @@ class AuthService {
       final topics = StorageService.prefs?.getStringList("topics") ?? [];
       topics.remove(topic);
       await StorageService.prefs?.setStringList("topics", topics);
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'topic persist unsubscribe topic=$topic stored=${topics.join(",")}',
-      );
       if (!kIsWeb) {
         await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
-        debugPrint(
-          '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-          'firebase unsubscribe topic=$topic',
-        );
       }
     } catch (e) {
-      debugPrint(
-        '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-        'topic unsubscribe failed topic=$topic error=$e',
-      );
       // Ignore topic persistence failures.
     }
   }
@@ -398,10 +366,6 @@ class AuthService {
 
   Future<void> syncStoredTopicsForCurrentSession() async {
     final topics = _normalizedTopicsForCurrentSession();
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'sync stored topics start loggedIn=${isLoggedIn()} topics=${topics.join(",")}',
-    );
     await StorageService.prefs?.setStringList(
       "topics",
       topics,
@@ -410,23 +374,11 @@ class AuthService {
       for (final topic in topics) {
         try {
           await FirebaseMessaging.instance.subscribeToTopic(topic);
-          debugPrint(
-            '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-            'sync firebase topic=$topic',
-          );
         } catch (e) {
-          debugPrint(
-            '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-            'sync firebase topic failed topic=$topic error=$e',
-          );
           // Ignore best-effort topic subscribe failures.
         }
       }
     }
-    debugPrint(
-      '[PPC_NOTIF_DEBUG] ${DateTime.now().toIso8601String()} '
-      'sync stored topics complete topics=${topics.join(",")}',
-    );
   }
 
   List<String> _normalizedTopicsForCurrentSession() {
