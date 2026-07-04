@@ -656,7 +656,7 @@ openWebview(
   if (!isMobile && (isExternal || isFromWallet)) {
     openExternalUrl(
       url,
-      sameTab: isFromWallet,
+      sameTab: false,
     );
     return;
   }

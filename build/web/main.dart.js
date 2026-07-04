@@ -37271,7 +37271,7 @@ bCb(a,b,c){var s=J.jj($.qq().appVersion,"Android ")||A.yc(),r=A.tk(b),q=r==null?
 p=p.giX(p)
 if(!s)q=q!==p||c
 else q=!1
-if(q){A.ala(b,c)
+if(q){A.ala(b,!1)
 return}$.aa()
 q=$.ap().xr
 q=$.x.D$.x.h(0,q)
@@ -42416,27 +42416,25 @@ break
 case 6:case 1:return A.l(q,r)
 case 2:return A.k(o.at(-1),r)}})
 return A.m($async$blo,r)},
-ala(a,b){return A.bYq(a,b)},
-bYq(a,b){var s=0,r=A.n(t.H),q,p=2,o=[],n,m,l
-var $async$ala=A.j(function(c,d){if(c===1){o.push(d)
-s=p}for(;;)switch(s){case 0:p=4
-if(b){window.location.assign(a)
-s=1
-break}n=window.open(a,"_blank")
-A.bRX(n)
-p=2
+ala(a,b){return A.bYq(a,!1)},
+bYq(a,b){var s=0,r=A.n(t.H),q=1,p=[],o,n,m
+var $async$ala=A.j(function(c,d){if(c===1){p.push(d)
+s=q}for(;;)switch(s){case 0:q=3
+o=window.open(a,"_blank")
+A.bRX(o)
+q=1
+s=5
+break
+case 3:q=2
+m=p.pop()
 s=6
-break
-case 4:p=3
-l=o.pop()
-s=7
 return A.d(A.qm(A.dY(a,0,null),B.dC),$async$ala)
-case 7:s=6
+case 6:s=5
 break
-case 3:s=2
+case 2:s=1
 break
-case 6:case 1:return A.l(q,r)
-case 2:return A.k(o.at(-1),r)}})
+case 5:return A.l(null,r)
+case 1:return A.k(p.at(-1),r)}})
 return A.m($async$ala,r)},
 bkV(){var s=0,r=A.n(t.H),q,p,o,n
 var $async$bkV=A.j(function(a,b){if(a===1)return A.k(b,r)
