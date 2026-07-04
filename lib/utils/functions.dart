@@ -656,7 +656,7 @@ openWebview(
   debugPrint(
     "[TEMP][OPEN_WEBVIEW] title=$title url=$url isFromWallet=$isFromWallet isMobile=$isMobile isExternal=$isExternal currentHost=${Uri.base.host} targetHost=${parsedUrl?.host}",
   );
-  if (!isMobile && (isExternal || isFromWallet)) {
+  if (!isMobile && isExternal) {
     debugPrint(
       "[TEMP][OPEN_WEBVIEW_BRANCH] action=openExternalUrl sameTab=false url=$url",
     );

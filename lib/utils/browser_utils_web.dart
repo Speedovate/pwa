@@ -63,25 +63,35 @@ Future<void> openExternalUrl(
   bool sameTab = false,
 }) async {
   try {
+    final parsedUrl = Uri.tryParse(url);
     debugPrint(
-      "[TEMP][OPEN_EXTERNAL_URL] sameTab=$sameTab url=$url currentHref=${html.window.location.href}",
+      "[TEMP][OPEN_EXTERNAL_URL] sameTab=$sameTab url=$url currentHref=${html.window.location.href} currentOrigin=${html.window.location.origin} targetOrigin=${parsedUrl?.origin}",
     );
     if (sameTab) {
       debugPrint(
         "[TEMP][OPEN_EXTERNAL_URL_BRANCH] action=location.assign url=$url",
       );
       html.window.location.assign(url);
+      debugPrint(
+        "[TEMP][OPEN_EXTERNAL_URL_RESULT] action=location.assign status=dispatched url=$url",
+      );
       return;
     }
     debugPrint("[TEMP][OPEN_EXTERNAL_URL_BRANCH] action=window.open url=$url");
-    html.window.open(url, '_blank');
-  } catch (_) {
+    final openedWindow = html.window.open(url, '_blank');
     debugPrint(
-      "[TEMP][OPEN_EXTERNAL_URL_BRANCH] action=launchUrlFallback url=$url",
+      "[TEMP][OPEN_EXTERNAL_URL_RESULT] action=window.open status=dispatched url=$url windowHandleType=${openedWindow.runtimeType}",
+    );
+  } catch (error) {
+    debugPrint(
+      "[TEMP][OPEN_EXTERNAL_URL_BRANCH] action=launchUrlFallback url=$url error=$error",
     );
     await launchUrl(
       Uri.parse(url),
       mode: LaunchMode.externalApplication,
+    );
+    debugPrint(
+      "[TEMP][OPEN_EXTERNAL_URL_RESULT] action=launchUrlFallback status=completed url=$url",
     );
   }
 }
