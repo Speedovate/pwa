@@ -653,7 +653,7 @@ openWebview(
   bool isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
   final parsedUrl = Uri.tryParse(url);
   bool isExternal = parsedUrl?.host != Uri.base.host;
-  if (!isMobile && isExternal) {
+  if (!isMobile && (isExternal || isFromWallet)) {
     openExternalUrl(
       url,
       sameTab: isFromWallet,

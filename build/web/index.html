@@ -106,7 +106,7 @@
   <meta name="theme-color" content="transparent" media="(prefers-color-scheme: dark)" />
 
   <!-- Icons -->
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" href="icons/webicon.png">
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="manifest" href="manifest.json">
 
@@ -154,12 +154,13 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.39+59" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.40+60" />
 
   <!-- Splash Screen Style -->
   <style>
     #splash {
       position: fixed;
+      inset: 0;
       top: 0;
       left: 0;
       width: 100%;
@@ -177,6 +178,8 @@
     #logo {
       display: block;
       margin: 0 auto;
+      object-fit: contain;
+      object-position: center;
     }
 
     @media (min-aspect-ratio: 1/1) {
@@ -203,7 +206,7 @@
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.39+59";
+      var APP_VERSION = "1.0.40+60";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
       var VERSION_CHECK_DELAY_MS = 10000;
       var bootstrapLoaded = false;
