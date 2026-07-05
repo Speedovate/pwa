@@ -29,6 +29,8 @@ self.addEventListener('push', function(event) {
 const messaging = firebase.messaging();
 const PWA_STATE_CACHE = 'pwa-notification-state';
 const PWA_STATE_URL = '/__pwa_install_state__';
+const DEFAULT_NOTIFICATION_TITLE = 'Ka-TODA!';
+const DEFAULT_NOTIFICATION_BODY = 'You have received a notification.';
 const standaloneClientIds = new Set();
 
 function notifDebug(message, data) {}
@@ -39,13 +41,13 @@ function normalizeWhitespace(value) {
 }
 
 function parseNotificationTitle(title) {
-  const normalizedTitle = normalizeWhitespace(title).toLowerCase();
+  const parsed = normalizeWhitespace(title).replace(/ride booking/gi, 'booking');
+  const normalizedTitle = parsed.toLowerCase();
   if (normalizedTitle.includes('ride status update')) {
     notifDebug('web sw parse title matched ride status update', { raw: title });
     return 'Booking Update';
   }
-  const parsed = normalizeWhitespace(title);
-  notifDebug('web sw parse title unchanged', { raw: title, parsed });
+  notifDebug('web sw parse title', { raw: title, parsed });
   return parsed;
 }
 
@@ -56,15 +58,32 @@ function parseNotificationBody(body) {
 }
 
 function notificationTitleFromPayload(payload) {
-  return parseNotificationTitle(
-    payload?.data?.title ?? payload?.notification?.title ?? ''
+  const rawTitle = firstPayloadValue(
+    payload,
+    ['title', 'notification_title', 'heading', 'subject'],
+    payload?.notification?.title
   );
+  const rawBody = firstPayloadValue(
+    payload,
+    ['body', 'notification_body', 'message', 'content', 'text'],
+    payload?.notification?.body
+  );
+  if (!rawTitle) {
+    return DEFAULT_NOTIFICATION_TITLE;
+  }
+  return parseNotificationTitle(rawTitle);
 }
 
 function notificationBodyFromPayload(payload) {
-  return parseNotificationBody(
-    payload?.data?.body ?? payload?.notification?.body ?? ''
+  const rawBody = firstPayloadValue(
+    payload,
+    ['body', 'notification_body', 'message', 'content', 'text'],
+    payload?.notification?.body
   );
+  if (!rawBody) {
+    return DEFAULT_NOTIFICATION_BODY;
+  }
+  return parseNotificationBody(rawBody);
 }
 
 function notificationTargetUrlFromPayload(payload) {
@@ -87,16 +106,37 @@ function notificationTagFromPayload(payload, title, body) {
   );
 }
 
+function firstPayloadValue(payload, candidateKeys, fallbackValue) {
+  const data = payload?.data || {};
+  const normalizedCandidates = new Set(
+    (candidateKeys || []).map((key) => `${key}`.trim().toLowerCase())
+  );
+  for (const [key, value] of Object.entries(data)) {
+    if (!normalizedCandidates.has(`${key}`.trim().toLowerCase())) {
+      continue;
+    }
+    const cleaned = normalizeWhitespace(value);
+    if (cleaned) {
+      return cleaned;
+    }
+  }
+  return normalizeWhitespace(fallbackValue);
+}
+
+function safeNotificationTargetUrl(targetUrl) {
+  try {
+    return new URL(targetUrl || '/', self.location.origin).href;
+  } catch (_) {
+    return self.location.origin;
+  }
+}
+
 async function showParsedNotification(payload) {
   notifDebug('web sw receive push message', payload);
   const targetUrl = notificationTargetUrlFromPayload(payload);
   const title = notificationTitleFromPayload(payload);
   const body = notificationBodyFromPayload(payload);
   notifDebug('web sw parse result', { title, body });
-  if (!title && !body) {
-    notifDebug('web sw notification skipped empty title/body', payload);
-    return;
-  }
   notifDebug('web sw create notification', {
     title,
     body,
@@ -113,7 +153,7 @@ async function showParsedNotification(payload) {
       tag: notificationTagFromPayload(payload, title, body),
       renotify: false,
       data: {
-        url: new URL(targetUrl, self.location.origin).href,
+        url: safeNotificationTargetUrl(targetUrl),
       },
     }
   );

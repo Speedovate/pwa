@@ -31,6 +31,7 @@ class GMapViewModel extends BaseViewModel {
   AppMapController? _map;
   Timer? _debounce;
   int _cameraMoveGeneration = 0;
+  int _routeDrawGeneration = 0;
   int _polylineAnimationGeneration = 0;
   bool _isResolvingCameraMove = false;
   bool _isCameraMovePending = false;
@@ -146,6 +147,7 @@ class GMapViewModel extends BaseViewModel {
 
   void cancelPendingCameraMove() {
     _cameraMoveGeneration++;
+    _routeDrawGeneration++;
     _polylineAnimationGeneration++;
     _debounce?.cancel();
     _debounce = null;
@@ -802,6 +804,7 @@ class GMapViewModel extends BaseViewModel {
       String purpose, gmaps.LatLng pickupLatLng, gmaps.LatLng driverLatLng,
       {bool animatePolyline = false}) async {
     if (_map == null) return;
+    final routeDrawGeneration = ++_routeDrawGeneration;
     markers = [
       const MapMarkerData(
         id: "pickupMarker",
@@ -827,6 +830,9 @@ class GMapViewModel extends BaseViewModel {
         pickupLatLng,
         purpose,
       );
+      if (routeDrawGeneration != _routeDrawGeneration || _map == null) {
+        return;
+      }
       if (result.isNotEmpty) {
         final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
         await _setPolylineWithOptionalAnimation(
@@ -835,6 +841,9 @@ class GMapViewModel extends BaseViewModel {
           strokeWidth: 8,
           animate: animatePolyline,
         );
+        if (routeDrawGeneration != _routeDrawGeneration || _map == null) {
+          return;
+        }
         final allPoints = [driverLatLng, ...points, pickupLatLng];
         if (shouldAutoFitMapToRoute) {
           ignoreCameraMovesFor(
@@ -862,6 +871,7 @@ class GMapViewModel extends BaseViewModel {
     bool autoFitAnimated = true,
   }) async {
     if (_map == null) return;
+    final routeDrawGeneration = ++_routeDrawGeneration;
     markers = [
       const MapMarkerData(
         id: "pickupMarker",
@@ -898,6 +908,9 @@ class GMapViewModel extends BaseViewModel {
         dropoffLatLng,
         purpose,
       );
+      if (routeDrawGeneration != _routeDrawGeneration || _map == null) {
+        return;
+      }
       if (result.isNotEmpty) {
         final points = result.map((p) => gmaps.LatLng(p[0], p[1])).toList();
         await _setPolylineWithOptionalAnimation(
@@ -906,6 +919,9 @@ class GMapViewModel extends BaseViewModel {
           strokeWidth: 8,
           animate: animatePolyline,
         );
+        if (routeDrawGeneration != _routeDrawGeneration || _map == null) {
+          return;
+        }
         final allPoints = [pickupLatLng, ...points, dropoffLatLng];
         if (autoFitMap && shouldAutoFitMapToRoute) {
           ignoreCameraMovesFor(
@@ -925,6 +941,7 @@ class GMapViewModel extends BaseViewModel {
   }
 
   clearGMapDetails() {
+    _routeDrawGeneration++;
     _polylineAnimationGeneration++;
     markers = [];
     polylines = [];

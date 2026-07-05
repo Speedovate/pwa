@@ -7,6 +7,7 @@ class AppImages {
   static const auth = "${baseUrl}auth.png";
   static const icon = "${baseUrl}icon.png";
   static const logo = "${baseUrl}logo.png";
+  static const loading = "${assetBasePath}loading.png";
   static const trike = "${baseUrl}trike.png";
   static const google = "${baseUrl}google.png";
   static const camera = "${assetBasePath}camera.png";

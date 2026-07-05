@@ -1,7 +1,7 @@
 {
   "name": "ppc-toda",
   "private": true,
-  "version": "1.0.41",
+  "version": "1.0.42",
   "scripts": {
     "sync-version": "node scripts/sync-pubspec-version.cjs",
     "version:set": "node scripts/sync-pubspec-version.cjs",

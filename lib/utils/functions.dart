@@ -651,24 +651,14 @@ openWebview(
   bool isFromWallet = false,
 }) {
   bool isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
-  final parsedUrl = Uri.tryParse(url);
-  bool isExternal = parsedUrl?.host != Uri.base.host;
-  debugPrint(
-    "[TEMP][OPEN_WEBVIEW] title=$title url=$url isFromWallet=$isFromWallet isMobile=$isMobile isExternal=$isExternal currentHost=${Uri.base.host} targetHost=${parsedUrl?.host}",
-  );
-  if (!isMobile && isExternal) {
-    debugPrint(
-      "[TEMP][OPEN_WEBVIEW_BRANCH] action=openExternalUrl sameTab=false url=$url",
-    );
+  final isExternalOnWeb = GetPlatform.isWeb && isFromWallet;
+  if (!isMobile && isExternalOnWeb) {
     openExternalUrl(
       url,
       sameTab: false,
     );
     return;
   }
-  debugPrint(
-    "[TEMP][OPEN_WEBVIEW_BRANCH] action=pushEmbeddedWebView url=$url",
-  );
   Navigator.push(
     Get.context!,
     PageRouteBuilder(

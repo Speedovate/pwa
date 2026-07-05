@@ -10,7 +10,22 @@ import 'package:pwa/services/connection_banner.service.dart';
 import 'package:dio_http_cache_lts/dio_http_cache_lts.dart';
 import 'package:rx_shared_preferences/rx_shared_preferences.dart';
 
+class _RequestBannerSchedule {
+  _RequestBannerSchedule(this._timers);
+
+  final List<Timer> _timers;
+
+  void cancel() {
+    for (final timer in _timers) {
+      timer.cancel();
+    }
+  }
+}
+
 class HttpService {
+  static const Duration _weakConnectionBannerDelay = Duration(seconds: 45);
+  static const Duration _noConnectionBannerDelay = Duration(seconds: 90);
+  static const Duration _serverBannerDelay = Duration(seconds: 180);
   String host = Api.baseUrl;
 
   late Dio dio;
@@ -33,9 +48,6 @@ class HttpService {
     StorageService.getPrefs();
     baseOptions = BaseOptions(
       baseUrl: host,
-      connectTimeout: const Duration(seconds: 15),
-      sendTimeout: const Duration(seconds: 90),
-      receiveTimeout: const Duration(seconds: 90),
       validateStatus: (status) => status! <= 500,
     );
     dio = Dio(
@@ -57,9 +69,6 @@ class HttpService {
     String url, {
     Map<String, dynamic>? queryParameters,
     bool includeHeaders = true,
-    Duration? connectTimeout,
-    Duration? sendTimeout,
-    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -69,25 +78,20 @@ class HttpService {
         : null;
     final requestStartedAt = DateTime.now();
     _logRequestStart("GET", uri, requestStartedAt);
-    final slowRequestTimer = _startSlowRequestTimer(
+    final bannerSchedule = _startRequestBannerSchedule(
       "GET",
       uri,
       requestStartedAt,
     );
 
     try {
-      return _runWithTimeoutOverrides(
-        connectTimeout: connectTimeout,
-        sendTimeout: sendTimeout,
-        receiveTimeout: receiveTimeout,
-        action: () async => _handleResponse(
-          await dio.get(
-            uri,
-            options: options,
-            queryParameters: queryParameters,
-          ),
-          requestStartedAt: requestStartedAt,
+      return _handleResponse(
+        await dio.get(
+          uri,
+          options: options,
+          queryParameters: queryParameters,
         ),
+        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -95,7 +99,7 @@ class HttpService {
         requestStartedAt: requestStartedAt,
       );
     } finally {
-      slowRequestTimer.cancel();
+      bannerSchedule.cancel();
     }
   }
 
@@ -103,9 +107,6 @@ class HttpService {
     String url,
     dynamic body, {
     bool includeHeaders = true,
-    Duration? connectTimeout,
-    Duration? sendTimeout,
-    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -115,25 +116,20 @@ class HttpService {
         : null;
     final requestStartedAt = DateTime.now();
     _logRequestStart("POST", uri, requestStartedAt);
-    final slowRequestTimer = _startSlowRequestTimer(
+    final bannerSchedule = _startRequestBannerSchedule(
       "POST",
       uri,
       requestStartedAt,
     );
 
     try {
-      return _runWithTimeoutOverrides(
-        connectTimeout: connectTimeout,
-        sendTimeout: sendTimeout,
-        receiveTimeout: receiveTimeout,
-        action: () async => _handleResponse(
-          await dio.post(
-            uri,
-            data: _convertBool(body),
-            options: options,
-          ),
-          requestStartedAt: requestStartedAt,
+      return _handleResponse(
+        await dio.post(
+          uri,
+          data: _convertBool(body),
+          options: options,
         ),
+        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -141,7 +137,7 @@ class HttpService {
         requestStartedAt: requestStartedAt,
       );
     } finally {
-      slowRequestTimer.cancel();
+      bannerSchedule.cancel();
     }
   }
 
@@ -149,9 +145,6 @@ class HttpService {
     String url,
     dynamic body, {
     bool includeHeaders = true,
-    Duration? connectTimeout,
-    Duration? sendTimeout,
-    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -161,25 +154,20 @@ class HttpService {
         : null;
     final requestStartedAt = DateTime.now();
     _logRequestStart("POST_FILES", uri, requestStartedAt);
-    final slowRequestTimer = _startSlowRequestTimer(
+    final bannerSchedule = _startRequestBannerSchedule(
       "POST_FILES",
       uri,
       requestStartedAt,
     );
 
     try {
-      return _runWithTimeoutOverrides(
-        connectTimeout: connectTimeout,
-        sendTimeout: sendTimeout,
-        receiveTimeout: receiveTimeout,
-        action: () async => _handleResponse(
-          await dio.post(
-            uri,
-            data: FormData.fromMap(_convertBool(body)),
-            options: options,
-          ),
-          requestStartedAt: requestStartedAt,
+      return _handleResponse(
+        await dio.post(
+          uri,
+          data: FormData.fromMap(_convertBool(body)),
+          options: options,
         ),
+        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -187,7 +175,7 @@ class HttpService {
         requestStartedAt: requestStartedAt,
       );
     } finally {
-      slowRequestTimer.cancel();
+      bannerSchedule.cancel();
     }
   }
 
@@ -196,9 +184,6 @@ class HttpService {
     dynamic body, {
     FormData? formData,
     bool includeHeaders = true,
-    Duration? connectTimeout,
-    Duration? sendTimeout,
-    Duration? receiveTimeout,
   }) async {
     final uri = _buildUri(url);
     final options = includeHeaders
@@ -208,7 +193,7 @@ class HttpService {
         : null;
     final requestStartedAt = DateTime.now();
     _logRequestStart("POST_CUSTOM_FILES", uri, requestStartedAt);
-    final slowRequestTimer = _startSlowRequestTimer(
+    final bannerSchedule = _startRequestBannerSchedule(
       "POST_CUSTOM_FILES",
       uri,
       requestStartedAt,
@@ -217,18 +202,13 @@ class HttpService {
     try {
       final effectiveFormData =
           formData ?? FormData.fromMap(_convertBool(body ?? {}));
-      return _runWithTimeoutOverrides(
-        connectTimeout: connectTimeout,
-        sendTimeout: sendTimeout,
-        receiveTimeout: receiveTimeout,
-        action: () async => _handleResponse(
-          await dio.post(
-            uri,
-            data: effectiveFormData,
-            options: options,
-          ),
-          requestStartedAt: requestStartedAt,
+      return _handleResponse(
+        await dio.post(
+          uri,
+          data: effectiveFormData,
+          options: options,
         ),
+        requestStartedAt: requestStartedAt,
       );
     } on DioException catch (e) {
       return await _formatDioException(
@@ -238,36 +218,7 @@ class HttpService {
     } catch (e) {
       throw "An unexpected error occurred: $e";
     } finally {
-      slowRequestTimer.cancel();
-    }
-  }
-
-  Future<T> _runWithTimeoutOverrides<T>({
-    required Future<T> Function() action,
-    Duration? connectTimeout,
-    Duration? sendTimeout,
-    Duration? receiveTimeout,
-  }) async {
-    final previousConnectTimeout = dio.options.connectTimeout;
-    final previousSendTimeout = dio.options.sendTimeout;
-    final previousReceiveTimeout = dio.options.receiveTimeout;
-
-    if (connectTimeout != null) {
-      dio.options.connectTimeout = connectTimeout;
-    }
-    if (sendTimeout != null) {
-      dio.options.sendTimeout = sendTimeout;
-    }
-    if (receiveTimeout != null) {
-      dio.options.receiveTimeout = receiveTimeout;
-    }
-
-    try {
-      return await action();
-    } finally {
-      dio.options.connectTimeout = previousConnectTimeout;
-      dio.options.sendTimeout = previousSendTimeout;
-      dio.options.receiveTimeout = previousReceiveTimeout;
+      bannerSchedule.cancel();
     }
   }
 
@@ -275,7 +226,7 @@ class HttpService {
     final uri = _buildUri(url);
     final requestStartedAt = DateTime.now();
     _logRequestStart("PATCH", uri, requestStartedAt);
-    final slowRequestTimer = _startSlowRequestTimer(
+    final bannerSchedule = _startRequestBannerSchedule(
       "PATCH",
       uri,
       requestStartedAt,
@@ -298,7 +249,7 @@ class HttpService {
         requestStartedAt: requestStartedAt,
       );
     } finally {
-      slowRequestTimer.cancel();
+      bannerSchedule.cancel();
     }
   }
 
@@ -306,7 +257,7 @@ class HttpService {
     final uri = _buildUri(url);
     final requestStartedAt = DateTime.now();
     _logRequestStart("DELETE", uri, requestStartedAt);
-    final slowRequestTimer = _startSlowRequestTimer(
+    final bannerSchedule = _startRequestBannerSchedule(
       "DELETE",
       uri,
       requestStartedAt,
@@ -328,7 +279,7 @@ class HttpService {
         requestStartedAt: requestStartedAt,
       );
     } finally {
-      slowRequestTimer.cancel();
+      bannerSchedule.cancel();
     }
   }
 
@@ -338,7 +289,7 @@ class HttpService {
   }) async {
     final requestStartedAt = DateTime.now();
     _logRequestStart("GET_EXTERNAL", url, requestStartedAt);
-    final slowRequestTimer = _startSlowRequestTimer(
+    final bannerSchedule = _startRequestBannerSchedule(
       "GET_EXTERNAL",
       url,
       requestStartedAt,
@@ -357,7 +308,7 @@ class HttpService {
         requestStartedAt: requestStartedAt,
       );
     } finally {
-      slowRequestTimer.cancel();
+      bannerSchedule.cancel();
     }
   }
 
@@ -384,22 +335,57 @@ class HttpService {
     DateTime requestStartedAt,
   ) {}
 
-  Timer _startSlowRequestTimer(
+  _RequestBannerSchedule _startRequestBannerSchedule(
     String method,
     String url,
     DateTime requestStartedAt,
   ) {
-    return Timer(
-      const Duration(seconds: 30),
-      () {
-        if (ConnectionBannerService.isServerBannerVisible) {
-          return;
-        }
-        ConnectionBannerService.show(
-          ConnectionBannerType.weakConnection,
-          requestStartedAt: requestStartedAt,
+    final requestUri = Uri.tryParse(url);
+    final isAppServerRequest =
+        requestUri != null && _isAppServerUri(requestUri);
+    final ignoresServerBanner = requestUri != null &&
+        _ignoresServerBannerRequest(
+          method,
+          requestUri,
         );
-      },
+
+    return _RequestBannerSchedule(
+      [
+        Timer(
+          _weakConnectionBannerDelay,
+          () {
+            if (ConnectionBannerService.isServerBannerVisible) {
+              return;
+            }
+            ConnectionBannerService.show(
+              ConnectionBannerType.weakConnection,
+              requestStartedAt: requestStartedAt,
+            );
+          },
+        ),
+        Timer(
+          _noConnectionBannerDelay,
+          () {
+            if (ConnectionBannerService.isServerBannerVisible) {
+              return;
+            }
+            ConnectionBannerService.show(
+              ConnectionBannerType.connection,
+              requestStartedAt: requestStartedAt,
+            );
+          },
+        ),
+        if (isAppServerRequest && !ignoresServerBanner)
+          Timer(
+            _serverBannerDelay,
+            () {
+              ConnectionBannerService.show(
+                ConnectionBannerType.server,
+                requestStartedAt: requestStartedAt,
+              );
+            },
+          ),
+      ],
     );
   }
 

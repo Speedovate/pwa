@@ -186,6 +186,32 @@ class _DetailsViewState extends State<DetailsView> {
     );
   }
 
+  IconData get _bookingTypeStatusIcon {
+    final normalizedStatus = (widget.order.status ?? "").trim().toLowerCase();
+    if (normalizedStatus == "cancelled" || normalizedStatus == "failed") {
+      return Icons.error;
+    }
+    if (normalizedStatus == "delivered" ||
+        normalizedStatus == "completed" ||
+        normalizedStatus == "successful") {
+      return Icons.check_circle;
+    }
+    return Icons.outbound;
+  }
+
+  Color get _bookingTypeStatusIconColor {
+    final normalizedStatus = (widget.order.status ?? "").trim().toLowerCase();
+    if (normalizedStatus == "cancelled" || normalizedStatus == "failed") {
+      return Colors.red;
+    }
+    if (normalizedStatus == "delivered" ||
+        normalizedStatus == "completed" ||
+        normalizedStatus == "successful") {
+      return const Color(0xFF2E9E47);
+    }
+    return const Color(0xFF007BFF);
+  }
+
   String _orderDateLabel() {
     final createdAt = widget.order.createdAt;
     if (createdAt == null) {
@@ -427,20 +453,14 @@ class _DetailsViewState extends State<DetailsView> {
       viewModelBuilder: () => detailsViewModel,
       onViewModelReady: (vm) => vm.initialise(widget.order),
       builder: (context, vm, child) {
-        final isProvider = isBool(AuthService.currentUser?.isProvider);
-        final discount = widget.order.discount ?? 0;
         final markupAmount =
             (vm.orderData?["markup_amount"] as num?)?.toDouble() ??
                 widget.order.resolvedMarkupAmount;
-        final sourceLabel = widget.order.taxiOrder?.isWalkIn == true
-            ? "Via Spot"
-            : isProvider && markupAmount > 0
-                ? "Via App | Guest"
-                : isProvider &&
-                        (widget.order.appearsToBeProviderStaffFare ||
-                            discount > 0)
-                    ? "Via App | Staff"
-                    : "Via App";
+        final sourceLabel = widget.order.bookingSourceLabel;
+        final paymentLabel = widget.order.paymentMethodId == 1 ? "Cash" : "Load";
+        final paymentDisplayLabel = widget.order.isProviderBooking
+            ? "${widget.order.appearsToBeProviderStaffFare ? "Staff" : "Guest"} | $paymentLabel"
+            : paymentLabel;
 
         final mediaQuery = MediaQuery.of(context);
         return Scaffold(
@@ -727,32 +747,12 @@ class _DetailsViewState extends State<DetailsView> {
                             const SizedBox(height: 14),
                             Row(
                               children: [
-                                const SizedBox(width: 12),
-                                widget.order.driver == null
-                                    ? ClipOval(
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 2,
-                                          ),
-                                          child: Container(
-                                            width: 28,
-                                            height: 28,
-                                            color: Colors.red,
-                                            child: const Icon(
-                                              Icons.warning,
-                                              color: Colors.white,
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : const NetworkImageWidget(
-                                        imageUrl: AppImages.logo,
-                                        memCacheWidth: 600,
-                                        height: 28,
-                                        width: 28,
-                                      ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 14),
+                                Icon(
+                                  _bookingTypeStatusIcon,
+                                  color: _bookingTypeStatusIconColor,
+                                ),
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     "${capitalizeWords(widget.order.driver?.vehicle?.vehicleType?.name, alt: "Failed")} Booking",
@@ -894,7 +894,7 @@ class _DetailsViewState extends State<DetailsView> {
                                       ),
                                       const Expanded(child: SizedBox.shrink()),
                                       Text(
-                                        "₱${((widget.order.total ?? 0) + (isBool(AuthService.currentUser?.isProvider) && markupAmount > 0 ? markupAmount : 0)).toStringAsFixed(0)}",
+                                        "₱${((widget.order.total ?? 0) + (widget.order.appearsToBeProviderGuestFare && markupAmount > 0 ? markupAmount : 0)).toStringAsFixed(0)}",
                                         style: const TextStyle(
                                           color: Color(0xFF030744),
                                         ),
@@ -927,9 +927,7 @@ class _DetailsViewState extends State<DetailsView> {
                                 Text(
                                   AuthService.inReviewMode()
                                       ? "${widget.order.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(0)} km"
-                                      : widget.order.paymentMethodId == 1
-                                          ? "Cash"
-                                          : "Load",
+                                      : paymentDisplayLabel,
                                   style: const TextStyle(
                                     color: Color(0xFF030744),
                                   ),

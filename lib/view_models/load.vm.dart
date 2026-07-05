@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
@@ -218,9 +217,6 @@ class LoadViewModel extends BaseViewModel {
   initiateLoadTopUp(String amount) async {
     try {
       final link = await loadRequest.loadTopupRequest(amount);
-      debugPrint(
-        "[TEMP][TOPUP_LINK] amount=$amount link=$link isWeb=${GetPlatform.isWeb}",
-      );
       openWebview(
         "Buy Load",
         link,

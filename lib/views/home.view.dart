@@ -36,6 +36,7 @@ import 'package:pwa/widgets/partner_display.dart';
 import 'package:pwa/models/coordinates.model.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:pwa/widgets/list_tile.widget.dart';
+import 'package:pwa/widgets/branded_circular_loader.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:pwa/widgets/quick_chat_pills.widget.dart';
 import 'package:pwa/widgets/top_cropped_network_image.widget.dart';
@@ -1972,25 +1973,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       builder: (context, vm, child) {
         final mediaQuery = MediaQuery.of(context);
         vm.updateRouteBoundsTopInset(mediaQuery.padding.top);
-        final isProvider = isBool(AuthService.currentUser?.isProvider);
-        final ongoingDiscount = vm.ongoingOrder?.discount ?? 0;
-        final ongoingMarkupAmount =
-            (vm.order?["markup_amount"] as num?)?.toDouble() ??
-                vm.ongoingOrder?.resolvedMarkupAmount ??
-                0;
         final double bookingCardSize =
             ((mediaQuery.size.width - 64) / 3).clamp(0, 120).toDouble();
         const bottomSheetBottomSpacing = 32.0;
-        final ongoingSourceLabel = vm.ongoingOrder?.taxiOrder?.isWalkIn == true
-            ? "Via Spot"
-            : isProvider && ongoingMarkupAmount > 0
-                ? "Via App | Guest"
-                : isProvider &&
-                        ((vm.ongoingOrder?.appearsToBeProviderStaffFare ??
-                                false) ||
-                            ongoingDiscount > 0)
-                    ? "Via App | Staff"
-                    : "Via App";
+        final ongoingSourceLabel =
+            vm.ongoingOrder?.bookingSourceLabel ?? "Via App";
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || vm.isResolvingInitialOngoingOrder) {
             return;
@@ -2094,45 +2081,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(
-                              width: 120,
-                              height: 120,
-                              child: Stack(
-                                children: [
-                                  const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(
-                                        top: 12,
-                                        left: 12,
-                                        right: 12,
-                                        bottom: 14,
-                                      ),
-                                      child: NetworkImageWidget(
-                                        imageUrl: AppImages.logo,
-                                        memCacheWidth: 600,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                  Center(
-                                    child: SizedBox(
-                                      width: 150,
-                                      height: 150,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 10,
-                                        strokeCap: StrokeCap.round,
-                                        color: const Color(
-                                          0xFF007BFF,
-                                        ),
-                                        backgroundColor: const Color(
-                                          0xFF007BFF,
-                                        ).withValues(alpha: 0.25),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            const BrandedCircularLoader(),
                             const SizedBox(height: 18),
                             const Text(
                               "Getting your current location",
@@ -2391,6 +2340,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                   await LoadViewModel()
                                                       .getLoadBalance();
                                                   vm.syncAutomaticPaymentMethodForCurrentBooking();
+                                                  var redrewPreservedRoute =
+                                                      false;
                                                   if (pickupAddress != null &&
                                                       dropoffAddress != null) {
                                                     final preservedPickup =
@@ -2413,7 +2364,12 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                             preservedDropoff,
                                                         animateMap: true,
                                                       );
+                                                      redrewPreservedRoute =
+                                                          true;
                                                     }
+                                                  }
+                                                  if (!redrewPreservedRoute) {
+                                                    vm.clearGMapDetails();
                                                   }
                                                 }
                                                 await vm.recenterHomeMap();
@@ -4007,18 +3963,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                                 if (isBool(
                                                                                                   AuthService.currentUser?.isProvider,
                                                                                                 )) {
-                                                                                                  AlertService().showLoading();
-                                                                                                  try {
-                                                                                                    await vm.selectProviderStaffRiderType();
-                                                                                                    AlertService().stopLoading(
-                                                                                                      forceStop: true,
+                                                                                                  setState(() {
+                                                                                                    vm.setProviderRiderType(
+                                                                                                      8,
                                                                                                     );
-                                                                                                  } catch (e) {
-                                                                                                    AlertService().stopLoading(
-                                                                                                      forceStop: true,
-                                                                                                    );
-                                                                                                    showError(e);
-                                                                                                  }
+                                                                                                  });
                                                                                                 } else {
                                                                                                   _showPromoDialog(
                                                                                                     vm,

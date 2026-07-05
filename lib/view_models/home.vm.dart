@@ -121,11 +121,20 @@ class HomeViewModel extends GMapViewModel {
 
   bool get hasCompletedReceiptOrder => completedReceiptOrder != null;
 
+  bool _shouldAddProviderGuestMarkup(Order? order) {
+    if (!isBool(AuthService.currentUser?.isProvider) || order == null) {
+      return false;
+    }
+    if (providerMarkupAmount <= 0) {
+      return false;
+    }
+    return order.appearsToBeProviderGuestFare;
+  }
+
   double get displayedCompletedReceiptFare {
     final receiptOrder = completedReceiptOrder;
     final receiptTotal = receiptOrder?.total ?? 0;
-    if (isBool(AuthService.currentUser?.isProvider) &&
-        (receiptOrder?.discount ?? 0) == 0) {
+    if (_shouldAddProviderGuestMarkup(receiptOrder)) {
       return receiptTotal + providerMarkupAmount;
     }
     return receiptTotal;
@@ -219,8 +228,7 @@ class HomeViewModel extends GMapViewModel {
   double get _driverDistantPayableFare {
     if (ongoingOrder != null) {
       final ongoingTotal = ongoingOrder?.total ?? 0;
-      if (isBool(AuthService.currentUser?.isProvider) &&
-          (ongoingOrder?.discount ?? 0) == 0) {
+      if (_shouldAddProviderGuestMarkup(ongoingOrder)) {
         return ongoingTotal + providerMarkupAmount;
       }
       return ongoingTotal;
@@ -238,8 +246,7 @@ class HomeViewModel extends GMapViewModel {
 
   double get currentOngoingOrderPayableFare {
     final ongoingTotal = ongoingOrder?.total ?? 0;
-    if (isBool(AuthService.currentUser?.isProvider) &&
-        (ongoingOrder?.discount ?? 0) == 0) {
+    if (_shouldAddProviderGuestMarkup(ongoingOrder)) {
       return ongoingTotal + providerMarkupAmount;
     }
     return ongoingTotal;
@@ -279,6 +286,30 @@ class HomeViewModel extends GMapViewModel {
   bool _isPendingWithoutDriverFareOverrideStatus(String? status) {
     final normalized = _normalizeOrderStatus(status);
     return normalized == "pending" || normalized == "preparing";
+  }
+
+  bool _shouldInferProviderGuestMarkupForFirestore() {
+    if (!isBool(AuthService.currentUser?.isProvider)) {
+      return false;
+    }
+    final order = ongoingOrder;
+    if (order == null) {
+      return false;
+    }
+    final subTotal = order.subTotal ?? 0;
+    final totalValue = order.total ?? 0;
+    if (subTotal <= 0 || totalValue <= 0) {
+      return false;
+    }
+    if (order.includesRideCover != null || order.includesShowerCap != null) {
+      return order.includesRideCover == true &&
+          order.includesShowerCap == true;
+    }
+    if ((order.discount ?? 0) > 0) {
+      return false;
+    }
+    final inferredMarkupAmount = totalValue - subTotal - 20;
+    return inferredMarkupAmount > 0.0001;
   }
 
   bool get _hasAssignedOngoingDriver {
@@ -463,8 +494,7 @@ class HomeViewModel extends GMapViewModel {
     final hasOrderSubTotal = (ongoingOrder?.subTotal ?? 0) > 0;
     final normalizedTotal = hasOrderSubTotal
         ? overrideFare
-        : isBool(AuthService.currentUser?.isProvider) &&
-                (ongoingOrder?.discount ?? 0) == 0
+        : _shouldAddProviderGuestMarkup(ongoingOrder)
             ? overrideFare - providerMarkupAmount
             : overrideFare;
     if (normalizedTotal <= 0) {
@@ -1566,8 +1596,8 @@ class HomeViewModel extends GMapViewModel {
             "payment_method": null,
             "payment_method_id": providerPaymentId,
             "is_mov_reached": false,
-            "includes_ride_cover": false,
-            "includes_shower_cap": false,
+            "includes_ride_cover": providerRiderTypeId != 8,
+            "includes_shower_cap": providerRiderTypeId != 8,
             "markup_amount": providerRiderTypeId == 8 ? 0.0 : providerMarkupAmount,
             "vehicle_type_id": selectedVehicle?.id,
             "vehicle_type": selectedVehicle?.encrypted,
@@ -2207,8 +2237,7 @@ class HomeViewModel extends GMapViewModel {
           final inferredMissingMarkupAmount =
               ongoingTotal - ongoingSubTotal - 20;
           if (event.exists &&
-              inferredMissingMarkupAmount > 0 &&
-              isBool(AuthService.currentUser?.isProvider) &&
+              _shouldInferProviderGuestMarkupForFirestore() &&
               event.data()?["markup_amount"] == null) {
             unawaited(
               event.reference.set(

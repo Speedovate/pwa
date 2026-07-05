@@ -5,14 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
-import 'package:pwa/constants/images.dart';
 import 'package:pwa/models/order.model.dart';
 import 'package:pwa/view_models/home.vm.dart';
 import 'package:pwa/models/address.model.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/models/coordinates.model.dart';
-import 'package:pwa/widgets/network_image.widget.dart';
 import 'package:pwa/utils/order_status_style.dart';
 
 class OrderListItem extends StatefulWidget {
@@ -171,6 +169,15 @@ class _OrderListItemState extends State<OrderListItem> {
   @override
   Widget build(BuildContext context) {
     final isReviewMode = AuthService.inReviewMode();
+    final sourceLabel =
+        widget.order.taxiOrder?.isWalkIn == true ? "Via Spot" : "Via App";
+    final trailingLabel = widget.order.hasRideCoverAndShowerCapBundle
+        ? "Guest"
+        : widget.order.isProviderBooking
+            ? widget.order.appearsToBeProviderStaffFare
+                ? "Staff"
+                : "Partner"
+            : "₱${widget.order.total?.toStringAsFixed(0)}";
     return ValueListenableBuilder<bool>(
       valueListenable: _isRouteActionPressed,
       builder: (context, isRouteActionPressed, _) {
@@ -196,26 +203,31 @@ class _OrderListItemState extends State<OrderListItem> {
                 Row(
                   children: [
                     const SizedBox(width: 12),
-                    const ClipOval(
-                      child: NetworkImageWidget(
-                        imageUrl: AppImages.logo,
-                        memCacheWidth: 600,
-                        height: 28,
-                        width: 28,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF030744).withValues(alpha: 0.08),
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(4),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        "#${widget.order.id}",
-                        style: const TextStyle(
-                          height: 1,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF030744),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 4,
+                          horizontal: 8,
+                        ),
+                        child: Text(
+                          "#${widget.order.id}",
+                          style: const TextStyle(
+                            height: 1,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF030744),
+                          ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    const Spacer(),
                     Container(
                       decoration: BoxDecoration(
                         color: orderStatusChipBackgroundColor(
@@ -374,13 +386,7 @@ class _OrderListItemState extends State<OrderListItem> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          capitalizeWords(
-                            widget.order.driver?.vehicle?.vehicleType?.name ==
-                                    null
-                                ? null
-                                : "Via App",
-                            alt: "Failed",
-                          ),
+                          sourceLabel,
                           style: TextStyle(
                             height: 1.05,
                             color: () {
@@ -425,14 +431,7 @@ class _OrderListItemState extends State<OrderListItem> {
                                 ),
                               )
                             : Text(
-                                isBool(AuthService.currentUser?.isProvider)
-                                    ? widget.order.appearsToBeProviderGuestFare
-                                        ? "Guest"
-                                        : widget.order
-                                                .appearsToBeProviderStaffFare
-                                            ? "Staff"
-                                            : "Via App"
-                                    : "₱${widget.order.total?.toStringAsFixed(0)}",
+                                trailingLabel,
                                 style: TextStyle(
                                   height: 1.05,
                                   color: () {

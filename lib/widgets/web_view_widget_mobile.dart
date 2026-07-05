@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pwa/services/alert.service.dart';
-import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:pwa/widgets/branded_circular_loader.widget.dart';
 import 'package:webview_flutter/webview_flutter.dart' as webview;
 import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_android;
@@ -37,15 +36,6 @@ class _WebViewWidgetState extends State<WebViewWidget> {
 
   void _handlePaymentStateMessage(String message) {
     final normalizedMessage = message.toLowerCase();
-    if (normalizedMessage.contains("gcash") ||
-        normalizedMessage.contains("maya") ||
-        normalizedMessage.contains("click ") ||
-        normalizedMessage.contains("submit ") ||
-        normalizedMessage.contains("fetch start") ||
-        normalizedMessage.contains("xhr open") ||
-        normalizedMessage.contains("visible text changed")) {
-      debugPrint("[TEMP][PAYMENT_STATE] $message");
-    }
     final shouldShowLoading =
         normalizedMessage.contains("payment processing issue") ||
             normalizedMessage.contains("processing your top-up") ||
@@ -88,35 +78,22 @@ class _WebViewWidgetState extends State<WebViewWidget> {
             final requestUrl = request.url.trim();
             final uri = Uri.tryParse(requestUrl);
             final scheme = uri?.scheme.toLowerCase() ?? "";
-            debugPrint(
-              "[TEMP][WEBVIEW_NAV_REQUEST] url=$requestUrl scheme=$scheme isFromWallet=${widget.isFromWallet}",
-            );
             if (scheme == "gcash" ||
                 requestUrl.toLowerCase().startsWith("gcash://")) {
-              debugPrint(
-                "[TEMP][WEBVIEW_NAV_BRANCH] action=launchExternalGcash url=$requestUrl",
-              );
               unawaited(_launchExternalUri(uri));
               return webview.NavigationDecision.prevent;
             }
             if (scheme == "intent" &&
                 requestUrl.toLowerCase().contains("gcash")) {
               final fallback = _extractIntentBrowserFallbackUrl(requestUrl);
-              debugPrint(
-                "[TEMP][WEBVIEW_NAV_BRANCH] action=launchIntentFallback url=$requestUrl fallback=$fallback",
-              );
               if (fallback != null) {
                 unawaited(_launchExternalUri(Uri.parse(fallback)));
               }
               return webview.NavigationDecision.prevent;
             }
-            debugPrint(
-              "[TEMP][WEBVIEW_NAV_BRANCH] action=navigateEmbedded url=$requestUrl",
-            );
             return webview.NavigationDecision.navigate;
           },
           onPageStarted: (url) {
-            debugPrint("[TEMP][WEBVIEW_PAGE_STARTED] url=$url");
             unawaited(_applyWebviewCorsWorkaround());
             unawaited(_applyPaymentUiStateProbe());
             if (mounted) {
@@ -127,7 +104,6 @@ class _WebViewWidgetState extends State<WebViewWidget> {
             }
           },
           onPageFinished: (url) {
-            debugPrint("[TEMP][WEBVIEW_PAGE_FINISHED] url=$url");
             unawaited(_applyWebviewCorsWorkaround());
             unawaited(_applyPaymentUiStateProbe());
             if (mounted) {
@@ -152,34 +128,26 @@ class _WebViewWidgetState extends State<WebViewWidget> {
 
   Future<void> _launchExternalUri(Uri? uri) async {
     if (uri == null) {
-      debugPrint("[TEMP][LAUNCH_EXTERNAL_URI] skipped=nullUri");
       return;
     }
     try {
-      debugPrint("[TEMP][LAUNCH_EXTERNAL_URI] attempt uri=$uri");
       if (!await _confirmGcashLaunchIfNeeded()) {
-        debugPrint("[TEMP][LAUNCH_EXTERNAL_URI] cancelledByUser uri=$uri");
         return;
       }
       await launchUrl(
         uri,
         mode: LaunchMode.externalApplication,
       );
-      debugPrint("[TEMP][LAUNCH_EXTERNAL_URI] launched uri=$uri");
     } catch (_) {}
   }
 
   Future<bool> _confirmGcashLaunchIfNeeded() async {
     final isMobile = GetPlatform.isAndroid || GetPlatform.isIOS;
     if (!isMobile || !widget.isFromWallet) {
-      debugPrint(
-        "[TEMP][CONFIRM_GCASH] bypass isMobile=$isMobile isFromWallet=${widget.isFromWallet}",
-      );
       return true;
     }
 
     bool shouldProceed = false;
-    debugPrint("[TEMP][CONFIRM_GCASH] showingConfirmation");
     await AlertService().showAppAlert(
       title: "Are you sure?",
       content: "Do you have a screenshot already?",
@@ -188,16 +156,13 @@ class _WebViewWidgetState extends State<WebViewWidget> {
       confirmColor: Colors.red,
       cancelText: "No",
       cancelAction: () {
-        debugPrint("[TEMP][CONFIRM_GCASH] cancelTapped");
         Get.back();
       },
       confirmAction: () {
         shouldProceed = true;
-        debugPrint("[TEMP][CONFIRM_GCASH] confirmTapped");
         Get.back();
       },
     );
-    debugPrint("[TEMP][CONFIRM_GCASH] result=$shouldProceed");
     return shouldProceed;
   }
 
@@ -528,48 +493,13 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                       controller: _controller,
                     ),
                   if (isLoading)
-                    Positioned.fill(
-                      child: Container(
+                    const Positioned.fill(
+                      child: ColoredBox(
                         color: Colors.white,
                         child: Center(
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 24),
-                            child: SizedBox(
-                              width: 120,
-                              height: 120,
-                              child: Stack(
-                                children: [
-                                  const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(
-                                        top: 16,
-                                        left: 16,
-                                        right: 16,
-                                        bottom: 18,
-                                      ),
-                                      child: NetworkImageWidget(
-                                        imageUrl: AppImages.logo,
-                                        memCacheWidth: 600,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                  Center(
-                                    child: SizedBox(
-                                      width: 150,
-                                      height: 150,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 10,
-                                        strokeCap: StrokeCap.round,
-                                        color: const Color(0xFF007BFF),
-                                        backgroundColor: const Color(0xFF007BFF)
-                                            .withValues(alpha: 0.25),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            padding: EdgeInsets.only(bottom: 24),
+                            child: BrandedCircularLoader(),
                           ),
                         ),
                       ),

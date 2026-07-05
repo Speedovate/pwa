@@ -20,6 +20,8 @@ class Order {
   double? discount;
   double? subTotal;
   double? markupAmount;
+  bool? includesRideCover;
+  bool? includesShowerCap;
   bool? canRate;
   bool? canRateDriver;
   String? type;
@@ -48,6 +50,8 @@ class Order {
     this.discount,
     this.subTotal,
     this.markupAmount,
+    this.includesRideCover,
+    this.includesShowerCap,
     this.canRate,
     this.canRateDriver,
     this.type,
@@ -81,6 +85,14 @@ class Order {
         discount: parseDouble(json?["discount"], "discount"),
         subTotal: parseDouble(json?["sub_total"], "sub_total"),
         markupAmount: parseDouble(json?["markup_amount"], "markup_amount"),
+        includesRideCover: parseBool(
+          json?["includes_ride_cover"],
+          "includes_ride_cover",
+        ),
+        includesShowerCap: parseBool(
+          json?["includes_shower_cap"],
+          "includes_shower_cap",
+        ),
         canRate: parseBool(json?["can_rate"], "can_rate"),
         canRateDriver: parseBool(json?["can_rate_driver"], "can_rate_driver"),
         type: parseString(json?["type"], "type"),
@@ -124,6 +136,8 @@ class Order {
         "discount": discount,
         "sub_total": subTotal,
         "markup_amount": markupAmount,
+        "includes_ride_cover": includesRideCover,
+        "includes_shower_cap": includesShowerCap,
         "can_rate": canRate,
         "can_rate_driver": canRateDriver,
         "type": type,
@@ -164,7 +178,22 @@ class Order {
     return markupAmount ?? 0;
   }
 
+  bool get hasRideCoverAndShowerCapBundle =>
+      includesRideCover == true && includesShowerCap == true;
+
+  bool get isProviderBooking => user?.isProvider == true;
+
+  bool get isSpotBooking => !isProviderBooking && taxiOrder?.isWalkIn == true;
+
+  bool get isNormalBooking => !isProviderBooking && taxiOrder?.isWalkIn != true;
+
   bool get appearsToBeProviderGuestFare {
+    if (!isProviderBooking) {
+      return false;
+    }
+    if (hasRideCoverAndShowerCapBundle) {
+      return true;
+    }
     if (resolvedMarkupAmount > 0) {
       return true;
     }
@@ -177,6 +206,14 @@ class Order {
   }
 
   bool get appearsToBeProviderStaffFare {
+    if (!isProviderBooking) {
+      return false;
+    }
+    if (isProviderBooking &&
+        includesRideCover == false &&
+        includesShowerCap == false) {
+      return true;
+    }
     if (resolvedMarkupAmount > 0) {
       return false;
     }
@@ -187,6 +224,13 @@ class Order {
     }
     final delta = totalValue - subTotalValue;
     return delta.abs() <= 0.0001 || (delta - 20).abs() <= 0.0001;
+  }
+
+  String get bookingSourceLabel {
+    if (isSpotBooking) {
+      return "Via Spot";
+    }
+    return "Via App";
   }
 
   gmaps.LatLng get driverLatLng => gmaps.LatLng(

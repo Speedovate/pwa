@@ -4,9 +4,8 @@ import 'dart:html' as html;
 import 'dart:ui_web' as ui;
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
-import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:pwa/widgets/branded_circular_loader.widget.dart';
 
 class WebViewWidget extends StatefulWidget {
   const WebViewWidget({
@@ -136,48 +135,13 @@ class WebViewWidgetState extends State<WebViewWidget> {
             child: Divider(height: 1, thickness: 1, color: dividerColor),
           ),
           if (isLoading)
-            Positioned.fill(
-              child: Container(
+            const Positioned.fill(
+              child: ColoredBox(
                 color: Colors.white,
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: SizedBox(
-                      width: 120,
-                      height: 120,
-                      child: Stack(
-                        children: [
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                top: 16,
-                                left: 16,
-                                right: 16,
-                                bottom: 18,
-                              ),
-                              child: NetworkImageWidget(
-                                imageUrl: AppImages.logo,
-                                memCacheWidth: 600,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Center(
-                            child: SizedBox(
-                              width: 150,
-                              height: 150,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 10,
-                                strokeCap: StrokeCap.round,
-                                color: const Color(0xFF007BFF),
-                                backgroundColor: const Color(0xFF007BFF)
-                                    .withValues(alpha: 0.25),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    padding: EdgeInsets.only(bottom: 24),
+                    child: BrandedCircularLoader(),
                   ),
                 ),
               ),

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +11,9 @@ import 'package:pwa/services/connection_banner.service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await StartupService.waitForFirebaseReady();
+  await StartupService.ensurePrefsReady();
+  await loadNotificationDiagnosticsLog();
   await SystemChrome.setPreferredOrientations(
     const [
       DeviceOrientation.portraitUp,
@@ -24,17 +26,11 @@ void main() async {
     }
     await showFacebookSupportDialog(context);
   });
-  unawaited(loadNotificationDiagnosticsLog());
+  try {
+    await PushService.initialize();
+  } catch (_) {}
   runApp(
     const MyApp(),
-  );
-  unawaited(
-    () async {
-      try {
-        await StartupService.waitForFirebaseReady();
-        await PushService.initialize();
-      } catch (_) {}
-    }(),
   );
 }
 

@@ -42,6 +42,8 @@ const String _basicDarwinNotificationSound = 'sound.wav';
 const String _bookingDarwinNotificationSound = 'alert.wav';
 const String _pendingOpenedNotificationPayloadStorageKey =
     'pending_opened_notification_payload';
+const String _defaultNotificationTitle = 'Ka-TODA!';
+const String _defaultNotificationBody = 'You have received a notification.';
 const Duration _notificationDedupeWindow = Duration(minutes: 5);
 final Map<String, DateTime> _shownNotificationKeys = {};
 
@@ -57,6 +59,28 @@ void _notifDebug(String message) {
 String _cleanNotificationText(Object? value) {
   final text = '${value ?? ''}'.trim();
   return text.toLowerCase() == 'null' ? '' : text;
+}
+
+String _caseInsensitiveMessageDataValue(
+  Map<String, dynamic> data,
+  List<String> candidateKeys,
+) {
+  if (data.isEmpty || candidateKeys.isEmpty) {
+    return '';
+  }
+  final normalizedCandidates =
+      candidateKeys.map((key) => key.trim().toLowerCase()).toSet();
+  for (final entry in data.entries) {
+    final normalizedKey = entry.key.trim().toLowerCase();
+    if (!normalizedCandidates.contains(normalizedKey)) {
+      continue;
+    }
+    final cleaned = _cleanNotificationText(entry.value);
+    if (cleaned.isNotEmpty) {
+      return cleaned;
+    }
+  }
+  return '';
 }
 
 String _notificationDedupeKey(RemoteMessage message) {
@@ -94,38 +118,63 @@ bool _shouldSkipDuplicateNotification(RemoteMessage message) {
 
 String? _notificationTitleFromMessage(RemoteMessage message) {
   final title = _cleanNotificationText(
-    message.data['title'] ?? message.notification?.title,
+    _caseInsensitiveMessageDataValue(
+      message.data,
+      const [
+        'title',
+        'notification_title',
+        'heading',
+        'subject',
+      ],
+    ).ifEmpty(
+      _cleanNotificationText(message.notification?.title),
+    ),
   );
   _notifDebug(
     'title resolve rawData=${message.data['title']} '
     'rawNotification=${message.notification?.title} cleaned=$title',
   );
   if (title.isEmpty) {
-    return null;
+    return _defaultNotificationTitle;
   }
   return _parseNotificationTitle(title);
 }
 
 String _parseNotificationTitle(String title) {
+  final parsed = title.replaceAll(
+    RegExp(r'ride booking', caseSensitive: false),
+    'booking',
+  );
   final normalizedTitle =
-      title.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+      parsed.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
   if (normalizedTitle.contains('ride status update')) {
     _notifDebug('parse title matched ride status update raw=$title');
     return 'Booking Update';
   }
-  _notifDebug('parse title unchanged raw=$title');
-  return title;
+  _notifDebug('parse title raw=$title parsed=$parsed');
+  return parsed;
 }
 
 String? _notificationBodyFromMessage(RemoteMessage message) {
   final body = _cleanNotificationText(
-    message.data['body'] ?? message.notification?.body,
+    _caseInsensitiveMessageDataValue(
+      message.data,
+      const [
+        'body',
+        'notification_body',
+        'message',
+        'content',
+        'text',
+      ],
+    ).ifEmpty(
+      _cleanNotificationText(message.notification?.body),
+    ),
   );
   _notifDebug(
     'body resolve rawData=${message.data['body']} '
     'rawNotification=${message.notification?.body} cleaned=$body',
   );
-  return body.isEmpty ? null : _parseNotificationBody(body);
+  return body.isEmpty ? _defaultNotificationBody : _parseNotificationBody(body);
 }
 
 String _parseNotificationBody(String body) {
@@ -138,10 +187,15 @@ String _parseNotificationBody(String body) {
 }
 
 bool _isRideStatusUpdate(RemoteMessage message) {
-  final explicitChannel =
-      '${message.data['channel_id'] ?? message.data['channel'] ?? ''}'
-          .trim()
-          .toLowerCase();
+  final explicitChannel = _caseInsensitiveMessageDataValue(
+    message.data,
+    const [
+      'channel_id',
+      'channel',
+      'android_channel_id',
+      'notification_channel',
+    ],
+  ).trim().toLowerCase();
   _notifDebug(
     'channel resolve explicit=$explicitChannel '
     'rawTitle=${message.data['title'] ?? message.notification?.title}',
@@ -163,6 +217,10 @@ bool _isRideStatusUpdate(RemoteMessage message) {
   _notifDebug(
       'channel decision titleFallback=$isBooking normalizedTitle=$title');
   return isBooking;
+}
+
+extension on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }
 
 @pragma('vm:entry-point')

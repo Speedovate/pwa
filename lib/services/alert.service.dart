@@ -2,44 +2,15 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pwa/constants/images.dart';
 import 'package:pwa/constants/lotties.dart';
 import 'package:pwa/models/available_driver.model.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/widgets/button.widget.dart';
-import 'package:pwa/widgets/network_image.widget.dart';
+import 'package:pwa/widgets/branded_circular_loader.widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 BuildContext? _loadingDialogContext;
-
-class _WebSafeLoadingAnimation extends StatelessWidget {
-  const _WebSafeLoadingAnimation();
-
-  @override
-  Widget build(BuildContext context) {
-    if (kIsWeb) {
-      return Center(
-        child: SizedBox(
-          width: 150,
-          height: 150,
-          child: CircularProgressIndicator(
-            strokeWidth: 10,
-            strokeCap: StrokeCap.round,
-            color: const Color(0xFF007BFF),
-            backgroundColor: const Color(0xFF007BFF).withValues(alpha: 0.25),
-          ),
-        ),
-      );
-    }
-
-    return Lottie.asset(
-      AppLotties.loading,
-      fit: BoxFit.cover,
-    );
-  }
-}
 
 class AlertService {
   Future<bool?> showPermissionSettingsDialog({
@@ -434,23 +405,7 @@ class AlertService {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
-                        width: 150,
-                        height: 150,
-                        child: Stack(
-                          children: [
-                            _WebSafeLoadingAnimation(),
-                            Center(
-                              child: NetworkImageWidget(
-                                imageUrl: AppImages.icon,
-                                memCacheWidth: 600,
-                                height: 50,
-                                width: 50,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      BrandedCircularLoader(imageColor: Colors.white),
                       SizedBox(height: 24),
                     ],
                   ),

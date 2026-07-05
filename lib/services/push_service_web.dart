@@ -11,6 +11,9 @@ import 'package:pwa/utils/functions.dart';
 
 class PushService {
   static const String _serviceWorkerPath = '/firebase-messaging-sw.js';
+  static const String _defaultNotificationTitle = 'Ka-TODA!';
+  static const String _defaultNotificationBody =
+      'You have received a notification.';
   static const String _vapidKey =
       'BCJv0HXIqVrKjbGIYEjbhOgE1T7oct4lEnki_gN6cOKE36THwLL7k_RK4vf_saUkLPp2g-pL9bsCyAyIZnCG86Q';
 
@@ -33,6 +36,28 @@ class PushService {
     return text.toLowerCase() == 'null' ? '' : text;
   }
 
+  static String _caseInsensitiveMessageDataValue(
+    Map<String, dynamic> data,
+    List<String> candidateKeys,
+  ) {
+    if (data.isEmpty || candidateKeys.isEmpty) {
+      return '';
+    }
+    final normalizedCandidates =
+        candidateKeys.map((key) => key.trim().toLowerCase()).toSet();
+    for (final entry in data.entries) {
+      final normalizedKey = entry.key.trim().toLowerCase();
+      if (!normalizedCandidates.contains(normalizedKey)) {
+        continue;
+      }
+      final cleaned = _cleanNotificationText(entry.value);
+      if (cleaned.isNotEmpty) {
+        return cleaned;
+      }
+    }
+    return '';
+  }
+
   static String _parseNotificationBody(String body) {
     final parsed = body.replaceAll(
       RegExp(r'ride booking', caseSensitive: false),
@@ -43,14 +68,18 @@ class PushService {
   }
 
   static String _parseNotificationTitle(String title) {
+    final parsed = title.replaceAll(
+      RegExp(r'ride booking', caseSensitive: false),
+      'booking',
+    );
     final normalizedTitle =
-        title.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+        parsed.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
     if (normalizedTitle.contains('ride status update')) {
       _notifDebug('web parse title matched ride status update raw=$title');
       return 'Booking Update';
     }
-    _notifDebug('web parse title unchanged raw=$title');
-    return title.trim();
+    _notifDebug('web parse title raw=$title parsed=$parsed');
+    return parsed.trim();
   }
 
   static Future<void> initialize() async {
@@ -66,7 +95,7 @@ class PushService {
     await _enableAutoInit();
     _attachForegroundListener();
     _attachTokenRefreshListener();
-    await syncTokenWithServer(requestPermission: true);
+    await syncTokenWithServer(requestPermission: false);
     _notifDebug('web initialize complete');
   }
 
@@ -173,21 +202,42 @@ class PushService {
           'sentTime=${message.sentTime} data=${message.data}',
         );
         final rawTitle = _cleanNotificationText(
-          message.data['title'] ?? message.notification?.title,
+          _caseInsensitiveMessageDataValue(
+            message.data,
+            const [
+              'title',
+              'notification_title',
+              'heading',
+              'subject',
+            ],
+          ).ifEmpty(
+            _cleanNotificationText(message.notification?.title),
+          ),
         );
-        final title = _parseNotificationTitle(rawTitle);
         final rawBody = _cleanNotificationText(
-          message.data['body'] ?? message.notification?.body,
+          _caseInsensitiveMessageDataValue(
+            message.data,
+            const [
+              'body',
+              'notification_body',
+              'message',
+              'content',
+              'text',
+            ],
+          ).ifEmpty(
+            _cleanNotificationText(message.notification?.body),
+          ),
         );
-        final body = _parseNotificationBody(rawBody);
+        final title = rawTitle.isEmpty
+            ? _defaultNotificationTitle
+            : _parseNotificationTitle(rawTitle);
+        final body = rawBody.isEmpty
+            ? _defaultNotificationBody
+            : _parseNotificationBody(rawBody);
         _notifDebug(
           'web parse result messageId=${message.messageId} '
           'title=$title body=$body',
         );
-        if (title.isEmpty && body.isEmpty) {
-          _notifDebug('web notification skipped empty title/body');
-          return;
-        }
         _notifDebug('web create notification title=$title body=$body');
         html.Notification(
           title,
@@ -316,4 +366,8 @@ class PushService {
     final normalized = [...topics]..sort();
     return normalized.join(',');
   }
+}
+
+extension on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }

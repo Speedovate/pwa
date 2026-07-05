@@ -94,8 +94,17 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   double _mobileKeyboardInset = 0;
   final WebViewportObserver _viewportObserver = WebViewportObserver();
   final TaxiRequest _taxiRequest = TaxiRequest();
+  final ScrollController _timelineScrollController = ScrollController();
   late TextEditingController _controller;
   late FocusNode _messageFocusNode;
+  bool _timelineShouldTopAlign = false;
+  bool _keepLatestTimelineVisibleScheduled = false;
+  bool _hasAutoPositionedInitialLatestTimeline = false;
+  int _lastKnownTimelineItemCount = 0;
+  int? _dismissFocusPointer;
+  Offset? _dismissFocusPointerDownPosition;
+  DateTime? _dismissFocusPointerDownAt;
+  bool _dismissFocusPointerMoved = false;
 
   @override
   void initState() {
@@ -127,6 +136,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
         _mobileKeyboardInset = nextKeyboardInset;
       });
     }
+    _scheduleKeepLatestTimelineVisible();
   }
 
   @override
@@ -136,6 +146,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     _stopVisualViewportListener();
     _controller.removeListener(_handleComposerChanged);
     _messageFocusNode.removeListener(_handleComposerChanged);
+    _timelineScrollController.dispose();
     _controller.dispose();
     _messageFocusNode.dispose();
     super.dispose();
@@ -153,6 +164,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {});
     }
+    _scheduleKeepLatestTimelineVisible();
   }
 
   double _currentKeyboardInset() {
@@ -210,11 +222,105 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       setState(() {
         _webKeyboardInset = inset;
       });
+      _scheduleKeepLatestTimelineVisible();
     });
   }
 
   void _stopVisualViewportListener() {
     _viewportObserver.stop();
+  }
+
+  void _handleDismissFocusPointerDown(PointerDownEvent event) {
+    _dismissFocusPointer = event.pointer;
+    _dismissFocusPointerDownPosition = event.position;
+    _dismissFocusPointerDownAt = DateTime.now();
+    _dismissFocusPointerMoved = false;
+  }
+
+  void _handleDismissFocusPointerMove(PointerMoveEvent event) {
+    if (_dismissFocusPointer != event.pointer ||
+        _dismissFocusPointerDownPosition == null) {
+      return;
+    }
+    if ((event.position - _dismissFocusPointerDownPosition!).distance > 10) {
+      _dismissFocusPointerMoved = true;
+    }
+  }
+
+  void _handleDismissFocusPointerUp(PointerUpEvent event) {
+    if (_dismissFocusPointer != event.pointer) {
+      return;
+    }
+    final downAt = _dismissFocusPointerDownAt;
+    final wasTap = !_dismissFocusPointerMoved &&
+        downAt != null &&
+        DateTime.now().difference(downAt) <= const Duration(milliseconds: 300);
+    _resetDismissFocusPointerTracking();
+    if (!wasTap) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _handleDismissFocusPointerCancel(PointerCancelEvent event) {
+    if (_dismissFocusPointer != event.pointer) {
+      return;
+    }
+    _resetDismissFocusPointerTracking();
+  }
+
+  void _resetDismissFocusPointerTracking() {
+    _dismissFocusPointer = null;
+    _dismissFocusPointerDownPosition = null;
+    _dismissFocusPointerDownAt = null;
+    _dismissFocusPointerMoved = false;
+  }
+
+  Widget _buildTapOnlyDismissFocus({
+    required Widget child,
+  }) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _handleDismissFocusPointerDown,
+      onPointerMove: _handleDismissFocusPointerMove,
+      onPointerUp: _handleDismissFocusPointerUp,
+      onPointerCancel: _handleDismissFocusPointerCancel,
+      child: child,
+    );
+  }
+
+  void _scheduleKeepLatestTimelineVisible({bool force = false}) {
+    if (_keepLatestTimelineVisibleScheduled) {
+      return;
+    }
+    _keepLatestTimelineVisibleScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _keepLatestTimelineVisibleScheduled = false;
+      if (!mounted ||
+          !_timelineScrollController.hasClients ||
+          _timelineShouldTopAlign) {
+        return;
+      }
+
+      final position = _timelineScrollController.position;
+      final distanceFromLatestEdge =
+          (position.pixels - position.minScrollExtent).abs();
+      final isNearLatestTimelineEdge = distanceFromLatestEdge <= 48;
+      if (!force && !isNearLatestTimelineEdge) {
+        return;
+      }
+      if (distanceFromLatestEdge <= 0.5) {
+        return;
+      }
+      _timelineScrollController.jumpTo(position.minScrollExtent);
+    });
+  }
+
+  double _latestTimelineBottomPadding(MediaQueryData mediaQuery) {
+    if (!widget.readOnly) {
+      return 12;
+    }
+    return mediaQuery.padding.bottom + 12;
   }
 
   Future<void> _sendTextMessage(
@@ -874,26 +980,37 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                   interactionColor: color.withValues(alpha: 0.12),
                   borderRadius: 1000,
                   useDefaultHoverColor: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Center(
-                      child: showLoading
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: color,
+                  child: Container(
+                    height: _chatBubblePillHeight,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(1000),
+                      ),
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Center(
+                        child: showLoading
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: color,
+                                ),
+                              )
+                            : Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: color,
+                                ),
                               ),
-                            )
-                          : Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: color,
-                              ),
-                            ),
+                      ),
                     ),
                   ),
                 ),
@@ -1560,7 +1677,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
 
   String _chatDateTimeDividerLabel(DateTime createdAt) {
     final localCreatedAt = createdAt.toLocal();
-    return "${DateFormat("MMM d, y").format(localCreatedAt)} • ${DateFormat("h:mm a").format(localCreatedAt)}";
+    return "${DateFormat("MMM d, y").format(localCreatedAt)} • ${DateFormat("h:mm:ss a").format(localCreatedAt)}";
   }
 
   Color _orderStatusDividerColor(OrderStatus status) {
@@ -1743,13 +1860,27 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                       return Column(
                         children: [
                           Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                FocusManager.instance.primaryFocus?.unfocus();
-                              },
+                            child: _buildTapOnlyDismissFocus(
                               child: Builder(builder: (context) {
                                 final timelineItems =
                                     _chatTimelineItems(vm.messages);
+                                if (timelineItems.isNotEmpty &&
+                                    !_hasAutoPositionedInitialLatestTimeline) {
+                                  _hasAutoPositionedInitialLatestTimeline = true;
+                                  _scheduleKeepLatestTimelineVisible(
+                                    force: true,
+                                  );
+                                }
+                                if (timelineItems.length !=
+                                    _lastKnownTimelineItemCount) {
+                                  _lastKnownTimelineItemCount =
+                                      timelineItems.length;
+                                  if (timelineItems.isNotEmpty) {
+                                    _scheduleKeepLatestTimelineVisible(
+                                      force: true,
+                                    );
+                                  }
+                                }
                                 return LayoutBuilder(
                                   builder: (context, constraints) {
                                     final shouldTopAlign =
@@ -1757,8 +1888,13 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                       timelineItems,
                                       constraints.maxHeight,
                                     );
+                                    _timelineShouldTopAlign = shouldTopAlign;
                                     return ListView.builder(
+                                      controller: _timelineScrollController,
                                       reverse: !shouldTopAlign,
+                                      keyboardDismissBehavior:
+                                          ScrollViewKeyboardDismissBehavior
+                                              .manual,
                                       padding: const EdgeInsets.only(top: 88),
                                       itemCount: timelineItems.length,
                                       itemBuilder: (context, index) {
@@ -1871,11 +2007,9 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                           ? 0
                                                           : 12,
                                                   bottom: isNewestTimelineItem
-                                                      ? widget.readOnly
-                                                          ? mediaQuery.padding
-                                                                  .bottom +
-                                                              12
-                                                          : 12
+                                                      ? _latestTimelineBottomPadding(
+                                                          mediaQuery,
+                                                        )
                                                       : hasStatusBefore
                                                           ? 8
                                                           : 0,
@@ -2159,11 +2293,9 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                           ? 5
                                                           : 12,
                                                   bottom: isNewestTimelineItem
-                                                      ? widget.readOnly
-                                                          ? mediaQuery.padding
-                                                                  .bottom +
-                                                              12
-                                                          : 12
+                                                      ? _latestTimelineBottomPadding(
+                                                          mediaQuery,
+                                                        )
                                                       : hasStatusBefore
                                                           ? 8
                                                           : 0,
@@ -2823,15 +2955,12 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                     top: 0,
                     left: 0,
                     right: 0,
-                    child: GestureDetector(
-                      onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
+                    child: _buildTapOnlyDismissFocus(
                       child: Container(
                         color: Colors.white,
                         child: Column(
                           children: [
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             Row(
                               children: [
                                 const SizedBox(width: 4),
