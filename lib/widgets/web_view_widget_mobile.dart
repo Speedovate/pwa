@@ -29,24 +29,165 @@ class _WebViewWidgetState extends State<WebViewWidget> {
   bool showError = false;
   bool isLoading = true;
   late final webview.WebViewController _controller;
+  Timer? _mayaLoadingStopTimer;
+  bool _hasBuyLoadProcessingState = false;
+  bool _hasPaymentProcessingIssueState = false;
+  String _currentUrl = "";
   static const String _gcashRumIngestHost = "rum-ingest.us1.signalfx.com";
   static const String _androidMobileChromeUserAgent =
       "Mozilla/5.0 (Linux; Android 14; 23076RN4BI) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
 
+  bool _isMayaCheckoutStopUrl(String rawUrl) {
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) {
+      return false;
+    }
+    final host = uri.host.toLowerCase();
+    final path = uri.path.toLowerCase();
+    return host == "payments.paymaya.com" ||
+        (host == "connect.paymaya.com" && path == "/login");
+  }
+
+  bool _isGcashCheckoutStopUrl(String rawUrl) {
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) {
+      return false;
+    }
+    final host = uri.host.toLowerCase();
+    return host == "payments.gcash.com" || host.endsWith(".payments.gcash.com");
+  }
+
+  bool _isCheckoutStopUrl(String rawUrl) {
+    return _isMayaCheckoutStopUrl(rawUrl) || _isGcashCheckoutStopUrl(rawUrl);
+  }
+
+  String _normalizedPageUrl(String rawUrl) {
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) {
+      return rawUrl.trim();
+    }
+    final normalizedQuery = Map.fromEntries(
+      uri.queryParametersAll.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key)),
+    );
+    return uri
+        .replace(
+          scheme: uri.scheme.toLowerCase(),
+          host: uri.host.toLowerCase(),
+          queryParameters: normalizedQuery.isEmpty ? null : normalizedQuery,
+          fragment: null,
+        )
+        .toString();
+  }
+
+  bool _shouldIgnoreStalePaymentLifecycleUrl(String callbackUrl) {
+    return _isCheckoutStopUrl(_currentUrl) && !_isCheckoutStopUrl(callbackUrl);
+  }
+
+  bool _isDuplicateCheckoutStopLifecycleUrl(String callbackUrl) {
+    return _isCheckoutStopUrl(_currentUrl) &&
+        _isCheckoutStopUrl(callbackUrl) &&
+        _normalizedPageUrl(_currentUrl) == _normalizedPageUrl(callbackUrl);
+  }
+
+  bool _isOfficialExternalPaymentPageUrl(String rawUrl) {
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) {
+      return false;
+    }
+    final host = uri.host.toLowerCase();
+    final path = uri.path.toLowerCase();
+    return host == "payments.gcash.com" ||
+        host.endsWith(".payments.gcash.com") ||
+        host == "payments.paymaya.com" ||
+        (host == "connect.paymaya.com" &&
+            (path == "/login" || path == "/authorize")) ||
+        host.contains("paymongo.com") ||
+        (host.contains("assets.paymaya.com") && path.contains("/app/pwp"));
+  }
+
+  bool _shouldShowGenericLoadingForUrl(String rawUrl) {
+    final normalized = rawUrl.toLowerCase();
+    return normalized.contains("payment.wallet-top-up-livewire") ||
+        normalized.contains("paymongo") ||
+        normalized.contains("gcash") ||
+        normalized.contains("maya");
+  }
+
+  void _cancelPendingMayaLoadingStop() {
+    _mayaLoadingStopTimer?.cancel();
+    _mayaLoadingStopTimer = null;
+  }
+
+  void _scheduleMayaLoadingStop({required String targetUrl}) {
+    _cancelPendingMayaLoadingStop();
+    _mayaLoadingStopTimer = Timer(const Duration(seconds: 1), () {
+      if (!mounted) {
+        return;
+      }
+      if (_normalizedPageUrl(_currentUrl) != _normalizedPageUrl(targetUrl) ||
+          !_isMayaCheckoutStopUrl(_currentUrl)) {
+        return;
+      }
+      setState(() {
+        _hasBuyLoadProcessingState = false;
+        _hasPaymentProcessingIssueState = false;
+        isLoading = false;
+        showError = false;
+      });
+      _mayaLoadingStopTimer = null;
+    });
+  }
+
   void _handlePaymentStateMessage(String message) {
     final normalizedMessage = message.toLowerCase();
-    final shouldShowLoading =
-        normalizedMessage.contains("payment processing issue") ||
-            normalizedMessage.contains("processing your top-up") ||
-            (normalizedMessage.contains("fetch start") &&
-                normalizedMessage.contains("payment.wallet-top-up-livewire"));
-    if (!shouldShowLoading) {
+    final isBuyLoadContext = widget.isFromWallet;
+    final isTopUpClick = normalizedMessage.startsWith("click ") &&
+        (normalizedMessage.contains("text=gcash") ||
+            normalizedMessage.contains("text=maya"));
+    final isTopUpRequestStart = normalizedMessage.startsWith("fetch start") &&
+        normalizedMessage.contains("payment.wallet-top-up-livewire");
+    if (isBuyLoadContext && (isTopUpClick || isTopUpRequestStart)) {
+      if (!mounted || (isLoading && _hasBuyLoadProcessingState)) {
+        return;
+      }
+      _cancelPendingMayaLoadingStop();
+      setState(() {
+        _hasBuyLoadProcessingState = true;
+        isLoading = true;
+        showError = false;
+      });
       return;
     }
-    if (!mounted || isLoading) {
+
+    final shouldShowLoading = normalizedMessage.contains(
+          "processing your top-up",
+        ) ||
+        normalizedMessage.contains("payment processing issue");
+    final hasPaymentProcessingIssue =
+        normalizedMessage.contains("payment processing issue");
+    if (!mounted || !isBuyLoadContext) {
       return;
     }
+    if (normalizedMessage.startsWith("visible text changed")) {
+      if (shouldShowLoading || hasPaymentProcessingIssue) {
+        _cancelPendingMayaLoadingStop();
+      }
+      setState(() {
+        _hasBuyLoadProcessingState = shouldShowLoading;
+        _hasPaymentProcessingIssueState =
+            _hasPaymentProcessingIssueState || hasPaymentProcessingIssue;
+        isLoading = shouldShowLoading || _hasPaymentProcessingIssueState;
+        showError = false;
+      });
+      return;
+    }
+
+    if (!shouldShowLoading || isLoading) {
+      return;
+    }
+    _cancelPendingMayaLoadingStop();
     setState(() {
       isLoading = true;
       showError = false;
@@ -96,21 +237,64 @@ class _WebViewWidgetState extends State<WebViewWidget> {
           onPageStarted: (url) {
             unawaited(_applyWebviewCorsWorkaround());
             unawaited(_applyPaymentUiStateProbe());
-            if (mounted) {
-              setState(() {
-                isLoading = true;
-                showError = false;
-              });
+            if (!mounted) {
+              return;
             }
+            if (_shouldIgnoreStalePaymentLifecycleUrl(url)) {
+              return;
+            }
+            _cancelPendingMayaLoadingStop();
+            if (_isDuplicateCheckoutStopLifecycleUrl(url)) {
+              return;
+            }
+            final isOfficialExternalPaymentPage =
+                _isOfficialExternalPaymentPageUrl(url);
+            setState(() {
+              _currentUrl = url;
+              isLoading = _hasBuyLoadProcessingState ||
+                  _hasPaymentProcessingIssueState ||
+                  isOfficialExternalPaymentPage ||
+                  _shouldShowGenericLoadingForUrl(url);
+              showError = false;
+            });
           },
           onPageFinished: (url) {
             unawaited(_applyWebviewCorsWorkaround());
             unawaited(_applyPaymentUiStateProbe());
-            if (mounted) {
-              setState(() {
+            if (!mounted) {
+              return;
+            }
+            if (_shouldIgnoreStalePaymentLifecycleUrl(url)) {
+              return;
+            }
+            final isOfficialExternalPaymentPage =
+                _isOfficialExternalPaymentPageUrl(url);
+            final isCheckoutStopUrl = _isCheckoutStopUrl(url);
+            final shouldDelayMayaStop = _isMayaCheckoutStopUrl(url);
+            setState(() {
+              _currentUrl = url;
+              if (isCheckoutStopUrl) {
+                if (shouldDelayMayaStop) {
+                  isLoading = true;
+                } else {
+                  _hasBuyLoadProcessingState = false;
+                  _hasPaymentProcessingIssueState = false;
+                  isLoading = false;
+                }
+              } else if (_hasBuyLoadProcessingState ||
+                  _hasPaymentProcessingIssueState) {
+                isLoading = true;
+              } else if (isOfficialExternalPaymentPage) {
+                isLoading = true;
+              } else {
                 isLoading = false;
-                showError = false;
-              });
+              }
+              showError = false;
+            });
+            if (shouldDelayMayaStop) {
+              _scheduleMayaLoadingStop(targetUrl: url);
+            } else if (isCheckoutStopUrl) {
+              _cancelPendingMayaLoadingStop();
             }
           },
           onWebResourceError: (error) {
@@ -338,12 +522,6 @@ class _WebViewWidgetState extends State<WebViewWidget> {
             setTimeout(function() { scanVisibleText("afterSubmit"); }, 250);
           }, true);
 
-          window.addEventListener("error", function(event) {
-          });
-
-          window.addEventListener("unhandledrejection", function(event) {
-          });
-
           if (window.fetch && !window.__ppcTodaPaymentFetchStateProbe) {
             window.__ppcTodaPaymentFetchStateProbe = true;
             var originalFetch = window.fetch.bind(window);
@@ -353,65 +531,8 @@ class _WebViewWidgetState extends State<WebViewWidget> {
               if (interesting.test(url)) {
                 send("fetch start method=" + method + " url=" + url);
               }
-              return originalFetch(input, init).then(function(response) {
-                if (interesting.test(url) || !response.ok) {
-                  send("fetch done status=" + response.status + " ok=" + response.ok + " url=" + url);
-                  try {
-                    response.clone().text().then(function(body) {
-                      var text = normalize(body);
-                      if (interesting.test(text)) {
-                        send("fetch body url=" + url + " body=" + text.slice(0, 900));
-                      }
-                    }).catch(function(error) {
-                      send("fetch body read error url=" + url + " error=" + error);
-                    });
-                  } catch (e) {
-                    send("fetch body clone error url=" + url + " error=" + e);
-                  }
-                }
-                return response;
-              }).catch(function(error) {
-                send("fetch error url=" + url + " error=" + error);
-                throw error;
-              });
+              return originalFetch(input, init);
             };
-          }
-
-          if (window.XMLHttpRequest && !window.__ppcTodaPaymentXhrStateProbe) {
-            window.__ppcTodaPaymentXhrStateProbe = true;
-            var OriginalXHR = window.XMLHttpRequest;
-            function StateProbeXHR() {
-              var xhr = new OriginalXHR();
-              var targetUrl = "";
-              var method = "";
-              var originalOpen = xhr.open;
-              xhr.open = function(nextMethod, url) {
-                method = normalize(nextMethod);
-                targetUrl = normalize(url);
-                if (interesting.test(targetUrl)) {
-                  send("xhr open method=" + method + " url=" + targetUrl);
-                }
-                return originalOpen.apply(xhr, arguments);
-              };
-              xhr.addEventListener("loadend", function() {
-                if (interesting.test(targetUrl) || xhr.status >= 400) {
-                  send("xhr done status=" + xhr.status + " method=" + method + " url=" + targetUrl);
-                  try {
-                    var text = normalize(xhr.responseText);
-                    if (interesting.test(text)) {
-                      send("xhr body url=" + targetUrl + " body=" + text.slice(0, 900));
-                    }
-                  } catch (e) {
-                    send("xhr body read error url=" + targetUrl + " error=" + e);
-                  }
-                }
-              });
-              xhr.addEventListener("error", function() {
-                send("xhr error method=" + method + " url=" + targetUrl);
-              });
-              return xhr;
-            }
-            window.XMLHttpRequest = StateProbeXHR;
           }
 
           try {
@@ -430,6 +551,12 @@ class _WebViewWidgetState extends State<WebViewWidget> {
         })();
       ''');
     } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _cancelPendingMayaLoadingStop();
+    super.dispose();
   }
 
   @override
