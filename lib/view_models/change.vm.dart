@@ -26,65 +26,13 @@ class ChangeViewModel extends BaseViewModel {
 
   resetPassword() async {
     if (nPasswordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your new password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your new password");
     } else if (nPasswordTEC.text.length < 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Password must be at least 6 characters",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Password must be at least 6 characters");
     } else if (cPasswordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please confirm your new password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please confirm your new password");
     } else if (cPasswordTEC.text != nPasswordTEC.text) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Passwords entered do not match",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Passwords entered do not match");
     } else {
       AlertService().showLoading();
       try {
@@ -123,110 +71,19 @@ class ChangeViewModel extends BaseViewModel {
 
   changePassword() async {
     if (passwordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your old password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your old password");
     } else if (passwordTEC.text.length < 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Password must be at least 6 characters",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Password must be at least 6 characters");
     } else if (nPasswordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your new password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your new password");
     } else if (nPasswordTEC.text.length < 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Password must be at least 6 characters",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Password must be at least 6 characters");
     } else if (passwordTEC.text == nPasswordTEC.text) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please change your new password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please change your new password");
     } else if (cPasswordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please confirm your new password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please confirm your new password");
     } else if (cPasswordTEC.text != nPasswordTEC.text) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Passwords entered do not match",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Passwords entered do not match");
     } else {
       AlertService().showLoading();
       try {

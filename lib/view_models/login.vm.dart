@@ -35,65 +35,13 @@ class LoginViewModel extends BaseViewModel {
 
   processPhoneLogin() async {
     if (phoneTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your phone number",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your phone number");
     } else if (!phoneRegex.hasMatch(phoneTEC.text)) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter a valid phone number",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter a valid phone number");
     } else if (passwordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your password");
     } else if (passwordTEC.text.length < 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Password must be at least 6 characters",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Password must be at least 6 characters");
     } else {
       AlertService().showLoading();
       try {
@@ -179,10 +127,10 @@ class LoginViewModel extends BaseViewModel {
       }
     } on FirebaseAuthException catch (e) {
       showError(e.message ?? e.code);
-    } on SocketException {
-      showError("No internet connection. Please try again.");
-    } on TimeoutException {
-      showError("Request timed out. Please try again later.");
+    } on SocketException catch (e) {
+      showError(e.message.isNotEmpty ? e.message : e);
+    } on TimeoutException catch (e) {
+      showError(e.message ?? e);
     } catch (e) {
       showError(
         googleAuthErrorMessage(

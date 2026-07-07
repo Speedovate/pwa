@@ -474,7 +474,10 @@ class HttpService {
       if (appServerRequest && online && ignoresServerBanner) {
         response.statusCode = 503;
         response.data = {
-          "message": "Service temporarily unavailable.",
+          "message": _resolveDioExceptionMessage(
+            ex,
+            fallback: "Service temporarily unavailable.",
+          ),
         };
       } else if (appServerRequest && online) {
         ConnectionBannerService.show(
@@ -483,7 +486,10 @@ class HttpService {
         );
         response.statusCode = 503;
         response.data = {
-          "message": "Service temporarily unavailable.",
+          "message": _resolveDioExceptionMessage(
+            ex,
+            fallback: "Service temporarily unavailable.",
+          ),
         };
       } else {
         ConnectionBannerService.show(
@@ -492,7 +498,10 @@ class HttpService {
         );
         response.statusCode = 408;
         response.data = {
-          "message": "Weak connection.",
+          "message": _resolveDioExceptionMessage(
+            ex,
+            fallback: "Weak connection.",
+          ),
         };
       }
     } else if (ex.type == DioExceptionType.connectionError ||
@@ -502,16 +511,53 @@ class HttpService {
         requestStartedAt: requestStartedAt,
       );
       response.data = {
-        "message": "No connection.",
+        "message": _resolveDioExceptionMessage(
+          ex,
+          fallback: "No connection.",
+        ),
       };
     } else {
       response.statusCode = 400;
       response.data = {
-        "message":
-            ex.message ?? "An unexpected error occurred. Please try again.",
+        "message": _resolveDioExceptionMessage(
+          ex,
+          fallback: "An unexpected error occurred. Please try again.",
+        ),
       };
     }
 
     return response;
+  }
+
+  String _resolveDioExceptionMessage(
+    DioException ex, {
+    required String fallback,
+  }) {
+    final responseData = ex.response?.data;
+    if (responseData is Map<String, dynamic>) {
+      final responseMessage = "${responseData["message"] ?? ""}".trim();
+      if (responseMessage.isNotEmpty &&
+          responseMessage.toLowerCase() != "null") {
+        return responseMessage;
+      }
+    } else if (responseData is String) {
+      final responseMessage = responseData.trim();
+      if (responseMessage.isNotEmpty &&
+          responseMessage.toLowerCase() != "null") {
+        return responseMessage;
+      }
+    }
+
+    final errorMessage = "${ex.error ?? ""}".trim();
+    if (errorMessage.isNotEmpty && errorMessage.toLowerCase() != "null") {
+      return errorMessage;
+    }
+
+    final dioMessage = (ex.message ?? "").trim();
+    if (dioMessage.isNotEmpty && dioMessage.toLowerCase() != "null") {
+      return dioMessage;
+    }
+
+    return fallback;
   }
 }

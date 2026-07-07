@@ -26,6 +26,7 @@ class Order {
   bool? canRateDriver;
   String? type;
   String? code;
+  String? couponCode;
   String? note;
   String? status;
   String? reason;
@@ -56,6 +57,7 @@ class Order {
     this.canRateDriver,
     this.type,
     this.code,
+    this.couponCode,
     this.note,
     this.status,
     this.reason,
@@ -97,6 +99,7 @@ class Order {
         canRateDriver: parseBool(json?["can_rate_driver"], "can_rate_driver"),
         type: parseString(json?["type"], "type"),
         code: parseString(json?["code"], "code"),
+        couponCode: parseString(json?["coupon_code"], "coupon_code"),
         note: parseString(json?["note"], "note"),
         status: parseString(json?["status"], "status"),
         reason: parseString(json?["reason"], "reason"),
@@ -142,6 +145,7 @@ class Order {
         "can_rate_driver": canRateDriver,
         "type": type,
         "code": code,
+        "coupon_code": couponCode,
         "note": note,
         "status": status,
         "reason": reason,
@@ -178,8 +182,41 @@ class Order {
     return markupAmount ?? 0;
   }
 
-  bool get hasRideCoverAndShowerCapBundle =>
-      includesRideCover == true && includesShowerCap == true;
+  double visibleProviderGuestMarkupAmount({
+    double fallbackMarkupAmount = 0,
+  }) {
+    if (!appearsToBeProviderGuestFare) {
+      return 0;
+    }
+    if (resolvedMarkupAmount > 0) {
+      return resolvedMarkupAmount;
+    }
+    return fallbackMarkupAmount > 0 ? fallbackMarkupAmount : 0;
+  }
+
+  double visiblePayableFare({
+    double fallbackMarkupAmount = 0,
+  }) {
+    return (total ?? 0) +
+        visibleProviderGuestMarkupAmount(
+          fallbackMarkupAmount: fallbackMarkupAmount,
+        );
+  }
+
+  double visibleBaseFare({
+    double fallbackMarkupAmount = 0,
+  }) {
+    if (appearsToBeProviderGuestFare) {
+      return visiblePayableFare(
+        fallbackMarkupAmount: fallbackMarkupAmount,
+      );
+    }
+    final subTotalValue = subTotal ?? 0;
+    if (subTotalValue > 0) {
+      return subTotalValue;
+    }
+    return total ?? 0;
+  }
 
   bool get isProviderBooking => user?.isProvider == true;
 
@@ -191,39 +228,14 @@ class Order {
     if (!isProviderBooking) {
       return false;
     }
-    if (hasRideCoverAndShowerCapBundle) {
-      return true;
-    }
-    if (resolvedMarkupAmount > 0) {
-      return true;
-    }
-    final totalValue = total ?? 0;
-    final subTotalValue = subTotal ?? 0;
-    if (totalValue <= 0 || subTotalValue <= 0) {
-      return false;
-    }
-    return totalValue - subTotalValue > 20.0001;
+    return (discount ?? 0) <= 0;
   }
 
   bool get appearsToBeProviderStaffFare {
     if (!isProviderBooking) {
       return false;
     }
-    if (isProviderBooking &&
-        includesRideCover == false &&
-        includesShowerCap == false) {
-      return true;
-    }
-    if (resolvedMarkupAmount > 0) {
-      return false;
-    }
-    final totalValue = total ?? 0;
-    final subTotalValue = subTotal ?? 0;
-    if (totalValue <= 0 || subTotalValue <= 0) {
-      return false;
-    }
-    final delta = totalValue - subTotalValue;
-    return delta.abs() <= 0.0001 || (delta - 20).abs() <= 0.0001;
+    return (discount ?? 0) > 0;
   }
 
   String get bookingSourceLabel {

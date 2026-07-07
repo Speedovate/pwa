@@ -123,219 +123,37 @@ class RegisterViewModel extends BaseViewModel {
       return;
     }
     if (selfieFile == null && !AuthService.inReviewMode()) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please add a profile photo",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please add a profile photo");
     } else if (nameTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your full name",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your full name");
     } else if (!nameRegex.hasMatch(nameTEC.text.trim())) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter correct full name",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter correct full name");
     } else if (provider == "custom" && emailTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your email address",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your email address");
     } else if (!AuthService.inReviewMode() &&
         (birthdayTEC.text.trim().isEmpty || isBirthdayActive)) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please set your birthday",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please set your birthday");
     } else if (!AuthService.inReviewMode() && _isBirthdayToday()) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Birthday cannot be today",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Birthday cannot be today");
     } else if (provider == "custom" &&
         !emailRegex.hasMatch(emailTEC.text.trim())) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter a valid email address",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter a valid email address");
     } else if (provider == "custom" && phoneTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your phone number",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your phone number");
     } else if (provider == "custom" &&
         !phoneRegex.hasMatch(phoneTEC.text.trim())) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter a valid phone number",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter a valid phone number");
     } else if (provider == "custom" && passwordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your password");
     } else if (provider == "custom" && passwordTEC.text.trim().length < 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Password must be at least 6 characters",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Password must be at least 6 characters");
     } else if (provider == "custom" && cPasswordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please confirm your password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please confirm your password");
     } else if (provider == "custom" &&
         cPasswordTEC.text.trim() != passwordTEC.text.trim()) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Passwords entered do not match",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Passwords entered do not match");
     } else if (!agreed) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please agree to the terms of service",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please agree to the terms of service");
     } else {
       AlertService().showLoading();
       late ApiResponse apiResponse;
@@ -513,10 +331,10 @@ class RegisterViewModel extends BaseViewModel {
       AlertService().stopLoading(forceStop: true);
     } on FirebaseAuthException catch (e) {
       showError(e.message ?? e.code);
-    } on SocketException {
-      showError("No internet connection. Please try again.");
-    } on TimeoutException {
-      showError("Request timed out. Please try again later.");
+    } on SocketException catch (e) {
+      showError(e.message.isNotEmpty ? e.message : e);
+    } on TimeoutException catch (e) {
+      showError(e.message ?? e);
     } catch (e) {
       showError(
         googleAuthErrorMessage(

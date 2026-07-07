@@ -16,65 +16,13 @@ class DeleteViewModel extends BaseViewModel {
 
   processAccountDeletion() async {
     if (passwordTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your password",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your password");
     } else if (passwordTEC.text.length < 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Password must be at least 6 characters",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Password must be at least 6 characters");
     } else if (reasonTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your reason",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your reason");
     } else if (reasonTEC.text.length < 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please tell us your reason",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please tell us your reason");
     } else {
       AlertService().showAppAlert(
         title: "Are you sure?",

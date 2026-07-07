@@ -37,18 +37,7 @@ class SettingsViewModel extends BaseViewModel {
       AlertService().showAppAlert(
         asset: AppLotties.error,
         title: "Logout Failed",
-        content: apiResponse.message.toString().toLowerCase().contains("dio") ||
-                apiResponse.message
-                    .toString()
-                    .toLowerCase()
-                    .contains("firebase") ||
-                apiResponse.message
-                    .toString()
-                    .toLowerCase()
-                    .contains("internal")
-            ? "There was an error while processing"
-                " your request. Please try again later"
-            : cleanErrorMessage(apiResponse.message),
+        content: cleanErrorMessage(apiResponse.message),
       );
     }
   }

@@ -5,6 +5,7 @@ import 'package:pwa/views/login.view.dart';
 import 'package:pwa/services/storage.service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:pwa/utils/map_types.dart' as gmaps;
+import 'package:pwa/utils/functions.dart';
 import 'package:pwa/widgets/button.widget.dart';
 import 'package:pwa/widgets/network_image.widget.dart';
 
@@ -401,10 +402,7 @@ class _PartnerDisplayWidgetState extends State<PartnerDisplayWidget> {
               return;
             }
             if (selectedBranch == 0) {
-              ScaffoldMessenger.of(Get.context!).showSnackBar(const SnackBar(
-                backgroundColor: Colors.red,
-                content: Text("Please select a dropoff branch"),
-              ));
+              showError("Please select a dropoff branch");
               return;
             }
             final branch =

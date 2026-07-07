@@ -84,9 +84,12 @@ class ChatViewModel extends BaseViewModel {
     );
   }
 
-  sendMessage(ChatMessage message) async {
+  Future<bool> sendMessage(ChatMessage message) async {
     setBusy(true);
     try {
+      if (chatRef == null) {
+        return false;
+      }
       await chatRef?.doc().set(Chat.jsonFrom(message)).timeout(
             const Duration(
               seconds: 30,
@@ -96,12 +99,13 @@ class ChatViewModel extends BaseViewModel {
         message.text,
         chatEntity,
       );
+      return true;
     } catch (e) {
       // Ignore send failures here; upstream UI handles retries and loading.
+      return false;
     } finally {
       setBusy(false);
     }
-    notifyListeners();
   }
 
   @override

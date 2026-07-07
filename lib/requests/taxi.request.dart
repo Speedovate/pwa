@@ -70,8 +70,9 @@ class TaxiRequest extends HttpService {
         includeHeaders: true,
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
+      final orderData = apiResponse.body["order"];
       if (apiResponse.allGood) {
-        final order = apiResponse.body["order"];
+        final order = orderData;
         if (order == null) {
           return null;
         }
@@ -203,7 +204,8 @@ class TaxiRequest extends HttpService {
         Api.bookingSubmit,
         params,
       );
-      return ApiResponse.fromResponse(apiResult);
+      final response = ApiResponse.fromResponse(apiResult);
+      return response;
     } catch (e) {
       throw e.toString();
     }
@@ -245,15 +247,16 @@ class TaxiRequest extends HttpService {
         availableVehicles = [];
         throw "There was a problem with your dropoff location";
       } else {
+        final queryParameters = {
+          "type": "ride",
+          "pickup":
+              "${pickup.coordinates.latitude},${pickup.coordinates.longitude}",
+          "dropoff":
+              "${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}",
+        };
         final apiResult = await get(
           "/vehicle/$vehicleTypeId/find_available",
-          queryParameters: {
-            "type": "ride",
-            "pickup":
-                "${pickup.coordinates.latitude},${pickup.coordinates.longitude}",
-            "dropoff":
-                "${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}",
-          },
+          queryParameters: queryParameters,
         );
         final apiResponse = ApiResponse.fromResponse(
           apiResult,

@@ -16,7 +16,7 @@ String orderStatusLabel(
   } else if (normalizedStatus == 'ready') {
     return 'Arrived';
   } else if (normalizedStatus == 'ongoing' || normalizedStatus == 'enroute') {
-    return 'Navigating';
+    return 'Ongoing';
   } else if (normalizedStatus == 'failed') {
     return 'Failed';
   } else if (normalizedStatus == 'cancelled') {

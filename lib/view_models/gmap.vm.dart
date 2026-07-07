@@ -300,6 +300,13 @@ class GMapViewModel extends BaseViewModel {
           _syncMapUiNotifiers();
           return;
         }
+        if (pickupAddress != null) {
+          isInitializing = false;
+          syncPickupDisplayFromAddress();
+          _syncMapUiNotifiers();
+          notifyListeners();
+          return;
+        }
         _syncMapUiNotifiers();
         mapCameraMove(
           "setMap",
@@ -776,10 +783,10 @@ class GMapViewModel extends BaseViewModel {
         }
       }
       selectedAddress.value = resolvedAddress;
+      pickupAddress = resolvedAddress;
       if (clearPickupDisplay.value != false) {
         clearPickupDisplay.value = false;
       }
-      pickupAddress = resolvedAddress;
       _hasActivatedBottomUi = true;
       if (_map != null) {
         final currentZoom = _map!.zoom;
@@ -793,8 +800,10 @@ class GMapViewModel extends BaseViewModel {
             const Duration(milliseconds: 800),
           );
         }
-        _map!.move(nextCenter, currentZoom);
+          _map!.move(nextCenter, currentZoom);
       }
+      _syncMapUiNotifiers();
+      notifyListeners();
     } catch (e) {
       // Ignore temporary map-selection failures.
     }

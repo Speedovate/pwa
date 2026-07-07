@@ -73,16 +73,7 @@ class _OrderListItemState extends State<OrderListItem> {
   }
 
   void _showOngoingBookingSnackBar() {
-    ScaffoldMessenger.of(Get.context!).clearSnackBars();
-    ScaffoldMessenger.of(Get.context!).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.red,
-        content: Text(
-          "You have an ongoing booking",
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
-    );
+    showError("You have an ongoing booking");
   }
 
   Address _historyRouteAddress({
@@ -104,7 +95,6 @@ class _OrderListItemState extends State<OrderListItem> {
       _showOngoingBookingSnackBar();
       return;
     }
-
     await _returnHistoryRoute(
       pickup: _historyRouteAddress(
         addressLine: widget.order.taxiOrder?.pickupAddress,
@@ -124,7 +114,6 @@ class _OrderListItemState extends State<OrderListItem> {
       _showOngoingBookingSnackBar();
       return;
     }
-
     await _returnHistoryRoute(
       pickup: _historyRouteAddress(
         addressLine: widget.order.taxiOrder?.dropoffAddress,
@@ -169,15 +158,14 @@ class _OrderListItemState extends State<OrderListItem> {
   @override
   Widget build(BuildContext context) {
     final isReviewMode = AuthService.inReviewMode();
+    final isCurrentUserProvider = isBool(AuthService.currentUser?.isProvider);
     final sourceLabel =
         widget.order.taxiOrder?.isWalkIn == true ? "Via Spot" : "Via App";
-    final trailingLabel = widget.order.hasRideCoverAndShowerCapBundle
-        ? "Guest"
-        : widget.order.isProviderBooking
-            ? widget.order.appearsToBeProviderStaffFare
-                ? "Staff"
-                : "Partner"
-            : "₱${widget.order.total?.toStringAsFixed(0)}";
+    final paymentMethodLabel =
+        widget.order.paymentMethodId == 1 ? "Cash" : "Load";
+    final trailingLabel = isCurrentUserProvider
+        ? (widget.order.appearsToBeProviderStaffFare ? "Staff" : "Guest")
+        : "${widget.order.total?.toStringAsFixed(0)} $paymentMethodLabel";
     return ValueListenableBuilder<bool>(
       valueListenable: _isRouteActionPressed,
       builder: (context, isRouteActionPressed, _) {
@@ -382,7 +370,7 @@ class _OrderListItemState extends State<OrderListItem> {
                   children: [
                     const SizedBox(width: 16),
                     SizedBox(
-                      width: 70,
+                      width: 80,
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -413,7 +401,7 @@ class _OrderListItemState extends State<OrderListItem> {
                       ),
                     ),
                     SizedBox(
-                      width: 70,
+                      width: 80,
                       child: Align(
                         alignment: Alignment.centerRight,
                         child: AuthService.inReviewMode()

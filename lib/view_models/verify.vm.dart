@@ -134,20 +134,7 @@ class VerifyViewModel extends BaseViewModel {
   verifyCode(String purpose) async {
     if ((codeTEC.text == "" || codeTEC.text == "null") ||
         codeTEC.text.length != 6) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter the 6-digit code",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter the 6-digit code");
     } else {
       try {
         ApiResponse apiResponse;

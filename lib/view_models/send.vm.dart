@@ -16,35 +16,9 @@ class SendViewModel extends BaseViewModel {
 
   sendCode(String purpose) async {
     if (phoneTEC.text.isEmpty) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter your phone number",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter your phone number");
     } else if (!phoneRegex.hasMatch(phoneTEC.text)) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(
-        Get.context!,
-      ).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Please enter a valid phone number",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-        ),
-      );
+      showError("Please enter a valid phone number");
     } else {
       AlertService().showLoading();
       try {

@@ -13,6 +13,9 @@ import 'package:permission_handler/permission_handler.dart';
 BuildContext? _loadingDialogContext;
 
 class AlertService {
+  static const double actionGap = 12;
+  static const double bottomWidgetTopGap = 16;
+
   Future<bool?> showPermissionSettingsDialog({
     required String permissionName,
     String? reason,
@@ -210,7 +213,8 @@ class AlertService {
                                                           ? const SizedBox
                                                               .shrink()
                                                           : const SizedBox(
-                                                              width: 16,
+                                                              width:
+                                                                  actionGap,
                                                             ),
                                                       Expanded(
                                                         child: ActionButton(
@@ -296,7 +300,7 @@ class AlertService {
                                                             const EdgeInsets
                                                                 .fromLTRB(
                                                           24,
-                                                          16,
+                                                          bottomWidgetTopGap,
                                                           24,
                                                           0,
                                                         ),
@@ -330,6 +334,7 @@ class AlertService {
     required ValueNotifier<double?> totalAmountListenable,
     double? originalFare,
     double? newBaseFare,
+    double? displayedPickupFee,
     required FutureOr<void> Function() onAccept,
     VoidCallback? onCancel,
   }) {
@@ -348,6 +353,7 @@ class AlertService {
             totalAmountListenable: totalAmountListenable,
             originalFare: originalFare,
             newBaseFare: newBaseFare,
+            displayedPickupFee: displayedPickupFee,
             onAccept: onAccept,
             onCancel: onCancel,
           ),
@@ -453,6 +459,7 @@ class _DriverDistantDialog extends StatefulWidget {
     required this.totalAmountListenable,
     this.originalFare,
     this.newBaseFare,
+    this.displayedPickupFee,
     required this.onAccept,
     this.onCancel,
   });
@@ -461,6 +468,7 @@ class _DriverDistantDialog extends StatefulWidget {
   final ValueNotifier<double?> totalAmountListenable;
   final double? originalFare;
   final double? newBaseFare;
+  final double? displayedPickupFee;
   final FutureOr<void> Function() onAccept;
   final VoidCallback? onCancel;
 
@@ -529,9 +537,11 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
     final canAccept = _secondsLeft == 0 && _acknowledged && !_submitting;
     final pickupKmValue = widget.availableDriver.pickupKm ?? 0;
     final pickupKm = pickupKmValue.toStringAsFixed(2);
-    final pickupFee =
-        widget.availableDriver.pickupChargeFee?.ceil().toStringAsFixed(0) ??
-            "0";
+    final pickupFeeValue =
+        widget.displayedPickupFee ??
+        widget.availableDriver.pickupChargeFee?.ceilToDouble() ??
+        0;
+    final pickupFee = pickupFeeValue.toStringAsFixed(0);
     final mediaQuery = MediaQuery.of(context);
     final topInset = mediaQuery.padding.top + 12;
 
@@ -540,10 +550,7 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
       builder: (context, totalAmount, _) {
         final originalFare = widget.originalFare ?? totalAmount ?? 0;
         final newBaseFare = widget.newBaseFare ?? totalAmount ?? 0;
-        final updatedFare =
-            ((widget.availableDriver.pickupChargeFee?.ceil() ?? 0) +
-                    newBaseFare)
-                .toStringAsFixed(0);
+        final updatedFare = (pickupFeeValue + newBaseFare).toStringAsFixed(0);
 
         return Scaffold(
           backgroundColor: Colors.black.withValues(alpha: 0.8),

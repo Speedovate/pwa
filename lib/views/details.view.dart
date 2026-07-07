@@ -111,16 +111,7 @@ class _DetailsViewState extends State<DetailsView> {
   Future<void> _openReadOnlyChat() async {
     final chatEntity = _buildReadOnlyChatEntity();
     if (chatEntity == null) {
-      ScaffoldMessenger.of(Get.context!).clearSnackBars();
-      ScaffoldMessenger.of(Get.context!).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            "Chat history is unavailable for this booking.",
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      );
+      showError("Chat history is unavailable for this booking.");
       return;
     }
 
@@ -152,35 +143,30 @@ class _DetailsViewState extends State<DetailsView> {
       widget.order.status,
       reason: widget.order.reason,
     );
-    final backgroundColor = orderStatusChipBackgroundColor(
+    final backgroundColor = orderStatusBackgroundColor(
       widget.order.status,
       reason: widget.order.reason,
     );
 
-    return SizedBox(
-      height: 25,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 9,
-          vertical: 0,
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        orderStatusLabel(
+          widget.order.status,
+          reason: widget.order.reason,
         ),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: Center(
-          child: Text(
-            orderStatusLabel(
-              widget.order.status,
-              reason: widget.order.reason,
-            ),
-            style: TextStyle(
-              height: 1,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
+        style: TextStyle(
+          height: 1,
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          color: color,
         ),
       ),
     );
@@ -330,16 +316,7 @@ class _DetailsViewState extends State<DetailsView> {
   }
 
   void _showOngoingBookingSnackBar() {
-    ScaffoldMessenger.of(Get.context!).clearSnackBars();
-    ScaffoldMessenger.of(Get.context!).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.red,
-        content: Text(
-          "You have an ongoing booking",
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
-    );
+    showError("You have an ongoing booking");
   }
 
   Future<void> _returnHistoryRoute({
@@ -362,7 +339,6 @@ class _DetailsViewState extends State<DetailsView> {
       _showOngoingBookingSnackBar();
       return;
     }
-
     await _returnHistoryRoute(
       pickup: _historyRouteAddress(
         addressLine: widget.order.taxiOrder?.pickupAddress,
@@ -382,7 +358,6 @@ class _DetailsViewState extends State<DetailsView> {
       _showOngoingBookingSnackBar();
       return;
     }
-
     await _returnHistoryRoute(
       pickup: _historyRouteAddress(
         addressLine: widget.order.taxiOrder?.dropoffAddress,
@@ -453,12 +428,18 @@ class _DetailsViewState extends State<DetailsView> {
       viewModelBuilder: () => detailsViewModel,
       onViewModelReady: (vm) => vm.initialise(widget.order),
       builder: (context, vm, child) {
-        final markupAmount =
-            (vm.orderData?["markup_amount"] as num?)?.toDouble() ??
-                widget.order.resolvedMarkupAmount;
+        final isCurrentUserProvider = isBool(AuthService.currentUser?.isProvider);
+        final orderMarkupAmount =
+            (vm.orderData?["markup_amount"] as num?)?.toDouble();
+        if (orderMarkupAmount != null && orderMarkupAmount > 0) {
+          widget.order.markupAmount = orderMarkupAmount;
+        }
+        final visibleTotalFare = widget.hvm.resolvedVisibleOrderFareForDisplay(
+          widget.order,
+        );
         final sourceLabel = widget.order.bookingSourceLabel;
         final paymentLabel = widget.order.paymentMethodId == 1 ? "Cash" : "Load";
-        final paymentDisplayLabel = widget.order.isProviderBooking
+        final paymentDisplayLabel = isCurrentUserProvider
             ? "${widget.order.appearsToBeProviderStaffFare ? "Staff" : "Guest"} | $paymentLabel"
             : paymentLabel;
 
@@ -894,7 +875,7 @@ class _DetailsViewState extends State<DetailsView> {
                                       ),
                                       const Expanded(child: SizedBox.shrink()),
                                       Text(
-                                        "₱${((widget.order.total ?? 0) + (widget.order.appearsToBeProviderGuestFare && markupAmount > 0 ? markupAmount : 0)).toStringAsFixed(0)}",
+                                        "₱${visibleTotalFare.toStringAsFixed(0)}",
                                         style: const TextStyle(
                                           color: Color(0xFF030744),
                                         ),

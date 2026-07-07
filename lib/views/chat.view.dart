@@ -1,5 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -343,14 +344,19 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       return;
     }
 
-    await vm.sendMessage(
+    final sent = await vm.sendMessage(
       ChatMessage(
         text: trimmedMessage,
         user: widget.chatEntity.mainUser!.toChatUser(),
         createdAt: DateTime.now().toUtc(),
       ),
     );
-    _controller.clear();
+    if (sent) {
+      _controller.clear();
+      _scheduleKeepLatestTimelineVisible(force: true);
+    } else {
+      showError("Message failed to send. Please try again.");
+    }
   }
 
   Future<void> _sendQuickChatText(
@@ -385,14 +391,19 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
         if (isCancellationRequest) "cancel_request_status": "pending",
       },
     );
-    await vm.sendMessage(
+    final sent = await vm.sendMessage(
       ChatMessage(
         text: trimmedMessage,
         user: widget.chatEntity.mainUser!.toChatUser(),
         createdAt: DateTime.now().toUtc(),
       ),
     );
-    _controller.clear();
+    if (sent) {
+      _controller.clear();
+      _scheduleKeepLatestTimelineVisible(force: true);
+    } else {
+      showError("Message failed to send. Please try again.");
+    }
   }
 
   String? _requestMessageType(ChatMessage message) {
@@ -596,15 +607,11 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       0.0;
 
   double get _chatDriverDistantPayableFare {
-    return widget.order.total ?? 0;
+    return widget.order.visiblePayableFare();
   }
 
   double get _chatDriverDistantDialogBaseFare {
-    final orderSubTotal = widget.order.subTotal ?? 0;
-    if (orderSubTotal > 0) {
-      return orderSubTotal;
-    }
-    return _chatDriverDistantPayableFare;
+    return widget.order.visibleBaseFare();
   }
 
   Future<void> _showDriverDistantDialogForRebook(
@@ -1511,9 +1518,9 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     Get.back();
   }
 
-  void _confirmLeaveChatPage() {
+  void _handleChatBackNavigation() {
     if (!_hasPendingChatDraft()) {
-      _leaveChatPage();
+      unawaited(_leaveChatPage());
       return;
     }
 
@@ -1525,7 +1532,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       confirmColor: Colors.red,
       confirmAction: () {
         Get.back();
-        _leaveChatPage();
+        unawaited(_leaveChatPage());
       },
     );
   }
@@ -1609,15 +1616,15 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   }
 
   List<_ChatTimelineItem> _orderStatusTimelineItems() {
-    return widget.order.statuses
+    final statuses = widget.order.statuses
         .where(
           (status) =>
               status.createdAt != null &&
               (status.name ?? "").trim().isNotEmpty &&
               (status.name ?? "").trim().toLowerCase() != "null",
         )
-        .map(_ChatTimelineItem.status)
         .toList();
+    return statuses.map(_ChatTimelineItem.status).toList();
   }
 
   ChatMessage? _previousMessageInTimeline(
@@ -1797,32 +1804,27 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
           );
     final backgroundColor = widget.readOnly
         ? const Color(0xFF030744).withValues(alpha: 0.08)
-        : orderStatusChipBackgroundColor(
+        : orderStatusBackgroundColor(
             widget.order.status,
             reason: widget.order.reason,
           );
 
-    return SizedBox(
-      height: 25,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 9,
-          vertical: 0,
-        ),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              height: 1,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          height: 1,
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          color: color,
         ),
       ),
     );
@@ -1837,7 +1839,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
         if (didPop) {
           return;
         }
-        _confirmLeaveChatPage();
+        _handleChatBackNavigation();
       },
       child: ViewModelBuilder<ChatViewModel>.reactive(
         viewModelBuilder: () => chatViewModel,
@@ -2881,7 +2883,8 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                         message.user.id ==
                                                             "${AuthService.currentUser?.id}",
                                                   )) {
-                                                await vm.sendMessage(
+                                                final sent =
+                                                    await vm.sendMessage(
                                                   ChatMessage(
                                                     text: mediaList
                                                         .last.photoUrl!,
@@ -2892,6 +2895,11 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                                         DateTime.now().toUtc(),
                                                   ),
                                                 );
+                                                if (sent) {
+                                                  _scheduleKeepLatestTimelineVisible(
+                                                    force: true,
+                                                  );
+                                                }
                                               }
                                               setChatFile(null);
                                             } catch (e) {
@@ -2968,7 +2976,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
                                   width: 58,
                                   height: 58,
                                   child: WidgetButton(
-                                    onTap: _confirmLeaveChatPage,
+                                    onTap: _handleChatBackNavigation,
                                     mainColor: Colors.transparent,
                                     isTransparentColor: true,
                                     useDefaultHoverColor: false,

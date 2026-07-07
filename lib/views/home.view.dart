@@ -465,9 +465,48 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  String _driverImageUrlWithCacheBust(HomeViewModel vm) {
-    final rawUrl = (vm.ongoingOrder?.driver?.cPhoto ?? "").trim();
-    final driverId = vm.ongoingOrder?.driver?.id;
+  dynamic _resolvedDriver(HomeViewModel vm, {bool useCompletedReceipt = false}) {
+    if (useCompletedReceipt) {
+      return vm.completedReceiptOrder?.driver ?? vm.ongoingOrder?.driver;
+    }
+    return vm.ongoingOrder?.driver;
+  }
+
+  String _resolvedDriverName(
+    HomeViewModel vm, {
+    bool useCompletedReceipt = false,
+  }) {
+    return (_resolvedDriver(
+          vm,
+          useCompletedReceipt: useCompletedReceipt,
+        )?.name ??
+        "");
+  }
+
+  String _resolvedDriverInfo(
+    HomeViewModel vm, {
+    bool useCompletedReceipt = false,
+  }) {
+    final driver = _resolvedDriver(
+      vm,
+      useCompletedReceipt: useCompletedReceipt,
+    );
+    final vehicleInfo = driver?.vehicle?.vehicleInfo ?? "";
+    final franchiseNumber = driver?.franchiseNumber;
+    final licenseNumber = driver?.licenseNumber;
+    return "$vehicleInfo${franchiseNumber == null ? "" : "\n$franchiseNumber"}${licenseNumber == null ? "" : " | $licenseNumber"}";
+  }
+
+  String _driverImageUrlWithCacheBust(
+    HomeViewModel vm, {
+    bool useCompletedReceipt = false,
+  }) {
+    final driver = _resolvedDriver(
+      vm,
+      useCompletedReceipt: useCompletedReceipt,
+    );
+    final rawUrl = (driver?.cPhoto ?? "").trim();
+    final driverId = driver?.id;
     if (rawUrl.isEmpty || driverId == null) {
       return rawUrl;
     }
@@ -477,12 +516,13 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       return rawUrl;
     }
 
-    return uri.replace(
+    final resolvedUrl = uri.replace(
       queryParameters: {
         ...uri.queryParameters,
         "driver_id": "$driverId",
       },
     ).toString();
+    return resolvedUrl;
   }
 
   Widget _buildHomeAvatarLoading({
@@ -561,17 +601,26 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  bool _hasAssignedDriver(HomeViewModel vm) => vm.ongoingOrder?.driver != null;
+  bool _hasAssignedDriver(
+    HomeViewModel vm, {
+    bool useCompletedReceipt = false,
+  }) => _resolvedDriver(vm, useCompletedReceipt: useCompletedReceipt) != null;
 
-  Widget _buildDriverAvatar(HomeViewModel vm) {
-    if (!_hasAssignedDriver(vm)) {
+  Widget _buildDriverAvatar(
+    HomeViewModel vm, {
+    bool useCompletedReceipt = false,
+  }) {
+    if (!_hasAssignedDriver(vm, useCompletedReceipt: useCompletedReceipt)) {
       return _buildHomeAvatarLoading();
     }
 
     return NetworkImageWidget(
       fit: BoxFit.cover,
       memCacheWidth: 600,
-      imageUrl: _driverImageUrlWithCacheBust(vm),
+      imageUrl: _driverImageUrlWithCacheBust(
+        vm,
+        useCompletedReceipt: useCompletedReceipt,
+      ),
       progressIndicatorBuilder: (
         context,
         imageUrl,
@@ -589,13 +638,19 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildDriverPreviewImage(HomeViewModel vm) {
-    if (!_hasAssignedDriver(vm)) {
+  Widget _buildDriverPreviewImage(
+    HomeViewModel vm, {
+    bool useCompletedReceipt = false,
+  }) {
+    if (!_hasAssignedDriver(vm, useCompletedReceipt: useCompletedReceipt)) {
       return _buildHomeImageLoading();
     }
 
     return NetworkImageWidget(
-      imageUrl: _driverImageUrlWithCacheBust(vm),
+      imageUrl: _driverImageUrlWithCacheBust(
+        vm,
+        useCompletedReceipt: useCompletedReceipt,
+      ),
       memCacheWidth: 600,
       fit: BoxFit.cover,
       progressIndicatorBuilder: (
@@ -1008,12 +1063,18 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 if (index == 0) {
                   return buildPill(
                     label: "Reject",
-                    onTap: () => vm.updateRequestCancellationStatus("rejected"),
+                    onTap: () => vm.updateRequestCancellationStatus(
+                      "rejected",
+                      openChatAfter: true,
+                    ),
                   );
                 }
                 return buildPill(
                   label: "Accept",
-                  onTap: () => vm.updateRequestCancellationStatus("accepted"),
+                  onTap: () => vm.updateRequestCancellationStatus(
+                    "accepted",
+                    openChatAfter: true,
+                  ),
                 );
               },
             ),
@@ -1075,11 +1136,27 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 ),
                 child: Row(
                   children: [
-                    ClipOval(
-                      child: SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: _buildCurrentUserDrawerAvatar(),
+                    Container(
+                      width: 50,
+                      height: 50,
+                      padding: EdgeInsets.all(
+                        isBool(AuthService.currentUser?.isProvider) ? 2 : 0,
+                      ),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: isBool(AuthService.currentUser?.isProvider)
+                            ? Border.all(
+                                color: const Color(0xFF007BFF),
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: _buildCurrentUserDrawerAvatar(),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 15),
@@ -1460,7 +1537,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       pickupAddress = preservedPickup;
       vm.restorePickupDisplay();
     }
-
     setState(() {});
 
     if (!_isBookingSelectionFlow(vm) || pickupAddress == null) {
@@ -1528,7 +1604,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     if (pickup is! Address || dropoff is! Address) {
       return;
     }
-
     await vm.previewSelectedRouteOnHome(
       pickup: pickup,
       dropoff: dropoff,
@@ -1549,7 +1624,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         : dropoffAddress == null) {
       return;
     }
-
     vm.resetManualPaymentMethodOverride();
     vm.clearGMapDetails();
     availableDriver = null;
@@ -1978,6 +2052,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         const bottomSheetBottomSpacing = 32.0;
         final ongoingSourceLabel =
             vm.ongoingOrder?.bookingSourceLabel ?? "Via App";
+        final completedReceiptSourceLabel =
+            vm.completedReceiptOrder?.bookingSourceLabel ??
+            ongoingSourceLabel;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || vm.isResolvingInitialOngoingOrder) {
             return;
@@ -3521,138 +3598,140 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                             ),
                                                                           ),
                                                                         )
-                                                                      : Padding(
-                                                                          padding:
-                                                                              const EdgeInsets.symmetric(
-                                                                            horizontal:
-                                                                                20,
-                                                                          ),
-                                                                          child:
-                                                                              SizedBox(
-                                                                            width:
-                                                                                double.infinity.clamp(
-                                                                              0,
-                                                                              800,
+                                                                      : () {
+                                                                          return Padding(
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(
+                                                                              horizontal:
+                                                                                  20,
                                                                             ),
                                                                             child:
-                                                                                Row(
-                                                                              children: [
-                                                                                GestureDetector(
-                                                                                  onTap: !_hasAssignedDriver(vm)
-                                                                                      ? null
-                                                                                      : () {
-                                                                                          AlertService().showAppAlert(
-                                                                                            isCustom: true,
-                                                                                            customWidget: PinchZoom(
-                                                                                              child: SizedBox(
-                                                                                                height: mediaQuery.size.width - 70,
-                                                                                                child: _buildDriverPreviewImage(vm),
+                                                                                SizedBox(
+                                                                              width:
+                                                                                  double.infinity.clamp(
+                                                                                0,
+                                                                                800,
+                                                                              ),
+                                                                              child:
+                                                                                  Row(
+                                                                                children: [
+                                                                                  GestureDetector(
+                                                                                    onTap: !_hasAssignedDriver(vm)
+                                                                                        ? null
+                                                                                        : () {
+                                                                                            AlertService().showAppAlert(
+                                                                                              isCustom: true,
+                                                                                              customWidget: PinchZoom(
+                                                                                                child: SizedBox(
+                                                                                                  height: mediaQuery.size.width - 70,
+                                                                                                  child: _buildDriverPreviewImage(vm),
+                                                                                                ),
                                                                                               ),
-                                                                                            ),
-                                                                                          );
-                                                                                        },
-                                                                                  child: ClipOval(
-                                                                                    child: SizedBox(
-                                                                                      width: 48,
-                                                                                      height: 48,
-                                                                                      child: _buildDriverAvatar(vm),
+                                                                                            );
+                                                                                          },
+                                                                                    child: ClipOval(
+                                                                                      child: SizedBox(
+                                                                                        width: 48,
+                                                                                        height: 48,
+                                                                                        child: _buildDriverAvatar(vm),
+                                                                                      ),
                                                                                     ),
                                                                                   ),
-                                                                                ),
-                                                                                const SizedBox(
-                                                                                  width: 12,
-                                                                                ),
-                                                                                Expanded(
-                                                                                  child: Column(
-                                                                                    crossAxisAlignment:
-                                                                                        CrossAxisAlignment.start,
-                                                                                    children: [
-                                                                                      Padding(
-                                                                                        padding: const EdgeInsets.only(
-                                                                                          right: 12,
-                                                                                        ),
-                                                                                        child: Text(
-                                                                                          capitalizeWords(
-                                                                                            vm.ongoingOrder?.driver?.name,
-                                                                                            alt: "Driver",
+                                                                                  const SizedBox(
+                                                                                    width: 12,
+                                                                                  ),
+                                                                                  Expanded(
+                                                                                    child: Column(
+                                                                                      crossAxisAlignment:
+                                                                                          CrossAxisAlignment.start,
+                                                                                      children: [
+                                                                                        Padding(
+                                                                                          padding: const EdgeInsets.only(
+                                                                                            right: 12,
                                                                                           ),
-                                                                                          maxLines: 1,
-                                                                                          overflow: TextOverflow.ellipsis,
+                                                                                          child: Text(
+                                                                                            capitalizeWords(
+                                                                                              vm.ongoingOrder?.driver?.name,
+                                                                                              alt: "Driver",
+                                                                                            ),
+                                                                                            maxLines: 1,
+                                                                                            overflow: TextOverflow.ellipsis,
+                                                                                            style: const TextStyle(
+                                                                                              height: 1.15,
+                                                                                              fontWeight: FontWeight.bold,
+                                                                                              color: Color(
+                                                                                                0xFF030744,
+                                                                                              ),
+                                                                                            ),
+                                                                                          ),
+                                                                                        ),
+                                                                                        Text(
+                                                                                          capitalizeWords(
+                                                                                            "${vm.ongoingOrder?.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.driver?.franchiseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.franchiseNumber}"}${vm.ongoingOrder?.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.licenseNumber}"}",
+                                                                                            alt: "Driver Info",
+                                                                                          ),
                                                                                           style: const TextStyle(
                                                                                             height: 1.15,
-                                                                                            fontWeight: FontWeight.bold,
+                                                                                            fontSize: 12,
+                                                                                            fontWeight: FontWeight.w400,
                                                                                             color: Color(
                                                                                               0xFF030744,
                                                                                             ),
                                                                                           ),
                                                                                         ),
+                                                                                      ],
+                                                                                    ),
+                                                                                  ),
+                                                                                  SizedBox(
+                                                                                    width: 44,
+                                                                                    height: 44,
+                                                                                    child: WidgetButton(
+                                                                                      onTap: () {
+                                                                                        launchUrlString(
+                                                                                          "tel:${vm.ongoingOrder?.driver?.phone}",
+                                                                                        );
+                                                                                      },
+                                                                                      mainColor: const Color(
+                                                                                        0xFF007BFF,
                                                                                       ),
-                                                                                      Text(
-                                                                                        capitalizeWords(
-                                                                                          "${vm.ongoingOrder?.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.driver?.franchiseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.franchiseNumber}"}${vm.ongoingOrder?.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.licenseNumber}"}",
-                                                                                          alt: "Driver Info",
+                                                                                      borderRadius: 8,
+                                                                                      useDefaultHoverColor: false,
+                                                                                      child: const Center(
+                                                                                        child: Icon(
+                                                                                          Icons.call,
+                                                                                          color: Colors.white,
                                                                                         ),
-                                                                                        style: const TextStyle(
-                                                                                          height: 1.15,
-                                                                                          fontSize: 12,
-                                                                                          fontWeight: FontWeight.w400,
-                                                                                          color: Color(
-                                                                                            0xFF030744,
-                                                                                          ),
+                                                                                      ),
+                                                                                    ),
+                                                                                  ),
+                                                                                  const SizedBox(
+                                                                                    width: 12,
+                                                                                  ),
+                                                                                  SizedBox(
+                                                                                    width: 44,
+                                                                                    height: 44,
+                                                                                    child: WidgetButton(
+                                                                                      onTap: () {
+                                                                                        vm.chatDriver();
+                                                                                      },
+                                                                                      mainColor: const Color(
+                                                                                        0xFF007BFF,
+                                                                                      ),
+                                                                                      borderRadius: 8,
+                                                                                      useDefaultHoverColor: false,
+                                                                                      child: const Center(
+                                                                                        child: Icon(
+                                                                                          Icons.chat,
+                                                                                          color: Colors.white,
                                                                                         ),
                                                                                       ),
-                                                                                    ],
-                                                                                  ),
-                                                                                ),
-                                                                                SizedBox(
-                                                                                  width: 44,
-                                                                                  height: 44,
-                                                                                  child: WidgetButton(
-                                                                                    onTap: () {
-                                                                                      launchUrlString(
-                                                                                        "tel:${vm.ongoingOrder?.driver?.phone}",
-                                                                                      );
-                                                                                    },
-                                                                                    mainColor: const Color(
-                                                                                      0xFF007BFF,
-                                                                                    ),
-                                                                                    borderRadius: 8,
-                                                                                    useDefaultHoverColor: false,
-                                                                                    child: const Center(
-                                                                                      child: Icon(
-                                                                                        Icons.call,
-                                                                                        color: Colors.white,
-                                                                                      ),
                                                                                     ),
                                                                                   ),
-                                                                                ),
-                                                                                const SizedBox(
-                                                                                  width: 12,
-                                                                                ),
-                                                                                SizedBox(
-                                                                                  width: 44,
-                                                                                  height: 44,
-                                                                                  child: WidgetButton(
-                                                                                    onTap: () {
-                                                                                      vm.chatDriver();
-                                                                                    },
-                                                                                    mainColor: const Color(
-                                                                                      0xFF007BFF,
-                                                                                    ),
-                                                                                    borderRadius: 8,
-                                                                                    useDefaultHoverColor: false,
-                                                                                    child: const Center(
-                                                                                      child: Icon(
-                                                                                        Icons.chat,
-                                                                                        color: Colors.white,
-                                                                                      ),
-                                                                                    ),
-                                                                                  ),
-                                                                                ),
-                                                                              ],
+                                                                                ],
+                                                                              ),
                                                                             ),
-                                                                          ),
-                                                                        ),
+                                                                          );
+                                                                        }(),
                                                                 ],
                                                               ),
                                                             )
@@ -3963,11 +4042,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                                 if (isBool(
                                                                                                   AuthService.currentUser?.isProvider,
                                                                                                 )) {
-                                                                                                  setState(() {
-                                                                                                    vm.setProviderRiderType(
-                                                                                                      8,
-                                                                                                    );
-                                                                                                  });
+                                                                                                  await vm.selectProviderStaffRiderType();
                                                                                                 } else {
                                                                                                   _showPromoDialog(
                                                                                                     vm,
@@ -4771,7 +4846,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                 : "${vm.ongoingOrder!.taxiOrder?.tripDetails?.kmDistance?.toStringAsFixed(0)} km"
                                                                             : vm.isPreparing
                                                                                 ? "•••"
-                                                                                : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.displayedPendingDriverOngoingOrderFare.toStringAsFixed(0)}${" "}${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
+                                                                                : "${vm.displayedPendingDriverOngoingOrderFare.toStringAsFixed(0)} ${vm.ongoingOrder!.paymentMethodId == 1 ? "Cash" : "Load"}"
                                                                         : vm.selectedVehicle == null
                                                                             ? AuthService.inReviewMode()
                                                                                 ? vm.isPreparing
@@ -4786,7 +4861,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                     : "${vm.selectedVehicle?.kmDistance?.toStringAsFixed(0)} km"
                                                                                 : vm.isPreparing
                                                                                     ? "•••"
-                                                                                    : "${isBool(AuthService.currentUser?.isProvider) ? "₱" : ""}${vm.total?.toStringAsFixed(0)}${" "}${vm.paymentId == 1 ? "Cash" : "Load"}",
+                                                                                    : "${vm.total?.toStringAsFixed(0)} ${vm.paymentId == 1 ? "Cash" : "Load"}",
                                                                     textAlign:
                                                                         TextAlign
                                                                             .center,
@@ -4900,7 +4975,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                         GestureDetector(
                                                           onTap:
                                                               !_hasAssignedDriver(
-                                                                      vm)
+                                                                vm,
+                                                                useCompletedReceipt:
+                                                                    true,
+                                                              )
                                                                   ? null
                                                                   : () {
                                                                       AlertService()
@@ -4916,6 +4994,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                             child:
                                                                                 _buildDriverPreviewImage(
                                                                               vm,
+                                                                              useCompletedReceipt:
+                                                                                  true,
                                                                             ),
                                                                           ),
                                                                         ),
@@ -4928,6 +5008,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                               child:
                                                                   _buildDriverAvatar(
                                                                 vm,
+                                                                useCompletedReceipt:
+                                                                    true,
                                                               ),
                                                             ),
                                                           ),
@@ -4937,8 +5019,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                         ),
                                                         Text(
                                                           capitalizeWords(
-                                                            vm.ongoingOrder
-                                                                ?.driver?.name,
+                                                            _resolvedDriverName(
+                                                              vm,
+                                                              useCompletedReceipt:
+                                                                  true,
+                                                            ),
                                                           ),
                                                           style:
                                                               const TextStyle(
@@ -4952,7 +5037,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                         ),
                                                         Text(
                                                           capitalizeWords(
-                                                            "${vm.ongoingOrder?.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.driver?.franchiseNumber == null ? "" : "\n${vm.ongoingOrder?.driver?.franchiseNumber}"}${vm.ongoingOrder?.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.licenseNumber}"}",
+                                                            _resolvedDriverInfo(
+                                                              vm,
+                                                              useCompletedReceipt:
+                                                                  true,
+                                                            ),
                                                             alt: "Driver Info",
                                                           ),
                                                           textAlign:
@@ -5218,29 +5307,62 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                 Row(
                                                                   children: [
                                                                     const SizedBox(
-                                                                      width: 12,
+                                                                      width: 14,
                                                                     ),
-                                                                    const ClipOval(
-                                                                      child:
-                                                                          SizedBox(
-                                                                        width:
-                                                                            28,
-                                                                        height:
-                                                                            28,
-                                                                        child:
-                                                                            NetworkImageWidget(
-                                                                          imageUrl:
-                                                                              AppImages.logo,
-                                                                          memCacheWidth:
-                                                                              600,
-                                                                          fit: BoxFit
-                                                                              .cover,
-                                                                        ),
-                                                                      ),
+                                                                    Icon(
+                                                                      () {
+                                                                        final normalizedStatus = (vm
+                                                                                .completedReceiptOrder
+                                                                                ?.status ??
+                                                                            "")
+                                                                            .trim()
+                                                                            .toLowerCase();
+                                                                        if (normalizedStatus ==
+                                                                                "cancelled" ||
+                                                                            normalizedStatus ==
+                                                                                "failed") {
+                                                                          return Icons.error;
+                                                                        }
+                                                                        if (vm
+                                                                            .isCompletedReceiptStatus(
+                                                                          normalizedStatus,
+                                                                        )) {
+                                                                          return Icons
+                                                                              .check_circle;
+                                                                        }
+                                                                        return Icons
+                                                                            .outbound;
+                                                                      }(),
+                                                                      color: () {
+                                                                        final normalizedStatus = (vm
+                                                                                .completedReceiptOrder
+                                                                                ?.status ??
+                                                                            "")
+                                                                            .trim()
+                                                                            .toLowerCase();
+                                                                        if (normalizedStatus ==
+                                                                                "cancelled" ||
+                                                                            normalizedStatus ==
+                                                                                "failed") {
+                                                                          return Colors
+                                                                              .red;
+                                                                        }
+                                                                        if (vm
+                                                                            .isCompletedReceiptStatus(
+                                                                          normalizedStatus,
+                                                                        )) {
+                                                                          return const Color(
+                                                                            0xFF2E9E47,
+                                                                          );
+                                                                        }
+                                                                        return const Color(
+                                                                          0xFF007BFF,
+                                                                        );
+                                                                      }(),
                                                                     ),
                                                                     const SizedBox(
-                                                                        width:
-                                                                            6),
+                                                                      width: 8,
+                                                                    ),
                                                                     Expanded(
                                                                       child:
                                                                           Text(
@@ -5268,7 +5390,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                       ),
                                                                     ),
                                                                     Text(
-                                                                      ongoingSourceLabel,
+                                                                      completedReceiptSourceLabel,
                                                                       style:
                                                                           const TextStyle(
                                                                         height:
@@ -5627,13 +5749,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 vm.ongoingOrder == null ||
                                 vm.ongoingOrder?.status == "cancelled"
                             ? const SizedBox()
-                            : Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: Container(
-                                  color: Colors.white,
-                                  child: Column(
+                            : () {
+                                return Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    color: Colors.white,
+                                    child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
@@ -5945,9 +6068,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                         ),
                                       ),
                                     ],
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              }(),
                         () {
                           try {
                             final showPpc = _activePartnerDisplay == "ppc";

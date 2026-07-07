@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
+import 'package:pwa/utils/data.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/splash.view.dart';
 import 'package:pwa/services/push.service.dart';
@@ -14,11 +14,9 @@ void main() async {
   await StartupService.waitForFirebaseReady();
   await StartupService.ensurePrefsReady();
   await loadNotificationDiagnosticsLog();
-  await SystemChrome.setPreferredOrientations(
-    const [
-      DeviceOrientation.portraitUp,
-    ],
-  );
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+  ]);
   ConnectionBannerService.setSupportDialogHandler((_) async {
     final context = Get.context;
     if (context == null) {
@@ -29,22 +27,20 @@ void main() async {
   try {
     await PushService.initialize();
   } catch (_) {}
-  runApp(
-    const MyApp(),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   Set<PointerDeviceKind> get _dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.stylus,
-        PointerDeviceKind.invertedStylus,
-        PointerDeviceKind.trackpad,
-        PointerDeviceKind.unknown,
-      };
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.invertedStylus,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.unknown,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -52,15 +48,11 @@ class MyApp extends StatelessWidget {
       title: 'PPC TODA',
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        var mediaQuery = MediaQuery.of(
-          context,
-        );
+        var mediaQuery = MediaQuery.of(context);
         var textScaleFactor = 1.0;
         return MediaQuery(
           data: mediaQuery.copyWith(
-            textScaler: TextScaler.linear(
-              textScaleFactor,
-            ),
+            textScaler: TextScaler.linear(textScaleFactor),
           ),
           child: Stack(
             children: [
@@ -75,9 +67,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         colorScheme: ColorScheme.fromSwatch(
           primarySwatch: Colors.blue,
-        ).copyWith(
-          secondary: Colors.blueAccent,
-        ),
+        ).copyWith(secondary: Colors.blueAccent),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
@@ -89,13 +79,9 @@ class MyApp extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
           insetPadding: EdgeInsets.fromLTRB(24, 0, 24, 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(8),
-            ),
+            borderRadius: BorderRadius.all(Radius.circular(8)),
           ),
-          contentTextStyle: TextStyle(
-            color: Colors.white,
-          ),
+          contentTextStyle: TextStyle(color: Colors.white),
           actionTextColor: Colors.white,
         ),
       ),
