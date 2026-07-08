@@ -5,6 +5,7 @@
   ],
   "routes": [
     { "src": "/download", "dest": "/build/web/download.html" },
+    { "src": "/home", "dest": "/build/web/home.html" },
     { "src": "/(.*)", "dest": "/build/web/$1" }
   ]
 }

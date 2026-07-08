@@ -1,0 +1,95 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPC TODA Official</title>
+
+  <link href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css" rel="stylesheet">
+  <link rel="stylesheet" href="style/index.css">
+</head>
+
+<body>
+  <header class="site-header" data-site-header>
+    <!-- <nav class="nav-shell" aria-label="Main navigation">
+      <a class="brand-logo" href="#" aria-label="PPC TODA home">
+        <h1 class="branding">PPC TODA</h1>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-label="Toggle menu" aria-expanded="false" data-nav-toggle>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="nav-menu" data-nav-menu>
+        <ul class="nav-links">
+          <li><a href="#industries">Industry</a></li>
+          <li><a href="#features">Products</a></li>
+          <li><a href="#hardware">Hardware</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#reviews">Resources</a></li>
+          <li><a href="#footer">Company</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a class="nav-login" href="http://guthib.com/" rel="noopener">Login</a>
+          <a class="button-cta" href="#demo">Download now</a>
+        </div>
+      </div>
+    </nav> -->
+  </header>
+  <section class="hero-section">
+    <div class="hero-container">
+      <h1 class="hero-title"><span class="hero-title-span">Tricycle</span> Booking at Your Fingertips</h1>
+      <p class="hero-subtitle">The official mobile application of Puerto Princesa City Tricycle Operators and Drivers
+        Association Federation designed to enhance services and provide convenience, making transportation much easier
+        and
+        more reliable.</p>
+      <button class="button-cta" id="button-cta">Download now</button>
+    </div>
+  </section>
+  <section>
+    <h1 class="hero-title">Why We <span class="hero-title-span">Love</span><br>PPC TODA</h1>
+    <p class="hero-subtitle">Real experiences from passengers and partners in Puerto Princesa</p>
+    <div class="reviews-wrapper">
+      <div id="reviews-track"></div>
+    </div>
+    <p class="hero-subtitle" style="margin-top: 26px;">⭐ <span style="color: #facc15; font-weight: 700;">4.9</span> Average rating from 20,000+ rides</p>
+    <button class="button-cta" id="button-cta">Download now</button>
+  </section>
+
+  <!-- script links -->
+  <script type="module" src="js/reviewscards.js"></script>
+  <script src="js/downloadhelper.js"></script>
+
+  <!-- scripts -->
+  <script>
+    (function () {
+      const ua = navigator.userAgent || "";
+
+      const isInApp = /FBAN|FBAV|Instagram|TikTok|Line|Snapchat|Twitter|Messenger/i.test(ua);
+      if (!isInApp) return;
+
+      const isAndroid = /Android/i.test(ua);
+      const url = window.location.href;
+
+      // 🔥 Try Chrome intent (Android only)
+      if (isAndroid) {
+        window.location.href =
+          "intent://" +
+          url.replace(/^https?:\/\//, "") +
+          "#Intent;scheme=https;package=com.android.chrome;end;";
+      }
+
+      // 🔁 Fallback (iOS + blocked cases)
+      setTimeout(() => {
+        window.open(url, "_blank");
+      }, 500);
+
+    })();
+  </script>
+
+
+</body>
+
+</html>
