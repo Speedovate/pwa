@@ -60,7 +60,17 @@ class _MapViewState extends State<MapView> {
 
   void _handleMapLoadingChanged() {
     final isVisible = mapViewModel.isLoading;
+    if (_mapInteractionDelayTimer != null) {
+      tempTimerDebug(
+        "map_view.interaction_delay",
+        "cancel_before_reschedule",
+        details: {
+          "instanceId": tempTimerInstanceId(_mapInteractionDelayTimer),
+        },
+      );
+    }
     _mapInteractionDelayTimer?.cancel();
+    _mapInteractionDelayTimer = null;
     if (isVisible) {
       if (!_keepMapInteractionBlocked && mounted) {
         setState(() {
@@ -69,9 +79,25 @@ class _MapViewState extends State<MapView> {
       }
       return;
     }
+    final instanceId = nextTempTimerInstanceId("map_view.interaction_delay");
+    tempTimerDebug(
+      "map_view.interaction_delay",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+      },
+    );
     _mapInteractionDelayTimer = Timer(
       _mapDragUnlockDelay,
       () {
+        _mapInteractionDelayTimer = null;
+        tempTimerDebug(
+          "map_view.interaction_delay",
+          "fire",
+          details: {
+            "instanceId": instanceId,
+          },
+        );
         if (!mounted) {
           return;
         }
@@ -80,11 +106,24 @@ class _MapViewState extends State<MapView> {
         });
       },
     );
+    if (_mapInteractionDelayTimer != null) {
+      attachTempTimerInstanceId(_mapInteractionDelayTimer!, instanceId);
+    }
   }
 
   @override
   void dispose() {
+    if (_mapInteractionDelayTimer != null) {
+      tempTimerDebug(
+        "map_view.interaction_delay",
+        "dispose_cancel",
+        details: {
+          "instanceId": tempTimerInstanceId(_mapInteractionDelayTimer),
+        },
+      );
+    }
     _mapInteractionDelayTimer?.cancel();
+    _mapInteractionDelayTimer = null;
     mapViewModel.removeListener(_handleMapLoadingChanged);
     _searchSuggestionsController.dispose();
     super.dispose();

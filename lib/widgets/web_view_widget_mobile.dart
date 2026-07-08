@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/widgets/button.widget.dart';
+import 'package:pwa/utils/data.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:pwa/widgets/branded_circular_loader.widget.dart';
@@ -116,13 +117,41 @@ class _WebViewWidgetState extends State<WebViewWidget> {
   }
 
   void _cancelPendingMayaLoadingStop() {
+    if (_mayaLoadingStopTimer != null) {
+      tempTimerDebug(
+        "webview.maya_loading_stop",
+        "cancel",
+        details: {
+          "instanceId": tempTimerInstanceId(_mayaLoadingStopTimer),
+        },
+      );
+    }
     _mayaLoadingStopTimer?.cancel();
     _mayaLoadingStopTimer = null;
   }
 
   void _scheduleMayaLoadingStop({required String targetUrl}) {
+    final instanceId = nextTempTimerInstanceId("webview.maya_loading_stop");
+    tempTimerDebug(
+      "webview.maya_loading_stop",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+        "targetUrl": targetUrl,
+      },
+    );
     _cancelPendingMayaLoadingStop();
     _mayaLoadingStopTimer = Timer(const Duration(seconds: 1), () {
+      _mayaLoadingStopTimer = null;
+      tempTimerDebug(
+        "webview.maya_loading_stop",
+        "fire",
+        details: {
+          "instanceId": instanceId,
+          "targetUrl": targetUrl,
+          "currentUrl": _currentUrl,
+        },
+      );
       if (!mounted) {
         return;
       }
@@ -136,8 +165,10 @@ class _WebViewWidgetState extends State<WebViewWidget> {
         isLoading = false;
         showError = false;
       });
-      _mayaLoadingStopTimer = null;
     });
+    if (_mayaLoadingStopTimer != null) {
+      attachTempTimerInstanceId(_mayaLoadingStopTimer!, instanceId);
+    }
   }
 
   void _handlePaymentStateMessage(String message) {

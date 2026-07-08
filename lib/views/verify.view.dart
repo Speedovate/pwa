@@ -46,7 +46,7 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    resendCountdownTimer?.cancel();
+    _cancelResendCountdownTimer(reason: "init_state");
     _codeFocusNode.addListener(_handleCodeFocusChange);
     startCountDown();
   }
@@ -67,11 +67,26 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    resendCountdownTimer?.cancel();
+    _cancelResendCountdownTimer(reason: "dispose");
     _codeFocusNode.removeListener(_handleCodeFocusChange);
     _codeFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _cancelResendCountdownTimer({required String reason}) {
+    if (resendCountdownTimer != null) {
+      tempTimerDebug(
+        "verify.resend_countdown",
+        "cancel",
+        details: {
+          "instanceId": tempTimerInstanceId(resendCountdownTimer),
+          "reason": reason,
+        },
+      );
+    }
+    resendCountdownTimer?.cancel();
+    resendCountdownTimer = null;
   }
 
   void _scrollToBottom() {
@@ -543,11 +558,30 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
 
   startCountDown() {
     if (resendCountdownTimer != null && resendCountdownTimer!.isActive) {
+      tempTimerDebug("verify.resend_countdown", "skip_existing_active");
       return;
     }
+    final instanceId = nextTempTimerInstanceId("verify.resend_countdown");
+    tempTimerDebug(
+      "verify.resend_countdown",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+        "secondsRemaining": resendSecs,
+      },
+    );
     resendCountdownTimer = Timer.periodic(
       const Duration(seconds: 1),
       (timer) {
+        attachTempTimerInstanceId(timer, instanceId);
+        tempTimerDebug(
+          "verify.resend_countdown",
+          "tick",
+          details: {
+            "instanceId": tempTimerInstanceId(timer) ?? instanceId,
+            "secondsRemaining": resendSecs,
+          },
+        );
         if (resendSecs > 0) {
           if (mounted) {
             setState(() {
@@ -556,6 +590,16 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
           }
         } else {
           timer.cancel();
+          tempTimerDebug(
+            "verify.resend_countdown",
+            "cancel_complete",
+            details: {
+              "instanceId": tempTimerInstanceId(timer) ?? instanceId,
+            },
+          );
+          if (identical(resendCountdownTimer, timer)) {
+            resendCountdownTimer = null;
+          }
         }
       },
     );

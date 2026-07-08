@@ -373,16 +373,6 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
     }
     final isCancellationRequest =
         isRequestCancellation || isRequestCancellationMessage(trimmedMessage);
-    if (isCancellationRequest) {
-      final orderSnapshot =
-          await fbStore.collection("orders").doc(widget.order.code).get();
-      final data = orderSnapshot.data();
-      final cancelStatus =
-          "${data?["cancel_request_status"] ?? ""}".trim().toLowerCase();
-      if (isCancellationRequest && cancelStatus == "accepted") {
-        return;
-      }
-    }
 
     await fbStore.collection("orders").doc(widget.order.code).update(
       {
@@ -1257,7 +1247,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
         child: NetworkImageWidget(
           imageUrl: resolvedImageUrl,
           memCacheWidth: memCacheWidth,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -1273,7 +1263,7 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
       customWidget: PinchZoom(
         child: Image.memory(
           imageBytes,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
         ),
       ),
     );

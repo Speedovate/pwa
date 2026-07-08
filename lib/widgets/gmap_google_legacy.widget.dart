@@ -7,6 +7,7 @@ import 'dart:ui_web' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 import 'package:pwa/services/map.service.dart';
+import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/map_layers.dart';
 import 'package:pwa/utils/map_types.dart' as app_maps;
 
@@ -173,13 +174,40 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   }
 
   void _scheduleCenterIdleCallback() {
+    final instanceId = nextTempTimerInstanceId("gmap_legacy.center_idle");
+    tempTimerDebug(
+      "gmap_legacy.center_idle",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+      },
+    );
     _centerIdleTimer?.cancel();
     _centerIdleTimer = Timer(_centerChangeIdleDuration, () {
+      tempTimerDebug(
+        "gmap_legacy.center_idle",
+        "fire",
+        details: {
+          "instanceId": instanceId,
+        },
+      );
       _emitCameraMoveEnd(_latestCenter ?? _map?.center);
     });
+    if (_centerIdleTimer != null) {
+      attachTempTimerInstanceId(_centerIdleTimer!, instanceId);
+    }
   }
 
   void _emitCameraMoveEnd(gmaps.LatLng? center) {
+    if (_centerIdleTimer != null) {
+      tempTimerDebug(
+        "gmap_legacy.center_idle",
+        "cancel",
+        details: {
+          "instanceId": tempTimerInstanceId(_centerIdleTimer),
+        },
+      );
+    }
     _centerIdleTimer?.cancel();
     _centerIdleTimer = null;
     _cameraMoveStartSent = false;
@@ -367,7 +395,17 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void dispose() {
     _clearRenderedPolylines();
     _clearRenderedMarkers();
+    if (_centerIdleTimer != null) {
+      tempTimerDebug(
+        "gmap_legacy.center_idle",
+        "dispose_cancel",
+        details: {
+          "instanceId": tempTimerInstanceId(_centerIdleTimer),
+        },
+      );
+    }
     _centerIdleTimer?.cancel();
+    _centerIdleTimer = null;
     _dragStartSub?.cancel();
     _centerChangedSub?.cancel();
     _idleSub?.cancel();

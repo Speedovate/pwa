@@ -58,7 +58,18 @@ class TaxiRequest extends HttpService {
         throw e.toString();
       }
     } else {
+      if (globalTimer != null) {
+        tempTimerDebug(
+          "home.global_driver_sync",
+          "cancel_unauthenticated",
+          details: {
+            "instanceId": tempTimerInstanceId(globalTimer),
+            "source": "taxi.syncDriverLocationRequest",
+          },
+        );
+      }
       globalTimer?.cancel();
+      globalTimer = null;
       throw "!AuthService.isLoggedIn()";
     }
   }
@@ -71,12 +82,12 @@ class TaxiRequest extends HttpService {
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
       final orderData = apiResponse.body["order"];
+      final parsedOrder = orderData == null ? null : Order.fromJson(orderData);
       if (apiResponse.allGood) {
-        final order = orderData;
-        if (order == null) {
+        if (orderData == null) {
           return null;
         }
-        return Order.fromJson(order);
+        return parsedOrder;
       }
       if (apiResponse.code == 500) {
         return null;
@@ -93,12 +104,13 @@ class TaxiRequest extends HttpService {
         Api.bookingLast,
       );
       final apiResponse = ApiResponse.fromResponse(apiResult);
+      final orderData = apiResponse.body["order"];
+      final parsedOrder = orderData == null ? null : Order.fromJson(orderData);
       if (apiResponse.allGood) {
-        final order = apiResponse.body["order"];
-        if (order == null) {
+        if (orderData == null) {
           return null;
         }
-        return Order.fromJson(order);
+        return parsedOrder;
       }
       if (apiResponse.code == 500) {
         return null;
@@ -204,8 +216,7 @@ class TaxiRequest extends HttpService {
         Api.bookingSubmit,
         params,
       );
-      final response = ApiResponse.fromResponse(apiResult);
-      return response;
+      return ApiResponse.fromResponse(apiResult);
     } catch (e) {
       throw e.toString();
     }
@@ -235,6 +246,7 @@ class TaxiRequest extends HttpService {
     required int vehicleTypeId,
     required List<VehicleType> types,
   }) async {
+    Map<String, dynamic>? queryParameters;
     try {
       if (pickup == null) {
         availableDriver = null;
@@ -247,7 +259,7 @@ class TaxiRequest extends HttpService {
         availableVehicles = [];
         throw "There was a problem with your dropoff location";
       } else {
-        final queryParameters = {
+        queryParameters = {
           "type": "ride",
           "pickup":
               "${pickup.coordinates.latitude},${pickup.coordinates.longitude}",

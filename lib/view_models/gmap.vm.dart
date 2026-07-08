@@ -59,6 +59,7 @@ class GMapViewModel extends BaseViewModel {
   bool get shouldSkipInitialMapCameraMove => false;
   bool get shouldAutoFitMapToRoute => true;
   double _routeBoundsTopInset = 0;
+
   EdgeInsets get routeBoundsPadding => EdgeInsets.fromLTRB(
         80,
         _routeBoundsTopInset + 80,
@@ -377,10 +378,21 @@ class GMapViewModel extends BaseViewModel {
     return target;
   }
 
-  Future<void> reseedPickupFromCurrentLocation({double zoom = 16}) async {
-    final target = await zoomToCurrentLocation(zoom: zoom);
-    if (target == null) {
-      return;
+  Future<void> seedPickupFromLatLng(
+    gmaps.LatLng target, {
+    bool recenter = false,
+    double zoom = 16,
+  }) async {
+    if (recenter && _map != null) {
+      if (!_isMapCenteredOn(target) || !_isMapZoomedTo(zoom)) {
+        _ignoreCameraMoveUntil = DateTime.now().add(
+          const Duration(milliseconds: 800),
+        );
+        _map!.recenter(
+          target,
+          zoom: zoom,
+        );
+      }
     }
 
     try {
@@ -426,6 +438,18 @@ class GMapViewModel extends BaseViewModel {
         ),
       );
     }
+  }
+
+  Future<void> reseedPickupFromCurrentLocation({double zoom = 16}) async {
+    final target = await zoomToCurrentLocation(zoom: zoom);
+    if (target == null) {
+      return;
+    }
+    await seedPickupFromLatLng(
+      target,
+      recenter: false,
+      zoom: zoom,
+    );
   }
 
   bool fitCurrentRouteBounds({
@@ -619,10 +643,39 @@ class GMapViewModel extends BaseViewModel {
       beginCameraMove();
     }
     locUnavailable = false;
+    if (_debounce != null) {
+      tempTimerDebug(
+        "gmap_vm.camera_move_debounce",
+        "cancel_before_reschedule",
+        details: {
+          "instanceId": tempTimerInstanceId(_debounce),
+        },
+      );
+    }
     _debounce?.cancel();
+    final instanceId = nextTempTimerInstanceId("gmap_vm.camera_move_debounce");
+    tempTimerDebug(
+      "gmap_vm.camera_move_debounce",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+        "function": function,
+        "debounceMs": debounceDuration.inMilliseconds,
+      },
+    );
     _debounce = Timer(
       debounceDuration,
       () async {
+        _debounce = null;
+        tempTimerDebug(
+          "gmap_vm.camera_move_debounce",
+          "fire",
+          details: {
+            "instanceId": instanceId,
+            "function": function,
+            "debounceMs": debounceDuration.inMilliseconds,
+          },
+        );
         var shouldNotify = false;
         DateTime? loadingStartedAt;
         if (shouldSkipInitialMapCameraMove &&
@@ -767,6 +820,9 @@ class GMapViewModel extends BaseViewModel {
         }
       },
     );
+    if (_debounce != null) {
+      attachTempTimerInstanceId(_debounce!, instanceId);
+    }
   }
 
   addressSelected(

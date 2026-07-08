@@ -105,14 +105,43 @@ class MapViewModel extends BaseViewModel {
   void _endManualSelectionGuard({
     Duration delay = const Duration(milliseconds: 900),
   }) {
+    if (_manualSelectionGuard != null) {
+      tempTimerDebug(
+        "map_vm.manual_selection_guard",
+        "cancel_before_reschedule",
+        details: {
+          "instanceId": tempTimerInstanceId(_manualSelectionGuard),
+        },
+      );
+    }
     _manualSelectionGuard?.cancel();
+    final instanceId = nextTempTimerInstanceId("map_vm.manual_selection_guard");
+    tempTimerDebug(
+      "map_vm.manual_selection_guard",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+        "delayMs": delay.inMilliseconds,
+      },
+    );
     _manualSelectionGuard = Timer(delay, () {
+      _manualSelectionGuard = null;
+      tempTimerDebug(
+        "map_vm.manual_selection_guard",
+        "fire",
+        details: {
+          "instanceId": instanceId,
+        },
+      );
       if (disposed) {
         return;
       }
       skipCamera = false;
       notifyListeners();
     });
+    if (_manualSelectionGuard != null) {
+      attachTempTimerInstanceId(_manualSelectionGuard!, instanceId);
+    }
   }
 
   void beginCameraMoveVisual() {
@@ -332,6 +361,15 @@ class MapViewModel extends BaseViewModel {
       return;
     }
     mapUnavailable = false;
+    if (_debounce != null) {
+      tempTimerDebug(
+        "map_vm.camera_move_debounce",
+        "cancel_before_reschedule",
+        details: {
+          "instanceId": tempTimerInstanceId(_debounce),
+        },
+      );
+    }
     _debounce?.cancel();
     final requestGeneration = _selectionGeneration;
     if (!skipSelectedAddress) {
@@ -342,9 +380,19 @@ class MapViewModel extends BaseViewModel {
       showLoadingVisual = true;
       notifyListeners();
     }
+    final instanceId = nextTempTimerInstanceId("map_vm.camera_move_debounce");
     _debounce = Timer(
       debounceDuration,
       () async {
+        _debounce = null;
+        tempTimerDebug(
+          "map_vm.camera_move_debounce",
+          "fire",
+          details: {
+            "instanceId": instanceId,
+            "debounceMs": debounceDuration.inMilliseconds,
+          },
+        );
         if (_isResolvingCameraMove) {
           return;
         }
@@ -428,6 +476,17 @@ class MapViewModel extends BaseViewModel {
         }
       },
     );
+    tempTimerDebug(
+      "map_vm.camera_move_debounce",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+        "debounceMs": debounceDuration.inMilliseconds,
+      },
+    );
+    if (_debounce != null) {
+      attachTempTimerInstanceId(_debounce!, instanceId);
+    }
   }
 
   addressSelected(

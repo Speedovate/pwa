@@ -351,40 +351,111 @@ class HttpService {
 
     return _RequestBannerSchedule(
       [
-        Timer(
-          _weakConnectionBannerDelay,
-          () {
-            if (ConnectionBannerService.isServerBannerVisible) {
-              return;
-            }
-            ConnectionBannerService.show(
-              ConnectionBannerType.weakConnection,
-              requestStartedAt: requestStartedAt,
-            );
-          },
-        ),
-        Timer(
-          _noConnectionBannerDelay,
-          () {
-            if (ConnectionBannerService.isServerBannerVisible) {
-              return;
-            }
-            ConnectionBannerService.show(
-              ConnectionBannerType.connection,
-              requestStartedAt: requestStartedAt,
-            );
-          },
-        ),
-        if (isAppServerRequest && !ignoresServerBanner)
-          Timer(
-            _serverBannerDelay,
+        () {
+          final instanceId =
+              nextTempTimerInstanceId("http.weak_connection_banner");
+          tempTimerDebug(
+            "http.weak_connection_banner",
+            "schedule",
+            details: {
+              "instanceId": instanceId,
+              "method": method,
+              "url": url,
+            },
+          );
+          final timer = Timer(
+            _weakConnectionBannerDelay,
             () {
+              tempTimerDebug(
+                "http.weak_connection_banner",
+                "fire",
+                details: {
+                  "instanceId": instanceId,
+                  "method": method,
+                  "url": url,
+                },
+              );
+              if (ConnectionBannerService.isServerBannerVisible) {
+                return;
+              }
               ConnectionBannerService.show(
-                ConnectionBannerType.server,
+                ConnectionBannerType.weakConnection,
                 requestStartedAt: requestStartedAt,
               );
             },
-          ),
+          );
+          attachTempTimerInstanceId(timer, instanceId);
+          return timer;
+        }(),
+        () {
+          final instanceId =
+              nextTempTimerInstanceId("http.no_connection_banner");
+          tempTimerDebug(
+            "http.no_connection_banner",
+            "schedule",
+            details: {
+              "instanceId": instanceId,
+              "method": method,
+              "url": url,
+            },
+          );
+          final timer = Timer(
+            _noConnectionBannerDelay,
+            () {
+              tempTimerDebug(
+                "http.no_connection_banner",
+                "fire",
+                details: {
+                  "instanceId": instanceId,
+                  "method": method,
+                  "url": url,
+                },
+              );
+              if (ConnectionBannerService.isServerBannerVisible) {
+                return;
+              }
+              ConnectionBannerService.show(
+                ConnectionBannerType.connection,
+                requestStartedAt: requestStartedAt,
+              );
+            },
+          );
+          attachTempTimerInstanceId(timer, instanceId);
+          return timer;
+        }(),
+        if (isAppServerRequest && !ignoresServerBanner)
+          () {
+            final instanceId = nextTempTimerInstanceId("http.server_banner");
+            tempTimerDebug(
+              "http.server_banner",
+              "schedule",
+              details: {
+                "instanceId": instanceId,
+                "method": method,
+                "url": url,
+              },
+            );
+            final timer = Timer(
+              _serverBannerDelay,
+              () {
+                tempTimerDebug(
+                  "http.server_banner",
+                  "fire",
+                  details: {
+                    "instanceId": instanceId,
+                    "method": method,
+                    "url": url,
+                  },
+                );
+                ConnectionBannerService.show(
+                  ConnectionBannerType.server,
+                  requestStartedAt: requestStartedAt,
+                );
+              },
+            );
+            attachTempTimerInstanceId(timer, instanceId);
+            return timer;
+          }(),
       ],
     );
   }
@@ -395,28 +466,12 @@ class HttpService {
   }) {
     final statusCode = response.statusCode ?? 0;
     final appServerResponse = _isAppServerUri(response.requestOptions.uri);
-    final ignoresServerBanner = _ignoresServerBanner(response);
-    if (statusCode >= 500 && !ignoresServerBanner) {
-      ConnectionBannerService.show(
-        ConnectionBannerType.server,
-        requestStartedAt: requestStartedAt,
-      );
-    } else if (statusCode >= 200 && statusCode < 400 && appServerResponse) {
+    if (statusCode >= 200 && statusCode < 400 && appServerResponse) {
       ConnectionBannerService.dismissAfterSuccessfulResponse(
         appServerResponse: appServerResponse,
       );
     }
     return response;
-  }
-
-  bool _ignoresServerBanner(Response response) {
-    if ((response.statusCode ?? 0) < 500) {
-      return false;
-    }
-    return _ignoresServerBannerRequest(
-      response.requestOptions.method,
-      response.requestOptions.uri,
-    );
   }
 
   bool _ignoresServerBannerRequest(String method, Uri uri) {
@@ -506,16 +561,36 @@ class HttpService {
       }
     } else if (ex.type == DioExceptionType.connectionError ||
         ex.type == DioExceptionType.unknown) {
-      ConnectionBannerService.show(
-        ConnectionBannerType.connection,
-        requestStartedAt: requestStartedAt,
+      final appServerRequest = _isAppServerRequest(ex);
+      final online = isBrowserOnline();
+      final ignoresServerBanner = _ignoresServerBannerRequest(
+        ex.requestOptions.method,
+        ex.requestOptions.uri,
       );
-      response.data = {
-        "message": _resolveDioExceptionMessage(
-          ex,
-          fallback: "No connection.",
-        ),
-      };
+      if (appServerRequest && online && !ignoresServerBanner) {
+        ConnectionBannerService.show(
+          ConnectionBannerType.server,
+          requestStartedAt: requestStartedAt,
+        );
+        response.statusCode = 503;
+        response.data = {
+          "message": _resolveDioExceptionMessage(
+            ex,
+            fallback: "Service temporarily unavailable.",
+          ),
+        };
+      } else {
+        ConnectionBannerService.show(
+          ConnectionBannerType.connection,
+          requestStartedAt: requestStartedAt,
+        );
+        response.data = {
+          "message": _resolveDioExceptionMessage(
+            ex,
+            fallback: "No connection.",
+          ),
+        };
+      }
     } else {
       response.statusCode = 400;
       response.data = {

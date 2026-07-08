@@ -108,6 +108,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   void _handleHomeMapLoadingIndicatorChanged() {
     final isVisible = homeViewModel.showMapLoadingIndicator.value;
     _homeMapInteractionDelayTimer?.cancel();
+    _homeMapInteractionDelayTimer = null;
     if (isVisible) {
       if (!_keepHomeMapInteractionBlocked && mounted) {
         setState(() {
@@ -119,6 +120,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     _homeMapInteractionDelayTimer = Timer(
       _homeMapDragUnlockDelay,
       () {
+        _homeMapInteractionDelayTimer = null;
         if (!mounted) {
           return;
         }
@@ -237,6 +239,19 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     await homeViewModel.recenterHomeMap(
       fallbackTarget: defaultLatLng,
       allowSinglePointFit: true,
+    );
+  }
+
+  Future<void> _returnHomeUsingStartupFlow(HomeViewModel vm) async {
+    await vm.closeOrder();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _acceptedDefaultLocationFallback = false;
+    });
+    await vm.recenterHomeMap(
+      allowSinglePointFit: _acceptedDefaultLocationFallback,
     );
   }
 
@@ -465,7 +480,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  dynamic _resolvedDriver(HomeViewModel vm, {bool useCompletedReceipt = false}) {
+  dynamic _resolvedDriver(HomeViewModel vm,
+      {bool useCompletedReceipt = false}) {
     if (useCompletedReceipt) {
       return vm.completedReceiptOrder?.driver ?? vm.ongoingOrder?.driver;
     }
@@ -604,7 +620,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   bool _hasAssignedDriver(
     HomeViewModel vm, {
     bool useCompletedReceipt = false,
-  }) => _resolvedDriver(vm, useCompletedReceipt: useCompletedReceipt) != null;
+  }) =>
+      _resolvedDriver(vm, useCompletedReceipt: useCompletedReceipt) != null;
 
   Widget _buildDriverAvatar(
     HomeViewModel vm, {
@@ -652,7 +669,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         useCompletedReceipt: useCompletedReceipt,
       ),
       memCacheWidth: 600,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       progressIndicatorBuilder: (
         context,
         imageUrl,
@@ -867,7 +884,13 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     return text;
   }
 
-  bool _shouldShowAcceptedCancelRequestActions(String? message) {
+  bool _shouldShowAcceptedCancelRequestActions(
+    HomeViewModel vm,
+    String? message,
+  ) {
+    if (!vm.hasAcceptedCancelRequest) {
+      return false;
+    }
     final normalized = (message ?? "").trim().toLowerCase();
     return normalized.contains("has accepted") &&
         normalized.contains("cancel request");
@@ -1619,9 +1642,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       return;
     }
 
-    if (isPickup
-        ? pickupAddress == null
-        : dropoffAddress == null) {
+    if (isPickup ? pickupAddress == null : dropoffAddress == null) {
       return;
     }
     vm.resetManualPaymentMethodOverride();
@@ -2031,6 +2052,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   @override
   void dispose() {
     _homeMapInteractionDelayTimer?.cancel();
+    _homeMapInteractionDelayTimer = null;
     homeViewModel.showMapLoadingIndicator
         .removeListener(_handleHomeMapLoadingIndicatorChanged);
     WidgetsBinding.instance.removeObserver(this);
@@ -2053,8 +2075,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         final ongoingSourceLabel =
             vm.ongoingOrder?.bookingSourceLabel ?? "Via App";
         final completedReceiptSourceLabel =
-            vm.completedReceiptOrder?.bookingSourceLabel ??
-            ongoingSourceLabel;
+            vm.completedReceiptOrder?.bookingSourceLabel ?? ongoingSourceLabel;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || vm.isResolvingInitialOngoingOrder) {
             return;
@@ -3411,7 +3432,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                           if (locUnavailable) {
                                                                             vm.resetUnavailableLocationState();
                                                                           } else {
-                                                                            vm.closeOrder();
+                                                                            _returnHomeUsingStartupFlow(vm);
                                                                           }
                                                                         },
                                                                         height:
@@ -3602,18 +3623,15 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                           return Padding(
                                                                             padding:
                                                                                 const EdgeInsets.symmetric(
-                                                                              horizontal:
-                                                                                  20,
+                                                                              horizontal: 20,
                                                                             ),
                                                                             child:
                                                                                 SizedBox(
-                                                                              width:
-                                                                                  double.infinity.clamp(
+                                                                              width: double.infinity.clamp(
                                                                                 0,
                                                                                 800,
                                                                               ),
-                                                                              child:
-                                                                                  Row(
+                                                                              child: Row(
                                                                                 children: [
                                                                                   GestureDetector(
                                                                                     onTap: !_hasAssignedDriver(vm)
@@ -3622,10 +3640,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                             AlertService().showAppAlert(
                                                                                               isCustom: true,
                                                                                               customWidget: PinchZoom(
-                                                                                                child: SizedBox(
-                                                                                                  height: mediaQuery.size.width - 70,
-                                                                                                  child: _buildDriverPreviewImage(vm),
-                                                                                                ),
+                                                                                                child: _buildDriverPreviewImage(vm),
                                                                                               ),
                                                                                             );
                                                                                           },
@@ -3642,8 +3657,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                   ),
                                                                                   Expanded(
                                                                                     child: Column(
-                                                                                      crossAxisAlignment:
-                                                                                          CrossAxisAlignment.start,
+                                                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                                                       children: [
                                                                                         Padding(
                                                                                           padding: const EdgeInsets.only(
@@ -4499,9 +4513,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                               _buildAddressClearButton(
                                                                 vm,
                                                                 isPickup: false,
-                                                                show: vm
-                                                                        .ongoingOrder ==
-                                                                    null &&
+                                                                show: vm.ongoingOrder ==
+                                                                        null &&
                                                                     dropoffAddress !=
                                                                         null,
                                                               ),
@@ -4625,25 +4638,20 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                             "")
                                                                         .trim()
                                                                         .toLowerCase();
+                                                                final shouldReport =
+                                                                    status ==
+                                                                            "enroute" ||
+                                                                        status ==
+                                                                            "delivered";
                                                                 if (order ==
                                                                         null ||
                                                                     status ==
                                                                         "cancelled") {
                                                                   return "BOOK";
-                                                                } else if (status ==
-                                                                    "enroute") {
-                                                                  return "CANCEL";
+                                                                } else if (shouldReport) {
+                                                                  return "REPORT";
                                                                 } else if (vm
                                                                     .canOpenCancelFlow) {
-                                                                  return "CANCEL";
-                                                                } else if (status ==
-                                                                        "pending" ||
-                                                                    status ==
-                                                                        "enroute" ||
-                                                                    status ==
-                                                                        "preparing" ||
-                                                                    status ==
-                                                                        "delivered") {
                                                                   return "CANCEL";
                                                                 }
                                                                 return "CANCEL";
@@ -4740,10 +4748,18 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                         vm.vehicleTypes)) {
                                                                       vm.processNewOrder();
                                                                     }
-                                                                  } else if (vm
-                                                                          .ongoingOrder
-                                                                          ?.status ==
-                                                                      "enroute") {
+                                                                  } else if (((vm
+                                                                                  .ongoingOrder
+                                                                                  ?.status ??
+                                                                              "")
+                                                                          .trim()
+                                                                          .toLowerCase() ==
+                                                                      "enroute") ||
+                                                                      ((vm.ongoingOrder?.status ??
+                                                                                  "")
+                                                                              .trim()
+                                                                              .toLowerCase() ==
+                                                                          "delivered")) {
                                                                     _openSupportChannel(
                                                                         vm);
                                                                   } else if (vm
@@ -4861,7 +4877,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                                     : "${vm.selectedVehicle?.kmDistance?.toStringAsFixed(0)} km"
                                                                                 : vm.isPreparing
                                                                                     ? "•••"
-                                                                                    : "${vm.total?.toStringAsFixed(0)} ${vm.paymentId == 1 ? "Cash" : "Load"}",
+                                                                                    : "${vm.displayedPreBookingFare.toStringAsFixed(0)} ${vm.paymentId == 1 ? "Cash" : "Load"}",
                                                                     textAlign:
                                                                         TextAlign
                                                                             .center,
@@ -4924,16 +4940,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               ],
                             ),
                           ),
-                        !vm.hasCompletedReceiptOrder
+                        !vm.shouldShowCompletedReceiptOverlay
                             ? const SizedBox.shrink()
-                            : !vm.isCompletedReceiptStatus(vm.lastStatus) ||
-                                    !vm.isCompletedReceiptStatus(
-                                      vm.completedReceiptOrder?.status,
-                                    )
-                                ? const SizedBox.shrink()
-                                : bookingId != vm.completedReceiptOrder?.id
-                                    ? const SizedBox.shrink()
-                                    : Positioned(
+                            : Positioned(
                                         top: 0,
                                         left: 0,
                                         right: 0,
@@ -4975,10 +4984,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                         GestureDetector(
                                                           onTap:
                                                               !_hasAssignedDriver(
-                                                                vm,
-                                                                useCompletedReceipt:
-                                                                    true,
-                                                              )
+                                                            vm,
+                                                            useCompletedReceipt:
+                                                                true,
+                                                          )
                                                                   ? null
                                                                   : () {
                                                                       AlertService()
@@ -4988,15 +4997,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                         customWidget:
                                                                             PinchZoom(
                                                                           child:
-                                                                              SizedBox(
-                                                                            height:
-                                                                                mediaQuery.size.width - 70,
-                                                                            child:
-                                                                                _buildDriverPreviewImage(
-                                                                              vm,
-                                                                              useCompletedReceipt:
-                                                                                  true,
-                                                                            ),
+                                                                              _buildDriverPreviewImage(
+                                                                            vm,
+                                                                            useCompletedReceipt: true,
                                                                           ),
                                                                         ),
                                                                       );
@@ -5311,17 +5314,16 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                     ),
                                                                     Icon(
                                                                       () {
-                                                                        final normalizedStatus = (vm
-                                                                                .completedReceiptOrder
-                                                                                ?.status ??
-                                                                            "")
+                                                                        final normalizedStatus = (vm.completedReceiptOrder?.status ??
+                                                                                "")
                                                                             .trim()
                                                                             .toLowerCase();
                                                                         if (normalizedStatus ==
                                                                                 "cancelled" ||
                                                                             normalizedStatus ==
                                                                                 "failed") {
-                                                                          return Icons.error;
+                                                                          return Icons
+                                                                              .error;
                                                                         }
                                                                         if (vm
                                                                             .isCompletedReceiptStatus(
@@ -5333,11 +5335,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                                         return Icons
                                                                             .outbound;
                                                                       }(),
-                                                                      color: () {
-                                                                        final normalizedStatus = (vm
-                                                                                .completedReceiptOrder
-                                                                                ?.status ??
-                                                                            "")
+                                                                      color:
+                                                                          () {
+                                                                        final normalizedStatus = (vm.completedReceiptOrder?.status ??
+                                                                                "")
                                                                             .trim()
                                                                             .toLowerCase();
                                                                         if (normalizedStatus ==
@@ -5692,7 +5693,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                                           ),
                                                           child: ActionButton(
                                                             onTap: () {
-                                                              vm.closeOrder();
+                                                              _returnHomeUsingStartupFlow(vm);
                                                             },
                                                             mainColor:
                                                                 const Color(
@@ -5727,13 +5728,12 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                           ),
                                         ),
                                       ),
-                        isBool(vm.userSeen) ||
+                        (isBool(vm.userSeen) ||
                                 vm.dvrMessage == null ||
                                 vm.dvrMessage == "null" ||
                                 vm.ongoingOrder == null ||
                                 vm.ongoingOrder?.status == "cancelled" ||
-                                vm.dvrMessage == "null" ||
-                                vm.dvrMessage == ""
+                                vm.dvrMessage == "")
                             ? const SizedBox.shrink()
                             : IgnorePointer(
                                 child: Container(
@@ -5742,12 +5742,12 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                   ),
                                 ),
                               ),
-                        isBool(vm.userSeen) ||
+                        (isBool(vm.userSeen) ||
                                 vm.dvrMessage == "" ||
                                 vm.dvrMessage == null ||
                                 vm.dvrMessage == "null" ||
                                 vm.ongoingOrder == null ||
-                                vm.ongoingOrder?.status == "cancelled"
+                                vm.ongoingOrder?.status == "cancelled")
                             ? const SizedBox()
                             : () {
                                 return Positioned(
@@ -5757,317 +5757,331 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                   child: Container(
                                     color: Colors.white,
                                     child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Row(
-                                          children: [
-                                            GestureDetector(
-                                              onTap: !_hasAssignedDriver(vm)
-                                                  ? null
-                                                  : () {
-                                                      AlertService()
-                                                          .showAppAlert(
-                                                        isCustom: true,
-                                                        customWidget: PinchZoom(
-                                                          child: SizedBox(
-                                                            height: mediaQuery
-                                                                    .size
-                                                                    .width -
-                                                                70,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Row(
+                                            children: [
+                                              GestureDetector(
+                                                onTap: !_hasAssignedDriver(vm)
+                                                    ? null
+                                                    : () {
+                                                        AlertService()
+                                                            .showAppAlert(
+                                                          isCustom: true,
+                                                          customWidget:
+                                                              PinchZoom(
                                                             child:
                                                                 _buildDriverPreviewImage(
                                                               vm,
                                                             ),
                                                           ),
+                                                        );
+                                                      },
+                                                child: ClipOval(
+                                                  child: SizedBox(
+                                                    width: 50,
+                                                    height: 50,
+                                                    child:
+                                                        _buildDriverAvatar(vm),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: 12,
+                                              ),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      capitalizeWords(
+                                                        vm.ongoingOrder?.driver
+                                                            ?.name,
+                                                        alt: "Driver",
+                                                      ),
+                                                      style: const TextStyle(
+                                                        height: 1.15,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Color(
+                                                          0xFF030744,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      capitalizeWords(
+                                                        "${vm.ongoingOrder?.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.driver?.franchiseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.franchiseNumber}"}${vm.ongoingOrder?.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.licenseNumber}"}",
+                                                        alt: "Driver Info",
+                                                      ),
+                                                      style: const TextStyle(
+                                                        height: 1.15,
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w400,
+                                                        color: Color(
+                                                          0xFF030744,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 20),
+                                              SizedBox(
+                                                width: 44,
+                                                height: 44,
+                                                child: WidgetButton(
+                                                  borderRadius: 8,
+                                                  mainColor:
+                                                      const Color(0xFF007BFF),
+                                                  useDefaultHoverColor: false,
+                                                  onTap: () {
+                                                    launchUrlString(
+                                                      "tel:${vm.ongoingOrder?.driver?.phone}",
+                                                    );
+                                                  },
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.phone,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Divider(
+                                          color: const Color(
+                                            0xFF030744,
+                                          ).withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          thickness: 1,
+                                          height: 1,
+                                        ),
+                                        isPhotoUrlMessage(vm.dvrMessage)
+                                            ? const SizedBox.shrink()
+                                            : Padding(
+                                                padding:
+                                                    const EdgeInsets.all(20),
+                                                child: Text(
+                                                  "Message: ${_homePreviewMessageText(vm, vm.dvrMessage)}",
+                                                ),
+                                              ),
+                                        !isPhotoUrlMessage(vm.dvrMessage)
+                                            ? const SizedBox()
+                                            : GestureDetector(
+                                                onTap: () {
+                                                  AlertService().showAppAlert(
+                                                    isCustom: true,
+                                                    customWidget: PinchZoom(
+                                                      child: NetworkImageWidget(
+                                                        imageUrl:
+                                                            "${vm.dvrMessage}",
+                                                        memCacheWidth: 600,
+                                                        fit: BoxFit.contain,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                    top: 20,
+                                                    left: 20,
+                                                    right: 20,
+                                                    bottom: 20,
+                                                  ),
+                                                  child: LayoutBuilder(
+                                                    builder:
+                                                        (context, constraints) {
+                                                      final isPortraitLike =
+                                                          mediaQuery.size.width <=
+                                                              mediaQuery
+                                                                  .size.height;
+                                                      final previewHeight =
+                                                          isPortraitLike
+                                                              ? (constraints
+                                                                          .maxWidth >
+                                                                      500
+                                                                  ? 500.0
+                                                                  : constraints
+                                                                      .maxWidth)
+                                                              : 500.0;
+                                                      return Container(
+                                                        width: double.infinity,
+                                                        height: previewHeight,
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                          color: Color(
+                                                            0xFF007BFF,
+                                                          ),
+                                                          borderRadius:
+                                                              BorderRadius.all(
+                                                            Radius.circular(10),
+                                                          ),
+                                                        ),
+                                                        child: ClipRRect(
+                                                          borderRadius:
+                                                              const BorderRadius
+                                                                  .all(
+                                                            Radius.circular(10),
+                                                          ),
+                                                          child:
+                                                              NetworkImageWidget(
+                                                            imageUrl:
+                                                                "${vm.dvrMessage}",
+                                                            memCacheWidth: 600,
+                                                            fit: BoxFit.cover,
+                                                          ),
                                                         ),
                                                       );
                                                     },
-                                              child: ClipOval(
+                                                  ),
+                                                ),
+                                              ),
+                                        Builder(
+                                          builder: (_) {
+                                            final requestMessageType =
+                                                _homeRequestMessageType(
+                                              vm.dvrMessage,
+                                            );
+                                            if (isPhotoUrlMessage(
+                                                vm.dvrMessage)) {
+                                              return const SizedBox.shrink();
+                                            }
+                                            if (requestMessageType ==
+                                                "cancellation") {
+                                              return _buildHomeRequestCancellationActions(
+                                                vm,
+                                              );
+                                            }
+                                            if (_shouldShowAcceptedCancelRequestActions(
+                                              vm,
+                                              vm.dvrMessage,
+                                            )) {
+                                              return _buildHomeAcceptedCancelRequestActions(
+                                                vm,
+                                              );
+                                            }
+                                            return _buildHomeQuickChatPills(vm);
+                                          },
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 20,
+                                            right: 20,
+                                            bottom: bottomSheetBottomSpacing,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
                                                 child: SizedBox(
-                                                  width: 50,
-                                                  height: 50,
-                                                  child: _buildDriverAvatar(vm),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              width: 12,
-                                            ),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    capitalizeWords(
-                                                      vm.ongoingOrder?.driver
-                                                          ?.name,
-                                                      alt: "Driver",
-                                                    ),
-                                                    style: const TextStyle(
-                                                      height: 1.15,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Color(
-                                                        0xFF030744,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    capitalizeWords(
-                                                      "${vm.ongoingOrder?.driver?.vehicle?.vehicleInfo}${vm.ongoingOrder?.driver?.franchiseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.franchiseNumber}"}${vm.ongoingOrder?.driver?.licenseNumber == null ? "" : " | ${vm.ongoingOrder?.driver?.licenseNumber}"}",
-                                                      alt: "Driver Info",
-                                                    ),
-                                                    style: const TextStyle(
-                                                      height: 1.15,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                      color: Color(
-                                                        0xFF030744,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 20),
-                                            SizedBox(
-                                              width: 44,
-                                              height: 44,
-                                              child: WidgetButton(
-                                                borderRadius: 8,
-                                                mainColor:
-                                                    const Color(0xFF007BFF),
-                                                useDefaultHoverColor: false,
-                                                onTap: () {
-                                                  launchUrlString(
-                                                    "tel:${vm.ongoingOrder?.driver?.phone}",
-                                                  );
-                                                },
-                                                child: const Center(
-                                                  child: Icon(
-                                                    Icons.phone,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Divider(
-                                        color: const Color(
-                                          0xFF030744,
-                                        ).withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        thickness: 1,
-                                        height: 1,
-                                      ),
-                                      isPhotoUrlMessage(vm.dvrMessage)
-                                          ? const SizedBox.shrink()
-                                          : Padding(
-                                              padding: const EdgeInsets.all(20),
-                                              child: Text(
-                                                "Message: ${_homePreviewMessageText(vm, vm.dvrMessage)}",
-                                              ),
-                                            ),
-                                      !isPhotoUrlMessage(vm.dvrMessage)
-                                          ? const SizedBox()
-                                          : GestureDetector(
-                                              onTap: () {
-                                                AlertService().showAppAlert(
-                                                  isCustom: true,
-                                                  customWidget: PinchZoom(
-                                                    child: NetworkImageWidget(
-                                                      imageUrl:
-                                                          "${vm.dvrMessage}",
-                                                      memCacheWidth: 600,
-                                                      fit: BoxFit.cover,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  left: 20,
-                                                  right: 20,
-                                                  bottom: 20,
-                                                ),
-                                                child: Container(
-                                                  width: mediaQuery.size.width,
-                                                  height: mediaQuery.size.width,
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                    color: Color(
-                                                      0xFF007BFF,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(10),
-                                                    ),
-                                                  ),
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        const BorderRadius.all(
-                                                      Radius.circular(10),
-                                                    ),
-                                                    child: NetworkImageWidget(
-                                                      imageUrl:
-                                                          "${vm.dvrMessage}",
-                                                      memCacheWidth: 600,
-                                                      fit: BoxFit.cover,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                      Builder(
-                                        builder: (_) {
-                                          final requestMessageType =
-                                              _homeRequestMessageType(
-                                            vm.dvrMessage,
-                                          );
-                                          if (isPhotoUrlMessage(
-                                              vm.dvrMessage)) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          if (requestMessageType ==
-                                              "cancellation") {
-                                            return _buildHomeRequestCancellationActions(
-                                              vm,
-                                            );
-                                          }
-                                          if (_shouldShowAcceptedCancelRequestActions(
-                                            vm.dvrMessage,
-                                          )) {
-                                            return _buildHomeAcceptedCancelRequestActions(
-                                              vm,
-                                            );
-                                          }
-                                          return _buildHomeQuickChatPills(vm);
-                                        },
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          left: 20,
-                                          right: 20,
-                                          bottom: bottomSheetBottomSpacing,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: SizedBox(
-                                                height: 55,
-                                                child: WidgetButton(
-                                                  borderRadius: 10,
-                                                  mainColor: Colors.red,
-                                                  useDefaultHoverColor: false,
-                                                  onTap: () {
-                                                    fbStore
-                                                        .collection("orders")
-                                                        .doc(vm
-                                                            .ongoingOrder?.code)
-                                                        .update(
-                                                      {
-                                                        "userSeen": true,
-                                                      },
-                                                    );
-                                                    vm.userSeen = true;
-                                                    vm.notifyListeners();
-                                                  },
-                                                  child: const Center(
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.close,
-                                                          size: 35,
-                                                          color: Colors.white,
-                                                        ),
-                                                        Text(
-                                                          "Close",
-                                                          style: TextStyle(
-                                                            fontSize: 16,
-                                                            fontWeight:
-                                                                FontWeight.bold,
+                                                  height: 55,
+                                                  child: WidgetButton(
+                                                    borderRadius: 10,
+                                                    mainColor: Colors.red,
+                                                    useDefaultHoverColor: false,
+                                                    onTap: () async {
+                                                      await vm.markCurrentOrderUserSeen();
+                                                    },
+                                                    child: const Center(
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.close,
+                                                            size: 35,
                                                             color: Colors.white,
                                                           ),
-                                                        ),
-                                                        SizedBox(width: 8),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 20),
-                                            Expanded(
-                                              child: SizedBox(
-                                                height: 55,
-                                                child: WidgetButton(
-                                                  borderRadius: 10,
-                                                  mainColor: const Color(
-                                                    0xFF007BFF,
-                                                  ),
-                                                  useDefaultHoverColor: false,
-                                                  onTap: () {
-                                                    vm.chatDriver();
-                                                  },
-                                                  child: Center(
-                                                    child: vm.isBusy
-                                                        ? const SizedBox(
-                                                            width: 28,
-                                                            height: 28,
-                                                            child:
-                                                                CircularProgressIndicator(
-                                                              strokeWidth: 2.5,
+                                                          Text(
+                                                            "Close",
+                                                            style: TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
                                                               color:
                                                                   Colors.white,
                                                             ),
-                                                          )
-                                                        : const Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              Icon(
-                                                                Icons.send,
-                                                                size: 35,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                              SizedBox(
-                                                                width: 8,
-                                                              ),
-                                                              Text(
-                                                                "Reply",
-                                                                style:
-                                                                    TextStyle(
-                                                                  fontSize: 16,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                              ),
-                                                            ],
                                                           ),
+                                                          SizedBox(width: 8),
+                                                        ],
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                              const SizedBox(width: 20),
+                                              Expanded(
+                                                child: SizedBox(
+                                                  height: 55,
+                                                  child: WidgetButton(
+                                                    borderRadius: 10,
+                                                    mainColor: const Color(
+                                                      0xFF007BFF,
+                                                    ),
+                                                    useDefaultHoverColor: false,
+                                                    onTap: () {
+                                                      vm.chatDriver();
+                                                    },
+                                                    child: Center(
+                                                      child: vm.isBusy
+                                                          ? const SizedBox(
+                                                              width: 28,
+                                                              height: 28,
+                                                              child:
+                                                                  CircularProgressIndicator(
+                                                                strokeWidth:
+                                                                    2.5,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            )
+                                                          : const Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .center,
+                                                              children: [
+                                                                Icon(
+                                                                  Icons.send,
+                                                                  size: 35,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                                SizedBox(
+                                                                  width: 8,
+                                                                ),
+                                                                Text(
+                                                                  "Reply",
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontSize:
+                                                                        16,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
                                     ),
                                   ),
                                 );

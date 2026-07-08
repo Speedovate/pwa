@@ -442,7 +442,6 @@ class _DetailsViewState extends State<DetailsView> {
         final paymentDisplayLabel = isCurrentUserProvider
             ? "${widget.order.appearsToBeProviderStaffFare ? "Staff" : "Guest"} | $paymentLabel"
             : paymentLabel;
-
         final mediaQuery = MediaQuery.of(context);
         return Scaffold(
           backgroundColor: Colors.white,
@@ -534,15 +533,12 @@ class _DetailsViewState extends State<DetailsView> {
                                       AlertService().showAppAlert(
                                         isCustom: true,
                                         customWidget: PinchZoom(
-                                          child: SizedBox(
-                                            height: mediaQuery.size.width - 70,
-                                            child: NetworkImageWidget(
-                                              imageUrl:
-                                                  widget.order.driver?.cPhoto ??
-                                                      "",
-                                              memCacheWidth: 600,
-                                              fit: BoxFit.cover,
-                                            ),
+                                          child: NetworkImageWidget(
+                                            imageUrl:
+                                                widget.order.driver?.cPhoto ??
+                                                    "",
+                                            memCacheWidth: 600,
+                                            fit: BoxFit.contain,
                                           ),
                                         ),
                                       );

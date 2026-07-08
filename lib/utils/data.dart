@@ -96,6 +96,32 @@ List<VehicleType> gVehicleTypes = [];
 final fbStore = FirebaseFirestore.instance;
 final userQuickChatDoc = fbStore.collection("quick_chat").doc("user");
 
+int _tempTimerInstanceSequence = 0;
+final Expando<String> _tempTimerInstanceIds =
+    Expando<String>("temp_timer_instance_id");
+
+String nextTempTimerInstanceId(String timerName) {
+  _tempTimerInstanceSequence += 1;
+  return "$timerName#$_tempTimerInstanceSequence";
+}
+
+void attachTempTimerInstanceId(Timer timer, String instanceId) {
+  _tempTimerInstanceIds[timer] = instanceId;
+}
+
+String? tempTimerInstanceId(Timer? timer) {
+  if (timer == null) {
+    return null;
+  }
+  return _tempTimerInstanceIds[timer];
+}
+
+void tempTimerDebug(
+  String timerName,
+  String event, {
+  Map<String, Object?> details = const {},
+}) {}
+
 void setLoadingDialogOpen(bool isOpen) {
   if (isLoadingDialogOpen == isOpen &&
       isLoadingDialogOpenListenable.value == isOpen) {

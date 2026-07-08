@@ -418,9 +418,17 @@ class PushService {
     required bool forceSync,
   }) {
     if (_syncRetryAttempt >= 6) {
+      tempTimerDebug("push_stub.sync_retry", "skip_max_attempts");
       return;
     }
     if (_syncRetryTimer?.isActive == true) {
+      tempTimerDebug(
+        "push_stub.sync_retry",
+        "skip_existing_active",
+        details: {
+          "instanceId": tempTimerInstanceId(_syncRetryTimer),
+        },
+      );
       return;
     }
 
@@ -434,8 +442,26 @@ class PushService {
     ];
     final delay = retryDelays[_syncRetryAttempt];
     _syncRetryAttempt += 1;
+    final instanceId = nextTempTimerInstanceId("push_stub.sync_retry");
+    tempTimerDebug(
+      "push_stub.sync_retry",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+        "attempt": _syncRetryAttempt,
+        "delayMs": delay.inMilliseconds,
+      },
+    );
     _syncRetryTimer = Timer(delay, () {
       _syncRetryTimer = null;
+      tempTimerDebug(
+        "push_stub.sync_retry",
+        "fire",
+        details: {
+          "instanceId": instanceId,
+          "attempt": _syncRetryAttempt,
+        },
+      );
       unawaited(
         syncTokenWithServer(
           requestPermission: requestPermission,
@@ -446,6 +472,15 @@ class PushService {
   }
 
   static void _clearSyncRetryState() {
+    if (_syncRetryTimer != null) {
+      tempTimerDebug(
+        "push_stub.sync_retry",
+        "cancel_clear",
+        details: {
+          "instanceId": tempTimerInstanceId(_syncRetryTimer),
+        },
+      );
+    }
     _syncRetryTimer?.cancel();
     _syncRetryTimer = null;
     _syncRetryAttempt = 0;

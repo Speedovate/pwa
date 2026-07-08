@@ -488,9 +488,39 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
     super.initState();
     _secondsLeft = _defaultCountdownSeconds;
     if (_secondsLeft > 0) {
+      _timer?.cancel();
+      final instanceId =
+          nextTempTimerInstanceId("alert.driver_distant_countdown");
+      tempTimerDebug(
+        "alert.driver_distant_countdown",
+        "schedule",
+        details: {
+          "instanceId": instanceId,
+          "secondsLeft": _secondsLeft,
+        },
+      );
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        attachTempTimerInstanceId(timer, instanceId);
+        tempTimerDebug(
+          "alert.driver_distant_countdown",
+          "tick",
+          details: {
+            "instanceId": tempTimerInstanceId(timer) ?? instanceId,
+            "secondsLeft": _secondsLeft,
+          },
+        );
         if (!mounted) {
           timer.cancel();
+          tempTimerDebug(
+            "alert.driver_distant_countdown",
+            "cancel_unmounted",
+            details: {
+              "instanceId": tempTimerInstanceId(timer) ?? instanceId,
+            },
+          );
+          if (identical(_timer, timer)) {
+            _timer = null;
+          }
           return;
         }
         if (_secondsLeft > 1) {
@@ -499,6 +529,16 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
           });
         } else {
           timer.cancel();
+          tempTimerDebug(
+            "alert.driver_distant_countdown",
+            "cancel_complete",
+            details: {
+              "instanceId": tempTimerInstanceId(timer) ?? instanceId,
+            },
+          );
+          if (identical(_timer, timer)) {
+            _timer = null;
+          }
           setState(() {
             _secondsLeft = 0;
           });
@@ -509,7 +549,17 @@ class _DriverDistantDialogState extends State<_DriverDistantDialog> {
 
   @override
   void dispose() {
+    if (_timer != null) {
+      tempTimerDebug(
+        "alert.driver_distant_countdown",
+        "dispose_cancel",
+        details: {
+          "instanceId": tempTimerInstanceId(_timer),
+        },
+      );
+    }
     _timer?.cancel();
+    _timer = null;
     super.dispose();
   }
 

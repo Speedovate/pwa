@@ -618,11 +618,55 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   void _scheduleListSearchRefresh({required bool isDriver}) {
     final timer =
         isDriver ? _driverListSearchDebounce : _partnerListSearchDebounce;
+    if (timer != null) {
+      tempTimerDebug(
+        isDriver
+            ? "partner_panel.driver_list_search"
+            : "partner_panel.partner_list_search",
+        "cancel_before_reschedule",
+        details: {
+          "instanceId": tempTimerInstanceId(timer),
+        },
+      );
+    }
     timer?.cancel();
-    final nextTimer = Timer(const Duration(milliseconds: 160), () {
+    Timer? nextTimer;
+    final instanceId = nextTempTimerInstanceId(
+      isDriver
+          ? "partner_panel.driver_list_search"
+          : "partner_panel.partner_list_search",
+    );
+    tempTimerDebug(
+      isDriver
+          ? "partner_panel.driver_list_search"
+          : "partner_panel.partner_list_search",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+      },
+    );
+    nextTimer = Timer(const Duration(milliseconds: 160), () {
+      if (isDriver) {
+        if (identical(_driverListSearchDebounce, nextTimer)) {
+          _driverListSearchDebounce = null;
+        }
+      } else {
+        if (identical(_partnerListSearchDebounce, nextTimer)) {
+          _partnerListSearchDebounce = null;
+        }
+      }
       if (!mounted) {
         return;
       }
+      tempTimerDebug(
+        isDriver
+            ? "partner_panel.driver_list_search"
+            : "partner_panel.partner_list_search",
+        "fire",
+        details: {
+          "instanceId": instanceId,
+        },
+      );
       setState(() {});
     });
     if (isDriver) {
@@ -630,6 +674,7 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
     } else {
       _partnerListSearchDebounce = nextTimer;
     }
+    attachTempTimerInstanceId(nextTimer, instanceId);
   }
 
   Future<void> _showJsonEditorDialog({
@@ -1159,13 +1204,44 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
   }
 
   void _queueQuickPartnerSearch(String value) {
+    if (_quickPartnerSearchDebounce != null) {
+      tempTimerDebug(
+        "partner_panel.quick_partner_search",
+        "cancel_before_reschedule",
+        details: {
+          "instanceId": tempTimerInstanceId(_quickPartnerSearchDebounce),
+        },
+      );
+    }
     _quickPartnerSearchDebounce?.cancel();
+    final instanceId =
+        nextTempTimerInstanceId("partner_panel.quick_partner_search");
+    tempTimerDebug(
+      "partner_panel.quick_partner_search",
+      "schedule",
+      details: {
+        "instanceId": instanceId,
+        "valueLength": value.length,
+      },
+    );
     _quickPartnerSearchDebounce = Timer(
       const Duration(milliseconds: 350),
       () {
+        _quickPartnerSearchDebounce = null;
+        tempTimerDebug(
+          "partner_panel.quick_partner_search",
+          "fire",
+          details: {
+            "instanceId": instanceId,
+            "valueLength": value.length,
+          },
+        );
         _searchQuickPartners(value);
       },
     );
+    if (_quickPartnerSearchDebounce != null) {
+      attachTempTimerInstanceId(_quickPartnerSearchDebounce!, instanceId);
+    }
   }
 
   Future<void> _searchQuickPartners(String value) async {
