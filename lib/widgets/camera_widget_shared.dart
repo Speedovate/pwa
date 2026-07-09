@@ -225,24 +225,32 @@ class CameraOverlayGuide extends StatelessWidget {
       child: SizedBox.expand(
         child: Stack(
           children: <Widget>[
+            const Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Stack(
+                children: [
+                  _CameraOverlaySideStrip(),
+                  _CameraOverlaySideStrip(),
+                ],
+              ),
+            ),
+            const Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Stack(
+                children: [
+                  _CameraOverlaySideStrip(),
+                  _CameraOverlaySideStrip(),
+                ],
+              ),
+            ),
             Positioned.fill(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 0,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 2,
-                          spreadRadius: 2,
-                          offset: Offset(2, 0),
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
                   Expanded(
                     child: Column(
                       children: [
@@ -263,9 +271,9 @@ class CameraOverlayGuide extends StatelessWidget {
                               color: Colors.white,
                               boxShadow: [
                                 BoxShadow(
-                                  blurRadius: 2,
-                                  spreadRadius: 2,
-                                  offset: Offset(0, -2),
+                                  blurRadius: 4,
+                                  spreadRadius: 4,
+                                  offset: Offset(0, -4),
                                   color: Colors.white,
                                 ),
                               ],
@@ -307,25 +315,33 @@ class CameraOverlayGuide extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 0,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 2,
-                          spreadRadius: 2,
-                          offset: Offset(-2, 0),
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CameraOverlaySideStrip extends StatelessWidget {
+  const _CameraOverlaySideStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 0,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 4,
+            spreadRadius: 4,
+            offset: Offset(0, 0),
+            color: Colors.white,
+          ),
+        ],
       ),
     );
   }
@@ -639,7 +655,6 @@ class CameraImageWidget extends StatelessWidget {
                   useDefaultHoverColor: false,
                   interactionColor: const Color(0x14030744),
                   onTap: () {
-                    Get.back();
                     onRetake?.call();
                   },
                   child: Center(
@@ -720,14 +735,18 @@ class CameraImageWidget extends StatelessWidget {
     if (cameraType == "chat") {
       setChatFile(imageBytes);
       Get.back();
-      Get.back();
+      if (!replacedCaptureRoute) {
+        Get.back();
+      }
     } else {
       selfieFile = imageBytes;
       selfieFileNeedsHorizontalFlip = false;
       selfieFileFromMobileCamera = isEdit && cameraType == "profile";
       Get.forceAppUpdate();
       Get.back(result: true);
-      Get.back(result: true);
+      if (!replacedCaptureRoute) {
+        Get.back(result: true);
+      }
     }
   }
 }

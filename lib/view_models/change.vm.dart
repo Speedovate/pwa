@@ -44,11 +44,13 @@ class ChangeViewModel extends BaseViewModel {
           Get.offAll(
             () => const IntroView(),
             transition: Transition.noTransition,
+            duration: Duration.zero,
           );
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Get.to(
               () => const LoginView(),
               transition: Transition.noTransition,
+              duration: Duration.zero,
             );
             AlertService().showAppAlert(
               asset: AppLotties.success,
@@ -101,6 +103,7 @@ class ChangeViewModel extends BaseViewModel {
           Get.offAll(
             () => const HomeView(),
             transition: Transition.noTransition,
+            duration: Duration.zero,
           );
         } else {
           throw apiResponse.message;

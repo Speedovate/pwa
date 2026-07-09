@@ -25,6 +25,12 @@ int branchNumber = 0;
 Uint8List? selfieFile;
 bool selfieFileNeedsHorizontalFlip = false;
 bool selfieFileFromMobileCamera = false;
+
+void resetSelfieDraftState() {
+  selfieFile = null;
+  selfieFileNeedsHorizontalFlip = false;
+  selfieFileFromMobileCamera = false;
+}
 bool isAdSeen = false;
 bool isAd1Seen = false;
 bool isSharing = false;
@@ -77,7 +83,7 @@ RegExp emailRegex = RegExp(
 );
 
 RegExp nameRegex = RegExp(
-  r"^[A-Za-zÑñ]{2,}(?:\s+[A-Za-zÑñ]\.?|\s+[A-Za-zÑñ]+)*(?:\s+[A-Za-zÑñ]{2,})+$",
+  r"^[A-Za-zÑñ]{2,}(?:\s+[A-Za-zÑñ]+\.?)*(?:\s+[A-Za-zÑñ]{2,}\.?)$",
 );
 
 int bookingId = 0;

@@ -24,6 +24,12 @@ class _ProfileViewState extends State<ProfileView> {
   static const double _currentUserTopHalfVisibleFractionMobile = 0.60;
   ProfileViewModel profileViewModel = ProfileViewModel();
 
+  @override
+  void initState() {
+    super.initState();
+    resetSelfieDraftState();
+  }
+
   double _currentUserTopHalfVisibleFraction(bool isMobile) {
     return isMobile
         ? _currentUserTopHalfVisibleFractionMobile
@@ -118,6 +124,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _leaveProfilePage() {
+    resetSelfieDraftState();
     Get.back(result: true);
   }
 
@@ -797,10 +804,10 @@ class _ProfileViewState extends State<ProfileView> {
                               : const Color(0xFF007BFF),
                           onTap: () async {
                             if (selfieFile != null) {
-                              await vm.processUpdate();
-                              setState(() {
-                                selfieFile = null;
-                              });
+                              final updated = await vm.processUpdate();
+                              if (updated && mounted) {
+                                setState(() {});
+                              }
                             }
                           },
                         ),

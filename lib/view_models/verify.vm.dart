@@ -196,6 +196,7 @@ class VerifyViewModel extends BaseViewModel {
                 await AuthService.ensureUserNameInFirestore();
                 await PushService.syncTokenWithServer(requestPermission: false);
                 await MapService.warmUpPreferredMapEngine();
+                resetSelfieDraftState();
                 AlertService().stopLoading(forceStop: true);
                 Navigator.pushAndRemoveUntil(
                   Get.context!,

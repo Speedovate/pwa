@@ -1397,6 +1397,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   _closeIOSMenu();
                   Get.to(
                     () => const LoadView(),
+                    transition: Transition.noTransition,
+                    duration: Duration.zero,
                   );
                 },
               ),

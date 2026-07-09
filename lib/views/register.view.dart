@@ -87,6 +87,7 @@ class _RegisterViewState extends State<RegisterView>
   }
 
   void _leaveRegisterPage() {
+    resetSelfieDraftState();
     setState(() {
       isTourist = false;
     });
@@ -130,6 +131,7 @@ class _RegisterViewState extends State<RegisterView>
   @override
   void initState() {
     super.initState();
+    resetSelfieDraftState();
     WidgetsBinding.instance.addObserver(this);
     _nameFocusNode.addListener(_handleFocusChange);
     _emailFocusNode.addListener(_handleFocusChange);

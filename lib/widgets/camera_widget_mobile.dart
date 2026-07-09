@@ -187,7 +187,7 @@ class _CameraWidgetState extends State<CameraWidget>
             previewAspectRatio: previewAspectRatio,
             replacedCaptureRoute: true,
             onRetake: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   reverseTransitionDuration: Duration.zero,
@@ -503,7 +503,6 @@ class _MobileCameraImageWidget extends StatelessWidget {
                   useDefaultHoverColor: false,
                   interactionColor: const Color(0x14030744),
                   onTap: () {
-                    Get.back();
                     onRetake?.call();
                   },
                   child: Center(

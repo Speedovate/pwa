@@ -155,7 +155,7 @@ class _CameraWidgetState extends State<CameraWidget> {
       if (!mounted) return;
       _stopMediaStream();
       setState(() => _isCapturing = false);
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         PageRouteBuilder(
           reverseTransitionDuration: Duration.zero,
@@ -164,8 +164,9 @@ class _CameraWidgetState extends State<CameraWidget> {
             imageBytes: pickedImageBytes!,
             isEdit: widget.isEdit,
             cameraType: widget.cameraType,
+            replacedCaptureRoute: true,
             onRetake: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   reverseTransitionDuration: Duration.zero,

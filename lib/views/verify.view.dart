@@ -116,6 +116,7 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
   }
 
   void _leaveVerifyPage() {
+    resetSelfieDraftState();
     Get.back();
   }
 

@@ -47,6 +47,8 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'PPC TODA',
       debugShowCheckedModeBanner: false,
+      defaultTransition: Transition.noTransition,
+      transitionDuration: Duration.zero,
       builder: (context, child) {
         var mediaQuery = MediaQuery.of(context);
         var textScaleFactor = 1.0;

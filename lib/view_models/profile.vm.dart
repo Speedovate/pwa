@@ -13,7 +13,7 @@ class ProfileViewModel extends BaseViewModel {
 
   initialise() async {}
 
-  processUpdate() async {
+  Future<bool> processUpdate() async {
     AlertService().showLoading();
     try {
       final apiResponse = await authRequest.updateProfile(
@@ -31,6 +31,7 @@ class ProfileViewModel extends BaseViewModel {
         );
         await AuthService.getUserFromStorage();
         Get.forceAppUpdate();
+        resetSelfieDraftState();
       }
       AlertService().stopLoading(forceStop: true);
       AlertService().showAppAlert(
@@ -38,9 +39,11 @@ class ProfileViewModel extends BaseViewModel {
         title: "Profile Update",
         content: cleanErrorMessage(apiResponse.message),
       );
+      return apiResponse.allGood;
     } catch (e) {
       AlertService().stopLoading(forceStop: true);
       showError(e);
+      return false;
     }
   }
 }
