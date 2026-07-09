@@ -2,6 +2,10 @@ let deferredPrompt = null;
 let isOpenMode = false;
 let manifestUrl = null;
 let appStartUrl = "/";
+let resolveInstallPromptReady;
+const installPromptReady = new Promise((resolve) => {
+  resolveInstallPromptReady = resolve;
+});
 
 const installButtons = document.querySelectorAll(".button-cta");
 const manifestLink = document.querySelector('link[rel="manifest"]');
@@ -13,6 +17,7 @@ initializeDownloadInstall();
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredPrompt = event;
+  resolveInstallPromptReady(event);
   setButtonText("Install");
 });
 
@@ -31,12 +36,15 @@ async function initializeDownloadInstall() {
   setInterval(checkIfInstalled, 5000);
 }
 
-async function handleDownloadClick() {
+async function handleDownloadClick(event) {
+  event.preventDefault();
+
   const ua = navigator.userAgent || "";
   const isIOS =
     /iPhone|iPad|iPod/.test(ua) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isAndroid = /android/i.test(ua);
+  const isChromium = /Chrome|CriOS|Edg|SamsungBrowser/i.test(ua);
 
   if (isOpenMode) {
     window.location.href = appStartUrl;
@@ -48,14 +56,11 @@ async function handleDownloadClick() {
     return;
   }
 
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
+  if (await promptForInstall()) {
     return;
   }
 
-  if (isAndroid) {
+  if (isAndroid || isChromium) {
     alert(installProblemMessage);
     return;
   }
@@ -78,6 +83,35 @@ async function registerServiceWorker() {
     installProblemMessage =
       "Install is unavailable because the app could not start offline support.";
   }
+}
+
+async function promptForInstall() {
+  if (!deferredPrompt) {
+    await waitForInstallPrompt(1200);
+  }
+
+  if (!deferredPrompt) {
+    return false;
+  }
+
+  const promptEvent = deferredPrompt;
+  deferredPrompt = null;
+  promptEvent.prompt();
+  await promptEvent.userChoice;
+  return true;
+}
+
+async function waitForInstallPrompt(timeoutMs) {
+  if (deferredPrompt) {
+    return;
+  }
+
+  await Promise.race([
+    installPromptReady,
+    new Promise((resolve) => {
+      setTimeout(resolve, timeoutMs);
+    }),
+  ]);
 }
 
 async function initializeInstallState() {
