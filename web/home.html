@@ -3,16 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PPC TODA Official</title>
+  <title>Book na sa PPC TODA!</title>
 
   <link rel="manifest" href="/manifest.json" />
 
   <link href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css" rel="stylesheet">
   <link rel="stylesheet" href="style/index.css">
   <link rel="stylesheet" href="style/partners.css">
+  <link rel="stylesheet" href="style/supportmodal.css">
+
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+
+
 </head>
 
 <body>
+  <button class="support-fab" onclick="openSupportModal()">
+    <span class="material-icons" style="color: white; margin-right: 0;">support_agent</span>
+  </button>
+
+  <div id="supportModal" class="support-modal">
+    <div class="support-card">
+
+      <!-- HEADER -->
+      <div class="support-header">
+        <h3>Need assistance?</h3>
+        <button class="close-btn" onclick="closeSupportModal()">✕</button>
+      </div>
+
+      <!-- BODY -->
+      <div class="support-body">
+        <button class="support-btn" onclick="openFacebook()">
+          <i class="fa-brands fa-facebook"></i> Message us on Facebook <span class="material-icons" style="margin-left: auto; margin-right: 0;">chevron_right</span>
+        </button>
+        
+
+        <button class="support-btn" onclick="sendSMS()">
+          <span class="material-icons">chat</span> Send us a message <span class="material-icons" style="margin-left: auto; margin-right: 0;">chevron_right</span>
+        </button>
+
+        <button class="support-btn" onclick="callUs()">
+          <span class="material-icons">call</span> Contact us <span class="material-icons" style="margin-left: auto; margin-right: 0;">chevron_right</span>
+        </button>
+
+      </div>
+
+    </div>
+  </div>
   <header class="site-header" data-site-header>
     <!-- <nav class="nav-shell" aria-label="Main navigation">
       <a class="brand-logo" href="#" aria-label="PPC TODA home">
@@ -53,47 +93,49 @@
     </div>
   </section>
   <section>
-    <h1 class="hero-title">Why We <span class="hero-title-span">Love</span><br>PPC TODA</h1>
-    <p class="hero-subtitle">Real experiences from passengers and partners in Puerto Princesa</p>
+    <h1 class="hero-title">Why <span class="hero-title-span">People</span><br>Love PPC TODA</h1>
+    <p class="hero-subtitle">Real reviews from our passengers and partners in Puerto Princesa</p>
     <div class="reviews-wrapper">
       <div id="reviews-track"></div>
     </div>
-    <p class="hero-subtitle" style="margin-top: 26px;">⭐ <span style="color: #facc15; font-weight: 700;">4.9</span> Average rating from 20,000+ rides</p>
+    <p class="hero-subtitle" style="margin-top: 26px;">⭐ <span style="color: #facc15; font-weight: 700;">4.9</span>
+      Average rating from 20,000+ rides</p>
     <button class="button-cta" type="button">Download now</button>
   </section>
 
   <!-- script links -->
   <script type="module" src="js/reviewscards.js"></script>
   <script src="js/downloadhelper.js?v=1.0.3"></script>
+  <script src="js/supportmodal.js?v=1.0.3"></script>
 
   <!-- scripts -->
   <script>
     function openInBrowser() {
-        const url = window.location.href;
+      const url = window.location.href;
 
-        if (/android/i.test(navigator.userAgent)) {
-          window.location.href =
-            "intent://" +
-            url.replace(/^https?:\/\//, "") +
-            "#Intent;scheme=https;package=com.android.chrome;end";
-        } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-          window.location.href = url;
-        }
+      if (/android/i.test(navigator.userAgent)) {
+        window.location.href =
+          "intent://" +
+          url.replace(/^https?:\/\//, "") +
+          "#Intent;scheme=https;package=com.android.chrome;end";
+      } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+        window.location.href = url;
       }
+    }
 
-      function detectWebview() {
-        const ua =
-          navigator.userAgent || navigator.vendor || window.opera || "";
+    function detectWebview() {
+      const ua =
+        navigator.userAgent || navigator.vendor || window.opera || "";
 
-        return /(Telegram|WebView|wv|FBAN|FBAV|Instagram|Line|TikTok|Twitter)/i.test(
-          ua,
-        );
-      }
+      return /(Telegram|WebView|wv|FBAN|FBAV|Instagram|Line|TikTok|Twitter)/i.test(
+        ua,
+      );
+    }
 
-      if (detectWebview() && !sessionStorage.getItem("redirected")) {
-        sessionStorage.setItem("redirected", "true");
-        openInBrowser();
-      }
+    if (detectWebview() && !sessionStorage.getItem("redirected")) {
+      sessionStorage.setItem("redirected", "true");
+      openInBrowser();
+    }
   </script>
 
 
