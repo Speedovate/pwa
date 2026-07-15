@@ -25,6 +25,8 @@ html,
 body {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    min-height: 100%;
     color: var(--color-global-text);
     background-color: var(--color-background-2);
     margin: 0;
@@ -38,6 +40,10 @@ body {
     /* IE */
     scrollbar-width: none;
     /* Firefox */
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: auto;
+    touch-action: pan-y;
 }
 
 /* body.nav-open {
