@@ -8,17 +8,19 @@ const installPromptReady = new Promise((resolve) => {
 });
 
 const installButtons = document.querySelectorAll(".button-cta");
+const installButtonLabels = ["Download now", "Get the app"];
 const manifestLink = document.querySelector('link[rel="manifest"]');
 let installProblemMessage =
   "Install is not available yet. Use your browser menu and choose Add to Home screen if supported.";
 
+setInstallButtonLabels();
 initializeDownloadInstall();
 
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredPrompt = event;
   resolveInstallPromptReady(event);
-  setButtonText("Install");
+  setInstallButtonLabels();
 });
 
 window.addEventListener("appinstalled", () => {
@@ -172,5 +174,12 @@ function setOpenMode() {
 function setButtonText(text) {
   installButtons.forEach((button) => {
     button.textContent = text;
+  });
+}
+
+function setInstallButtonLabels() {
+  installButtons.forEach((button, index) => {
+    button.textContent =
+      installButtonLabels[index] || installButtonLabels[installButtonLabels.length - 1];
   });
 }
