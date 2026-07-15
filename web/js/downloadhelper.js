@@ -49,7 +49,7 @@ async function handleDownloadClick(event) {
   const isChromium = /Chrome|CriOS|Edg|SamsungBrowser/i.test(ua);
 
   if (isOpenMode) {
-    window.location.href = appStartUrl;
+    openInstalledWebApp();
     return;
   }
 
@@ -164,6 +164,25 @@ async function checkIfInstalled() {
   ) {
     setOpenMode();
   }
+}
+
+function openInstalledWebApp() {
+  if (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  ) {
+    window.location.href = appStartUrl;
+    return;
+  }
+
+  const launchLink = document.createElement("a");
+  launchLink.href = appStartUrl;
+  launchLink.target = "_blank";
+  launchLink.rel = "noopener noreferrer";
+  launchLink.style.display = "none";
+  document.body.appendChild(launchLink);
+  launchLink.click();
+  launchLink.remove();
 }
 
 function setOpenMode() {
