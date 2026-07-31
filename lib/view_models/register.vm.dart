@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/home.view.dart';
 import 'package:pwa/constants/lotties.dart';
@@ -14,11 +13,11 @@ import 'package:pwa/views/verify.view.dart';
 import 'package:pwa/services/map.service.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/push.service.dart';
+import 'package:pwa/services/google_auth.service.dart';
 import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class RegisterViewModel extends BaseViewModel {
   static DateTime _defaultBirthdayDate() {
@@ -155,61 +154,20 @@ class RegisterViewModel extends BaseViewModel {
     } else if (!agreed) {
       showError("Please agree to the terms of service");
     } else {
-      AlertService().showLoading();
       late ApiResponse apiResponse;
       try {
-        String? emailAddress;
-        GoogleSignInAccount? gsiAccount;
-        GoogleSignInAuthentication? auth;
+        GoogleAuthResult? googleAuth;
         if (provider == "custom") {
+          AlertService().showLoading();
           apiResponse = await authRequest.checkCredentialsExist(
             email: emailTEC.text.trim(),
             phone: "+63${phoneTEC.text.trim()}",
           );
         } else {
-          final gsi = GoogleSignIn(
-            clientId: kIsWeb
-                ? "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com"
-                : null,
-            scopes: [
-              'email',
-              'profile',
-              'openid',
-            ],
-          );
-          gsiAccount = await gsi.signInSilently();
-          if (gsiAccount == null) {
-            if (kIsWeb) {
-              gsiAccount = await gsi.signInSilently(
-                suppressErrors: false,
-                reAuthenticate: true,
-              );
-            } else {
-              gsiAccount = await gsi.signIn();
-            }
-          }
-          auth = await gsiAccount?.authentication;
-          if (auth?.idToken != null) {
-            final payload = parseJwt(auth!.idToken!);
-            emailAddress = payload['email'];
-          } else {
-            emailAddress = gsiAccount?.email;
-          }
-          if (gsiAccount == null) {
-            throw StateError("Google sign-up was cancelled.");
-          }
-          if (emailAddress == null) {
-            throw StateError(
-              "Google sign-up did not return an email address. Please choose a Google account with an email.",
-            );
-          }
-          if (auth?.idToken == null) {
-            throw StateError(
-              "Google sign-up did not return an ID token. Please try again or use phone registration.",
-            );
-          }
+          googleAuth = await GoogleAuthService.signIn();
+          AlertService().showLoading();
           apiResponse = await authRequest.checkCredentialsExist(
-            email: emailAddress,
+            email: googleAuth.email,
             phone: "+63008891",
           );
         }
@@ -218,9 +176,11 @@ class RegisterViewModel extends BaseViewModel {
             processOTPVerification();
           } else {
             processGoogleRegister(
-              auth?.accessToken,
-              auth?.idToken,
-              emailAddress,
+              googleAuth?.accessToken,
+              googleAuth?.idToken,
+              googleAuth?.email,
+              alreadySignedInToFirebase:
+                  googleAuth?.alreadySignedInToFirebase ?? false,
             );
           }
         } else {
@@ -316,14 +276,17 @@ class RegisterViewModel extends BaseViewModel {
   processGoogleRegister(
     String? accessToken,
     String? idToken,
-    String? email,
-  ) async {
+    String? email, {
+    bool alreadySignedInToFirebase = false,
+  }) async {
     try {
-      final credential = GoogleAuthProvider.credential(
-        accessToken: accessToken,
-        idToken: idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (!alreadySignedInToFirebase) {
+        final credential = GoogleAuthProvider.credential(
+          accessToken: accessToken,
+          idToken: idToken,
+        );
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
       await finishGoogleRegistration(
         idToken,
         email,

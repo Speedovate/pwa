@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
@@ -15,11 +14,11 @@ import 'package:pwa/requests/auth.request.dart';
 import 'package:pwa/services/auth.service.dart';
 import 'package:pwa/services/map.service.dart';
 import 'package:pwa/services/push.service.dart';
+import 'package:pwa/services/google_auth.service.dart';
 import 'package:pwa/requests/taxi.request.dart';
 import 'package:pwa/services/alert.service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pwa/models/api_response.model.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginViewModel extends BaseViewModel {
   TaxiRequest taxiRequest = TaxiRequest();
@@ -65,59 +64,18 @@ class LoginViewModel extends BaseViewModel {
       return;
     }
     try {
-      String? emailAddress;
-      GoogleSignInAccount? gsiAccount;
-      GoogleSignInAuthentication? auth;
+      final googleAuth = await GoogleAuthService.signIn();
       AlertService().showLoading();
-      final gsi = GoogleSignIn(
-        clientId: kIsWeb
-            ? "599344409686-e8colg5jkq3o8qkrvpf8ri4r18pjuqb5.apps.googleusercontent.com"
-            : null,
-        scopes: [
-          'email',
-          'profile',
-          'openid',
-        ],
-      );
-      gsiAccount = await gsi.signInSilently();
-      if (gsiAccount == null) {
-        if (kIsWeb) {
-          gsiAccount = await gsi.signInSilently(
-            suppressErrors: false,
-            reAuthenticate: true,
-          );
-        } else {
-          gsiAccount = await gsi.signIn();
-        }
-      }
-      auth = await gsiAccount?.authentication;
-      if (auth?.idToken != null) {
-        final payload = parseJwt(auth!.idToken!);
-        emailAddress = payload['email'];
-      } else {
-        emailAddress = gsiAccount?.email;
-      }
-      if (gsiAccount == null) {
-        throw StateError("Google sign-in was cancelled.");
-      }
-      if (emailAddress == null) {
-        throw StateError(
-          "Google sign-in did not return an email address. Please choose a Google account with an email.",
+      final verifiedIdToken = googleAuth.idToken;
+      if (!googleAuth.alreadySignedInToFirebase) {
+        final credential = GoogleAuthProvider.credential(
+          idToken: verifiedIdToken,
+          accessToken: googleAuth.accessToken,
         );
+        await FirebaseAuth.instance.signInWithCredential(credential);
       }
-      if (auth?.idToken == null) {
-        throw StateError(
-          "Google sign-in did not return an ID token. Please try again or use phone login.",
-        );
-      }
-      final verifiedIdToken = auth!.idToken!;
-      final credential = GoogleAuthProvider.credential(
-        idToken: verifiedIdToken,
-        accessToken: auth.accessToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
       final apiResponse = await authRequest.googleLoginRequest(
-        email: emailAddress,
+        email: googleAuth.email,
         idToken: verifiedIdToken,
       );
       if (apiResponse.allGood) {
