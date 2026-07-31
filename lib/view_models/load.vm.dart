@@ -215,14 +215,24 @@ class LoadViewModel extends BaseViewModel {
   }
 
   initiateLoadTopUp(String amount) async {
+    final pendingExternalWindow =
+        GetPlatform.isWeb ? prepareExternalUrlWindow() : null;
     try {
       final link = await loadRequest.loadTopupRequest(amount);
+      if (GetPlatform.isWeb) {
+        await navigatePreparedExternalUrl(
+          pendingExternalWindow,
+          link,
+        );
+        return;
+      }
       openWebview(
         "Buy Load",
         link,
         isFromWallet: true,
       );
     } catch (error) {
+      closePreparedExternalUrl(pendingExternalWindow);
       // Top-up launch failures are intentionally ignored here.
     }
   }

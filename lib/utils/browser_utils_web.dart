@@ -75,6 +75,48 @@ Future<void> openExternalUrl(
   }
 }
 
+Object? prepareExternalUrlWindow({
+  bool sameTab = false,
+}) {
+  if (sameTab) {
+    return null;
+  }
+  try {
+    return html.window.open('', '_blank');
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> navigatePreparedExternalUrl(
+  Object? handle,
+  String url, {
+  bool sameTab = false,
+}) async {
+  if (sameTab) {
+    html.window.location.assign(url);
+    return;
+  }
+  try {
+    final preparedWindow = handle as html.WindowBase?;
+    if (preparedWindow != null) {
+      preparedWindow.location.href = url;
+      return;
+    }
+  } catch (_) {}
+  await openExternalUrl(
+    url,
+    sameTab: sameTab,
+  );
+}
+
+void closePreparedExternalUrl(Object? handle) {
+  try {
+    final preparedWindow = handle as html.WindowBase?;
+    preparedWindow?.close();
+  } catch (_) {}
+}
+
 Future<void> refreshWebAppWithCacheBust() async {
   final location = html.window.location;
   final currentUri = Uri.parse(location.href);

@@ -40,4 +40,23 @@ Future<void> openExternalUrl(
   );
 }
 
+Object? prepareExternalUrlWindow({
+  bool sameTab = false,
+}) {
+  return null;
+}
+
+Future<void> navigatePreparedExternalUrl(
+  Object? handle,
+  String url, {
+  bool sameTab = false,
+}) async {
+  await openExternalUrl(
+    url,
+    sameTab: sameTab,
+  );
+}
+
+void closePreparedExternalUrl(Object? handle) {}
+
 Future<void> refreshWebAppWithCacheBust() async {}
