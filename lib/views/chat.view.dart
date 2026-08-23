@@ -249,6 +249,10 @@ class _ChatViewState extends State<ChatView> with WidgetsBindingObserver {
   }
 
   void _handleDismissFocusPointerUp(PointerUpEvent event) {
+    if (GetPlatform.isWeb) {
+      _resetDismissFocusPointerTracking();
+      return;
+    }
     if (_dismissFocusPointer != event.pointer) {
       return;
     }

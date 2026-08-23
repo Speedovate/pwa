@@ -25,9 +25,11 @@ class _SettingsViewState extends State<SettingsView> {
       builder: (context, vm, child) {
         final mediaQuery = MediaQuery.of(context);
         return GestureDetector(
-          onTap: () {
-            FocusManager.instance.primaryFocus?.unfocus();
-          },
+          onTap: GetPlatform.isWeb
+              ? null
+              : () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
           child: Scaffold(
             backgroundColor: Colors.white,
             body: Padding(

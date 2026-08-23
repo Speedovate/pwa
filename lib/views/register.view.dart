@@ -216,10 +216,12 @@ class _RegisterViewState extends State<RegisterView>
           final mediaQuery = MediaQuery.of(context);
           final registerSelfieSize = mediaQuery.size.width.clamp(0, 800) / 2.5;
           return GestureDetector(
-            onTap: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-              _collapseBirthdayPicker(vm);
-            },
+            onTap: GetPlatform.isWeb
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    _collapseBirthdayPicker(vm);
+                  },
             child: Scaffold(
               backgroundColor: Colors.white,
               body: Stack(

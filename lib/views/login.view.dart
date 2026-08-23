@@ -125,9 +125,11 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
           final useGoogleFlow = isTourist && canUseGoogleAuth;
           final mediaQuery = MediaQuery.of(context);
           return GestureDetector(
-            onTap: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
+            onTap: GetPlatform.isWeb
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
             child: Scaffold(
               backgroundColor: Colors.white,
               body: Stack(

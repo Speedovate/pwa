@@ -181,18 +181,22 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
           final imageHeight = imageWidth * 0.72;
 
           return GestureDetector(
-            onTap: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
+            onTap: GetPlatform.isWeb
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
             child: Scaffold(
               backgroundColor: Colors.white,
               body: Stack(
                 children: [
                   Positioned.fill(
                     child: GestureDetector(
-                      onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
+                      onTap: GetPlatform.isWeb
+                          ? null
+                          : () {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
                       child: SingleChildScrollView(
                         controller: _scrollController,
                         physics: const BouncingScrollPhysics(),

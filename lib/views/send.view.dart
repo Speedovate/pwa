@@ -113,9 +113,11 @@ class _SendViewState extends State<SendView> with WidgetsBindingObserver {
           final screenWidth = mediaQuery.size.width;
           final imageWidth = (screenWidth - 48).clamp(220.0, 400.0);
           return GestureDetector(
-            onTap: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
+            onTap: GetPlatform.isWeb
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
             child: Scaffold(
               backgroundColor: Colors.white,
               body: Stack(

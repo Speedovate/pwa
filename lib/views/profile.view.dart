@@ -167,9 +167,11 @@ class _ProfileViewState extends State<ProfileView> {
           final double avatarSize =
               (mediaQuery.size.width / 3).clamp(0, 250).toDouble();
           return GestureDetector(
-            onTap: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
+            onTap: GetPlatform.isWeb
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
             child: Scaffold(
               backgroundColor: Colors.white,
               body: SingleChildScrollView(
