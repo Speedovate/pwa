@@ -36,6 +36,11 @@ class _MapViewState extends State<MapView> {
   static const double _minimumPickupDropoffDistanceMeters = 100;
   Timer? _mapInteractionDelayTimer;
   bool _keepMapInteractionBlocked = false;
+  DateTime? _lastDesktopSiteSearchTapAt;
+  int _searchFieldStabilizerToken = 0;
+
+  bool get _isDesktopSitePhoneWeb =>
+      kIsWeb && isDesktopSiteOnPhoneBrowser();
 
   bool _sameCoordinates(Address a, Address b) {
     return a.coordinates.latitude == b.coordinates.latitude &&
@@ -55,7 +60,53 @@ class _MapViewState extends State<MapView> {
   @override
   void initState() {
     super.initState();
+    mapViewModel.searchFocusNode.addListener(_handleSearchFocusChange);
     mapViewModel.addListener(_handleMapLoadingChanged);
+  }
+
+  void _handleSearchFocusChange() {
+    if (!_isDesktopSitePhoneWeb || mapViewModel.searchFocusNode.hasFocus) {
+      return;
+    }
+    final lastTapAt = _lastDesktopSiteSearchTapAt;
+    if (lastTapAt == null ||
+        DateTime.now().difference(lastTapAt) >
+            const Duration(milliseconds: 1200)) {
+      return;
+    }
+    _scheduleSearchFieldFocusStabilizer();
+  }
+
+  void _recordSearchFieldTap() {
+    if (!_isDesktopSitePhoneWeb) {
+      return;
+    }
+    _lastDesktopSiteSearchTapAt = DateTime.now();
+    _scheduleSearchFieldFocusStabilizer();
+  }
+
+  void _scheduleSearchFieldFocusStabilizer() {
+    if (!_isDesktopSitePhoneWeb) {
+      return;
+    }
+    final token = ++_searchFieldStabilizerToken;
+    const delays = <int>[0, 80, 180, 320, 520, 820];
+    for (final delayMs in delays) {
+      Future<void>.delayed(Duration(milliseconds: delayMs), () {
+        if (!mounted ||
+            token != _searchFieldStabilizerToken ||
+            mapViewModel.searchFocusNode.hasFocus) {
+          return;
+        }
+        final lastTapAt = _lastDesktopSiteSearchTapAt;
+        if (lastTapAt == null ||
+            DateTime.now().difference(lastTapAt) >
+                const Duration(milliseconds: 1200)) {
+          return;
+        }
+        mapViewModel.searchFocusNode.requestFocus();
+      });
+    }
   }
 
   void _handleMapLoadingChanged() {
@@ -113,6 +164,7 @@ class _MapViewState extends State<MapView> {
 
   @override
   void dispose() {
+    mapViewModel.searchFocusNode.removeListener(_handleSearchFocusChange);
     if (_mapInteractionDelayTimer != null) {
       tempTimerDebug(
         "map_view.interaction_delay",
@@ -336,6 +388,10 @@ class _MapViewState extends State<MapView> {
                                       TextField(
                                     focusNode: focusNode,
                                     controller: controller,
+                                    onTap: _recordSearchFieldTap,
+                                    onTapOutside: _isDesktopSitePhoneWeb
+                                        ? (_) {}
+                                        : null,
                                     textInputAction: TextInputAction.search,
                                     textAlignVertical: TextAlignVertical.center,
                                     scrollPadding: const EdgeInsets.only(
