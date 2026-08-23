@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class TextFieldWidget extends StatefulWidget {
@@ -73,12 +74,50 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
   late bool ownsFocusNode;
   bool isFocused = false;
   bool isVisible = true;
+  DateTime? _lastWebFieldTapAt;
+  bool _webFocusRestorePending = false;
+
+  bool get _shouldRestoreWebFocusAfterBlur {
+    if (!kIsWeb || widget.readOnly) {
+      return false;
+    }
+    final lastTapAt = _lastWebFieldTapAt;
+    if (lastTapAt == null) {
+      return false;
+    }
+    return DateTime.now().difference(lastTapAt) <=
+        const Duration(milliseconds: 250);
+  }
 
   void _handleFocusChange() {
+    if (!internalFocusNode.hasFocus && _shouldRestoreWebFocusAfterBlur) {
+      _scheduleWebFocusRestore();
+    }
     if (!mounted) return;
     setState(() {
       isFocused = internalFocusNode.hasFocus;
     });
+  }
+
+  void _scheduleWebFocusRestore() {
+    if (_webFocusRestorePending) {
+      return;
+    }
+    _webFocusRestorePending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _webFocusRestorePending = false;
+      if (!mounted || internalFocusNode.hasFocus || widget.readOnly) {
+        return;
+      }
+      internalFocusNode.requestFocus();
+    });
+  }
+
+  void _handleTextFieldTap() {
+    if (kIsWeb) {
+      _lastWebFieldTapAt = DateTime.now();
+    }
+    widget.onTap?.call();
   }
 
   @override
@@ -148,7 +187,8 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
         ),
       ),
       child: TextField(
-        onTap: widget.onTap,
+        onTap: _handleTextFieldTap,
+        onTapOutside: kIsWeb ? (_) {} : null,
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
         controller: widget.controller,
