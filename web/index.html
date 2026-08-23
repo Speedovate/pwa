@@ -157,59 +157,94 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.53+73" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.54+74" />
 
   <!-- Splash Screen Style -->
   <style>
-    #splash {
+    :root {
+      --startup-logo-width: 180px;
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --startup-logo-width: 120px;
+      }
+    }
+
+    #app-startup-splash {
       position: fixed;
       inset: 0;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
       background: #fff;
-      color: #007bff;
       display: flex;
+      align-items: stretch;
       justify-content: center;
-      align-items: center;
-      font-family: Arial, sans-serif;
-      font-size: 1.5rem;
       z-index: 9999;
     }
 
-    #logo {
+    #app-startup-splash__content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    #app-startup-splash__logo-wrap {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 24px;
+      bottom: 108px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #app-startup-splash__logo {
+      width: var(--startup-logo-width);
+      height: auto;
       display: block;
-      margin: 0 auto;
       object-fit: contain;
       object-position: center;
     }
 
-    @media (min-aspect-ratio: 1/1) {
-      #logo {
-        width: min(calc(100vh / 2.1), 350px);
-        height: min(calc(100vh / 2.1), 350px);
-      }
+    #app-startup-splash__footer {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 34px;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
     }
 
-    @media (max-aspect-ratio: 1/1) {
-      #logo {
-        width: min(calc(100vw / 1.3), 350px);
-        height: min(calc(100vw / 1.3), 350px);
-      }
+    #app-startup-splash__footer-mark {
+      width: var(--startup-logo-width);
+      text-align: center;
+      font: 800 24px/1 "Inter", "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0.36em;
+      text-indent: 0.36em;
+      color: #007bff;
     }
   </style>
 </head>
 
 <body style="margin:0; padding:0; overflow:hidden; background-color:#ffffff;">
   <!-- Splash Screen -->
-  <div id="splash">
-    <img id="logo" src="icons/webicon.png" alt="" />
+  <div id="app-startup-splash" aria-label="Loading PPC TODA">
+    <div id="app-startup-splash__content">
+      <div id="app-startup-splash__logo-wrap">
+        <img id="app-startup-splash__logo" src="icons/webicon.png" alt="PPC TODA" />
+      </div>
+      <div id="app-startup-splash__footer" aria-hidden="true">
+        <div id="app-startup-splash__footer-mark">SDV</div>
+      </div>
+    </div>
   </div>
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.53+73";
+      var APP_VERSION = "1.0.54+74";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
       var VERSION_CHECK_DELAY_MS = 10000;
       var bootstrapLoaded = false;
@@ -309,7 +344,10 @@
     })();
 
     window.addEventListener("flutter-first-frame", function () {
-      document.getElementById("splash").style.display = "none";
+      var splash = document.getElementById("app-startup-splash");
+      if (splash) {
+        splash.style.display = "none";
+      }
     });
   </script>
 </body>

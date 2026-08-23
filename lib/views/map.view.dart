@@ -190,25 +190,40 @@ class _MapViewState extends State<MapView> {
       ),
       builder: (context, vm, child) {
         final mediaQuery = MediaQuery.of(context);
-        return Scaffold(
-          backgroundColor: Colors.white,
-          body: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: kIsWeb
-                ? null
-                : () {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                    _searchSuggestionsController.close();
-                  },
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: SizedBox(
-                height: mediaQuery.size.height,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: mediaQuery.padding.top,
-                    bottom: 12,
-                  ),
+        final forcedWidth = _isDesktopSitePhoneWeb
+            ? browserScreenShortSide()
+            : mediaQuery.size.width;
+        final effectiveMediaQuery = _isDesktopSitePhoneWeb && forcedWidth > 0
+            ? mediaQuery.copyWith(
+                size: Size(forcedWidth, mediaQuery.size.height),
+              )
+            : mediaQuery;
+        return MediaQuery(
+          data: effectiveMediaQuery,
+          child: Scaffold(
+            backgroundColor: Colors.white,
+            body: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: kIsWeb
+                  ? null
+                  : () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      _searchSuggestionsController.close();
+                    },
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: effectiveMediaQuery.size.width,
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: SizedBox(
+                      width: effectiveMediaQuery.size.width,
+                      height: effectiveMediaQuery.size.height,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: effectiveMediaQuery.padding.top,
+                          bottom: 12,
+                        ),
                   child: Stack(
                     children: [
                       Column(
@@ -1003,13 +1018,16 @@ class _MapViewState extends State<MapView> {
                       ),
                     ],
                   ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+	                ),
+	              ),
+		            ),
+		          ),
+		        ),
+		      ),
+		    ),
+		        );
+	      },
+	    );
   }
 }
 
