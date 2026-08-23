@@ -87,8 +87,46 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=Edge">
   <meta
+    id="app-viewport"
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <script>
+    (function () {
+      const viewportMeta = document.getElementById("app-viewport");
+      if (!viewportMeta) {
+        return;
+      }
+
+      const maxTouchPoints = Number(navigator.maxTouchPoints || 0);
+      const screenWidth = Number(window.screen && window.screen.width || 0);
+      const screenHeight = Number(window.screen && window.screen.height || 0);
+      const innerWidth = Number(window.innerWidth || 0);
+      const shortSide = Math.min(screenWidth || innerWidth, screenHeight || innerWidth);
+      const looksPhoneSizedScreen = shortSide > 0 && shortSide <= 500;
+      const desktopSizedViewport = shortSide > 0 && innerWidth >= shortSide * 1.35;
+      const isDesktopSiteOnPhone = maxTouchPoints > 0 &&
+        looksPhoneSizedScreen &&
+        desktopSizedViewport;
+
+      if (!isDesktopSiteOnPhone) {
+        return;
+      }
+
+      const forcedWidth = Math.round(shortSide);
+      viewportMeta.setAttribute(
+        "content",
+        "width=" + forcedWidth + ", initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+      );
+
+      document.documentElement.style.width = forcedWidth + "px";
+      document.documentElement.style.maxWidth = forcedWidth + "px";
+      document.documentElement.style.margin = "0 auto";
+      document.body.style.width = forcedWidth + "px";
+      document.body.style.maxWidth = forcedWidth + "px";
+      document.body.style.margin = "0 auto";
+      document.documentElement.setAttribute("data-phone-desktop-site", "true");
+    })();
+  </script>
 
   <!-- App Info -->
   <title>PPC TODA</title>
