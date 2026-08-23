@@ -86,42 +86,10 @@
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=Edge">
-  <script>
-    (function () {
-      const maxTouchPoints = Number(navigator.maxTouchPoints || 0);
-      const screenWidth = Number(window.screen && window.screen.width || 0);
-      const screenHeight = Number(window.screen && window.screen.height || 0);
-      const innerWidth = Number(window.innerWidth || 0);
-      const shortSide = Math.min(screenWidth || innerWidth, screenHeight || innerWidth);
-      const looksPhoneSizedScreen = shortSide > 0 && shortSide <= 500;
-      const desktopSizedViewport = shortSide > 0 && innerWidth >= shortSide * 1.35;
-      const isDesktopSiteOnPhone = maxTouchPoints > 0 &&
-        looksPhoneSizedScreen &&
-        desktopSizedViewport;
-
-      if (!isDesktopSiteOnPhone) {
-        document.write('<meta id="app-viewport" name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">');
-        return;
-      }
-
-      const forcedWidth = Math.round(shortSide);
-      const forcedScale = shortSide > 0 && innerWidth > 0
-        ? (shortSide / innerWidth)
-        : 1;
-      document.write(
-        '<meta id="app-viewport" name="viewport" content="width=' +
-          forcedWidth +
-          ', initial-scale=' +
-          forcedScale +
-          ', minimum-scale=' +
-          forcedScale +
-          ', maximum-scale=' +
-          forcedScale +
-          ', viewport-fit=cover, interactive-widget=resizes-content">'
-      );
-      document.documentElement.setAttribute("data-phone-desktop-site", "true");
-    })();
-  </script>
+  <meta
+    id="app-viewport"
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 
   <!-- App Info -->
   <title>PPC TODA</title>
@@ -190,7 +158,7 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.46+66" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.47+67" />
 
   <!-- Splash Screen Style -->
   <style>
@@ -289,7 +257,7 @@
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.46+66";
+      var APP_VERSION = "1.0.47+67";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
       var VERSION_CHECK_DELAY_MS = 10000;
       var bootstrapLoaded = false;

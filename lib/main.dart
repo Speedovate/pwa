@@ -52,21 +52,8 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         var mediaQuery = MediaQuery.of(context);
         var textScaleFactor = 1.0;
-        final shouldForceMobileWebViewport = isDesktopSiteOnPhoneBrowser();
-        final forcedMobileWidth = shouldForceMobileWebViewport
-            ? browserScreenShortSide()
-            : mediaQuery.size.width;
-        final effectiveMediaQuery = shouldForceMobileWebViewport &&
-                forcedMobileWidth > 0
-            ? mediaQuery.copyWith(
-                size: Size(
-                  forcedMobileWidth,
-                  mediaQuery.size.height,
-                ),
-              )
-            : mediaQuery;
         return MediaQuery(
-          data: effectiveMediaQuery.copyWith(
+          data: mediaQuery.copyWith(
             textScaler: TextScaler.linear(textScaleFactor),
           ),
           child: Stack(
