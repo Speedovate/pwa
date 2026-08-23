@@ -90,6 +90,26 @@
     id="app-viewport"
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <script>
+    (function () {
+      const maxTouchPoints = Number(navigator.maxTouchPoints || 0);
+      const screenWidth = Number(window.screen && window.screen.width || 0);
+      const screenHeight = Number(window.screen && window.screen.height || 0);
+      const innerWidth = Number(window.innerWidth || 0);
+      const shortSide = Math.min(screenWidth || innerWidth, screenHeight || innerWidth);
+      const looksPhoneSizedScreen = shortSide > 0 && shortSide <= 500;
+      const desktopSizedViewport = shortSide > 0 && innerWidth >= shortSide * 1.35;
+
+      window.__ppcTodaDesktopSiteBlocked =
+        maxTouchPoints > 0 &&
+        looksPhoneSizedScreen &&
+        desktopSizedViewport;
+
+      if (window.__ppcTodaDesktopSiteBlocked) {
+        document.documentElement.setAttribute("data-desktop-site-blocked", "true");
+      }
+    })();
+  </script>
 
   <!-- App Info -->
   <title>PPC TODA</title>
@@ -158,7 +178,7 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.47+67" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.48+68" />
 
   <!-- Splash Screen Style -->
   <style>
@@ -235,6 +255,70 @@
       mask-position: center;
       mask-size: contain;
     }
+
+    #desktop-site-blocker {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      background: #ffffff;
+      z-index: 10001;
+    }
+
+    html[data-desktop-site-blocked="true"] #desktop-site-blocker {
+      display: flex;
+    }
+
+    html[data-desktop-site-blocked="true"] #app-startup-splash {
+      display: none;
+    }
+
+    #desktop-site-blocker__card {
+      width: min(100%, 420px);
+      padding: 28px 24px;
+      border-radius: 28px;
+      border: 1px solid rgba(0, 123, 255, 0.16);
+      background: #ffffff;
+      box-shadow: 0 28px 80px rgba(3, 7, 68, 0.16);
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    #desktop-site-blocker__logo {
+      width: min(180px, 52vw);
+      height: auto;
+      display: block;
+      margin: 0 auto 24px;
+    }
+
+    #desktop-site-blocker__title {
+      margin: 0 0 12px;
+      color: #030744;
+      font: 800 28px/1.05 "Inter", "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0.01em;
+    }
+
+    #desktop-site-blocker__body {
+      margin: 0;
+      color: rgba(3, 7, 68, 0.82);
+      font: 600 15px/1.65 "Inter", "Segoe UI", Arial, sans-serif;
+    }
+
+    #desktop-site-blocker__steps {
+      margin: 20px 0 0;
+      padding: 0;
+      list-style: none;
+      text-align: left;
+      color: #030744;
+      font: 700 14px/1.6 "Inter", "Segoe UI", Arial, sans-serif;
+    }
+
+    #desktop-site-blocker__steps li + li {
+      margin-top: 8px;
+    }
   </style>
 </head>
 
@@ -254,10 +338,28 @@
       </div>
     </div>
   </div>
+  <div id="desktop-site-blocker" aria-modal="true" role="dialog" aria-labelledby="desktop-site-blocker__title">
+    <div id="desktop-site-blocker__card">
+      <img
+        id="desktop-site-blocker__logo"
+        src="assets/assets/images/ppc_toda_logo_raw.png"
+        alt="PPC TODA"
+      />
+      <h1 id="desktop-site-blocker__title">Turn Off Desktop Site</h1>
+      <p id="desktop-site-blocker__body">
+        PPC TODA works best in normal mobile view. Please turn off <strong>Desktop site</strong> in your browser, then reload this page.
+      </p>
+      <ul id="desktop-site-blocker__steps" aria-hidden="true">
+        <li>1. Open your browser menu</li>
+        <li>2. Turn off <strong>Desktop site</strong></li>
+        <li>3. Refresh or reopen PPC TODA</li>
+      </ul>
+    </div>
+  </div>
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.47+67";
+      var APP_VERSION = "1.0.48+68";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
       var VERSION_CHECK_DELAY_MS = 10000;
       var bootstrapLoaded = false;
@@ -338,6 +440,9 @@
       }
 
       window.addEventListener("load", function () {
+        if (window.__ppcTodaDesktopSiteBlocked) {
+          return;
+        }
         registerAppServiceWorker(APP_VERSION);
         loadFlutterBootstrap(APP_VERSION);
 
@@ -357,6 +462,9 @@
     })();
 
     window.addEventListener("flutter-first-frame", function () {
+      if (window.__ppcTodaDesktopSiteBlocked) {
+        return;
+      }
       var splash = document.getElementById("app-startup-splash");
       if (splash) {
         splash.style.display = "none";
