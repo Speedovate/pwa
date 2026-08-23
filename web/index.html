@@ -157,7 +157,7 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.47+67" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.48+68" />
 
   <!-- Splash Screen Style -->
   <style>
@@ -201,9 +201,9 @@
     }
 
     #app-startup-splash__logo {
-      width: auto;
-      max-width: var(--startup-logo-width);
-      max-height: calc(var(--startup-logo-width) * 0.9);
+      width: var(--startup-logo-width);
+      max-width: none;
+      max-height: none;
       height: auto;
       display: block;
       object-fit: contain;
@@ -256,7 +256,7 @@
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.47+67";
+      var APP_VERSION = "1.0.48+68";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
       var VERSION_CHECK_DELAY_MS = 10000;
       var bootstrapLoaded = false;
