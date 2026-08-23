@@ -33,6 +33,9 @@ class _DeleteViewState extends State<DeleteView> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
+    if (kIsWeb) {
+      return;
+    }
     if (_hasFocusedField) {
       _scrollToBottom();
     }
@@ -54,6 +57,9 @@ class _DeleteViewState extends State<DeleteView> with WidgetsBindingObserver {
   }
 
   void _handleFocusChange() {
+    if (kIsWeb) {
+      return;
+    }
     if (_hasFocusedField) {
       Future.delayed(const Duration(milliseconds: 250), _scrollToBottom);
     }

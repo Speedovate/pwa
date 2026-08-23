@@ -3,9 +3,61 @@
 import 'dart:html' as html;
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'dart:math' as math;
 import 'package:url_launcher/url_launcher.dart';
 
 String browserUserAgent() => html.window.navigator.userAgent.toLowerCase();
+
+int browserMaxTouchPoints() {
+  try {
+    final touchPoints = globalContext
+        .getProperty<JSObject>('navigator'.toJS)
+        .getProperty<JSNumber?>('maxTouchPoints'.toJS);
+    return touchPoints?.toDartInt ?? 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+double browserScreenWidth() {
+  return html.window.screen?.width?.toDouble() ??
+      html.window.innerWidth?.toDouble() ??
+      0;
+}
+
+double browserScreenHeight() {
+  return html.window.screen?.height?.toDouble() ??
+      html.window.innerHeight?.toDouble() ??
+      0;
+}
+
+bool isTouchCapableBrowser() => browserMaxTouchPoints() > 0;
+
+bool isPhoneLikeBrowser() {
+  if (!isTouchCapableBrowser()) {
+    return false;
+  }
+  final screenWidth = browserScreenWidth();
+  final screenHeight = browserScreenHeight();
+  if (screenWidth <= 0 || screenHeight <= 0) {
+    return false;
+  }
+  final shortSide = math.min(screenWidth, screenHeight);
+  final longSide = math.max(screenWidth, screenHeight);
+  return shortSide <= 500 && longSide <= 1200;
+}
+
+double forcedMobileViewportWidth() {
+  if (!isPhoneLikeBrowser()) {
+    return html.window.innerWidth?.toDouble() ?? 0;
+  }
+  final shortSide = math.min(browserScreenWidth(), browserScreenHeight());
+  final currentWidth = html.window.innerWidth?.toDouble() ?? shortSide;
+  if (shortSide <= 0) {
+    return currentWidth;
+  }
+  return math.min(currentWidth, shortSide);
+}
 
 bool isHuaweiLikeBrowser() {
   final userAgent = browserUserAgent();
@@ -20,14 +72,7 @@ bool isIOSLikeBrowser() {
     return true;
   }
   if (userAgent.contains('macintosh')) {
-    try {
-      final touchPoints = globalContext
-          .getProperty<JSObject>('navigator'.toJS)
-          .getProperty<JSNumber?>('maxTouchPoints'.toJS);
-      return (touchPoints?.toDartInt ?? 0) > 1;
-    } catch (_) {
-      return false;
-    }
+    return browserMaxTouchPoints() > 1;
   }
   return false;
 }

@@ -144,6 +144,9 @@ class _RegisterViewState extends State<RegisterView>
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
+    if (kIsWeb) {
+      return;
+    }
     if (_hasFocusedField) {
       _scrollToBottom();
     }
@@ -170,6 +173,9 @@ class _RegisterViewState extends State<RegisterView>
   }
 
   void _handleFocusChange() {
+    if (kIsWeb) {
+      return;
+    }
     if (_hasFocusedField) {
       _collapseBirthdayPicker(registerViewModel);
       Future.delayed(const Duration(milliseconds: 250), _scrollToBottom);

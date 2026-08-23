@@ -4,6 +4,7 @@ import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/constants/strings.dart';
 import 'package:stacked/stacked.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pwa/constants/images.dart';
@@ -54,6 +55,9 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
+    if (kIsWeb) {
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -102,7 +106,7 @@ class _VerifyViewState extends State<VerifyView> with WidgetsBindingObserver {
   }
 
   void _handleCodeFocusChange() {
-    if (_codeFocusNode.hasFocus) {
+    if (!kIsWeb && _codeFocusNode.hasFocus) {
       Future.delayed(const Duration(milliseconds: 250), _scrollToBottom);
     }
     if (mounted) {

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:stacked/stacked.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/functions.dart';
 import 'package:pwa/views/send.view.dart';
@@ -37,6 +38,9 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
+    if (kIsWeb) {
+      return;
+    }
     if (_hasFocusedField) {
       _scrollToBottom();
     }
@@ -58,6 +62,9 @@ class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
   }
 
   void _handleFocusChange() {
+    if (kIsWeb) {
+      return;
+    }
     if (_hasFocusedField) {
       Future.delayed(const Duration(milliseconds: 250), _scrollToBottom);
     }

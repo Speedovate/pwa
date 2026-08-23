@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/view_models/send.vm.dart';
@@ -44,6 +45,9 @@ class _SendViewState extends State<SendView> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
+    if (kIsWeb) {
+      return;
+    }
     if (_phoneFocusNode.hasFocus) {
       _scrollToBottom();
     }
@@ -62,6 +66,9 @@ class _SendViewState extends State<SendView> with WidgetsBindingObserver {
   }
 
   void _handlePhoneFocusChange() {
+    if (kIsWeb) {
+      return;
+    }
     if (_phoneFocusNode.hasFocus) {
       Future.delayed(const Duration(milliseconds: 250), _scrollToBottom);
     }
