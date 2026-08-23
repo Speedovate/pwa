@@ -1913,9 +1913,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             ),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () {
-                FocusManager.instance.primaryFocus?.unfocus();
-              },
+              onTap: kIsWeb
+                  ? null
+                  : () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                    },
               child: Container(
                 width: (mediaQuery.size.width - 70).clamp(0, 420),
                 decoration: const BoxDecoration(

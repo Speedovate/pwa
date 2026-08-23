@@ -142,10 +142,12 @@ class _MapViewState extends State<MapView> {
           backgroundColor: Colors.white,
           body: GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTap: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-              _searchSuggestionsController.close();
-            },
+            onTap: kIsWeb
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    _searchSuggestionsController.close();
+                  },
             child: SingleChildScrollView(
               physics: const NeverScrollableScrollPhysics(),
               child: SizedBox(

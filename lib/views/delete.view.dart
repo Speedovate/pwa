@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:stacked/stacked.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/constants/images.dart';
 import 'package:pwa/widgets/button.widget.dart';
@@ -120,9 +121,11 @@ class _DeleteViewState extends State<DeleteView> with WidgetsBindingObserver {
             _confirmLeaveDeletePage(vm);
           },
           child: GestureDetector(
-            onTap: () {
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
+            onTap: kIsWeb
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
             child: Scaffold(
               backgroundColor: Colors.white,
               body: Stack(

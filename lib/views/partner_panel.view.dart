@@ -7,6 +7,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pwa/utils/data.dart';
 import 'package:pwa/utils/functions.dart';
@@ -3643,9 +3644,11 @@ class _PartnerPanelViewState extends State<PartnerPanelView> {
         _confirmLeavePartnerPanel();
       },
       child: GestureDetector(
-        onTap: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-        },
+        onTap: kIsWeb
+            ? null
+            : () {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
         child: Scaffold(
           backgroundColor: Colors.white,
           body: Padding(
