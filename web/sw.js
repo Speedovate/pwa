@@ -1,4 +1,4 @@
-var APP_VERSION = "1.0.50+70";
+var APP_VERSION = "1.0.51+71";
 var CACHE_NAME = "redirect-fallback-" + APP_VERSION;
 var OFFLINE_PAGE = "offline.html";
 var STATIC_ASSETS = [
