@@ -157,7 +157,7 @@
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.54+74" />
+  <link rel="stylesheet" href="style/indexstyle.css?v=1.0.55+75" />
 
   <!-- Splash Screen Style -->
   <style>
@@ -218,13 +218,10 @@
       pointer-events: none;
     }
 
-    #app-startup-splash__footer-mark {
+    #app-startup-splash__footer img {
       width: var(--startup-logo-width);
-      text-align: center;
-      font: 800 24px/1 "Inter", "Segoe UI", Arial, sans-serif;
-      letter-spacing: 0.36em;
-      text-indent: 0.36em;
-      color: #007bff;
+      height: auto;
+      display: block;
     }
   </style>
 </head>
@@ -237,14 +234,14 @@
         <img id="app-startup-splash__logo" src="icons/webicon.png" alt="PPC TODA" />
       </div>
       <div id="app-startup-splash__footer" aria-hidden="true">
-        <div id="app-startup-splash__footer-mark">SDV</div>
+        <img src="assets/assets/images/sdv-footer-lite.png" alt="" />
       </div>
     </div>
   </div>
 
   <script>
     (function () {
-      var APP_VERSION = "1.0.54+74";
+      var APP_VERSION = "1.0.55+75";
       var VERSION_STORAGE_KEY = "ppc-toda-app-version";
       var VERSION_CHECK_DELAY_MS = 10000;
       var bootstrapLoaded = false;
