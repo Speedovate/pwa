@@ -3,9 +3,44 @@
 import 'dart:html' as html;
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'dart:math' as math;
 import 'package:url_launcher/url_launcher.dart';
 
 String browserUserAgent() => html.window.navigator.userAgent.toLowerCase();
+
+int browserMaxTouchPoints() {
+  try {
+    final touchPoints = globalContext
+        .getProperty<JSObject>('navigator'.toJS)
+        .getProperty<JSNumber?>('maxTouchPoints'.toJS);
+    return touchPoints?.toDartInt ?? 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+double browserInnerWidth() => html.window.innerWidth?.toDouble() ?? 0;
+
+double browserScreenShortSide() {
+  final screenWidth = html.window.screen?.width?.toDouble() ?? 0;
+  final screenHeight = html.window.screen?.height?.toDouble() ?? 0;
+  if (screenWidth <= 0 || screenHeight <= 0) {
+    return 0;
+  }
+  return math.min(screenWidth, screenHeight);
+}
+
+bool isDesktopSiteOnPhoneBrowser() {
+  final shortSide = browserScreenShortSide();
+  final innerWidth = browserInnerWidth();
+  if (shortSide <= 0 || innerWidth <= 0) {
+    return false;
+  }
+  final looksPhoneSizedScreen = shortSide <= 500;
+  final touchCapable = browserMaxTouchPoints() > 0;
+  final desktopSizedViewport = innerWidth >= shortSide * 1.35;
+  return looksPhoneSizedScreen && touchCapable && desktopSizedViewport;
+}
 
 bool isHuaweiLikeBrowser() {
   final userAgent = browserUserAgent();
@@ -20,14 +55,7 @@ bool isIOSLikeBrowser() {
     return true;
   }
   if (userAgent.contains('macintosh')) {
-    try {
-      final touchPoints = globalContext
-          .getProperty<JSObject>('navigator'.toJS)
-          .getProperty<JSNumber?>('maxTouchPoints'.toJS);
-      return (touchPoints?.toDartInt ?? 0) > 1;
-    } catch (_) {
-      return false;
-    }
+    return browserMaxTouchPoints() > 1;
   }
   return false;
 }

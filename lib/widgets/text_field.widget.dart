@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:pwa/utils/browser_utils.dart';
 
 class TextFieldWidget extends StatefulWidget {
   final TextEditingController? controller;
@@ -76,9 +77,13 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
   bool isVisible = true;
   DateTime? _lastWebFieldTapAt;
   bool _webFocusRestorePending = false;
+  int _webFocusStabilizerToken = 0;
+
+  bool get _isDesktopSitePhoneWeb =>
+      kIsWeb && isDesktopSiteOnPhoneBrowser();
 
   bool get _shouldRestoreWebFocusAfterBlur {
-    if (!kIsWeb || widget.readOnly) {
+    if (!_isDesktopSitePhoneWeb || widget.readOnly) {
       return false;
     }
     final lastTapAt = _lastWebFieldTapAt;
@@ -86,7 +91,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
       return false;
     }
     return DateTime.now().difference(lastTapAt) <=
-        const Duration(milliseconds: 250);
+        const Duration(milliseconds: 1200);
   }
 
   void _handleFocusChange() {
@@ -111,11 +116,42 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
       }
       internalFocusNode.requestFocus();
     });
+    _scheduleWebFocusStabilizer();
+  }
+
+  void _scheduleWebFocusStabilizer() {
+    if (!_isDesktopSitePhoneWeb || widget.readOnly) {
+      return;
+    }
+    final scheduledAt = _lastWebFieldTapAt;
+    if (scheduledAt == null) {
+      return;
+    }
+    final token = ++_webFocusStabilizerToken;
+    const delays = <int>[0, 80, 180, 320, 520, 820];
+    for (final delayMs in delays) {
+      Future<void>.delayed(Duration(milliseconds: delayMs), () {
+        if (!mounted ||
+            token != _webFocusStabilizerToken ||
+            internalFocusNode.hasFocus ||
+            widget.readOnly) {
+          return;
+        }
+        final lastTapAt = _lastWebFieldTapAt;
+        if (lastTapAt == null ||
+            DateTime.now().difference(lastTapAt) >
+                const Duration(milliseconds: 1200)) {
+          return;
+        }
+        internalFocusNode.requestFocus();
+      });
+    }
   }
 
   void _handleTextFieldTap() {
-    if (kIsWeb) {
+    if (_isDesktopSitePhoneWeb) {
       _lastWebFieldTapAt = DateTime.now();
+      _scheduleWebFocusStabilizer();
     }
     widget.onTap?.call();
   }
@@ -188,7 +224,7 @@ class TextFieldWidgetState extends State<TextFieldWidget> {
       ),
       child: TextField(
         onTap: _handleTextFieldTap,
-        onTapOutside: kIsWeb ? (_) {} : null,
+        onTapOutside: _isDesktopSitePhoneWeb ? (_) {} : null,
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
         controller: widget.controller,

@@ -3,6 +3,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 String browserUserAgent() => '';
 
+int browserMaxTouchPoints() => 0;
+
+double browserInnerWidth() => 0;
+
+double browserScreenShortSide() => 0;
+
+bool isDesktopSiteOnPhoneBrowser() => false;
+
 bool isHuaweiLikeBrowser() => false;
 
 bool isIOSLikeBrowser() => false;
