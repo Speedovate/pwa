@@ -39,11 +39,130 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
+  <style>
+    /* Seasonal layer: enabled by the Philippine-time date check below. */
+    .halloween-decor {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    body.halloween-season .halloween-decor { display: block; }
+
+    body.halloween-season .hero-section {
+      background:
+        radial-gradient(circle at 50% 12%, rgba(255, 142, 31, 0.12), transparent 34%),
+        linear-gradient(180deg, #fffaf4 0%, #ffffff 45%);
+    }
+
+    .halloween-web {
+      position: absolute;
+      top: -8px;
+      width: clamp(120px, 18vw, 220px);
+      height: auto;
+      color: rgba(30, 19, 48, 0.27);
+      filter: drop-shadow(0 3px 5px rgba(31, 17, 48, 0.1));
+    }
+
+    .halloween-web--left { left: -8px; }
+
+    .halloween-web--right {
+      right: -8px;
+      transform: scaleX(-1);
+    }
+
+    .halloween-bat {
+      position: absolute;
+      left: -70px;
+      color: #261736;
+      line-height: 1;
+      opacity: 0;
+      filter: drop-shadow(0 3px 3px rgba(31, 17, 48, 0.18));
+      will-change: transform, opacity;
+    }
+
+    .halloween-bat--one {
+      top: 17%;
+      font-size: 25px;
+      animation: halloweenBatFlight 12s 1s linear infinite;
+    }
+
+    .halloween-bat--two {
+      top: 28%;
+      font-size: 18px;
+      animation: halloweenBatFlight 15s 6s linear infinite;
+    }
+
+    .halloween-bat--three {
+      top: 11%;
+      font-size: 15px;
+      animation: halloweenBatFlight 17s 9s linear infinite;
+    }
+
+    .halloween-pumpkins {
+      position: absolute;
+      left: clamp(12px, 3vw, 38px);
+      bottom: max(14px, env(safe-area-inset-bottom));
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      font-size: clamp(23px, 3vw, 34px);
+      filter: drop-shadow(0 5px 6px rgba(45, 23, 10, 0.18));
+      animation: halloweenPumpkinBob 3.2s ease-in-out infinite;
+    }
+
+    @keyframes halloweenPumpkinBob {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-4px) rotate(1deg); }
+    }
+
+    @keyframes halloweenBatFlight {
+      0% { opacity: 0; transform: translate3d(0, 18px, 0) rotate(-8deg); }
+      8%, 92% { opacity: 0.82; }
+      46% { transform: translate3d(52vw, -24px, 0) rotate(8deg); }
+      100% { opacity: 0; transform: translate3d(calc(100vw + 100px), 9px, 0) rotate(-4deg); }
+    }
+
+    @media (max-width: 600px) {
+      .halloween-web { width: 125px; }
+      .halloween-web--right { display: none; }
+      .halloween-pumpkins {
+        left: 10px;
+        bottom: max(9px, env(safe-area-inset-bottom));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .halloween-pumpkins { animation: none; }
+      .halloween-bat { display: none; }
+    }
+  </style>
+
 
 
 </head>
 
 <body>
+  <div class="halloween-decor" aria-hidden="true">
+    <svg class="halloween-web halloween-web--left" viewBox="0 0 220 220" fill="none" aria-hidden="true">
+      <path d="M4 4H216M4 4V216M4 4L198 198M4 4L213 89M4 4L89 213" stroke="currentColor" stroke-width="2"/>
+      <path d="M45 4C45 24 29 43 4 45M90 4C90 48 50 88 4 90M137 4C137 75 77 135 4 137M181 4C181 100 102 180 4 181" stroke="currentColor" stroke-width="2"/>
+      <path d="M37 37C52 30 65 17 70 4M37 37C30 52 17 65 4 70M71 71C101 57 122 31 126 4M71 71C57 101 31 122 4 126M105 105C145 88 174 49 180 4M105 105C88 145 49 174 4 180" stroke="currentColor" stroke-width="2"/>
+    </svg>
+    <svg class="halloween-web halloween-web--right" viewBox="0 0 220 220" fill="none" aria-hidden="true">
+      <path d="M4 4H216M4 4V216M4 4L198 198M4 4L213 89M4 4L89 213" stroke="currentColor" stroke-width="2"/>
+      <path d="M45 4C45 24 29 43 4 45M90 4C90 48 50 88 4 90M137 4C137 75 77 135 4 137M181 4C181 100 102 180 4 181" stroke="currentColor" stroke-width="2"/>
+      <path d="M37 37C52 30 65 17 70 4M37 37C30 52 17 65 4 70M71 71C101 57 122 31 126 4M71 71C57 101 31 122 4 126M105 105C145 88 174 49 180 4M105 105C88 145 49 174 4 180" stroke="currentColor" stroke-width="2"/>
+    </svg>
+    <span class="halloween-bat halloween-bat--one">🦇</span>
+    <span class="halloween-bat halloween-bat--two">🦇</span>
+    <span class="halloween-bat halloween-bat--three">🦇</span>
+    <div class="halloween-pumpkins"><span>🎃</span><span>🕯️</span></div>
+  </div>
+
   <button class="support-fab" onclick="openSupportModal()">
     <span class="material-icons" style="color: white; margin-right: 0;">support_agent</span>
   </button>
@@ -166,6 +285,27 @@
       sessionStorage.setItem("redirected", "true");
       openInBrowser();
     }
+
+    // Display every Oct 25 through Nov 2 in Philippine time.
+    // Rechecking keeps an already-open page accurate at the Nov 3 cutoff.
+    function updateHalloweenSeason() {
+      const manilaDateParts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Manila",
+        month: "numeric",
+        day: "numeric"
+      }).formatToParts(new Date());
+      const datePart = (type) => Number(
+        manilaDateParts.find((part) => part.type === type)?.value
+      );
+      const month = datePart("month");
+      const day = datePart("day");
+      const isHalloweenWeek = (month === 10 && day >= 25) || (month === 11 && day <= 2);
+
+      document.body.classList.toggle("halloween-season", isHalloweenWeek);
+    }
+
+    updateHalloweenSeason();
+    window.setInterval(updateHalloweenSeason, 60 * 1000);
   </script>
 
 
